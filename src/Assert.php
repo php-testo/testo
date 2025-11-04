@@ -190,6 +190,36 @@ final class Assert
     }
 
     /**
+     * Checks if a value is blank.
+     *
+     * Successful only for values representing absence of data:
+     * null, empty string, empty array or countable object with no elements.
+     *
+     * Unlike empty(), does not consider false, 0, and "0" as blank,
+     * since they represent valid data.
+     * @param mixed $actual The actual value to check for blank.
+     * @param string $message Short description about what exactly is being asserted.
+     * @throws AssertException when the assertion fails.
+     */
+    public static function blank(
+        mixed $actual,
+        string $message = '',
+    ): void {
+        if (
+            $actual === null || $actual === '' || $actual === [] || ($actual instanceof \Countable && \count($actual) === 0)
+        ) {
+            StaticState::log('Assert `blank`', $message);
+            return;
+        }
+        StaticState::fail(AssertException::compare(
+            null,
+            $actual,
+            $message,
+            'Failed asserting that `%2$s` does not contain any data',
+        ));
+    }
+
+    /**
      * Fails the test.
      *
      * Use this method to explicitly indicate that the test should end in failure.
