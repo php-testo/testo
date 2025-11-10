@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Testo\Render\Teamcity;
 
 use Testo\Render\Helper;
-use Testo\Sample\MultipleResult;
 use Testo\Test\Dto\CaseInfo;
 use Testo\Test\Dto\CaseResult;
 use Testo\Test\Dto\Status;
@@ -37,6 +36,22 @@ final class TeamcityLogger
      * Publishes test suite finished message using SuiteInfo.
      */
     public function suiteFinishedFromInfo(SuiteInfo $info): void
+    {
+        $this->publish(Formatter::suiteFinished($info->name));
+    }
+
+    /**
+     * Publishes test batch started as test suite (for DataProvider tests).
+     */
+    public function batchStartedFromInfo(TestInfo $info): void
+    {
+        $this->publish(Formatter::suiteStarted($info->name, $info->testDefinition->reflection));
+    }
+
+    /**
+     * Publishes test batch finished message (for DataProvider tests).
+     */
+    public function batchFinishedFromInfo(TestInfo $info): void
     {
         $this->publish(Formatter::suiteFinished($info->name));
     }
@@ -110,9 +125,9 @@ final class TeamcityLogger
      *
      * If the test has DataProvider (MultipleResult), starts it as a test suite.
      */
-    public function testStartedFromInfo(TestInfo $info, bool $captureStandardOutput = false): void
+    public function testStartedFromInfo(TestInfo $info, bool $captureStandardOutput = false, ?string $overrideName = null): void
     {
-        $this->publish(Formatter::testStarted($info->name, $captureStandardOutput, $info->testDefinition->reflection));
+        $this->publish(Formatter::testStarted($overrideName ?? $info->name, $captureStandardOutput, $info->testDefinition->reflection));
     }
 
     /**
@@ -154,58 +169,12 @@ final class TeamcityLogger
     }
 
     /**
-     * Handles test result and publishes appropriate message based on status.
-     *
-     * If test has MultipleResult (DataProvider), wraps individual results in test suite messages.
-     */
-    public function handleTestResult(TestResult $result, ?int $duration = null): void
-    {
-        $multipleResult = $result->getAttribute(MultipleResult::class);
-
-        if ($multipleResult instanceof MultipleResult) {
-            $this->handleDataProviderTest($result, $multipleResult, $duration);
-            return;
-        }
-
-        $this->handleSingleTestResult($result, $duration);
-    }
-
-    /**
-     * Handles test result with DataProvider (multiple runs).
-     *
-     * @param int<0, max>|null $duration Total duration for all runs
-     */
-    private function handleDataProviderTest(TestResult $result, MultipleResult $multipleResult, ?int $duration): void
-    {
-        // Start test suite for the DataProvider test
-        $this->publish(Formatter::suiteStarted($result->info->name, $result->info->testDefinition->reflection->getDeclaringClass()));
-
-        // Handle each individual data set run
-        $index = 0;
-        foreach ($multipleResult->results as $runKey => $dataSetResult) {
-            $dataSetSuffix = " with data set #{$index}";
-            $dataSetName = "Dataset {$index} [{$runKey}]";
-
-            // Start individual data set test: name without suffix, but locationHint with suffix
-            $this->publish(Formatter::testStarted($dataSetName, false, $result->info->testDefinition->reflection, $dataSetSuffix));
-
-            // Handle the result status for this data set
-            $this->handleSingleTestResult($dataSetResult, null, $dataSetName);
-
-            $index++;
-        }
-
-        // Finish test suite
-        $this->publish(Formatter::suiteFinished($result->info->name));
-    }
-
-    /**
      * Handles single test result based on status.
      *
      * @param int<0, max>|null $duration Duration in milliseconds
      * @param non-empty-string|null $overrideName Optional name to override test name
      */
-    private function handleSingleTestResult(TestResult $result, ?int $duration = null, ?string $overrideName = null): void
+    public function handleSingleTestResult(TestResult $result, ?int $duration = null, ?string $overrideName = null): void
     {
         $name = $overrideName ?? $result->info->name;
 

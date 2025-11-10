@@ -80,7 +80,6 @@ final class StubRunner
                 ],
             ),
         );
-        $app->getContainer()->bind(StdoutRenderer::class, TerminalInterceptor::class);
         return $app;
     }
 

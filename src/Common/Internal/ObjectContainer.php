@@ -8,6 +8,7 @@ use Internal\Destroy\Destroyable;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Testo\Common\Container;
+use Testo\Common\Factoriable;
 use Testo\Common\Inflector;
 use Yiisoft\Injector\Injector;
 
@@ -97,29 +98,25 @@ final class ObjectContainer implements Container
      */
     public function bind(string $id, \Closure|string|array|null $binding = null): void
     {
+        $binding ??= $id;
+
         if (\is_string($binding)) {
             \class_exists($binding) or throw new \InvalidArgumentException(
                 "Class `$binding` does not exist.",
             );
+            $id === $binding or \is_a($binding, $id, true) or throw new \InvalidArgumentException(
+                "Alias for `$id` must be instance of `$id`, `$binding` given.",
+            );
 
             /** @var class-string<T> $binding */
-            $binding = \is_a($binding, Factoriable::class, true)
-                ? fn(): object => $this->injector->invoke([$binding, 'create'])
-                : fn(): object => $this->injector->make($binding);
+            $binding = match (true) {
+                $id !== $binding => fn(): object => $this->get($binding),
+                \is_a($binding, Factoriable::class, true) => $binding::create(...),
+                default => fn(): object => $this->injector->make($binding),
+            };
         }
 
-        if ($binding !== null) {
-            $this->factory[$id] = $binding;
-            return;
-        }
-
-        (\class_exists($id) && \is_a($id, Factoriable::class, true)) or throw new \InvalidArgumentException(
-            "Class `$id` must have a factory or be a factory itself and implement `Factoriable`.",
-        );
-
-        /** @var \Closure(mixed ...): T $object */
-        $object = $id::create(...);
-        $this->factory[$id] = $object;
+        $this->factory[$id] = $binding;
     }
 
     public function destroy(): void

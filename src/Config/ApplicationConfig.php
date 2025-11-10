@@ -28,9 +28,13 @@ final class ApplicationConfig
         ],
 
         /**
-         * Services bindings configuration.
+         * List of plugins to load.
+         *
+         * @var list<class-string<PluginConfigurator>|PluginConfigurator>
          */
-        public readonly ServicesConfig $services = new ServicesConfig(),
+        public readonly array $plugins = [
+            DefaultServicesConfig::class,
+        ],
     ) {
         # Validate suite configs
         $suites === [] and throw new \InvalidArgumentException('At least one test suite must be defined.');

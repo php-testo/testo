@@ -93,8 +93,8 @@ final class Run extends Base
         OutputInterface $output,
     ): int {
         $input->getOption('teamcity')
-            ? $this->container->bind(StdoutRenderer::class, TeamcityInterceptor::class)
-            : $this->container->bind(StdoutRenderer::class, TerminalInterceptor::class);
+            ? $this->container->get(TeamcityInterceptor::class)->configure($this->container)
+            : $this->container->get(TerminalInterceptor::class)->configure($this->container);
 
         $result = $this->application->run();
 

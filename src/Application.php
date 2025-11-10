@@ -10,7 +10,7 @@ use Testo\Common\Internal\ObjectContainer;
 use Testo\Common\Path;
 use Testo\Config\ApplicationConfig;
 use Testo\Config\Internal\ConfigInflector;
-use Testo\Config\ServicesConfig;
+use Testo\Config\PluginConfigurator;
 use Testo\Test\Dto\RunResult;
 use Testo\Test\Dto\Status;
 use Testo\Test\Runner\SuiteRunner;
@@ -22,8 +22,8 @@ final class Application
         private readonly ObjectContainer $container,
     ) {
         $config = $container->get(ApplicationConfig::class);
-        $this->setServices($config->services);
         $this->container->set($config);
+        $this->applyPlugins($config->plugins);
     }
 
     /**
@@ -106,15 +106,15 @@ final class Application
     }
 
     /**
-     * Configures the container with the provided application services configuration.
+     * Apply plugin services to the container.
      *
-     * Registers core services and bindings.
+     * @param PluginConfigurator[]|class-string<PluginConfigurator> $plugins
      */
-    private function setServices(
-        ServicesConfig $config,
-    ): void {
-        foreach ($config as $id => $service) {
-            $this->container->bind($id, $service);
+    private function applyPlugins(array $plugins): void
+    {
+        foreach ($plugins as $plugin) {
+            ($plugin instanceof PluginConfigurator ? $plugin : $this->container->make($plugin))
+                ->configure($this->container);
         }
     }
 }

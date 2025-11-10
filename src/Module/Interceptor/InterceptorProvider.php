@@ -56,7 +56,6 @@ final class InterceptorProvider
             FilterInterceptor::class,
             new FilePostfixTestLocatorInterceptor(),
             new TestoAttributesLocatorInterceptor(),
-            StdoutRenderer::class,
             new InstantiateTestCase(),
             new AssertCollectorInterceptor(),
             AttributesInterceptor::class,

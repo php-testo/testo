@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Testo\Interceptor\TestCallInterceptor;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Attribute\RetryPolicy;
 use Testo\Interceptor\TestRunInterceptor;
 use Testo\Test\Dto\Status;
 use Testo\Test\Dto\TestInfo;
 use Testo\Test\Dto\TestResult;
+use Testo\Test\Event\Test\TestRetrying;
 
 /**
  * Interceptor that retries a test execution based on the provided retry policy.
@@ -19,6 +21,7 @@ final class RetryPolicyRunInterceptor implements TestRunInterceptor
 {
     public function __construct(
         private readonly RetryPolicy $options,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {}
 
     #[\Override]
@@ -29,6 +32,7 @@ final class RetryPolicyRunInterceptor implements TestRunInterceptor
 
         run:
         --$attempts;
+        $attempt = 1;
         /** @var TestResult $result */
         $result = $next($info);
 
@@ -36,6 +40,9 @@ final class RetryPolicyRunInterceptor implements TestRunInterceptor
             # Test failed, check if we can retry
             if ($attempts > 0) {
                 $isFlaky = true;
+                $this->eventDispatcher->dispatch(
+                    new TestRetrying($info, ++$attempt, $result),
+                );
                 goto run;
             }
 

@@ -26,12 +26,14 @@ final class Formatter
      * @param \ReflectionClass<object>|null $reflection Class reflection for location hint
      * @return non-empty-string
      */
-    public static function suiteStarted(string $name, ?\ReflectionClass $reflection = null): string
+    public static function suiteStarted(string $name, null|\ReflectionClass|\ReflectionFunctionAbstract $reflection = null): string
     {
         $attributes = ['name' => $name];
 
         if ($reflection !== null) {
-            $locationHint = self::caseLocationHint($reflection);
+            $locationHint = $reflection instanceof \ReflectionClass
+                ? self::caseLocationHint($reflection)
+                : self::testLocationHint($reflection);
             $locationHint !== null and $attributes['locationHint'] = $locationHint;
         }
 

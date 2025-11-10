@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Test\Runner;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Common\Filter;
 use Testo\Interceptor\TestCaseRunInterceptor;
 use Testo\Module\Interceptor\InterceptorProvider;
@@ -13,12 +14,17 @@ use Testo\Test\Dto\CaseResult;
 use Testo\Test\Dto\Status;
 use Testo\Test\Dto\TestInfo;
 use Testo\Test\Dto\TestResult;
+use Testo\Test\Event\TestCase\TestCaseFinished;
+use Testo\Test\Event\TestCase\TestCasePipelineFinished;
+use Testo\Test\Event\TestCase\TestCasePipelineStarting;
+use Testo\Test\Event\TestCase\TestCaseStarting;
 
 final class CaseRunner
 {
     public function __construct(
         private readonly TestRunner $testRunner,
         private readonly InterceptorProvider $interceptorProvider,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {}
 
     public function runCase(CaseInfo $info, Filter $filter): CaseResult
@@ -40,11 +46,17 @@ final class CaseRunner
                 'runTestCase',
             );
 
-        return $pipeline($info);
+        $this->eventDispatcher->dispatch(new TestCasePipelineStarting($info));
+        $result = $pipeline($info);
+        $this->eventDispatcher->dispatch(new TestCasePipelineFinished($info, $result));
+
+        return $result;
     }
 
     public function run(CaseInfo $info): CaseResult
     {
+        $this->eventDispatcher->dispatch(new TestCaseStarting($info));
+
         $results = [];
         $status = Status::Passed;
         foreach ($info->definition->tests->getTests() as $name => $testDefinition) {
@@ -69,9 +81,12 @@ final class CaseRunner
             }
         }
 
-        return new CaseResult(
+        $result = new CaseResult(
             results: $results,
             status: $status,
         );
+
+        $this->eventDispatcher->dispatch(new TestCaseFinished($info, $result));
+        return $result;
     }
 }

@@ -4,67 +4,133 @@ declare(strict_types=1);
 
 namespace Testo\Render;
 
-use Testo\Interceptor\TestRunInterceptor;
-use Testo\Interceptor\TestCaseRunInterceptor;
-use Testo\Interceptor\TestSuiteRunInterceptor;
+use Testo\Common\Container;
+use Testo\Config\EventListenerCollector;
+use Testo\Config\PluginConfigurator;
 use Testo\Render\Teamcity\TeamcityLogger;
-use Testo\Sample\MultipleResult;
-use Testo\Test\Dto\CaseInfo;
-use Testo\Test\Dto\CaseResult;
-use Testo\Test\Dto\SuiteInfo;
-use Testo\Test\Dto\SuiteResult;
 use Testo\Test\Dto\TestInfo;
-use Testo\Test\Dto\TestResult;
+use Testo\Test\Event\Test\TestBatchFinished;
+use Testo\Test\Event\Test\TestBatchStarting;
+use Testo\Test\Event\Test\TestDataSetFinished;
+use Testo\Test\Event\Test\TestDataSetStarting;
+use Testo\Test\Event\Test\TestPipelineFinished;
+use Testo\Test\Event\TestCase\TestCaseFinished;
+use Testo\Test\Event\TestCase\TestCaseStarting;
+use Testo\Test\Event\TestSuite\TestSuiteFinished;
+use Testo\Test\Event\TestSuite\TestSuiteStarting;
 
-final class TeamcityInterceptor implements
-    StdoutRenderer,
-    TestRunInterceptor,
-    TestCaseRunInterceptor,
-    TestSuiteRunInterceptor
+final class TeamcityInterceptor implements PluginConfigurator
 {
+    /**
+     * Tracks whether we're inside a DataProvider batch.
+     *
+     * @var array<non-empty-string, bool>
+     */
+    private array $isBatch = [];
+
     public function __construct(
         private readonly TeamcityLogger $logger,
     ) {}
 
-    public function runTest(TestInfo $info, callable $next): TestResult
+    public function configure(Container $container): void
     {
-        $start = \microtime(true);
-        /** @var TestResult $result */
-        $result = $next($info);
-        $duration = (int) \round((\microtime(true) - $start) * 1000);
+        $listeners = $container->get(EventListenerCollector::class);
 
-        # TODO: Refactor processing of MultipleResult
-        # Check if test has DataProvider (MultipleResult)
-        $multipleResult = $result->getAttribute(MultipleResult::class);
+        // Test Pipeline events (lifecycle of entire test through all interceptors)
+        // $listeners->addListener(TestPipelineStarting::class, $this->onTestPipelineStarting(...));
+        $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
 
-        if (!$multipleResult instanceof MultipleResult) {
-            # For regular tests, send testStarted before handling result
-            $this->logger->testStartedFromInfo($info);
+        // Test Batch events (for DataProvider)
+        $listeners->addListener(TestBatchStarting::class, $this->onTestBatchStarting(...));
+        $listeners->addListener(TestBatchFinished::class, $this->onTestBatchFinished(...));
+
+        // DataSet events (for individual datasets within DataProvider)
+        $listeners->addListener(TestDataSetStarting::class, $this->onTestDataSetStarting(...));
+        $listeners->addListener(TestDataSetFinished::class, $this->onTestDataSetFinished(...));
+
+        // TestCase events
+        $listeners->addListener(TestCaseStarting::class, $this->onTestCaseStarting(...));
+        $listeners->addListener(TestCaseFinished::class, $this->onTestCaseFinished(...));
+
+        // TestSuite events
+        $listeners->addListener(TestSuiteStarting::class, $this->onTestSuiteStarting(...));
+        $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
+    }
+
+    private static function getId(TestInfo $testInfo): string
+    {
+        return \spl_object_hash($testInfo->testDefinition);
+    }
+
+    private function onTestPipelineFinished(TestPipelineFinished $event): void
+    {
+        // Check if this test was inside a DataProvider batch
+        $id = self::getId($event->testInfo);
+        if (isset($this->isBatch[$id])) {
+            // DataProvider test - already handled in batch events
+            unset($this->isBatch[$id]);
+            return;
         }
 
-        $this->logger->handleTestResult($result, $duration);
-        return $result;
+        // Regular test without DataProvider - log it now
+        $this->logger->testStartedFromInfo($event->testInfo);
+        $duration = (int) $event->testResult->getAttribute('duration');
+        $this->logger->handleSingleTestResult($event->testResult, $duration);
     }
 
-    public function runTestCase(CaseInfo $info, callable $next): CaseResult
+    private function onTestBatchStarting(TestBatchStarting $event): void
     {
-        $this->logger->caseStartedFromInfo($info);
+        // Mark that we're inside a batch
+        $id = self::getId($event->testInfo);
+        $this->isBatch[$id] = true;
 
-        /** @var CaseResult $result */
-        $result = $next($info);
-
-        $this->logger->handleCaseResult($info, $result);
-        return $result;
+        // For DataProvider tests, start a test suite (wraps all data sets)
+        $this->logger->batchStartedFromInfo($event->testInfo);
     }
 
-    public function runTestSuite(SuiteInfo $info, callable $next): SuiteResult
+    private function onTestBatchFinished(TestBatchFinished $event): void
     {
-        $this->logger->suiteStartedFromInfo($info);
+        // For DataProvider tests, close the test suite
+        $this->logger->batchFinishedFromInfo($event->testInfo);
+    }
 
-        /** @var SuiteResult $result */
-        $result = $next($info);
-        $this->logger->handleSuiteResult($info, $result);
+    private function onTestDataSetStarting(TestDataSetStarting $event): void
+    {
+        // Send testStarted for individual dataset within DataProvider
+        $this->logger->testStartedFromInfo(
+            $event->testInfo,
+            overrideName: "Dataset #$event->dataSetIndex [$event->dataSetKey]",
+        );
+    }
 
-        return $result;
+    private function onTestDataSetFinished(TestDataSetFinished $event): void
+    {
+        // Handle individual dataset result
+        $duration = (int) $event->testResult->getAttribute('duration');
+        $this->logger->handleSingleTestResult(
+            $event->testResult,
+            $duration,
+            overrideName: "Dataset #$event->dataSetIndex [$event->dataSetKey]",
+        );
+    }
+
+    private function onTestCaseStarting(TestCaseStarting $event): void
+    {
+        $this->logger->caseStartedFromInfo($event->caseInfo);
+    }
+
+    private function onTestCaseFinished(TestCaseFinished $event): void
+    {
+        $this->logger->handleCaseResult($event->caseInfo, $event->caseResult);
+    }
+
+    private function onTestSuiteStarting(TestSuiteStarting $event): void
+    {
+        $this->logger->suiteStartedFromInfo($event->suiteInfo);
+    }
+
+    private function onTestSuiteFinished(TestSuiteFinished $event): void
+    {
+        $this->logger->handleSuiteResult($event->suiteInfo, $event->suiteResult);
     }
 }
