@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo;
 
+use Testo\Assert\DataType\AssertFloat;
 use Testo\Assert\DataType\AssertInt;
 use Testo\Assert\DataType\AssertString;
 use Testo\Assert\State\AssertException;
@@ -249,6 +250,21 @@ final class Assert
 
         StaticState::log('Assert type int for ' . Support::stringify($actual));
         return new AssertInt($actual);
+    }
+
+    /**
+     * Asserts that the given value is of `float` data type.
+     *
+     * @param mixed $actual The actual value to check for `float` data type.
+     * @throws AssertException when the assertion fails.
+     */
+    public static function float(
+        mixed $actual,
+    ): AssertFloat {
+        \is_float($actual) or StaticState::fail(AssertTypeFailure::create('float', $actual));
+
+        StaticState::log('Assert type int for ' . Support::stringify($actual));
+        return new AssertFloat($actual);
     }
 
     /**
