@@ -1,5 +1,63 @@
 # Changelog
 
+## [0.4.0](https://github.com/php-testo/testo/compare/0.3.0...0.4.0) (2025-11-18)
+
+
+### Features
+
+* **App:** Implement plugin configuration system for service bindings ([146b4b5](https://github.com/php-testo/testo/commit/146b4b5458b9b00ebb0a79c4dffe4ded1515a2b2))
+* **assert:** add `Assert::blank()` method ([#43](https://github.com/php-testo/testo/issues/43)) ([67bb937](https://github.com/php-testo/testo/commit/67bb937f70490bc8cdd145ef2e7084ef85a80c63))
+* **assert:** add `Assert::float`, numeric 'lessThan' and 'lessThanOrEqual' ([#49](https://github.com/php-testo/testo/issues/49)) ([caa677e](https://github.com/php-testo/testo/commit/caa677ec53ae608adddfd794911f02ba15be9ff5))
+* **assert:** add `Assert::int()` with `greaterThan` and `greaterThanOrEqual` ([a95ac13](https://github.com/php-testo/testo/commit/a95ac13f86fd7d04db72e2405ffd92565e50e457))
+* **assert:** add `Assert::string()`, `Assert::string()->contains()` methods ([010cab1](https://github.com/php-testo/testo/commit/010cab175d9aac830a73e0fb4b60805a34ecb179))
+* **Assert:** Add `Expect::leaks` ([14d5802](https://github.com/php-testo/testo/commit/14d5802899ee1e25a0de53bdd0e0c1b191c2f9b7))
+* **assert:** Add `notContains()` method to assert string absence ([dba4a12](https://github.com/php-testo/testo/commit/dba4a12dcad36791dcbd6f21fdbba0478f944653))
+* **assert:** add `NumericTrait` to store numeric assertions ([683ac2d](https://github.com/php-testo/testo/commit/683ac2d420f2bfefee983f5e30e1263a295dd340))
+* **assert:** add AssertJson API ([dc07ba0](https://github.com/php-testo/testo/commit/dc07ba0574655b91e4bae2c3ab23e0b5ecad41ec))
+* **assert:** add new assert Interfaces and methods for data types ([61b5e67](https://github.com/php-testo/testo/commit/61b5e670ac18ee93048bc97b7bf11cefb2bb70a8))
+* **Assert:** add new assertion methods for array and iterable types ([1b3e43d](https://github.com/php-testo/testo/commit/1b3e43d958bfe07acb217e72eb522ae87ae65f46))
+* **assert:** Extract ExpectedException interface; ([6b69628](https://github.com/php-testo/testo/commit/6b6962847e39d543a674b11fb5b810bdf39ae487))
+* **assert:** Update `Expect::exception()` API ([da047f5](https://github.com/php-testo/testo/commit/da047f56d2a6c4539903eb48ec60322c8ea6381d))
+* **DataProvider:** Support string method names in DataProvider attribute ([e785acd](https://github.com/php-testo/testo/commit/e785acde4a022cd475f7a788ec04b2251e1c576b))
+* **Events:** Add Event Dispatcher Implementation ([a3dc17c](https://github.com/php-testo/testo/commit/a3dc17ca50a3ceb9ed88accd5bbf03fd56f9641e))
+* **Events:** Add event dispatching for test dataset execution lifecycle ([be43918](https://github.com/php-testo/testo/commit/be439188edb97e9fbebaaeac6c447449276c7665))
+* **Events:** Add test case and test suite event classes ([4ff59ce](https://github.com/php-testo/testo/commit/4ff59ce87eb7a59af0ee7321b8ad8075867f58cc))
+* **Events:** Add Test events ([d7664d9](https://github.com/php-testo/testo/commit/d7664d94833a26b85baa191c45d2f880daf879e6))
+* **Events:** Integrate event dispatching in test and case runners ([94172e6](https://github.com/php-testo/testo/commit/94172e61b078d1eed6d04514f60c6128ed54da9a))
+* **Filter:** Add comprehensive filtering options for test execution ([fb7faf6](https://github.com/php-testo/testo/commit/fb7faf60dfb986f491c3671d7ebcbda322e2802a))
+* **Filter:** Enhance filtering capabilities with path and name matching ([1107064](https://github.com/php-testo/testo/commit/110706477889159d2318f8d37d2afbab1121e514))
+* **Path:** Add wildcard pattern matching ([d027c66](https://github.com/php-testo/testo/commit/d027c6654daae46b8d908dc5fdbc570904d38485))
+* **render:** Add stack trace filtering for cleaner error output ([f9239a2](https://github.com/php-testo/testo/commit/f9239a293c4a7550acf2ddabea29185c2f120291))
+* **SuiteProvider:** Implement filter functionality ([1111ee1](https://github.com/php-testo/testo/commit/1111ee1e3a017946a386bc2c051e1cfd895d4f17))
+* **Tokenizer:** Add `TokenizedFile::getMethodsFQN()` ([0fd3a84](https://github.com/php-testo/testo/commit/0fd3a847e72ff8ca0a88ac10543e8508c2ac066a))
+
+
+### Bug Fixes
+
+* **assert:** Update type assertion methods to use `validateAndCreate()` ([c6f44ec](https://github.com/php-testo/testo/commit/c6f44ecc4ac0cf26f0b37bba3bcbc211219766c1))
+* **renderer:** Add proper DataProvider support in Terminal renderer ([3de7ddd](https://github.com/php-testo/testo/commit/3de7ddd463b728136c3b45b9d853ba74cf671e2e))
+
+
+### Documentation
+
+* Add documentation about Event System ([58a840b](https://github.com/php-testo/testo/commit/58a840b66b53e6141dc859a92dcda7e70e32e68d))
+* Add event naming convention documentation ([b4d5be7](https://github.com/php-testo/testo/commit/b4d5be73de3cbc53d2b7cae705cd5a7b340068f1))
+* **cli, filter:** Add CLI and filtering documentation ([5913884](https://github.com/php-testo/testo/commit/59138844479c849cfcefc8eb3ca4c6e01601dcc7))
+
+
+### Code Refactoring
+
+* **assert:** Change constructors to public and rename `create()` methods to `validateAndCreate()` ([3c61a37](https://github.com/php-testo/testo/commit/3c61a37a94004529932af484c434e275962bd6e8))
+* **assert:** Explode interfaces and implementation; ([a344c00](https://github.com/php-testo/testo/commit/a344c00d23117414d418f52bdf319bb47bf3d88d))
+* **Assert:** Move `Assert::exception` and `::leaks` methods into `Expect::exception` and `Expect::notLeaks` ([b1e9fb5](https://github.com/php-testo/testo/commit/b1e9fb535cef6a88e9a75e38ad43d1eb88cbae05))
+* **Assert:** Polish `Assert::string()` ([5ecb5dc](https://github.com/php-testo/testo/commit/5ecb5dc757a0e134036cbfbf5aaf45cb4e1cf5c8))
+* **assert:** Rename `withNoPrevious()` to `withoutPrevious()` ([027f714](https://github.com/php-testo/testo/commit/027f714464639597283884c524e285949d5f8da3))
+* **Container:** Fix aliases resolving in container; ([8805e9a](https://github.com/php-testo/testo/commit/8805e9ae0d3e6e10a949d1d1f7e91db92a19a596))
+* **Events:** Rename `EventDispatcher`  to `EventListenerDispatcher` ([01bb202](https://github.com/php-testo/testo/commit/01bb202168c30d4206565cee2f4fa30255a054c6))
+* **Render:** Add compact throwable formatting in Terminal ([f872a68](https://github.com/php-testo/testo/commit/f872a68f5f39f20169d4f9d8d4f00c9c699e6997))
+* **renderer:** Migrate Teamcity renderer to events ([3e5c58d](https://github.com/php-testo/testo/commit/3e5c58dac051c131c2a16922dd7df46f7c5cd00a))
+* **renderer:** Migrate Terminal renderer to events ([#46](https://github.com/php-testo/testo/issues/46)) ([23c05bb](https://github.com/php-testo/testo/commit/23c05bbc99c21733c79167a6ecdf864412b090ec))
+
 ## [0.3.0](https://github.com/php-testo/testo/compare/0.2.0...0.3.0) (2025-11-02)
 
 
