@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.0](https://github.com/php-testo/testo/compare/0.4.0...0.5.0) (2025-12-02)
+
+
+### Features
+
+* Add tests Invoker ([3fd1bdb](https://github.com/php-testo/testo/commit/3fd1bdbd8915c6fba578d6de9128376f26e55a43))
+
+
+### Bug Fixes
+
+* **TerminalLogger:** add visual output for DataProvider in terminal mode ([275336a](https://github.com/php-testo/testo/commit/275336a745f18c29704e0e27ab573af34cf9f27a))
+
+
+### Code Refactoring
+
+* rename interceptor classes to renderer for clarity ([81e70e3](https://github.com/php-testo/testo/commit/81e70e3a0c245a13dde506b029ae969982a228d4))
+* Use `internal/testo` package instead of local implementation ([fac277b](https://github.com/php-testo/testo/commit/fac277b695bd768f230130dee18858228d8f8cd6))
+
 ## [0.4.0](https://github.com/php-testo/testo/compare/0.3.0...0.4.0) (2025-11-18)
 
 
