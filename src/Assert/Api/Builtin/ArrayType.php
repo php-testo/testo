@@ -16,13 +16,12 @@ interface ArrayType extends IterableType
     /**
      * Asserts that the array contains given key.
      *
-     * @param mixed $key The key to check for in the array.
+     * @param int|string $key The key to check for in the array.
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      *
-     * @deprecated To be implemented
      */
-    public function hasKey(mixed $key, string $message = ''): self;
+    public function hasKey(int|string $key, string $message = ''): self;
 
     /**
      * Asserts that the array is a list.
@@ -33,7 +32,6 @@ interface ArrayType extends IterableType
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      *
-     * @deprecated To be implemented
      */
     public function isList(string $message = ''): self;
 }

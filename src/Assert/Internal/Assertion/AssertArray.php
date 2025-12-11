@@ -13,7 +13,7 @@ use Testo\Assert\StaticState;
 use Testo\Assert\Support;
 
 /**
- * Assertion utilities for iterables.
+ * Assertion utilities for arrays.
  *
  * @internal
  */
@@ -27,11 +27,11 @@ class AssertArray implements ArrayType
     ) {}
 
     /**
-     * Validate that the given value is a float and return an AssertFloat instance.
+     * Validate that the given value is an array and return an AssertArray instance.
      *
-     * @param mixed $value The value to be asserted as float.
-     * @return self An instance of AssertFloat.
-     * @throws AssertTypeFailure when the value is not a float.
+     * @param mixed $value The value to be asserted as array.
+     *
+     * @throws AssertTypeFailure when the value is not an array.
      */
     public static function validateAndCreate(mixed $value): self
     {
@@ -41,18 +41,45 @@ class AssertArray implements ArrayType
         return new self($value, $parent);
     }
 
-    /**
-     * Asserts that the array contains given key.
-     * @param string $message Optional message for the assertion.
-     * @throws AssertException when the assertion fails.
-     */
-    public function hasKey(mixed $key, string $message = ''): self
+    #[\Override]
+    public function hasKey(int|string $key, string $message = ''): self
     {
-        throw new \LogicException('Not implemented yet');
+        if (\array_key_exists($key, $this->value)) {
+            $this->parent->log(
+                \sprintf(
+                    'Assert has key: %s.',
+                    Support::stringify($key),
+                ),
+            );
+            return $this;
+        }
+        $this->parent->fail(
+            AssertException::fail(
+                \sprintf(
+                    'Failed to assert that array %s has key %s.',
+                    Support::stringify($this->value),
+                    Support::stringify($key),
+                ),
+            ),
+        );
     }
 
+    #[\Override]
     public function isList(string $message = ''): ArrayType
     {
-        throw new \LogicException('Not implemented yet');
+        if (\array_is_list($this->value)) {
+            $this->parent->log('Assert array is list.');
+
+            return $this;
+        }
+
+        $this->parent->fail(
+            AssertException::fail(
+                \sprintf(
+                    'Failed to assert that array %s is a list.',
+                    Support::stringify($this->value),
+                ),
+            ),
+        );
     }
 }

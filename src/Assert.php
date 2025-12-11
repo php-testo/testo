@@ -17,6 +17,7 @@ use Testo\Assert\Internal\Assertion\AssertInt;
 use Testo\Assert\Internal\Assertion\AssertJson;
 use Testo\Assert\Internal\Assertion\AssertObject;
 use Testo\Assert\Internal\Assertion\AssertString;
+use Testo\Assert\Internal\Assertion\AssertArray;
 use Testo\Assert\State\AssertException;
 use Testo\Assert\State\AssertTypeFailure;
 use Testo\Assert\StaticState;
@@ -305,12 +306,10 @@ final class Assert
      * Asserts that the given value is of `array` data type.
      *
      * @throws AssertTypeFailure
-     *
-     * @deprecated To be implemented
      */
     public static function array(mixed $actual): ArrayType
     {
-        throw new \LogicException('Not implemented yet');
+        return AssertArray::validateAndCreate($actual);
     }
 
     /**
