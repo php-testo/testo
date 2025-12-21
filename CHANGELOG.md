@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.6.0](https://github.com/php-testo/testo/compare/0.5.0...0.6.0) (2025-12-21)
+
+
+### Features
+
+* **assert:** Add `CompositeRecord`; ([498b50b](https://github.com/php-testo/testo/commit/498b50bc2c199642fa3e66fc6b211149f8f2e6bb))
+* **assert:** implement `AssertArray` methods ([#57](https://github.com/php-testo/testo/issues/57)) ([c33d236](https://github.com/php-testo/testo/commit/c33d2367a443336b6c3673ea004670f3246043e9))
+* **assert:** implement `AssertIterable` methods ([aeb4a1d](https://github.com/php-testo/testo/commit/aeb4a1ddb442d8e8b1ae1c1bce8747484cf83bc6))
+* **assert:** implement additional methods for iterable assertions; ([c2df3d8](https://github.com/php-testo/testo/commit/c2df3d83c1fdafdea3dc915d0ad97d7be23767da))
+
+
+### Code Refactoring
+
+* **assert:** Add `Assertion` interface; ([b49ab89](https://github.com/php-testo/testo/commit/b49ab89ffb9b781b38650e7cc01bfbb526c4ff27))
+* **assert:** Add `Expectation` interface; ([c1abbb7](https://github.com/php-testo/testo/commit/c1abbb71dbf40e1358969dfc172e61b1577d3c19))
+* **assert:** Normalize interfaces signature and messages ([d213627](https://github.com/php-testo/testo/commit/d213627d18cc7a707381f0e9b150d93ae7290d58))
+* **assert:** Replace `AssertTypeSuccess` with `AssertionComposite` in assertion classes ([7d939f6](https://github.com/php-testo/testo/commit/7d939f6f3b8bf8bcae5a27ceccf503f5232e1cf0))
+* **assert:** Replace AssertException with Fail in failure handling ([bd37519](https://github.com/php-testo/testo/commit/bd37519c56c29d44e61b33d200d5558b6900207b))
+* **assert:** Update namespace for Assertion and Expectation classes; ([f8859b5](https://github.com/php-testo/testo/commit/f8859b511a3585663fd5750702c8510c1694aef6))
+
 ## [0.5.0](https://github.com/php-testo/testo/compare/0.4.0...0.5.0) (2025-12-02)
 
 
