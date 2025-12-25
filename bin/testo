@@ -46,10 +46,10 @@ use Testo\Common\Command;
     $application = new Application();
     $application->setCommandLoader(
         new FactoryCommandLoader([
-            Command\Run::getDefaultName() => static fn() => new Command\Run(),
+            'run' => static fn() => new Command\Run(),
         ]),
     );
-    $application->setDefaultCommand(Command\Run::getDefaultName(), false);
+    $application->setDefaultCommand('run', false);
     $application->setVersion(Info::version());
     $application->setName(Info::NAME);
     $application->run();
