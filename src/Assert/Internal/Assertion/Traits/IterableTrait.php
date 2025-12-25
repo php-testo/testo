@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Assert\Internal\Assertion\Traits;
 
 use Testo\Assert\State\Assertion\AssertionComposite;
+use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Assert\Support;
 
 /**
@@ -31,6 +32,25 @@ trait IterableTrait
             reason: 'element not found',
             context: $message,
         );
+    }
+
+    #[\Override]
+    public function every(callable $callback, string $message = ''): static
+    {
+        $str = 'every element matches callback';
+        foreach ($this->value as $key => $item) {
+            if (! $callback($item)) {
+                throw $this->parent->fail(
+                    assertion: $str,
+                    reason: "element at `{$key}` failed: `" . Support::stringify($item) . '`',
+                    context: $message,
+                );
+            }
+        }
+
+        $this->parent->success($str);
+
+        return $this;
     }
 
     #[\Override]
