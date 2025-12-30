@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.2](https://github.com/php-testo/testo/compare/0.6.1...0.6.2) (2025-12-30)
+
+
+### Documentation
+
+* **sample:** Add documentation for Sample module ([#63](https://github.com/php-testo/testo/issues/63)) ([d726b0e](https://github.com/php-testo/testo/commit/d726b0e1035759f08d66fb6c2ccd04c8832a6a8a))
+
+
+### Code Refactoring
+
+* Enhance inline test functionality ([#63](https://github.com/php-testo/testo/issues/63)) ([d726b0e](https://github.com/php-testo/testo/commit/d726b0e1035759f08d66fb6c2ccd04c8832a6a8a))
+
 ## [0.6.1](https://github.com/php-testo/testo/compare/0.6.0...0.6.1) (2025-12-30)
 
 
