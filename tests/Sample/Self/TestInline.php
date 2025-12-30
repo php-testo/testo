@@ -21,6 +21,7 @@ final class TestInline
     #[\Testo\Sample\TestInline(arguments: [])]
     public function void(): void {}
 
+    #[\Testo\Sample\TestInline(arguments: ['b' => 'foo', 'a' => 'bar'], result: 'bar-foo')]
     #[\Testo\Sample\TestInline(arguments: ['foo', 'bar'], result: 'foo-bar')]
     public function concat(string $a, string $b): string
     {

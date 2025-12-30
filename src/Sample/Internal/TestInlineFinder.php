@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Testo\Sample\Internal;
 
-use Testo\Attribute\Test;
 use Testo\Interceptor\CaseLocatorInterceptor;
 use Testo\Interceptor\FileLocatorInterceptor;
 use Testo\Interceptor\Reflection\Reflection;
@@ -22,9 +21,9 @@ final class TestInlineFinder implements FileLocatorInterceptor, CaseLocatorInter
     /** @var \Closure(TestInfo): mixed Invoker for the test method. */
     private readonly \Closure $invoker;
 
-    public function __construct()
+    public function __construct(InlineTestInvoker $invoker)
     {
-        $this->invoker = (new InlineTestInvoker())(...);
+        $this->invoker = $invoker(...);
     }
 
     #[\Override]
