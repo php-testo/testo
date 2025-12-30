@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Sample\Self;
 
-use Testo\Attribute\Test;
 use Testo\Expect;
 
 /**
@@ -17,5 +16,14 @@ final class TestInline
     public function sum(int $a, int $b): int
     {
         return $a + $b;
+    }
+
+    #[\Testo\Sample\TestInline(arguments: [])]
+    public function void(): void {}
+
+    #[\Testo\Sample\TestInline(arguments: ['foo', 'bar'], result: 'foo-bar')]
+    public function concat(string $a, string $b): string
+    {
+        return $a . '-' . $b;
     }
 }

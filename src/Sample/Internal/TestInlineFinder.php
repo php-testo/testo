@@ -19,8 +19,8 @@ use Testo\Test\Dto\TestInfo;
  */
 final class TestInlineFinder implements FileLocatorInterceptor, CaseLocatorInterceptor
 {
-    /** @var callable(TestInfo): mixed Invoker for the test method. */
-    private readonly \CLosure $invoker;
+    /** @var \Closure(TestInfo): mixed Invoker for the test method. */
+    private readonly \Closure $invoker;
 
     public function __construct()
     {
@@ -63,7 +63,7 @@ final class TestInlineFinder implements FileLocatorInterceptor, CaseLocatorInter
         // Implement a lazy case definition
         $case = null;
         foreach ($file->functions as $function) {
-            if (Reflection::fetchFunctionAttributes($function, attributeClass: Test::class)) {
+            if (Reflection::fetchFunctionAttributes($function, attributeClass: TestInline::class)) {
                 if ($case === null) {
                     $case = $file->cases->define(null, $file);
                     $case->invoker = $this->invoker;

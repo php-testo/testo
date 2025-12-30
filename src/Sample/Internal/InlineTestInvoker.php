@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace Testo\Sample\Internal;
 
 use Testo\Assert;
+use Testo\Sample\Exception\TestInlineAttributeMissingException;
 use Testo\Sample\TestInline;
 use Testo\Test\Dto\TestInfo;
 
-class InlineTestInvoker
+final class InlineTestInvoker
 {
-    public function __construct() {}
-
     public function __invoke(TestInfo $info): mixed
     {
         $attr = $info->getAttribute(TestInline::class);
-        \assert($attr instanceof TestInline);
+        $attr instanceof TestInline or throw TestInlineAttributeMissingException::fromTestInfo($info);
 
         # Execute the method
         $result = $info->caseInfo->instance === null
