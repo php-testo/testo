@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.1](https://github.com/php-testo/testo/compare/0.6.0...0.6.1) (2025-12-30)
+
+
+### Features
+
+* **assert:** Add `every()` assertion method for iterable ([#59](https://github.com/php-testo/testo/issues/59)) ([70f6b36](https://github.com/php-testo/testo/commit/70f6b3655f33afa7c2a6022f25e08a246a7c2e7c))
+* **assert:** implement `AssertObject` methods ([d1b0ad3](https://github.com/php-testo/testo/commit/d1b0ad3fe3503889d22b4fc4f8d6bcd5ae3d14d5))
+* **interceptors:** Add InterceptorOptions with order and ConflictPolicy ([0f569e6](https://github.com/php-testo/testo/commit/0f569e68dbe74ca78dbed5c83a7317a1d19f7700))
+* **tests:** Implement inline test functionality with TestInline attribute ([a75e8c2](https://github.com/php-testo/testo/commit/a75e8c2969d07c3bcd475f67a3ae91c624a6def7))
+
+
+### Bug Fixes
+
+* symfony console 8 support ([#60](https://github.com/php-testo/testo/issues/60)) ([6180ca7](https://github.com/php-testo/testo/commit/6180ca7f20a8a289b14705fd07cabe6e0053aa38))
+
 ## [0.6.0](https://github.com/php-testo/testo/compare/0.5.0...0.6.0) (2025-12-21)
 
 
