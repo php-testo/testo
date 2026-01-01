@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.3](https://github.com/php-testo/testo/compare/0.6.2...0.6.3) (2026-01-01)
+
+
+### Features
+
+* **Teamcity:** Expose `Assertion History` for every test ([4d248b8](https://github.com/php-testo/testo/commit/4d248b88d336b400245b2cca2992bbd7e152d7a3))
+
+
+### Code Refactoring
+
+* Inject Attributed interceptors into main pipeline with order ([7121981](https://github.com/php-testo/testo/commit/712198114e0ab860c168ff2aa78bf63b47d7c271))
+
 ## [0.6.2](https://github.com/php-testo/testo/compare/0.6.1...0.6.2) (2025-12-30)
 
 
