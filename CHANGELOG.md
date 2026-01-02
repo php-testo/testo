@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.4](https://github.com/php-testo/testo/compare/0.6.3...0.6.4) (2026-01-02)
+
+
+### Bug Fixes
+
+* Change autoloading paths priority ([#75](https://github.com/php-testo/testo/issues/75)) ([3644595](https://github.com/php-testo/testo/commit/3644595164891e4e37bf2a4e4365e4440fb641a7))
+
 ## [0.6.3](https://github.com/php-testo/testo/compare/0.6.2...0.6.3) (2026-01-01)
 
 
