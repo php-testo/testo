@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.5](https://github.com/php-testo/testo/compare/0.6.4...0.6.5) (2026-01-05)
+
+
+### Features
+
+* **Filters:** Add DataProvider filtering by provider and dataset indices ([3541116](https://github.com/php-testo/testo/commit/3541116a48cc6e8b7774b25ed3bd61e51bfd275c))
+* **Sample:** Add `DataSet` attribute ([#70](https://github.com/php-testo/testo/issues/70)) ([ea0b5ea](https://github.com/php-testo/testo/commit/ea0b5ea41fcda6bcd0d164e441725b87955924cb))
+* **Sample:** Support `DataPointer` filter in Data Providers ([cc21b56](https://github.com/php-testo/testo/commit/cc21b56a94cce394e3b8fa730790d9fa78318046))
+
+
+### Bug Fixes
+
+* **DefinitionLocator:** Include file if other class loaders failed ([0c68d17](https://github.com/php-testo/testo/commit/0c68d17aad4406f8e282f97569ba5217414f3a6a))
+* **Teamcity:** Correct order of test finish and warning messages in logger ([50ca951](https://github.com/php-testo/testo/commit/50ca9512ac153e20bc670710f45ef53e9c167e99))
+
 ## [0.6.4](https://github.com/php-testo/testo/compare/0.6.3...0.6.4) (2026-01-02)
 
 
