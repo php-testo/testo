@@ -32,6 +32,18 @@ final class TestoAttributesLocatorInterceptor implements FileLocatorInterceptor,
                 continue;
             }
 
+            // Check if the class has attribute Test, if so define a case for all its public methods
+            if (Reflection::fetchClassAttributes($class, attributeClass: Test::class) !== []) {
+                foreach ($class->getMethods() as $method) {
+                    if ($method->isPublic()) {
+                        $file->cases->define($class, $file)->tests->define($method);
+                    }
+                }
+
+                continue;
+            }
+
+            // Otherwise, define a test for each public method with attribute Test
             foreach ($class->getMethods() as $method) {
                 if ($method->isPublic() && Reflection::fetchFunctionAttributes($method, attributeClass: Test::class)) {
                     $file->cases->define($class, $file)->tests->define($method);

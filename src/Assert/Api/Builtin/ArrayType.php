@@ -22,6 +22,14 @@ interface ArrayType extends IterableType
     public function hasKeys(int|string ...$keys): static;
 
     /**
+     * Asserts that the array does not contain given keys.
+     *
+     * @param int|string ...$keys The keys to check for non-existence in the array.
+     * @throws AssertionException when the assertion fails.
+     */
+    public function doesNotHaveKeys(int|string ...$keys): static;
+
+    /**
      * Asserts that the array is a list.
      *
      * A list is an array with sequential integer keys starting from 0.

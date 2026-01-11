@@ -71,6 +71,37 @@ class AssertArray implements ArrayType
     }
 
     #[\Override]
+    public function doesNotHaveKeys(string|int ...$keys): static
+    {
+        if ($keys === []) {
+            return $this;
+        }
+
+        $foundKeys = [];
+        foreach ($keys as $k => $key) {
+            $keys[$k] = "`$key`";
+            if (!\array_key_exists($key, $this->value)) {
+                continue;
+            }
+
+            $foundKeys[] = "`$key`";
+        }
+
+        $m = \count($keys) === 1 ? '' : 's';
+        $str = "does not have key$m " . \implode(', ', $keys);
+        if ($foundKeys === []) {
+            $this->parent->success($str);
+            return $this;
+        }
+
+        $m = \count($foundKeys) === 1 ? '' : 's';
+        throw $this->parent->fail(
+            assertion: $str,
+            reason: "found key$m: " . \implode(', ', $foundKeys),
+        );
+    }
+
+    #[\Override]
     public function isList(string $message = ''): static
     {
         if (\array_is_list($this->value)) {
