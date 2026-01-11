@@ -81,8 +81,6 @@ final class TestoAttributesLocatorInterceptorTest
 
         Assert::same(TestClassWithClassLevelAttribute::class, $case->reflection->name);
 
-        Assert::string(TestClassWithClassLevelAttribute::class);
-
         Assert::array($tests)
             ->hasCount(2)
             ->hasKeys('methodOne', 'methodTwo')
