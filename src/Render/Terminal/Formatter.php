@@ -320,11 +320,14 @@ final class Formatter
             ? Style::dim(" ({$item->duration}ms)")
             : '';
 
-        $descriptionStr = $item->description !== ''
-            ? Style::dim(" [{$item->description}]")
-            : '';
+        $result = "{$indent}{$symbol} {$item->name}{$durationStr}\n";
 
-        return "{$indent}{$symbol} {$item->name}{$descriptionStr}{$durationStr}\n";
+        if ($item->description !== '') {
+            $descriptionStr = Style::dim("{$item->description}");
+            $result .= "{$indent}  {$descriptionStr}\n";
+        }
+
+        return $result;
     }
 
     /**

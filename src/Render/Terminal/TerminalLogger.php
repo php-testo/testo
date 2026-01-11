@@ -187,6 +187,7 @@ final class TerminalLogger
             status: $result->status,
             duration: $duration,
             indentLevel: $this->currentIndentLevel,
+            description: (string) $result->getAttribute('description'),
         );
 
         echo Formatter::formatRun($item, $this->format);

@@ -27,13 +27,14 @@ final class TestRunner
     public function runTest(TestInfo $info): TestResult
     {
         $this->eventDispatcher->dispatch(new TestPipelineStarting($info));
+        $description = $info->testDefinition->getDescription();
 
         try {
             # Build interceptors pipeline
             $interceptors = $this->interceptorProvider->fromConfig(TestRunInterceptor::class);
 
             $result = Pipeline::prepare(...$interceptors)->with(
-                function (TestInfo $info): TestResult {
+                function (TestInfo $info) use ($description): TestResult {
                     $this->eventDispatcher->dispatch(new TestStarting($info));
 
                     try {
@@ -47,6 +48,7 @@ final class TestRunner
                             result: $executionResult,
                             attributes: [
                                 'duration' => (int) \round($duration * 1000),
+                                'description' => $description,
                             ],
                         );
                     } catch (\Throwable $throwable) {
@@ -58,6 +60,7 @@ final class TestRunner
                             failure: $throwable,
                             attributes: [
                                 'duration' => (int) \round($duration * 1000),
+                                'description' => $description,
                             ],
                         );
                     }
@@ -73,6 +76,9 @@ final class TestRunner
                 info: $info,
                 status: Status::Aborted,
                 failure: new PipelineFailure('Error during test execution pipeline.', previous: $e),
+                attributes: [
+                    'description' => $description,
+                ],
             );
         } finally {
             $this->eventDispatcher->dispatch(new TestPipelineFinished($info, $result));
