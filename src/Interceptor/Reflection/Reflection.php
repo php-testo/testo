@@ -49,7 +49,7 @@ final class Reflection
      *
      * @template T
      *
-     * @param class-string $class
+     * @param \ReflectionClass|class-string $class
      * @param bool $includeParents Whether to include attributes from parent classes.
      * @param bool $includeTraits Whether to include attributes from traits.
      * @param class-string<T>|null $attributeClass If provided, only attributes of this class will be returned.
