@@ -46,7 +46,7 @@ final class ReflectionFactory implements TestCaseFactory
     public function create(\ReflectionClass $class, array $args = []): object
     {
         if ($class->hasMethod('__construct') && $class->getMethod('__construct')->isPublic()) {
-            return $class->newInstance($args);
+            return $class->newInstanceArgs($args);
         }
 
         return $class->newInstanceWithoutConstructor();
