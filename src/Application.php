@@ -15,41 +15,40 @@ use Testo\Test\Dto\RunResult;
 use Testo\Test\Dto\Status;
 use Testo\Test\Runner\SuiteRunner;
 use Testo\Test\SuiteProvider;
+use Testo\Test\TestCaseFactory;
+use Testo\Test\Factory;
 
 final class Application
 {
     private function __construct(
         private readonly ObjectContainer $container,
+        ?TestCaseFactory $testCaseFactory = null,
     ) {
         $config = $container->get(ApplicationConfig::class);
         $this->container->set($config);
         $this->applyPlugins($config->plugins);
+
+        $this->container->set(
+            service: $testCaseFactory ?? new Factory\ReflectionFactory(),
+            id: TestCaseFactory::class,
+        );
     }
 
-    /**
-     * Create the application instance with the provided configuration.
-     */
     public static function createFromConfig(
         ApplicationConfig $config,
+        ?TestCaseFactory $testCaseFactory = null,
     ): self {
         $container = new ObjectContainer();
         $container->set($config);
-        return new self($container);
+        return new self($container, $testCaseFactory);
     }
 
-    /**
-     * Create the application instance from ENV, CLI arguments, and config file.
-     *
-     * @param Path|null $configFile Path to config file
-     * @param array<string, mixed> $inputOptions Command-line options
-     * @param array<string, mixed> $inputArguments Command-line arguments
-     * @param array<string, string> $environment Environment variables
-     */
     public static function createFromInput(
         ?Path $configFile = null,
         array $inputOptions = [],
         array $inputArguments = [],
         array $environment = [],
+        ?TestCaseFactory $testCaseFactory = null,
     ): self {
         $container = new ObjectContainer();
         $args = [
@@ -77,7 +76,7 @@ final class Application
         $container->addInflector($container->make(ConfigInflector::class, $args));
         $container->bind(Filter::class, Filter::fromScope(...));
 
-        return new self($container);
+        return new self($container, $testCaseFactory);
     }
 
     public function run(?Filter $filter = null): RunResult
