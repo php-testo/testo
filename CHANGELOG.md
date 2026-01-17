@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.6](https://github.com/php-testo/testo/compare/0.6.5...0.6.6) (2026-01-17)
+
+
+### Features
+
+* Add `CaseInstance` interface and default implementation ([#78](https://github.com/php-testo/testo/issues/78)) ([754f351](https://github.com/php-testo/testo/commit/754f351e49c7f08f57272fe49fc66697a188ef96))
+* **Assert:** Add `AssertArray::doesNotHaveKeys()` method ([58feee0](https://github.com/php-testo/testo/commit/58feee0572df1f4ef2d6ac4e64f2cbbcfb60b90f))
+* **Assert:** Add `Iterable->notEmpty()` assertion ([f2d36c1](https://github.com/php-testo/testo/commit/f2d36c1207eb9ec0f4a7df5ed754529fe4ba08be))
+* Classes marked with #[Test] now treat all public methods as tests ([#85](https://github.com/php-testo/testo/issues/85)) ([58feee0](https://github.com/php-testo/testo/commit/58feee0572df1f4ef2d6ac4e64f2cbbcfb60b90f))
+* **Render:** Always render test description in CLI ([#87](https://github.com/php-testo/testo/issues/87)) ([71a54d8](https://github.com/php-testo/testo/commit/71a54d82187f509b33448584031bd2f21952b612))
+* **Sample:** Add `name` parameter to DataSet attribute ([#70](https://github.com/php-testo/testo/issues/70)) ([ff6bd80](https://github.com/php-testo/testo/commit/ff6bd80b8f98d3ae2c0cb2a92f788e92d0d35dd9))
+
+
+### Documentation
+
+* Add link to the documentation site ([9526c67](https://github.com/php-testo/testo/commit/9526c675dcfa40dc98209144a1d853aad26a1358))
+
 ## [0.6.5](https://github.com/php-testo/testo/compare/0.6.4...0.6.5) (2026-01-05)
 
 
