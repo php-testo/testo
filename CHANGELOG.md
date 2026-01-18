@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.0](https://github.com/php-testo/testo/compare/0.6.6...0.7.0) (2026-01-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Restructure code
+
+### Bug Fixes
+
+* Store `invoker` property on `CaseDefinition` cloning ([634e65c](https://github.com/php-testo/testo/commit/634e65cbbddb768ba505f1d9371a22bce1d23636))
+
+
+### Code Refactoring
+
+* Configure interceptors order values ([634e65c](https://github.com/php-testo/testo/commit/634e65cbbddb768ba505f1d9371a22bce1d23636))
+* Restructure code ([d0f537a](https://github.com/php-testo/testo/commit/d0f537a6d02ebcff590ef38c7fd383f07391bd87))
+
 ## [0.6.6](https://github.com/php-testo/testo/compare/0.6.5...0.6.6) (2026-01-17)
 
 
