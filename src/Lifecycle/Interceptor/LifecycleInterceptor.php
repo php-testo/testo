@@ -10,7 +10,9 @@ use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\CaseInstance;
+use Testo\Lifecycle\AfterAll;
 use Testo\Lifecycle\AfterEach;
+use Testo\Lifecycle\BeforeAll;
 use Testo\Lifecycle\BeforeEach;
 use Testo\Lifecycle\Internal\LifecycleAttribute;
 use Testo\Pipeline\Attribute\InterceptorOptions;
@@ -68,7 +70,19 @@ final class LifecycleInterceptor implements TestRunInterceptor, TestCaseRunInter
             $result[$class] = \array_merge(...$methodsByPriority);
         }
 
-        return $next($info->withAttribute(self::class, $result));
+        # Execute BeforeAll methods
+        foreach ($result[BeforeAll::class] ?? [] as $method) {
+            self::execute($info->instance, $method);
+        }
+
+        try {
+            return $next($info->withAttribute(self::class, $result));
+        } finally {
+            # Execute AfterAll methods
+            foreach ($result[AfterAll::class] ?? [] as $method) {
+                self::execute($info->instance, $method);
+            }
+        }
     }
 
     #[\Override]
