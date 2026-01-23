@@ -125,7 +125,7 @@ final class Reflection
      * @param \ReflectionClass|class-string $class The class to inspect.
      * @param class-string $attributeClass The attribute class to search for.
      * @param bool $includePrototypes Whether to search for the attribute in method prototypes if not found on the method itself.
-     * @param int $flags Flags to pass to {@see ReflectionMethod::getAttributes()}.
+     * @param ReflectionAttribute::* $flags Flags to pass to {@see ReflectionMethod::getAttributes()}.
      *
      * @return \ReflectionMethod[] An array of methods that have the specified attribute.
      */

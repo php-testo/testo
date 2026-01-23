@@ -13,6 +13,7 @@ use Testo\Assert\Interceptor\ExpectationsInterceptor;
 use Testo\Common\Container;
 use Testo\Common\Reflection;
 use Testo\Inline\Middleware\TestInlineFinder;
+use Testo\Lifecycle\Interceptor\LifecycleInterceptor;
 use Testo\Pipeline\Attribute\FallbackInterceptor;
 use Testo\Pipeline\Attribute\Interceptable;
 use Testo\Pipeline\Internal\InterceptorMarker;
@@ -54,18 +55,14 @@ final class InterceptorProvider
     public function fromConfig(string $class): array
     {
         return $this->fromClasses($class, ...[
-            FilterInterceptor::class,                   // -200_000_000   fs, locate              test
-            TestInlineFinder::class,                    //                fs, locate
-            new FilePostfixTestLocatorInterceptor(),    //                fs, locate
-            new TestoAttributesLocatorInterceptor(),    //                fs, locate
-            new AssertCollectorInterceptor(),           //      -2_000                            test
-            AttributesInterceptor::class,               // -300_000_000_000                 case, test
-            new ExpectationsInterceptor(),              //     +10_000                            test
-
-            # DataProviderInterceptor                   //    -200_000                            test
-            # TestInlineInterceptor                     //    -200_000                            test
-            # RetryPolicyRunInterceptor                 //           0                            test
-            # ExpectExceptionConfigurator               // RIGHT_BEFORE_TEST                      test
+            FilterInterceptor::class,
+            TestInlineFinder::class,
+            new FilePostfixTestLocatorInterceptor(),
+            new TestoAttributesLocatorInterceptor(),
+            new AssertCollectorInterceptor(),
+            AttributesInterceptor::class,
+            new ExpectationsInterceptor(),
+            LifecycleInterceptor::class,
         ]);
     }
 
