@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.7.1](https://github.com/php-testo/testo/compare/0.7.0...0.7.1) (2026-02-01)
+
+
+### Features
+
+* **Common:** Add `Reflection::findMethodsWithAttribute()` ([c0dec74](https://github.com/php-testo/testo/commit/c0dec7424799b33ffc665b7c64d3d729c94be613))
+* **Data:** `DataZip` now accepts any Data source ([a771833](https://github.com/php-testo/testo/commit/a77183308ff27b7435c3b0f31a67f961b372c133))
+* **Data:** Add `DataUnion` attribute ([d8a0400](https://github.com/php-testo/testo/commit/d8a040037ecc2d2be654eb24e35e09dd003effb0))
+* **Data:** Add `DataZip` and `DataCross` attributes ([#93](https://github.com/php-testo/testo/issues/93)) ([5b42e7c](https://github.com/php-testo/testo/commit/5b42e7c0e0e786f3ae5982ab0ce85a610ddff65b))
+* **Data:** New behavior for `DataZip`: if the providers have different lengths, the resulting data sets will be as many as the shortest provider. ([d2d13b7](https://github.com/php-testo/testo/commit/d2d13b70d605ceb60809fe6c8bbf6207c817ef8d))
+* **Lifecycle:** Add `Before*` and `After*` attributes ([#90](https://github.com/php-testo/testo/issues/90)) ([f60c9bf](https://github.com/php-testo/testo/commit/f60c9bf5aaeb584b5b8f2ad21831c2cb24042e2c))
+* **Locators:** Enhance tests detection by name convention, support functions. ([83fdc27](https://github.com/php-testo/testo/commit/83fdc2760e67ef8c8a953656e68f00ddeff78292))
+* **Reflection:** Add method `getAttributesFromCallStack()` to retrieve attributes from the call stack ([2c0f790](https://github.com/php-testo/testo/commit/2c0f79083fca100c118beedaa15919afc60a492e))
+* **Reflection:** Method `getAttributesFromCallStack()` can scan classes of called methods ([28af07b](https://github.com/php-testo/testo/commit/28af07b64c8e798b4c976ba8ba0688c983e3adce))
+* **Testing:** Add `TestRunner` trait with `TestingSuite` attribute ([#36](https://github.com/php-testo/testo/issues/36)) ([da25a2a](https://github.com/php-testo/testo/commit/da25a2a4848b38d20fc9eaf462385d46a533afec))
+
+
+### Code Refactoring
+
+* **Application:** Accept only public methods with `void` return type when `#[Test]` is used for class ([#33](https://github.com/php-testo/testo/issues/33)) ([4c2f4a2](https://github.com/php-testo/testo/commit/4c2f4a225e8c30d5441e0a116d66e15bd3eb1244))
+
 ## [0.7.0](https://github.com/php-testo/testo/compare/0.6.6...0.7.0) (2026-01-18)
 
 
