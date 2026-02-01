@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Sample\Self;
+namespace Tests\Data\Self;
 
 use Testo\Inline\TestInline;
 use Webmozart\Assert\Assert;

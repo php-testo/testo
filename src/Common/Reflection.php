@@ -201,7 +201,7 @@ final class Reflection
                 $reflection = match (true) {
                     isset($frame['class'], $frame['function']) => new \ReflectionMethod(
                         $frame['class'],
-                        $frame['function']
+                        $frame['function'],
                     ),
                     isset($frame['function']) => new \ReflectionFunction($frame['function']),
                     default => null,

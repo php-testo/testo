@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Sample\Self;
+namespace Tests\Data\Self;
 
 use Testo\Application\Attribute\Test;
 use Testo\Data\DataProvider;

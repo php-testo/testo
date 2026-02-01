@@ -11,6 +11,7 @@ use Testo\Core\Filter\DataPointer;
 use Testo\Core\Value\Status;
 use Testo\Data\DataProvider;
 use Testo\Data\DataSet;
+use Testo\Data\DataZip;
 use Testo\Data\MultipleResult;
 use Testo\Event\Test\TestBatchFinished;
 use Testo\Event\Test\TestBatchStarting;
@@ -28,7 +29,8 @@ final class DataProviderInterceptor implements TestRunInterceptor
 {
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
-    ) {}
+    ) {
+    }
 
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
@@ -58,6 +60,7 @@ final class DataProviderInterceptor implements TestRunInterceptor
                 $datasets = match (true) {
                     $attr instanceof DataProvider => self::fromDataProvider($info, $attr),
                     $attr instanceof DataSet => [($attr->name ?? 0) => $attr->arguments],
+                    $attr instanceof DataZip => self::fromDataZip($info, $attr),
                     default => throw new \RuntimeException('Unknown Data Provider Attribute type.'),
                 };
 
@@ -177,7 +180,7 @@ final class DataProviderInterceptor implements TestRunInterceptor
                 $m = $class->getMethod($provider);
                 $provider = match (true) {
                     $m->isStatic() => $m->getClosure(null),
-                    default => static fn() => $m->getClosure($info->caseInfo->instance->getInstance()),
+                    default => static fn () => $m->getClosure($info->caseInfo->instance->getInstance()),
                 };
             }
 
@@ -193,5 +196,43 @@ final class DataProviderInterceptor implements TestRunInterceptor
         );
 
         return $datasets;
+    }
+
+    /**
+     * Extract data sets from a DataZip attribute.
+     */
+    private static function fromDataZip(TestInfo $info, DataZip $attr): iterable
+    {
+        $generators = \array_map(
+            static fn ($providerAttr): DeferredGenerator => DeferredGenerator::fromHandler(
+                static function () use ($info, $providerAttr) {
+                    yield from self::fromDataProvider($info, $providerAttr);
+                },
+            ),
+            $attr->providers,
+        );
+
+        dataset:
+        $allFinished = true;
+        $dataSet = [];
+        $key = [];
+        foreach ($generators as $gen) {
+            if ($gen->valid()) {
+                $allFinished = false;
+                $dataSet[] = $gen->current();
+                $key[] = $gen->key();
+                $gen->next();
+            } else {
+                $key[] = '';
+                $dataSet[] = null;
+            }
+        }
+
+        if ($allFinished) {
+            return;
+        }
+
+        yield \implode(':', $key) => \array_merge(...$dataSet);
+        goto dataset;
     }
 }

@@ -19,7 +19,6 @@ use Testo\Pipeline\Attribute\Interceptable;
 use Testo\Pipeline\Internal\InterceptorMarker;
 use Yiisoft\Injector\Injector;
 
-
 final class InterceptorProvider
 {
     /**

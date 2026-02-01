@@ -6,11 +6,11 @@ use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 
 /**
- * Test suites for Sample component.
+ * Test suites for Data component.
  */
 return [
     new SuiteConfig(
-        name: 'Sample: Self Testing',
+        name: 'Data: Self Testing',
         location: new FinderConfig(
             include: [__DIR__ . '/Self'],
         ),
