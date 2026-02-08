@@ -38,7 +38,6 @@ final class BenchFinder implements FileLocatorInterceptor, CaseLocatorIntercepto
     #[\Override]
     public function locateTestCases(FileDefinitions $file, callable $next): CaseDefinitions
     {
-        echo 123;
         // Define cases for classes
         foreach ($file->classes as $class) {
             if ($class->isAbstract()) {

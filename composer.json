@@ -23,6 +23,7 @@
     ],
     "require": {
         "php": ">=8.1",
+        "dragon-code/benchmark": "^2.6 || ^3.0",
         "internal/destroy": "^1.0",
         "internal/path": "^1.2",
         "psr/container": "1 - 2",

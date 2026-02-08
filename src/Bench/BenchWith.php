@@ -17,12 +17,13 @@ use Testo\Pipeline\Attribute\Interceptable;
 #[FallbackInterceptor(BenchWithInterceptor::class)]
 final class BenchWith implements Interceptable
 {
-    /**
-     * @param array<callable|array{class-string, non-empty-string}> $callables Functions to benchmark with.
-     *        It might be a callable or an array with class name and non-public method name.
-     */
     public function __construct(
+        /**
+         * @var array<callable|array{class-string, non-empty-string}> $callables Functions to benchmark with.
+         *      It might be a callable or an array with class name and non-public method name.
+         */
         public readonly array $callables,
         public readonly array $arguments = [],
+        public readonly BenchOptions $options = new BenchOptions(),
     ) {}
 }

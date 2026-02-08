@@ -10,6 +10,7 @@ use Testo\Application\Middleware\Locator\FilePostfixTestLocatorInterceptor;
 use Testo\Application\Middleware\Locator\TestoAttributesLocatorInterceptor;
 use Testo\Assert\Interceptor\AssertCollectorInterceptor;
 use Testo\Assert\Interceptor\ExpectationsInterceptor;
+use Testo\Bench\Middleware\BenchFinder;
 use Testo\Common\Container;
 use Testo\Common\Reflection;
 use Testo\Inline\Middleware\TestInlineFinder;
@@ -56,6 +57,7 @@ final class InterceptorProvider
         return $this->fromClasses($class, ...[
             FilterInterceptor::class,
             TestInlineFinder::class,
+            BenchFinder::class,
             new FilePostfixTestLocatorInterceptor(),
             new TestoAttributesLocatorInterceptor(),
             new AssertCollectorInterceptor(),

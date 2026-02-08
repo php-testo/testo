@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Bench\Self;
 
+use Testo\Bench\BenchOptions;
 use Testo\Bench\BenchWith;
 
 final class BenchWithAttr
 {
-    #[BenchWith([
-        [self::class, 'sumSlow'],
-    ], arguments: [1, 2])]
+    #[BenchWith(
+        [
+            [self::class, 'sumFast'],
+            [self::class, 'sumSlow'],
+        ],
+        arguments: [1, 2],
+        options: new BenchOptions(
+            iterations: 10_000,
+        )
+    )]
     public static function sumFast(int $a, int $b): int
     {
         return $a + $b;
