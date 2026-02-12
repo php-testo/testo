@@ -39,7 +39,7 @@ final class BenchInvoker
 
         Benchmark::start()
             ->withoutData()
-            ->iterations($attr->options->iterations)
+            ->iterations($attr->iterations)
             ->compare(
                 ...$functions,
             );
