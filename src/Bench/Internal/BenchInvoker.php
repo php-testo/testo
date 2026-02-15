@@ -22,13 +22,19 @@ final class BenchInvoker
         $attr = $info->getAttribute(BenchWith::class);
         $attr instanceof BenchWith or throw BenchWithAttributeMissingException::fromTestInfo($info);
 
-        // Current function callable
-        $fn = $info->caseInfo->instance === null || $info->testDefinition->reflection->isStatic()
-            ? $info->testDefinition->reflection->getClosure(null)
-            : $info->testDefinition->reflection->getClosure($info->caseInfo->instance->getInstance());
+        # Current function callable
+        // $fn = $info->caseInfo->instance === null || $info->testDefinition->reflection->isStatic()
+        //     ? $info->testDefinition->reflection->getClosure(null)
+        //     : $info->testDefinition->reflection->getClosure($info->caseInfo->instance->getInstance());
 
         $aliases = ['current'];
-        $functions = [static fn (): mixed => $fn(...$info->arguments)];
+        // $functions = [static fn (): mixed => $fn(...$info->arguments)];
+        $functions = [self::normalizeCallable(
+            $info,
+            $info->caseInfo->instance === null
+                ? $info->testDefinition->reflection->getNamespaceName()
+                : [$info->caseInfo->instance->getInstance(), $info->testDefinition->reflection->getName()]
+        )];
 
         # Collect callables
         foreach ($attr->callables as $k => $callable) {
@@ -46,11 +52,26 @@ final class BenchInvoker
             );
         }
 
-        return \dump(new BenchResult(
+        $result = new BenchResult(
             iterations: $iterations,
             aliases: $aliases,
             explanation: self::explain($aliases, $iterations),
-        ));
+        );
+
+        $summaryTable = \Testo\Bench\Internal\Renderer::table($result);
+        $roundsTable = \Testo\Bench\Internal\Renderer::rounds($result);
+        echo <<<EOT
+            Iterations: {$attr->iterations}
+            Revolutions: {$attr->revolutions}
+
+            Summary:
+            $summaryTable
+
+            Rounds:
+            {$roundsTable}
+            EOT;
+
+        return $result;
     }
 
     /**

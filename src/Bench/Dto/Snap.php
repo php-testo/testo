@@ -10,7 +10,11 @@ namespace Testo\Bench\Dto;
 final readonly class Snap {
     public function __construct(
         public int $revolutions,
+
+        /** Used memory in bytes */
         public Value $memory,
+
+        /** Duration in microseconds. */
         public Value $time,
     ) {}
 }

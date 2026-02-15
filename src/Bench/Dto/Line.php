@@ -15,10 +15,10 @@ final readonly class Line {
         public int $place,
         public string $name,
 
-        /** Max memory usage across all iterations. */
+        /** Max memory usage across all iterations in bytes. */
         public ValueRel $memory,
 
-        /** Average time across all iterations. */
+        /** Average time across all iterations in microseconds. */
         public ValueRel $time,
 
         /**
