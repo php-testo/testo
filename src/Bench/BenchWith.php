@@ -30,17 +30,18 @@ final class BenchWith implements Interceptable
         public readonly array $arguments = [],
 
         /**
-         * @var int<1, max> Number of iterations to run for each benchmark.
-         */
-        public readonly int $iterations = 1000,
-
-        /**
          * @var int<1, max> Number of revolutions to run for each benchmark.
          *      A revolution is a single execution of the benchmarked function.
          */
-        public readonly int $revolutions = 5,
+        public readonly int $revolutions = 1_000,
+
+        /**
+         * @var int<1, max> Number of iterations.
+         *      Each iteration runs the specified number of revolutions.
+         */
+        public readonly int $iterations = 5,
     ) {
-        \count($callables) < 1 or throw new \InvalidArgumentException('At least one callable must be provided.');
+        \count($callables) >= 1 or throw new \InvalidArgumentException('At least one callable must be provided.');
         $iterations > 0 or throw new \InvalidArgumentException('Iterations must be greater than 0.');
         $revolutions > 0 or throw new \InvalidArgumentException('Revolutions must be greater than 0.');
     }

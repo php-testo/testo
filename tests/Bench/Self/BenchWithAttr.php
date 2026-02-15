@@ -10,11 +10,11 @@ final class BenchWithAttr
 {
     #[BenchWith(
         [
-            [self::class, 'sumFast'],
+            'fast' => [self::class, 'sumFast'],
             [self::class, 'sumSlow'],
         ],
         arguments: [1, 2],
-        iterations: 10_000,
+        revolutions: 1_000,
     )]
     public static function sumFast(int $a, int $b): int
     {
