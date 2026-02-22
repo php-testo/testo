@@ -33,7 +33,7 @@ final class BenchInvoker
             $info,
             $info->caseInfo->instance === null
                 ? $info->testDefinition->reflection->getNamespaceName()
-                : [$info->caseInfo->instance->getInstance(), $info->testDefinition->reflection->getName()]
+                : [$info->caseInfo->instance->getInstance(), $info->testDefinition->reflection->getName()],
         )];
 
         # Collect callables
@@ -61,9 +61,6 @@ final class BenchInvoker
         $summaryTable = \Testo\Bench\Internal\Renderer::table($result);
         $roundsTable = \Testo\Bench\Internal\Renderer::rounds($result);
         echo <<<EOT
-            Iterations: {$attr->iterations}
-            Revolutions: {$attr->revolutions}
-
             Summary:
             $summaryTable
 
@@ -142,12 +139,17 @@ final class BenchInvoker
         array $functions,
         int $revolutions,
     ): Round {
+        $cases = [];
+        /**
         $data = Benchmark::make()
             ->iterations($revolutions)
+            // ->disableProgressBar()
             ->compare(...$functions)
+            // ->deviations(5)
+            // ->toConsole(); die;
             ->toData();
 
-        $cases = [];
+
         foreach ($data as $case) {
             $cases[] = new Snap(
                 revolutions: $revolutions,
@@ -165,10 +167,46 @@ final class BenchInvoker
                 ),
             );
         }
+        /*/
+        foreach ($functions as $k => $function) {
+            $cases[] = self::runCase($function, $revolutions);
+        }
+        // **/
 
         return new Round(
             iteration: $iteration,
             cases: $cases,
+        );
+    }
+
+    private static function runCase(\Closure $function, int $revolutions): Snap
+    {
+        $beforeMem = memory_get_usage();
+        $beforeTime = \hrtime(true);
+        for ($i = 0; $i < $revolutions; ++$i) {
+            $function();
+        }
+        $afterTime = \hrtime(true);
+        $afterMem = memory_get_usage();
+
+        $deltaMem = (float) $afterMem - $beforeMem;
+        # Delta time in microseconds
+        $deltaTime = ($afterTime - $beforeTime) / 1_000;
+        $avgTime = $deltaTime / $revolutions;
+        return new Snap(
+            revolutions: $revolutions,
+            memory: new Value(
+                min: $deltaMem,
+                avg: $deltaMem,
+                max: $deltaMem,
+                total: $deltaMem,
+            ),
+            time: new Value(
+                min: $avgTime,
+                avg: $avgTime,
+                max: $avgTime,
+                total: $deltaTime,
+            ),
         );
     }
 

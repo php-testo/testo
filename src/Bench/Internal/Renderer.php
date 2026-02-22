@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Testo\Bench\Internal;
 
 use Testo\Bench\Dto\BenchResult;
-use Testo\Bench\Dto\Line;
 
 /**
  * Renders benchmark results as an ASCII table.
@@ -14,17 +13,35 @@ use Testo\Bench\Dto\Line;
  */
 final class Renderer
 {
-    private const HEADERS = ['#', 'Name', 'Memory', 'Avg Time', 'RStdev'];
-
     public static function table(BenchResult $result): string
     {
         if ($result->explanation === []) {
             return '';
         }
 
-        $rows = \array_map(self::formatLine(...), $result->explanation);
+        $iters = \count($result->iterations);
+        $showRstdev = $iters > 1;
 
-        return self::renderTable(self::HEADERS, $rows);
+        $revsByName = [];
+        foreach ($result->aliases as $idx => $alias) {
+            $revsByName[(string) $alias] = $result->iterations[0]->cases[$idx]->revolutions;
+        }
+
+        $headers = ['#', 'Name', 'Iters', 'Revs', 'Memory', 'Avg Time', 'RStDev'];
+        $rows = [];
+        foreach ($result->explanation as $line) {
+            $rows[] = [
+                (string) $line->place,
+                $line->name,
+                (string) $iters,
+                (string) ($revsByName[$line->name] ?? 0),
+                self::formatMemory($line->memory->value, $line->memory->diff),
+                self::formatTime($line->time->value, $line->time->diff),
+                $showRstdev ? self::formatRstdev($line->rstdev) : '',
+            ];
+        }
+
+        return self::renderTable($headers, $rows);
     }
 
     public static function rounds(BenchResult $result): string
@@ -33,7 +50,7 @@ final class Renderer
             return '';
         }
 
-        $subHeaders = ['Name', 'Round', 'Min', 'Avg', 'Max', 'Total', 'Min', 'Avg', 'Max', 'Total'];
+        $subHeaders = ['Name', 'Round', 'Revs', 'Min', 'Avg', 'Max', 'Total', 'Min', 'Avg', 'Max', 'Total'];
         $caseCount = \count($result->aliases);
 
         $dataGroups = [];
@@ -44,6 +61,7 @@ final class Renderer
                 $rows[] = [
                     $ri === 0 ? (string) $result->aliases[$c] : '',
                     (string) $round->iteration,
+                    (string) $snap->revolutions,
                     self::formatTime($snap->time->min, 0.0),
                     self::formatTime($snap->time->avg, 0.0),
                     self::formatTime($snap->time->max, 0.0),
@@ -61,8 +79,8 @@ final class Renderer
         $widths = self::calculateWidths($subHeaders, $allRows);
 
         $lines = [];
-        $lines[] = self::mergedSeparator($widths, [[2, 5], [6, 9]]);
-        $lines[] = self::mergedHeaderRow($widths, [[0, 0, ''], [1, 1, ''], [2, 5, 'Time'], [6, 9, 'Memory']]);
+        $lines[] = self::mergedSeparator($widths, [[3, 6], [7, 10]]);
+        $lines[] = self::mergedHeaderRow($widths, [[0, 0, ''], [1, 1, ''], [2, 2, ''], [3, 6, 'Time'], [7, 10, 'Memory']]);
         $lines[] = self::centeredRow($subHeaders, $widths);
         $lines[] = self::separator($widths);
 
@@ -74,20 +92,6 @@ final class Renderer
         }
 
         return \implode("\n", $lines);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function formatLine(Line $line): array
-    {
-        return [
-            (string) $line->place,
-            $line->name,
-            self::formatMemory($line->memory->value, $line->memory->diff),
-            self::formatTime($line->time->value, $line->time->diff),
-            self::formatRstdev($line->rstdev),
-        ];
     }
 
     private static function formatMemory(float $bytes, float $diff): string
