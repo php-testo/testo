@@ -16,13 +16,16 @@ final readonly class CaseResult
         /** Median time across all iterations in microseconds. */
         public float $med,
 
+        /** Standard deviation of the time values across all iterations. */
+        public float $rstdev,
+
         /** @var int<0, max> Number of iterations that were rejected from the final results. */
         public int $rejected,
 
         /** Average time across all the filtered iterations in microseconds. */
-        public float $avg,
+        public float $favg,
 
         /** Standard deviation of the time values across all the filtered iterations. */
-        public float $rstdev,
+        public float $frstdev,
     ) {}
 }

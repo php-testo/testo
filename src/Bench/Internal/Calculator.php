@@ -6,9 +6,7 @@ namespace Testo\Bench\Internal;
 
 use Testo\Bench\Dto\CaseResult;
 use Testo\Bench\Dto\CaseSet;
-use Testo\Bench\Dto\Line;
 use Testo\Bench\Dto\Snap;
-use Testo\Bench\Dto\ValueRel;
 use Testo\Inline\TestInline;
 
 final class Calculator
@@ -43,63 +41,24 @@ final class Calculator
             static fn(float $avg): bool => \abs($avg - $median) <= $limit,
         );
 
+        # Calc RMS of the original averages for relative standard deviation calculation
+        $rms = self::rms(...$averages);
+        $avg = self::avg(...$averages);
+        $rstdev = $avg > 0 ? ($rms / $avg) * 100 : 0.0;
+
         # Calc RMS, average, and relative standard deviation for the filtered iterations
-        $rms = self::rms(...$filtered);
-        $avg = self::avg(...$filtered);
-        $rstdev = $rms / $avg * 100;
+        $frms = self::rms(...$filtered);
+        $favg = self::avg(...$filtered);
+        $frstdev = $frms / $favg * 100;
 
         return new CaseResult(
             mean: self::avg(...$averages),
             med: $median,
-            rejected: \count($caseSet->iterations) - \count($filtered),
-            avg: $avg,
             rstdev: $rstdev,
+            rejected: \count($caseSet->iterations) - \count($filtered),
+            favg: $favg,
+            frstdev: $frstdev,
         );
-    }
-
-    /**
-     * Prepares the lines for the final report based on the calculated results.
-     *
-     * @param list<CaseSet> $cases The list of cases that were benchmarked.
-     * @param list<CaseResult> $results The corresponding results for each case.
-     * @return list<Line> The prepared lines for the report, with placeholders for names and places.
-     */
-    public static function prepareLines(array $cases, array $results): array
-    {
-        # Sort by time ascending
-        \uasort($results, static fn(CaseResult $a, CaseResult $b): int => $a->avg <=> $b->avg);
-
-        # Calculate relative values
-        $baseMean = $results[0]->mean;
-        $baseMed = $results[0]->med;
-        $baseTime = $results[0]->avg;
-        $place = 1;
-
-        $lines = [];
-        foreach ($results as $k => $result) {
-            $lines[$k] = new Line(
-                place: $place++,
-                name: $cases[$k]->name,
-                mean: new ValueRel(
-                    value: $result->mean,
-                    diff: $baseTime > 0 ? ($result->mean - $baseMean) / $baseMean * 100 : 0.0,
-                ),
-                med: new ValueRel(
-                    value: $result->med,
-                    diff: $baseMed > 0 ? ($result->med - $baseMed) / $baseMed * 100 : 0.0,
-                ),
-                avg: new ValueRel(
-                    value: $result->avg,
-                    diff: $baseTime > 0 ? ($result->avg - $baseTime) / $baseTime * 100 : 0.0,
-                ),
-                rstdev: $result->rstdev,
-                rejected: $result->rejected,
-            );
-        }
-
-        \ksort($lines);
-
-        return $lines;
     }
 
     /**

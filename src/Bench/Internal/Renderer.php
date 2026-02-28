@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Testo\Bench\Internal;
 
 use Testo\Bench\Dto\BenchResult;
+use Testo\Bench\Dto\Report;
+use Testo\Bench\Dto\Report\Severity;
 
 /**
  * Renders benchmark results as an ASCII table.
@@ -20,30 +22,132 @@ final class Renderer
         }
 
         $iters = \count($result->cases[0]->iterations);
-        $showRstdev = $iters > 1;
+        $hasRejected = false;
+        foreach ($result->lines as $line) {
+            if ($line->rejected > 0) {
+                $hasRejected = true;
+                break;
+            }
+        }
 
         $callsByName = [];
         foreach ($result->cases as $case) {
             $callsByName[$case->name] = $case->iterations[0]->calls;
         }
 
-        $headers = ['#', 'Name', 'Iters', 'Calls', 'Avg', 'Med', 'Avg*', 'RStDev*', 'Rejected'];
+        $headers = ['Name', 'Iters', 'Calls', 'Mean', 'Median', 'RStDev'];
+        $spans = [[0, 2, 'Benchmark setup'], [3, 5, 'Time results']];
+        $merges = [[0, 2], [3, 5]];
+
+        if ($hasRejected) {
+            \array_push($headers, 'Rej.', 'Mean*', 'RStDev*');
+            $spans[] = [6, 8, 'Filtered results'];
+            $merges[] = [6, 8];
+        }
+
+        $hasWarnings = false;
+        $hasDangers = false;
+        foreach ($result->lines as $line) {
+            foreach ($line->reports as $report) {
+                match ($report->severity) {
+                    Severity::Warning => $hasWarnings = true,
+                    Severity::Danger => $hasDangers = true,
+                    default => null,
+                };
+            }
+        }
+
+        $summaryStart = \count($headers);
+        $headers[] = 'Place';
+        $hasWarnings and $headers[] = 'Warnings';
+        $hasDangers and $headers[] = 'Dangers';
+        $summaryEnd = \count($headers) - 1;
+        $spans[] = [$summaryStart, $summaryEnd, 'Summary'];
+        $summaryStart !== $summaryEnd and $merges[] = [$summaryStart, $summaryEnd];
+
         $rows = [];
         foreach ($result->lines as $line) {
-            $rows[] = [
-                (string) $line->place,
+            $row = [
                 $line->name,
                 (string) $iters,
                 (string) ($callsByName[$line->name] ?? 0),
-                self::formatTime($line->mean->value, $line->mean->diff),
-                self::formatTime($line->med->value, $line->med->diff),
                 self::formatTime($line->avg->value, $line->avg->diff),
-                $showRstdev ? self::formatRstdev($line->rstdev) : '',
-                $line->rejected > 0 ? (string) $line->rejected : '',
+                self::formatTime($line->med->value, $line->med->diff),
+                $iters > 1 ? self::formatRstdev($line->rstdev) : '',
             ];
+
+            if ($hasRejected) {
+                $row[] = $line->rejected > 0 ? (string) $line->rejected : '';
+                $row[] = self::formatTime($line->favg->value, $line->favg->diff);
+                $row[] = $iters > 1 ? self::formatRstdev($line->frstdev) : '';
+            }
+
+            $row[] = self::ordinal($line->place);
+            $hasWarnings and $row[] = self::joinReports($line->reports, Severity::Warning);
+            $hasDangers and $row[] = self::joinReports($line->reports, Severity::Danger);
+
+            $rows[] = $row;
         }
 
-        return self::renderTable($headers, $rows);
+        $rightAlign = [5 => true];
+        if ($hasRejected) {
+            $rightAlign[8] = true;
+        }
+
+        $widths = self::calculateWidths($headers, $rows);
+        $widths = self::adjustWidthsForSpans($widths, $spans);
+
+        $lines = [];
+        $lines[] = self::mergedSeparator($widths, $merges);
+        $lines[] = self::mergedHeaderRow($widths, $spans);
+        $lines[] = self::row($headers, $widths);
+        $lines[] = self::separator($widths);
+
+        foreach ($rows as $r) {
+            $lines[] = self::row($r, $widths, $rightAlign);
+        }
+
+        $lines[] = self::separator($widths);
+
+        return \implode("\n", $lines) . self::recommendations($result);
+    }
+
+    private static function recommendations(BenchResult $result): string
+    {
+        $dangers = [];
+        $warnings = [];
+        $notices = [];
+
+        foreach ($result->lines as $line) {
+            foreach ($line->reports as $report) {
+                match ($report->severity) {
+                    Severity::Danger => $dangers[$report->reason] = $report->advice,
+                    Severity::Warning => $warnings[$report->reason] = $report->advice,
+                    Severity::Notice => $notices[$report->reason] = $report->advice,
+                    default => null,
+                };
+            }
+        }
+
+        if ($dangers === [] && $warnings === [] && $notices === []) {
+            return '';
+        }
+
+        $lines = ['', 'Recommendations:'];
+
+        foreach ($dangers as $reason => $advice) {
+            $lines[] = "  ✗ {$reason}: {$advice}";
+        }
+
+        foreach ($warnings as $reason => $advice) {
+            $lines[] = "  ⚠ {$reason}: {$advice}";
+        }
+
+        foreach ($notices as $reason => $advice) {
+            $lines[] = "  ℹ {$reason}: {$advice}";
+        }
+
+        return \implode("\n", $lines);
     }
 
     public static function rounds(BenchResult $result): string
@@ -107,10 +211,10 @@ final class Renderer
         }
 
         $formatted = match (true) {
-            $us >= 1_000_000.0 => \sprintf('%.3fs', $us / 1_000_000),
-            $us >= 1_000.0 => \sprintf('%.3fms', $us / 1_000),
-            $us >= 1.0 => \sprintf('%.3fµs', $us),
-            default => \sprintf('%.3fns', $us * 1_000),
+            $us >= 1_000_000.0 => \sprintf('%.2fs', $us / 1_000_000),
+            $us >= 1_000.0 => \sprintf('%.2fms', $us / 1_000),
+            $us >= 1.0 => \sprintf('%.2fµs', $us),
+            default => \sprintf('%.2fns', $us * 1_000),
         };
 
         return $diff === 0.0 ? $formatted : \sprintf('%s (%+.1f%%)', $formatted, $diff);
@@ -119,6 +223,19 @@ final class Renderer
     private static function formatRstdev(float $rstdev): string
     {
         return \sprintf('±%.2f%%', $rstdev);
+    }
+
+    private static function ordinal(int $n): string
+    {
+        $suffix = match (true) {
+            $n % 100 >= 11 && $n % 100 <= 13 => 'th',
+            $n % 10 === 1 => 'st',
+            $n % 10 === 2 => 'nd',
+            $n % 10 === 3 => 'rd',
+            default => 'th',
+        };
+
+        return $n . $suffix;
     }
 
     /**
@@ -172,15 +289,153 @@ final class Renderer
     /**
      * @param list<string> $cells
      * @param list<int> $widths
+     * @param array<int, true> $rightAlign Column indices to right-align.
      */
-    private static function row(array $cells, array $widths): string
+    private static function row(array $cells, array $widths, array $rightAlign = []): string
     {
         $parts = [];
         foreach ($cells as $i => $cell) {
             $padding = $widths[$i] - \mb_strlen($cell);
-            $parts[] = ' ' . $cell . \str_repeat(' ', $padding) . ' ';
+            $pad = \str_repeat(' ', $padding);
+            $parts[] = isset($rightAlign[$i])
+                ? ' ' . $pad . $cell . ' '
+                : ' ' . $cell . $pad . ' ';
         }
 
         return '|' . \implode('|', $parts) . '|';
+    }
+
+    /**
+     * @param list<string> $cells
+     * @param list<int> $widths
+     */
+    private static function centeredRow(array $cells, array $widths): string
+    {
+        $parts = [];
+        foreach ($cells as $i => $cell) {
+            $parts[] = ' ' . self::centerPad($cell, $widths[$i]) . ' ';
+        }
+
+        return '|' . \implode('|', $parts) . '|';
+    }
+
+    /**
+     * Separator with certain column ranges merged (internal `+` replaced with `-`).
+     *
+     * @param list<int> $widths
+     * @param list<array{int, int}> $merges Column ranges [from, to] to merge.
+     */
+    private static function mergedSeparator(array $widths, array $merges): string
+    {
+        $internal = [];
+        foreach ($merges as [$from, $to]) {
+            for ($i = $from; $i < $to; ++$i) {
+                $internal[$i] = true;
+            }
+        }
+
+        $result = '+';
+        foreach ($widths as $i => $w) {
+            $result .= \str_repeat('-', $w + 2);
+            $result .= isset($internal[$i]) ? '-' : '+';
+        }
+
+        return $result;
+    }
+
+    /**
+     * Header row with labels centered across merged column spans.
+     *
+     * @param list<int> $widths
+     * @param list<array{int, int, string}> $spans Each span is [from, to, label].
+     */
+    private static function mergedHeaderRow(array $widths, array $spans): string
+    {
+        $result = '|';
+        $i = 0;
+        $count = \count($widths);
+
+        while ($i < $count) {
+            $handled = false;
+            foreach ($spans as [$from, $to, $label]) {
+                if ($i === $from) {
+                    $span = self::spanWidth($widths, $from, $to);
+                    // $result .= ' ' . self::centerPad($label, $span - 2) . ' |';
+                    $result .= ' ' . \str_pad(\strtoupper($label), $span - 2) . ' |';
+                    $i = $to + 1;
+                    $handled = true;
+                    break;
+                }
+            }
+
+            if (!$handled) {
+                $result .= \str_repeat(' ', $widths[$i] + 2) . '|';
+                ++$i;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Expand column widths so that span labels fit within their merged area.
+     *
+     * @param list<int> $widths
+     * @param list<array{int, int, string}> $spans
+     * @return list<int>
+     */
+    private static function adjustWidthsForSpans(array $widths, array $spans): array
+    {
+        foreach ($spans as [$from, $to, $label]) {
+            $available = self::spanWidth($widths, $from, $to) - 2;
+            $overflow = \mb_strlen($label) - $available;
+
+            if ($overflow > 0) {
+                $widths[$to] += $overflow;
+            }
+        }
+
+        return $widths;
+    }
+
+    /**
+     * Content width for merged columns from $from to $to (inclusive).
+     *
+     * @param list<int> $widths
+     */
+    private static function spanWidth(array $widths, int $from, int $to): int
+    {
+        $sum = 0;
+        for ($i = $from; $i <= $to; ++$i) {
+            $sum += $widths[$i];
+        }
+
+        return $sum + 3 * ($to - $from) + 2;
+    }
+
+    /**
+     * @param list<Report> $reports
+     */
+    private static function joinReports(array $reports, Severity $severity): string
+    {
+        $reasons = [];
+        foreach ($reports as $report) {
+            $report->severity === $severity and $reasons[] = $report->reason;
+        }
+
+        return \implode('. ', $reasons);
+    }
+
+    private static function centerPad(string $text, int $width): string
+    {
+        $len = \mb_strlen($text);
+        if ($len >= $width) {
+            return $text;
+        }
+
+        $left = (int) (($width - $len) / 2);
+        $right = $width - $len - $left;
+
+        return \str_repeat(' ', $left) . $text . \str_repeat(' ', $right);
     }
 }

@@ -46,10 +46,11 @@ final class BenchInvoker
 
         # Convert iteration-centric data to case-centric for easier analysis
         $cases = self::toCaseSets($iterations, $aliases);
+
         /** @var list<CaseResult> $results Calculated results */
         $results = \array_map(Calculator::calculate(...), $cases);
 
-        $lines = Calculator::prepareLines($cases, $results);
+        $lines = Explanator::prepareLines($cases, $results);
 
         $result = new BenchResult(
             cases: $cases,

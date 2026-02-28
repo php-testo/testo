@@ -19,21 +19,33 @@ final readonly class Line
         public string $name,
 
         /** Average of the time values across all iterations. */
-        public ValueRel $mean,
+        public ValueRel $avg,
 
         /** Median of the time values across all iterations. */
         public ValueRel $med,
 
-        /** Average of the time values across all the filtered iterations. */
-        public ValueRel $avg,
-
         /**
-         * @var float Standard deviation of the time values across all the filtered iterations,\
+         * @var float Standard deviation of the time values across all iterations,
          *      expressed as a percentage of the average.
          */
         public float $rstdev,
 
+        /** Average of the time values across all the filtered iterations. */
+        public ValueRel $favg,
+
+        /**
+         * @var float Standard deviation of the time values across all the filtered iterations,
+         *      expressed as a percentage of the average.
+         */
+        public float $frstdev,
+
         /** int<0, max> Number of rejected outliers across all iterations. */
         public int $rejected,
+
+        /**
+         * @var list<Report> List of reports for the benchmark, which may include comments, warnings,
+         *      or errors related to the benchmark execution.
+         */
+        public array $reports,
     ) {}
 }
