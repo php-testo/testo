@@ -112,44 +112,6 @@ final class Renderer
         return \implode("\n", $lines) . self::recommendations($result);
     }
 
-    private static function recommendations(BenchResult $result): string
-    {
-        $dangers = [];
-        $warnings = [];
-        $notices = [];
-
-        foreach ($result->lines as $line) {
-            foreach ($line->reports as $report) {
-                match ($report->severity) {
-                    Severity::Danger => $dangers[$report->reason] = $report->advice,
-                    Severity::Warning => $warnings[$report->reason] = $report->advice,
-                    Severity::Notice => $notices[$report->reason] = $report->advice,
-                    default => null,
-                };
-            }
-        }
-
-        if ($dangers === [] && $warnings === [] && $notices === []) {
-            return '';
-        }
-
-        $lines = ['', 'Recommendations:'];
-
-        foreach ($dangers as $reason => $advice) {
-            $lines[] = "  ✗ {$reason}: {$advice}";
-        }
-
-        foreach ($warnings as $reason => $advice) {
-            $lines[] = "  ⚠ {$reason}: {$advice}";
-        }
-
-        foreach ($notices as $reason => $advice) {
-            $lines[] = "  ℹ {$reason}: {$advice}";
-        }
-
-        return \implode("\n", $lines);
-    }
-
     public static function rounds(BenchResult $result): string
     {
         if ($result->cases === []) {
@@ -185,6 +147,44 @@ final class Renderer
                 $lines[] = self::row($row, $widths);
             }
             $lines[] = $separator;
+        }
+
+        return \implode("\n", $lines);
+    }
+
+    private static function recommendations(BenchResult $result): string
+    {
+        $dangers = [];
+        $warnings = [];
+        $notices = [];
+
+        foreach ($result->lines as $line) {
+            foreach ($line->reports as $report) {
+                match ($report->severity) {
+                    Severity::Danger => $dangers[$report->reason] = $report->advice,
+                    Severity::Warning => $warnings[$report->reason] = $report->advice,
+                    Severity::Notice => $notices[$report->reason] = $report->advice,
+                    default => null,
+                };
+            }
+        }
+
+        if ($dangers === [] && $warnings === [] && $notices === []) {
+            return '';
+        }
+
+        $lines = ['', 'Recommendations:'];
+
+        foreach ($dangers as $reason => $advice) {
+            $lines[] = "  ✗ {$reason}: {$advice}";
+        }
+
+        foreach ($warnings as $reason => $advice) {
+            $lines[] = "  ⚠ {$reason}: {$advice}";
+        }
+
+        foreach ($notices as $reason => $advice) {
+            $lines[] = "  ℹ {$reason}: {$advice}";
         }
 
         return \implode("\n", $lines);

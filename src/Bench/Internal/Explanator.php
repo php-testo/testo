@@ -10,6 +10,9 @@ use Testo\Bench\Dto\Line;
 use Testo\Bench\Dto\Report;
 use Testo\Bench\Dto\ValueRel;
 
+/**
+ * @internal
+ */
 final class Explanator
 {
     /**
@@ -50,7 +53,7 @@ final class Explanator
                 ),
                 frstdev: $result->frstdev,
                 rejected: $result->rejected,
-                reports: self::comment($result, $cases[$k]),
+                reports: self::explain($result, $cases[$k]),
             );
         }
 
@@ -59,14 +62,12 @@ final class Explanator
         return $lines;
     }
 
-
     /**
      * Generates a comment for a given case result, potentially based on the presence of outliers or other factors.
      *
-     * @param CaseResult $result The result for which to generate the comment.
      * @return list<Report> A list of reports (comments, warnings, errors) related to the benchmark execution.
      */
-    private static function comment(CaseResult $caseResult, CaseSet $caseSet): array
+    private static function explain(CaseResult $caseResult, CaseSet $caseSet): array
     {
         $result = [];
 
@@ -83,7 +84,7 @@ final class Explanator
             ? \abs($mean - $caseResult->med) / $caseResult->med * 100
             : 0.0;
 
-        // RStDev✓ × iter time
+        // RStDev* × iter time
         match (true) {
             $frstdev > 20.0 && $iterTime < 10.0 => $result[] = new Report\UnreliableLowIterTime($frstdev, $iterTime),
             $frstdev > 20.0 => $result[] = new Report\VeryHighVariance($frstdev),
@@ -99,7 +100,7 @@ final class Explanator
             default => null,
         };
 
-        // |Mean✓ − Median| / Median
+        // |Mean* − Median| / Median
         match (true) {
             $skew > 10.0 => $result[] = new Report\HeavilySkewed($skew),
             $skew >= 5.0 => $result[] = new Report\SkewedDistribution($skew),
@@ -123,5 +124,4 @@ final class Explanator
 
         return $result;
     }
-
 }

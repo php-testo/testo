@@ -16,7 +16,6 @@ use Testo\Application\Value\Filter;
 use Testo\Application\Value\RunResult;
 use Testo\Common\Container;
 use Testo\Core\Value\Status;
-use Testo\Event\Framework\FrameworkStarting;
 use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Framework\WorkerFinished;
@@ -99,7 +98,7 @@ final class Application
         $suiteProvider = $this->container->get(SuiteProvider::class);
         $suiteRunner = $this->container->get(SuiteRunner::class);
         $status = Status::Passed;
-        $duration = microtime(true);
+        $duration = \microtime(true);
 
         # Iterate and run Test Suites
         $suiteResults = [];
@@ -108,7 +107,7 @@ final class Application
             $suiteResult->status->isFailure() and $status = Status::Failed;
         }
 
-        $duration = microtime(true) - $duration;
+        $duration = \microtime(true) - $duration;
         $result = new RunResult($suiteResults, status: $status, duration: $duration);
 
         $dispatcher->dispatch(new WorkerFinished());

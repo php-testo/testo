@@ -19,23 +19,6 @@ final class Environment
 
     private function __construct() {}
 
-    private static function init(): void
-    {
-        static $skip = false;
-        if ($skip) {
-            return;
-        }
-
-        $skip = true;
-        self::$phpVersion = \phpversion();
-        self::$os = \php_uname('s') . ' ' . \php_uname('r');
-        self::$cpu = \php_uname('m');
-        self::$xDebugExists = \extension_loaded('xdebug');
-        self::$xDebugVersion = self::$xDebugExists ? \phpversion('xdebug') : null;
-        self::$opCacheEnabled = \extension_loaded('Zend OPcache') && \ini_get('opcache.enable_cli') === '1';
-        self::$jitEnabled = self::$opCacheEnabled && ((int) \ini_get('opcache.jit_buffer_size')) > 0;
-    }
-
     public static function getPhpVersion(): string
     {
         self::init();
@@ -89,5 +72,22 @@ final class Environment
     {
         self::init();
         return self::$jitEnabled;
+    }
+
+    private static function init(): void
+    {
+        static $skip = false;
+        if ($skip) {
+            return;
+        }
+
+        $skip = true;
+        self::$phpVersion = \phpversion();
+        self::$os = \php_uname('s') . ' ' . \php_uname('r');
+        self::$cpu = \php_uname('m');
+        self::$xDebugExists = \extension_loaded('xdebug');
+        self::$xDebugVersion = self::$xDebugExists ? \phpversion('xdebug') : null;
+        self::$opCacheEnabled = \extension_loaded('Zend OPcache') && \ini_get('opcache.enable_cli') === '1';
+        self::$jitEnabled = self::$opCacheEnabled && ((int) \ini_get('opcache.jit_buffer_size')) > 0;
     }
 }

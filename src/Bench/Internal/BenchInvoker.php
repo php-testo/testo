@@ -13,6 +13,9 @@ use Testo\Bench\Dto\Snap;
 use Testo\Bench\Exception\BenchWithAttributeMissingException;
 use Testo\Core\Context\TestInfo;
 
+/**
+ * @internal
+ */
 final class BenchInvoker
 {
     public function __invoke(TestInfo $info): mixed
@@ -70,7 +73,7 @@ final class BenchInvoker
         $summaryTable = \Testo\Bench\Internal\Renderer::table($result);
         $itersTable = \Testo\Bench\Internal\Renderer::rounds($result);
         echo <<<EOT
-            Summary:
+            Results for {$info->name}:
             $summaryTable
 
             Iterations:

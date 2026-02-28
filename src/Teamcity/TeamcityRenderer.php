@@ -61,14 +61,14 @@ final class TeamcityRenderer implements PluginConfigurator
         $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
     }
 
-    private function onSessionStarting(SessionStarting $event): void
-    {
-        $this->logger->logEnvironment();
-    }
-
     private static function getId(TestInfo $testInfo): string
     {
         return \spl_object_hash($testInfo->testDefinition);
+    }
+
+    private function onSessionStarting(SessionStarting $event): void
+    {
+        $this->logger->logEnvironment();
     }
 
     private function onTestPipelineFinished(TestPipelineFinished $event): void

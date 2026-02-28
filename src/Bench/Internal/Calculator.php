@@ -9,6 +9,9 @@ use Testo\Bench\Dto\CaseSet;
 use Testo\Bench\Dto\Snap;
 use Testo\Inline\TestInline;
 
+/**
+ * @internal
+ */
 final class Calculator
 {
     /**

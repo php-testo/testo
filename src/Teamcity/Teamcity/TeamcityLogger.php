@@ -71,16 +71,6 @@ final class TeamcityLogger
         $this->publish(Formatter::blockClosed('Environment'));
     }
 
-    private static function key(string $name): string
-    {
-        return "\033[36;1m{$name}:\033[0m ";
-    }
-
-    private static function dim(string $text): string
-    {
-        return "\033[2m{$text}\033[0m";
-    }
-
     /**
      * Publishes test suite started message using SuiteInfo.
      */
@@ -249,6 +239,16 @@ final class TeamcityLogger
             Status::Cancelled => $this->handleCancelledTest($result, $duration, $overrideName),
             Status::Aborted => $this->handleAbortedTest($result, $duration, $overrideName),
         };
+    }
+
+    private static function key(string $name): string
+    {
+        return "\033[36;1m{$name}:\033[0m ";
+    }
+
+    private static function dim(string $text): string
+    {
+        return "\033[2m{$text}\033[0m";
     }
 
     /**

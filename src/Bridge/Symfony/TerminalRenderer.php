@@ -74,6 +74,11 @@ final class TerminalRenderer implements PluginConfigurator
         $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
     }
 
+    private static function getId(TestInfo $testInfo): string
+    {
+        return \spl_object_hash($testInfo->testDefinition);
+    }
+
     private function onSessionStarting(SessionStarting $event): void
     {
         $this->logger->ensureHeader();
@@ -83,11 +88,6 @@ final class TerminalRenderer implements PluginConfigurator
     private function onSessionFinished(SessionFinished $event): void
     {
         $this->logger->printSummary($event->result->duration);
-    }
-
-    private static function getId(TestInfo $testInfo): string
-    {
-        return \spl_object_hash($testInfo->testDefinition);
     }
 
     private function onTestPipelineFinished(TestPipelineFinished $event): void

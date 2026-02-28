@@ -110,5 +110,4 @@ abstract class Base extends Command
 
         return null;
     }
-
 }
