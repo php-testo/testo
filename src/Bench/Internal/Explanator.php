@@ -74,8 +74,8 @@ final class Explanator
         $mean = $caseResult->favg;
         $outliers = $caseResult->rejected;
         $total = \count($caseSet->iterations);
-        $invocations = $caseSet->iterations[0]->calls;
-        $batchTime = $mean * $invocations;
+        $calls = $caseSet->iterations[0]->calls;
+        $iterTime = $mean * $calls;
         $outlierRate = $total > 0 && $outliers > 0
             ? ($outliers / $total) * 100
             : 0.0;
@@ -83,11 +83,11 @@ final class Explanator
             ? \abs($mean - $caseResult->med) / $caseResult->med * 100
             : 0.0;
 
-        // RStDev✓ × batch time
+        // RStDev✓ × iter time
         match (true) {
-            $frstdev > 20.0 && $batchTime < 10.0 => $result[] = new Report\UnreliableLowBatchTime($frstdev, $batchTime),
+            $frstdev > 20.0 && $iterTime < 10.0 => $result[] = new Report\UnreliableLowIterTime($frstdev, $iterTime),
             $frstdev > 20.0 => $result[] = new Report\VeryHighVariance($frstdev),
-            $frstdev >= 10.0 && $batchTime < 10.0 => $result[] = new Report\HighVarianceLowBatchTime($frstdev, $batchTime),
+            $frstdev >= 10.0 && $iterTime < 10.0 => $result[] = new Report\HighVarianceLowIterTime($frstdev, $iterTime),
             $frstdev >= 10.0 => $result[] = new Report\HighVariance($frstdev),
             default => null,
         };
@@ -110,16 +110,16 @@ final class Explanator
         $outliers >= 3 && $outlierRate > 10.0 && $skew > 5.0
             and $result[] = new Report\BimodalBehavior($outliers, $outlierRate, $skew);
 
-        // Noisy environment × batch time
+        // Noisy environment × iter time
         match (true) {
-            $frstdev > 10.0 && $outliers < 3 && $batchTime < 10.0 => $result[] = new Report\InsufficientBatchTime($frstdev, $batchTime),
+            $frstdev > 10.0 && $outliers < 3 && $iterTime < 10.0 => $result[] = new Report\InsufficientIterTime($frstdev, $iterTime),
             $frstdev > 10.0 && $outliers < 3 => $result[] = new Report\NoisyEnvironment($frstdev, $outliers),
             default => null,
         };
 
-        // Preventive: low batch time with acceptable RStDev
-        $batchTime < 10.0 && $frstdev <= 10.0
-            and $result[] = new Report\LowBatchTime($batchTime);
+        // Preventive: low iter time with acceptable RStDev
+        $iterTime < 10.0 && $frstdev <= 10.0
+            and $result[] = new Report\LowIterTime($iterTime);
 
         return $result;
     }

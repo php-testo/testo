@@ -40,7 +40,7 @@ final class BenchInvoker
             $iterations[] = self::runIteration(
                 iteration: $i,
                 functions: $functions,
-                invocations: $attr->invocations,
+                calls: $attr->calls,
             );
         }
 
@@ -81,17 +81,16 @@ final class BenchInvoker
     /**
      * @param int<1, max> $iteration Current iteration number, starting from 1.
      * @param list<callable> $functions List of callables to benchmark.
-     * @param int<1, max> $invocations Number of revolutions to run for each benchmark.
-     *
+     * @param int<1, max> $calls Number of calls per iteration.
      */
     private static function runIteration(
         int $iteration,
         array $functions,
-        int $invocations,
+        int $calls,
     ): IterationSet {
         $cases = [];
         foreach ($functions as $k => $function) {
-            $cases[] = self::runCase($function, $invocations);
+            $cases[] = self::runCase($function, $calls);
         }
 
         return new IterationSet(
@@ -100,11 +99,11 @@ final class BenchInvoker
         );
     }
 
-    private static function runCase(\Closure $function, int $invocations): Snap
+    private static function runCase(\Closure $function, int $calls): Snap
     {
         $beforeMem = \memory_get_usage();
         $beforeTime = \hrtime(true);
-        for ($i = 0; $i < $invocations; ++$i) {
+        for ($i = 0; $i < $calls; ++$i) {
             $function();
         }
         $afterTime = \hrtime(true);
@@ -114,7 +113,7 @@ final class BenchInvoker
         # Delta time in microseconds
         $deltaTime = ($afterTime - $beforeTime) / 1_000;
         return new Snap(
-            calls: $invocations,
+            calls: $calls,
             memory: $deltaMem,
             time: $deltaTime,
         );

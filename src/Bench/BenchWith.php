@@ -30,11 +30,10 @@ final class BenchWith implements Interceptable
         public readonly array $arguments = [],
 
         /**
-         * @var int<1, max> Number of method invocations per iteration.
-         *      It's a batch size for each iteration, which helps to reduce the impact of
-         *      overhead on the benchmark results.
+         * @var int<1, max> Number of calls per iteration.
+         *      Helps reduce the impact of measurement overhead on the benchmark results.
          */
-        public readonly int $invocations = 1_000,
+        public readonly int $calls = 1_000,
 
         /**
          * @var int<1, max> Number of iterations.
@@ -42,7 +41,7 @@ final class BenchWith implements Interceptable
         public readonly int $iterations = 5,
     ) {
         \count($callables) >= 1 or throw new \InvalidArgumentException('At least one callable must be provided.');
-        $invocations > 0 or throw new \InvalidArgumentException('Invocations must be greater than 0.');
+        $calls > 0 or throw new \InvalidArgumentException('Calls must be greater than 0.');
         $iterations > 0 or throw new \InvalidArgumentException('Iterations must be greater than 0.');
     }
 }

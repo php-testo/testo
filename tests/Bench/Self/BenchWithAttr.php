@@ -18,7 +18,7 @@ final class BenchWithAttr
             // 'sumRange' => [self::class, 'sumRange'],
         ],
         arguments: [1, 20_000],
-        invocations: 2_000_000,
+        calls: 2_000_000,
         iterations: 10,
     )]
     // #[TestInline([1, 2000], 2001000)]
@@ -46,7 +46,7 @@ final class BenchWithAttr
     //         // 'sumRange' => [self::class, 'sumRange'],
     //     ],
     //     arguments: [1, 20_000],
-    //     revolutions: 5_000,
+    //     calls: 5_000,
     //     iterations: 5,
     // )]
     public static function sumLinearF2(int $a, int $b): int
@@ -63,7 +63,7 @@ final class BenchWithAttr
             'sumLinearF' => [self::class, 'sumLinearF1'],
         ],
         arguments: [1, 5_000],
-        invocations: 2000,
+        calls: 2000,
         iterations: 10,
     )]
     public static function sumInCycle(int $a, int $b): int
@@ -106,8 +106,8 @@ final class BenchWithAttr
             '?? false' => [self::class, 'parse1'],
             // 'array_key_exists' => [self::class, 'parse2'],
         ],
-        invocations: 100_000,
-        iterations: 4,
+        calls: 2_000,
+        iterations: 20,
     )]
     public static function parse1(): void
     {
