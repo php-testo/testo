@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Bench\Dto;
 
-final readonly class ValueRel {
+final readonly class ValueRel
+{
     public function __construct(
         /**
          * @var float Absolute value of the metric (e.g., time in seconds, memory in bytes).

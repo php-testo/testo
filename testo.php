@@ -20,5 +20,6 @@ return new ApplicationConfig(
         require 'tests/Common/suites.php',
         require 'tests/Lifecycle/suites.php',
         require 'tests/Data/suites.php',
+        require 'tests/Bench/suites.php',
     ),
 );

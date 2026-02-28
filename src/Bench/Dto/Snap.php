@@ -7,14 +7,16 @@ namespace Testo\Bench\Dto;
 /**
  * Result of an iteration for a single benchmark.
  */
-final readonly class Snap {
+final readonly class Snap
+{
     public function __construct(
-        public int $revolutions,
+        /** @var int<1, max> Number of invocations of the benchmark. */
+        public int $calls,
 
-        /** Used memory in bytes */
-        public Value $memory,
+        /** @var int<0, max> Used memory in bytes */
+        public int $memory,
 
-        /** Duration in microseconds. */
-        public Value $time,
+        /** Sum of time across all invocations in microseconds. */
+        public float $time,
     ) {}
 }

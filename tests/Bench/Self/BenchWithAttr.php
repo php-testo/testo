@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Bench\Self;
 
 use Testo\Bench\BenchWith;
-use Testo\Inline\TestInline;
 
 final class BenchWithAttr
 {
@@ -19,7 +18,7 @@ final class BenchWithAttr
             // 'sumRange' => [self::class, 'sumRange'],
         ],
         arguments: [1, 20_000],
-        revolutions: 2_000_000,
+        invocations: 2_000_000,
         iterations: 10,
     )]
     // #[TestInline([1, 2000], 2001000)]
@@ -64,7 +63,7 @@ final class BenchWithAttr
             'sumLinearF' => [self::class, 'sumLinearF1'],
         ],
         arguments: [1, 5_000],
-        revolutions: 2000,
+        invocations: 2000,
         iterations: 10,
     )]
     public static function sumInCycle(int $a, int $b): int
@@ -100,5 +99,48 @@ final class BenchWithAttr
     public static function sumRange(int $a, int $b): int
     {
         return \array_sum(\range($a, $b));
+    }
+    #[BenchWith(
+        [
+            // 'isset' => [self::class, 'parse3'],
+            '?? false' => [self::class, 'parse1'],
+            // 'array_key_exists' => [self::class, 'parse2'],
+        ],
+        invocations: 100_000,
+        iterations: 4,
+    )]
+    public static function parse1(): void
+    {
+        $uri = 'https://github.com/roadrunner-php/http/pull/34/changes#diff-6e0446c2115201853f27c951bccb2792d9c869ccf2f1b18aff26e233ba2e2fb6R38-R44';
+        $parts = parse_url($uri);
+
+        if ($parts['host'] ?? false) {
+            $server['HTTP_HOST'] = ($parts['port'] ?? false)
+                ? $parts['host'] . ':' . $parts['port']
+                : $parts['host'];
+        }
+    }
+    public static function parse2(): void
+    {
+        $uri = 'https://github.com/roadrunner-php/http/pull/34/changes#diff-6e0446c2115201853f27c951bccb2792d9c869ccf2f1b18aff26e233ba2e2fb6R38-R44';
+        $parts = parse_url($uri);
+
+        if (\array_key_exists('host', $parts)) {
+            $server['HTTP_HOST'] = \array_key_exists('port', $parts)
+                ? $parts['host'] . ':' . $parts['port']
+                : $parts['host'];
+        }
+    }
+
+    public static function parse3(): void
+    {
+        $uri = 'https://github.com/roadrunner-php/http/pull/34/changes#diff-6e0446c2115201853f27c951bccb2792d9c869ccf2f1b18aff26e233ba2e2fb6R38-R44';
+        $parts = parse_url($uri);
+
+        if (isset($parts['host'])) {
+            $server['HTTP_HOST'] = isset($parts['port'])
+                ? $parts['host'] . ':' . $parts['port']
+                : $parts['host'];
+        }
     }
 }
