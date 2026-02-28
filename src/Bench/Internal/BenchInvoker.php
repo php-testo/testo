@@ -35,6 +35,15 @@ final class BenchInvoker
             $functions[] = $f;
         }
 
+        # Warmup
+        if ($attr->warmup > 0) {
+            for ($i = 0; $i < $attr->warmup; ++$i) {
+                foreach ($functions as $function) {
+                    $function();
+                }
+            }
+        }
+
         $iterations = [];
         for ($i = 1; $i <= $attr->iterations; ++$i) {
             $iterations[] = self::runIteration(

@@ -106,6 +106,7 @@ final class BenchWithAttr
             '?? false' => [self::class, 'parse1'],
             // 'array_key_exists' => [self::class, 'parse2'],
         ],
+        warmup: 10,
         calls: 2_000,
         iterations: 20,
     )]
