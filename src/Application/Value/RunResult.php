@@ -22,6 +22,8 @@ final class RunResult implements \IteratorAggregate
          */
         public readonly iterable $results,
         public readonly Status $status,
+        /** Duration of the session in seconds. */
+        public readonly float $duration,
     ) {}
 
     /**

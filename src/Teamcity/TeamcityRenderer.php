@@ -8,6 +8,7 @@ use Testo\Application\Config\EventListenerCollector;
 use Testo\Application\Config\PluginConfigurator;
 use Testo\Common\Container;
 use Testo\Core\Context\TestInfo;
+use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Test\TestBatchFinished;
 use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
@@ -36,6 +37,9 @@ final class TeamcityRenderer implements PluginConfigurator
     {
         $listeners = $container->get(EventListenerCollector::class);
 
+        // Framework events
+        $listeners->addListener(SessionStarting::class, $this->onSessionStarting(...));
+
         // Test Pipeline events (lifecycle of entire test through all interceptors)
         // $listeners->addListener(TestPipelineStarting::class, $this->onTestPipelineStarting(...));
         $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
@@ -55,6 +59,11 @@ final class TeamcityRenderer implements PluginConfigurator
         // TestSuite events
         $listeners->addListener(TestSuiteStarting::class, $this->onTestSuiteStarting(...));
         $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
+    }
+
+    private function onSessionStarting(SessionStarting $event): void
+    {
+        $this->logger->logEnvironment();
     }
 
     private static function getId(TestInfo $testInfo): string

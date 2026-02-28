@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Bridge\Symfony\Renderer;
 
 use Testo\Assert\TestState;
+use Testo\Common\Environment;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\SuiteInfo;
@@ -39,9 +40,6 @@ final class TerminalLogger
     /** @var list<array{result: TestResult, duration: int<0, max>|null}> */
     private array $failures = [];
 
-    private float $startTime;
-    private bool $headerPrinted = false;
-
     /**
      * Current indentation level for nested tests (e.g., DataProvider datasets).
      *
@@ -56,16 +54,13 @@ final class TerminalLogger
 
     public function __construct(
         private readonly OutputFormat $format = OutputFormat::Compact,
-    ) {
-        $this->startTime = \microtime(true);
-    }
+    ) {}
 
     /**
      * Publishes test suite started message.
      */
     public function suiteStartedFromInfo(SuiteInfo $info): void
     {
-        $this->ensureHeader();
         echo Formatter::suiteHeader($info->name, $this->format);
     }
 
@@ -82,7 +77,6 @@ final class TerminalLogger
      */
     public function caseStartedFromInfo(CaseInfo $info): void
     {
-        $this->ensureHeader();
         echo Formatter::caseHeader($info->name, $this->format);
     }
 
@@ -100,7 +94,6 @@ final class TerminalLogger
      */
     public function batchStartedFromInfo(TestInfo $info): void
     {
-        $this->ensureHeader();
         $this->currentIndentLevel = 1;
 
         if ($this->format === OutputFormat::Dots) {
@@ -129,7 +122,6 @@ final class TerminalLogger
      */
     public function testStartedFromInfo(TestInfo $info, ?string $overrideName = null): void
     {
-        $this->ensureHeader();
         $this->currentTestName = $overrideName;
         // No output on test start for compact/dots mode
     }
@@ -154,23 +146,39 @@ final class TerminalLogger
     /**
      * Prints final summary with all failures and statistics.
      */
-    public function printSummary(): void
+    public function printSummary(float $duration): void
     {
         $this->printFailures();
-        $this->printStatistics();
+        $this->printStatistics($duration);
     }
 
     /**
      * Ensures run header is printed once.
      */
-    private function ensureHeader(): void
+    public function ensureHeader(): void
     {
-        if ($this->headerPrinted) {
-            return;
-        }
-
         echo Formatter::runHeader();
-        $this->headerPrinted = true;
+    }
+
+    public function printEnvironment(): void
+    {
+        echo \sprintf(' %s %s (%s)', Style::info('OS:'), Environment::getOs(), Environment::getCpu()) . "\n";
+        echo \sprintf(' %s %s (%s, memory: %s)', Style::info('PHP:'), Environment::getPhpVersion(), \PHP_SAPI, \ini_get('memory_limit') ?: 'unlimited') . "\n";
+
+        $modes = Environment::getXDebugMode();
+        $xdebug = match (true) {
+            !Environment::hasXDebug() => 'off',
+            $modes !== [] => Environment::getXDebugVersion() . Style::dim(' (' . \implode(', ', $modes) . ')'),
+            default => Environment::getXDebugVersion() . Style::dim(' (off)'),
+        };
+        echo \sprintf('   %s %s', Style::info('XDebug:'), $xdebug) . "\n";
+
+        $opcache = match (true) {
+            !Environment::isOpCacheEnabled() => 'off',
+            Environment::isJitEnabled() => 'enabled with JIT',
+            default => 'enabled',
+        };
+        echo \sprintf('   %s %s', Style::info('OPcache:'), $opcache) . "\n\n";
     }
 
     /**
@@ -348,9 +356,8 @@ final class TerminalLogger
     /**
      * Prints final statistics.
      */
-    private function printStatistics(): void
+    private function printStatistics(float $duration): void
     {
-        $duration = \microtime(true) - $this->startTime;
         $success = $this->failedTests === 0;
 
         echo Formatter::summary(

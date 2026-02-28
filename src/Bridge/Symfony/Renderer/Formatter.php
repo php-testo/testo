@@ -57,7 +57,7 @@ final class Formatter
     {
         $name = Info::NAME;
         $version = Info::version();
-        return Style::bold('# Running Tests') . Style::dim(" ({$name} v{$version})") . "\n\n";
+        return Style::bold("{$name}") . Style::dim(" v{$version}") . "\n\n";
     }
 
     /**

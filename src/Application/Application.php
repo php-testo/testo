@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Application;
 
 use Internal\Path;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Config\ApplicationConfig;
 use Testo\Application\Config\Internal\ConfigInflector;
 use Testo\Application\Config\PluginConfigurator;
@@ -15,6 +16,11 @@ use Testo\Application\Value\Filter;
 use Testo\Application\Value\RunResult;
 use Testo\Common\Container;
 use Testo\Core\Value\Status;
+use Testo\Event\Framework\FrameworkStarting;
+use Testo\Event\Framework\SessionFinished;
+use Testo\Event\Framework\SessionStarting;
+use Testo\Event\Framework\WorkerFinished;
+use Testo\Event\Framework\WorkerStarting;
 
 final class Application
 {
@@ -85,19 +91,29 @@ final class Application
         $filter === null or $this->container->set($filter);
         $filter ??= $this->container->get(Filter::class);
 
+        $dispatcher = $this->container->get(EventDispatcherInterface::class);
+        $dispatcher->dispatch(new SessionStarting());
+        $dispatcher->dispatch(new WorkerStarting());
+
+
         $suiteProvider = $this->container->get(SuiteProvider::class);
         $suiteRunner = $this->container->get(SuiteRunner::class);
         $status = Status::Passed;
+        $duration = microtime(true);
 
-        # Iterate Test Suites
+        # Iterate and run Test Suites
         $suiteResults = [];
         foreach ($suiteProvider->withFilter($filter)->getSuites() as $suite) {
             $suiteResults[] = $suiteResult = $suiteRunner->runSuite($suite, $filter);
             $suiteResult->status->isFailure() and $status = Status::Failed;
         }
 
-        # Run suites
-        return new RunResult($suiteResults, status: $status);
+        $duration = microtime(true) - $duration;
+        $result = new RunResult($suiteResults, status: $status, duration: $duration);
+
+        $dispatcher->dispatch(new WorkerFinished());
+        $dispatcher->dispatch(new SessionFinished($result));
+        return $result;
     }
 
     public function getContainer(): Container

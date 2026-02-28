@@ -42,23 +42,35 @@ TestRetrying  // Event fired when a test is about to be retried
 When events form a hierarchy, the entity name should reflect the nesting level:
 
 ```
-TestPipeline    → Top level (run interceptors pipeline)
-  TestBatch     → Mid level (multiple runs of same test)
-    Test        → Individual test execution
+Session         → Outermost level (entire test run lifecycle)
+  Worker        → Subprocess level (parallel/isolated execution)
+    TestSuite   → Suite level (collection of test cases)
+      TestCase  → Class level (single test class)
+        TestPipeline  → Pipeline level (run interceptors)
+          TestBatch   → Batch level (DataProvider/Retry)
+            Test      → Individual test execution
 ```
 
 ### Complete Event Hierarchy Example
 
 ```php
-TestPipelineStarting   // Before run interceptors start
-  TestBatchStarting    // Before batch of test runs (DataProvider/Retry)
-    TestStarting       // Before individual test execution
-    TestFinished       // After individual test execution
-    TestRetrying       // Before retry attempt (if applicable)
-    TestStarting       // Next attempt
-    TestFinished
-  TestBatchFinished    // After all test runs in batch
-TestPipelineFinished   // After run interceptors finish
+SessionStarting        // Before any tests are discovered or executed
+  WorkerStarting       // Before a subprocess starts (parallel/isolated mode)
+    TestSuiteStarting  // Before a test suite (collection of cases) starts
+      TestCaseStarting // Before a test class starts
+        TestPipelineStarting   // Before run interceptors start
+          TestBatchStarting    // Before batch of test runs (DataProvider/Retry)
+            TestStarting       // Before individual test execution
+            TestFinished       // After individual test execution
+            TestRetrying       // Before retry attempt (if applicable)
+            TestStarting       // Next attempt
+            TestFinished
+          TestBatchFinished    // After all test runs in batch
+        TestPipelineFinished   // After run interceptors finish
+      TestCaseFinished // After a test class finishes
+    TestSuiteFinished  // After a test suite finishes
+  WorkerFinished       // After a subprocess finishes
+SessionFinished        // After all tests complete, carries RunResult
 ```
 
 ## Event Class Structure
@@ -159,7 +171,41 @@ Each event class must have a PHPDoc comment that includes:
 4. **Hierarchy clarity**: Entity names reflect nesting levels
 5. **Ecosystem alignment**: Consistent with Laravel, Symfony event naming patterns
 
+## Namespace Organization
+
+Events are grouped into namespaces by entity layer. The namespace name matches the entity
+prefix for test-domain events. Framework-level events are the exception — `Session` and
+`Worker` share a single `Framework` namespace since they belong to the same infrastructure
+layer and are not test-domain entities.
+
+```
+Event\Framework\     → Session*, Worker*  (infrastructure lifecycle)
+Event\TestSuite\     → TestSuite*
+Event\TestCase\      → TestCase*
+Event\Test\          → TestPipeline*, TestBatch*, TestDataSet*, Test*
+```
+
 ## Examples from Testo
+
+### Framework Events (`Event\Framework`)
+
+Top-level lifecycle events not tied to any specific test entity. Grouped in their own
+namespace since `Session` and `Worker` belong to the same infrastructure layer.
+
+```php
+SessionStarting        // Before the entire test run begins (fired once)
+SessionFinished        // After all tests complete, carries RunResult with duration
+WorkerStarting         // Before a subprocess starts (parallel/isolated mode)
+WorkerFinished         // After a subprocess finishes
+```
+
+### Suite and Case Events
+```php
+TestSuiteStarting      // Before a suite (collection of test cases) starts
+TestSuiteFinished      // After a suite finishes
+TestCaseStarting       // Before a test class starts
+TestCaseFinished       // After a test class finishes
+```
 
 ### Pipeline Events
 ```php

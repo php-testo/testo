@@ -7,6 +7,8 @@ namespace Testo\Teamcity\Teamcity;
 use Testo\Assert\State\CompositeRecord;
 use Testo\Assert\State\Record;
 use Testo\Assert\TestState;
+use Testo\Common\Environment;
+use Testo\Common\Info;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\SuiteInfo;
@@ -37,6 +39,46 @@ final class TeamcityLogger
         $trace = $throwable->getTraceAsString();
 
         return "{$class}\nFile: {$file}:{$line}\n\nStack trace:\n{$trace}";
+    }
+
+    /**
+     * Publishes environment information as a TeamCity block with plain text lines.
+     */
+    public function logEnvironment(): void
+    {
+        echo "\033[1m" . Info::NAME . "\033[0m" . self::dim(' v' . Info::version()) . "\n";
+
+        $this->publish(Formatter::blockOpened('Environment'));
+
+        // echo self::key('OS') . \sprintf('%s (%s)', Environment::getOs(), Environment::getCpu()) . "\n";
+        echo self::key('PHP') . \sprintf('%s (%s, memory: %s)', Environment::getPhpVersion(), \PHP_SAPI, \ini_get('memory_limit') ?: 'unlimited') . "\n";
+
+        $modes = Environment::getXDebugMode();
+        $xdebug = match (true) {
+            !Environment::hasXDebug() => self::dim('off'),
+            $modes !== [] => Environment::getXDebugVersion() . self::dim(' (' . \implode(', ', $modes) . ')'),
+            default => Environment::getXDebugVersion() . self::dim(' (off)'),
+        };
+        echo '  ' . self::key('XDebug') . $xdebug . "\n";
+
+        $opcache = match (true) {
+            !Environment::isOpCacheEnabled() => self::dim('off'),
+            Environment::isJitEnabled() => 'enabled with JIT',
+            default => 'enabled',
+        };
+        echo '  ' . self::key('OPcache') . $opcache . "\n";
+
+        $this->publish(Formatter::blockClosed('Environment'));
+    }
+
+    private static function key(string $name): string
+    {
+        return "\033[36;1m{$name}:\033[0m ";
+    }
+
+    private static function dim(string $text): string
+    {
+        return "\033[2m{$text}\033[0m";
     }
 
     /**

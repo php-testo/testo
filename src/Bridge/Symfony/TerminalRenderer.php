@@ -11,6 +11,8 @@ use Testo\Bridge\Symfony\Renderer\Style;
 use Testo\Bridge\Symfony\Renderer\TerminalLogger;
 use Testo\Common\Container;
 use Testo\Core\Context\TestInfo;
+use Testo\Event\Framework\SessionFinished;
+use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Test\TestBatchFinished;
 use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
@@ -48,6 +50,10 @@ final class TerminalRenderer implements PluginConfigurator
     {
         $listeners = $container->get(EventListenerCollector::class);
 
+        // Framework events
+        $listeners->addListener(SessionStarting::class, $this->onSessionStarting(...));
+        $listeners->addListener(SessionFinished::class, $this->onSessionFinished(...));
+
         // Test Pipeline events (lifecycle of entire test through all interceptors)
         $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
 
@@ -66,6 +72,17 @@ final class TerminalRenderer implements PluginConfigurator
         // TestSuite events
         $listeners->addListener(TestSuiteStarting::class, $this->onTestSuiteStarting(...));
         $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
+    }
+
+    private function onSessionStarting(SessionStarting $event): void
+    {
+        $this->logger->ensureHeader();
+        $this->logger->printEnvironment();
+    }
+
+    private function onSessionFinished(SessionFinished $event): void
+    {
+        $this->logger->printSummary($event->result->duration);
     }
 
     private static function getId(TestInfo $testInfo): string
@@ -138,8 +155,5 @@ final class TerminalRenderer implements PluginConfigurator
     private function onTestSuiteFinished(TestSuiteFinished $event): void
     {
         $this->logger->handleSuiteResult($event->suiteInfo, $event->suiteResult);
-
-        // Print final summary after all tests in suite complete
-        $this->logger->printSummary();
     }
 }

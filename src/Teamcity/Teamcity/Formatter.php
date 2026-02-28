@@ -256,6 +256,30 @@ final class Formatter
     }
 
     /**
+     * Formats a build parameter message.
+     *
+     * @param non-empty-string $name Parameter name
+     * @param non-empty-string $value Parameter value
+     * @return non-empty-string
+     */
+    public static function buildParameter(string $name, string $value): string
+    {
+        return self::formatMessage('setParameter', ['name' => $name, 'value' => $value]);
+    }
+
+    /**
+     * Formats a message for display in the build log.
+     *
+     * @param non-empty-string $text Message text
+     * @param 'NORMAL'|'WARNING'|'FAILURE'|'ERROR' $status Message status
+     * @return non-empty-string
+     */
+    public static function message(string $text, string $status = 'NORMAL'): string
+    {
+        return self::formatMessage('message', ['text' => $text, 'status' => $status]);
+    }
+
+    /**
      * Formats a compilation started message.
      *
      * @param non-empty-string $compiler Compiler name
