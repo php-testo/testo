@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.2](https://github.com/php-testo/testo/compare/0.7.1...0.7.2) (2026-03-05)
+
+
+### Features
+
+* **Bench:** Add `warmup` and reporting; update statistics and reasoning ([44a9f75](https://github.com/php-testo/testo/commit/44a9f75b8e420689308dc910d92b283e721c88c6))
+* **Bench:** Add Attributed benchmarks PoC ([#92](https://github.com/php-testo/testo/issues/92), [#94](https://github.com/php-testo/testo/issues/94)) ([60b5201](https://github.com/php-testo/testo/commit/60b5201770ac902916e63a1f8a43f0e53baa78c7))
+* **CLI:** Add filtering by test type (flag `--type`) ([2aa9b05](https://github.com/php-testo/testo/commit/2aa9b05c2428567201cf9699b49cc51903f915aa))
+* **Framework:** Add Session and Worker events ([a663b71](https://github.com/php-testo/testo/commit/a663b710a5fb64183c8ef9a6b6925e715300c180))
+* **Maintenance:** Bump min PHP version to 8.2 ([7cbf6d3](https://github.com/php-testo/testo/commit/7cbf6d398461dd7b71d951dbe31f9f17cf375286))
+
+
+### Code Refactoring
+
+* **CLI:** Print environment info ([a663b71](https://github.com/php-testo/testo/commit/a663b710a5fb64183c8ef9a6b6925e715300c180))
+* **Core:** Add `testType` filter option into `InterceptorOptions` ([2aa9b05](https://github.com/php-testo/testo/commit/2aa9b05c2428567201cf9699b49cc51903f915aa))
+* **Core:** Group tests by types. So, different test types can be used on the same method. ([a65e1cb](https://github.com/php-testo/testo/commit/a65e1cbd9098c629956d5f683aa6c959f6d4367d))
+* **Teamcity:** Render environment info ([a663b71](https://github.com/php-testo/testo/commit/a663b710a5fb64183c8ef9a6b6925e715300c180))
+
 ## [0.7.1](https://github.com/php-testo/testo/compare/0.7.0...0.7.1) (2026-02-01)
 
 
