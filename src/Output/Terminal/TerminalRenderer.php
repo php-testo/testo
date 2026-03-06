@@ -2,13 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Symfony;
+namespace Testo\Output\Terminal;
 
 use Testo\Application\Config\EventListenerCollector;
 use Testo\Application\Config\PluginConfigurator;
-use Testo\Bridge\Symfony\Renderer\ColorMode;
-use Testo\Bridge\Symfony\Renderer\Style;
-use Testo\Bridge\Symfony\Renderer\TerminalLogger;
 use Testo\Common\Container;
 use Testo\Core\Context\TestInfo;
 use Testo\Event\Framework\SessionFinished;
@@ -22,6 +19,9 @@ use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
 use Testo\Event\TestSuite\TestSuiteStarting;
+use Testo\Output\Terminal\Renderer\ColorMode;
+use Testo\Output\Terminal\Renderer\Style;
+use Testo\Output\Terminal\Renderer\TerminalLogger;
 
 /**
  * Terminal interceptor for rendering test results with configurable output.

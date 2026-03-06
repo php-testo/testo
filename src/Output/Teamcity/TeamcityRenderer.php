@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Teamcity;
+namespace Testo\Output\Teamcity;
 
 use Testo\Application\Config\EventListenerCollector;
 use Testo\Application\Config\PluginConfigurator;
@@ -18,7 +18,7 @@ use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
 use Testo\Event\TestSuite\TestSuiteStarting;
-use Testo\Teamcity\Teamcity\TeamcityLogger;
+use Testo\Output\Teamcity\Teamcity\TeamcityLogger;
 
 final class TeamcityRenderer implements PluginConfigurator
 {

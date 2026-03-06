@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Symfony\Renderer;
+namespace Testo\Output\Terminal\Renderer;
 
 /**
  * Color mode for terminal output.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Symfony\Renderer;
+namespace Testo\Output\Terminal\Renderer;
 
 /**
  * Terminal styling utilities with configurable color support.

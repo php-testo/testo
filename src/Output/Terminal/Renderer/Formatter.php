@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Symfony\Renderer;
+namespace Testo\Output\Terminal\Renderer;
 
 use Testo\Assert\State\CompositeRecord;
 use Testo\Assert\State\Record;

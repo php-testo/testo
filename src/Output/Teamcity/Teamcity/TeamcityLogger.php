@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Teamcity\Teamcity;
+namespace Testo\Output\Teamcity\Teamcity;
 
 use Testo\Assert\State\CompositeRecord;
 use Testo\Assert\State\Record;
@@ -16,6 +16,7 @@ use Testo\Core\Context\SuiteResult;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
+use Testo\Output\Terminal\Renderer\Formatter;
 
 /**
  * TeamCity logger for test reporting using DTO objects.

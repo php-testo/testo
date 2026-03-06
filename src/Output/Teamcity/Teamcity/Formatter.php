@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Teamcity\Teamcity;
+namespace Testo\Output\Teamcity\Teamcity;
 
 /**
  * Formats TeamCity service messages.
