@@ -21,5 +21,6 @@ return new ApplicationConfig(
         require 'tests/Lifecycle/suites.php',
         require 'tests/Data/suites.php',
         require 'tests/Bench/suites.php',
+        require 'tests/Output/suites.php',
     ),
 );

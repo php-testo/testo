@@ -16,7 +16,7 @@ use Testo\Core\Context\SuiteResult;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
-use Testo\Output\Terminal\Renderer\Formatter;
+use Testo\Output\Rendering\StackTrace;
 
 /**
  * TeamCity logger for test reporting using DTO objects.
@@ -34,12 +34,19 @@ final class TeamcityLogger
      */
     public static function formatThrowable(\Throwable $throwable): string
     {
-        $class = $throwable::class;
-        $file = $throwable->getFile();
-        $line = $throwable->getLine();
-        $trace = $throwable->getTraceAsString();
+        $parts = [];
+        $current = $throwable;
 
-        return "{$class}\nFile: {$file}:{$line}\n\nStack trace:\n{$trace}";
+        do {
+            $class = $current::class;
+            $file = $current->getFile();
+            $line = $current->getLine();
+            $trace = self::formatTrace(StackTrace::cutStackTrace($current->getTrace()));
+
+            $parts[] = "{$class}\nFile: {$file}:{$line}\n\nStack trace:\n{$trace}";
+        } while ($current = $current->getPrevious());
+
+        return \implode("\n\nCaused by:\n", $parts);
     }
 
     /**
@@ -240,6 +247,26 @@ final class TeamcityLogger
             Status::Cancelled => $this->handleCancelledTest($result, $duration, $overrideName),
             Status::Aborted => $this->handleAbortedTest($result, $duration, $overrideName),
         };
+    }
+
+    /**
+     * @param list<array<string, mixed>> $trace
+     */
+    private static function formatTrace(array $trace): string
+    {
+        $lines = [];
+
+        foreach ($trace as $i => $frame) {
+            $location = isset($frame['file'])
+                ? "{$frame['file']}({$frame['line']})"
+                : '[internal function]';
+            $call = isset($frame['class'])
+                ? "{$frame['class']}{$frame['type']}{$frame['function']}()"
+                : "{$frame['function']}()";
+            $lines[] = "#{$i} {$location}: {$call}";
+        }
+
+        return \implode("\n", $lines);
     }
 
     private static function key(string $name): string
