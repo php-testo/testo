@@ -43,7 +43,7 @@ final class TeamcityLogger
             $class = $current::class;
             $file = $current->getFile();
             $line = $current->getLine();
-            $trace = self::formatTrace(StackTrace::cutStackTrace($current->getTrace(), $boundary));
+            $trace = self::formatTrace(StackTrace::cutStackTrace($current->getTrace(), $boundary, false));
 
             $parts[] = "{$class}\nFile: {$file}:{$line}\n\nStack trace:\n{$trace}";
         } while ($current = $current->getPrevious());

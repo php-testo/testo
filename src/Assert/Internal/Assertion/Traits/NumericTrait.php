@@ -6,6 +6,7 @@ namespace Testo\Assert\Internal\Assertion\Traits;
 
 use Testo\Assert\State\AssertException;
 use Testo\Assert\State\Assertion\AssertionComposite;
+use Testo\Output\Rendering\CutTrace;
 
 /**
  * Contains methods for comparing numeric values
@@ -21,6 +22,7 @@ trait NumericTrait
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     #[\Override]
     public function greaterThan(int|float $min, string $message = ''): static
     {
@@ -44,6 +46,7 @@ trait NumericTrait
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     #[\Override]
     public function greaterThanOrEqual(int|float $min, string $message = ''): static
     {
@@ -67,6 +70,7 @@ trait NumericTrait
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     #[\Override]
     public function lessThan(int|float $max, string $message = ''): static
     {
@@ -90,6 +94,7 @@ trait NumericTrait
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     #[\Override]
     public function lessThanOrEqual(int|float $max, string $message = ''): static
     {

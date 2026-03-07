@@ -24,6 +24,7 @@ use Testo\Assert\Internal\Support;
 use Testo\Assert\State\AssertException;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Assert\State\Test\Fail;
+use Testo\Output\Rendering\CutTrace;
 
 /**
  * Assertion utilities.
@@ -38,6 +39,7 @@ final class Assert
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function same(mixed $expected, mixed $actual, string $message = ''): void
     {
         $actual === $expected
@@ -53,6 +55,7 @@ final class Assert
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function notSame(mixed $expected, mixed $actual, string $message = ''): void
     {
         $actual !== $expected
@@ -74,6 +77,7 @@ final class Assert
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function equals(mixed $expected, mixed $actual, string $message = ''): void
     {
         $actual == $expected
@@ -94,6 +98,7 @@ final class Assert
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function notEquals(mixed $expected, mixed $actual, string $message = ''): void
     {
         $actual != $expected
@@ -114,6 +119,7 @@ final class Assert
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function true(mixed $actual, string $message = ''): void
     {
         $actual === true
@@ -133,6 +139,7 @@ final class Assert
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function false(mixed $actual, string $message = ''): void
     {
         $actual === false
@@ -194,6 +201,7 @@ final class Assert
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function null(
         mixed $actual,
         string $message = '',
@@ -215,6 +223,7 @@ final class Assert
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function blank(
         mixed $actual,
         string $message = '',
@@ -238,6 +247,7 @@ final class Assert
      *
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     public static function string(mixed $actual): StringType
     {
         return AssertString::validateAndCreate($actual);
@@ -335,6 +345,7 @@ final class Assert
      * @param string $message The reason for the failure.
      * @throws AssertException
      */
+    #[CutTrace]
     public static function fail(string $message = ''): never
     {
         $exception = new Fail($message);

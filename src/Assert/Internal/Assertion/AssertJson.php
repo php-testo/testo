@@ -10,6 +10,7 @@ use Testo\Assert\Api\Json\JsonCommon;
 use Testo\Assert\Api\Json\JsonObject;
 use Testo\Assert\Api\Json\JsonStructure;
 use Testo\Assert\State\Assertion\AssertionComposite;
+use Testo\Output\Rendering\CutTrace;
 
 /**
  * Implementation of JSON assertions.
@@ -30,6 +31,7 @@ class AssertJson implements JsonAbstract
      *
      * @deprecated To be implemented
      */
+    #[CutTrace]
     #[\Override]
     public function maxDepth(int $expected): static
     {
@@ -41,6 +43,7 @@ class AssertJson implements JsonAbstract
      *
      * @deprecated To be implemented
      */
+    #[CutTrace]
     #[\Override]
     public function empty(): JsonCommon
     {
@@ -56,6 +59,7 @@ class AssertJson implements JsonAbstract
      *
      * @deprecated To be implemented
      */
+    #[CutTrace]
     #[\Override]
     public function assertPath(string $path, callable $callback): static
     {
@@ -69,6 +73,7 @@ class AssertJson implements JsonAbstract
      *
      * @deprecated To be implemented
      */
+    #[CutTrace]
     #[\Override]
     public function count(int $count, string $message = ''): static
     {
@@ -78,6 +83,7 @@ class AssertJson implements JsonAbstract
     /**
      * Asserts that the JSON string represents a valid JSON structure (object or array).
      */
+    #[CutTrace]
     #[\Override]
     public function isStructure(): JsonStructure
     {
@@ -87,6 +93,7 @@ class AssertJson implements JsonAbstract
     /**
      * Assert that the JSON string represents a valid JSON object.
      */
+    #[CutTrace]
     #[\Override]
     public function isObject(): JsonObject
     {
@@ -96,6 +103,7 @@ class AssertJson implements JsonAbstract
     /**
      * Assert that the JSON string represents a valid JSON array.
      */
+    #[CutTrace]
     #[\Override]
     public function isArray(): JsonArray
     {
@@ -105,6 +113,7 @@ class AssertJson implements JsonAbstract
     /**
      * Assert that the JSON string represents a primitive value (string, number, boolean, null).
      */
+    #[CutTrace]
     #[\Override]
     public function isPrimitive(): JsonCommon
     {
@@ -119,6 +128,7 @@ class AssertJson implements JsonAbstract
      *
      * @param non-empty-string $type The Psalm type to validate against
      */
+    #[CutTrace]
     #[\Override]
     public function matchesType(string $type): static
     {
@@ -132,6 +142,7 @@ class AssertJson implements JsonAbstract
      *
      * @deprecated To be implemented
      */
+    #[CutTrace]
     #[\Override]
     public function matchesSchema(string $schema): static
     {
@@ -143,6 +154,7 @@ class AssertJson implements JsonAbstract
      *
      * @param array<string>|string $keys The keys to check for existence.
      */
+    #[CutTrace]
     #[\Override]
     public function hasKeys(array|string $keys, string $message = ''): JsonObject
     {
@@ -156,6 +168,7 @@ class AssertJson implements JsonAbstract
      *
      * @deprecated To be implemented
      */
+    #[CutTrace]
     #[\Override]
     public function decode(): mixed
     {

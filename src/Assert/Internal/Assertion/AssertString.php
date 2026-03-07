@@ -9,6 +9,7 @@ use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\AssertException;
 use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
+use Testo\Output\Rendering\CutTrace;
 
 /**
  * Assertion utilities for string data type.
@@ -41,48 +42,36 @@ class AssertString implements StringType
     /**
      * Asserts that the string contains the given substring.
      *
-     * @param string $needle Substring to search for.
+     * @param non-empty-string $needle Substring to search for.
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     #[\Override]
     public function contains(string $needle, string $message = ''): static
     {
-        if (\str_contains($this->value, $needle)) {
-            StaticState::success($this->value, ' contains "' . $needle . '"', $message);
-            return $this;
-        }
-
-        StaticState::fail(AssertException::compare(
-            $needle,
-            $this->value,
-            $message,
-            pattern: 'Failed asserting that string `%2$s` contains `%1$s`.',
-            showDiff: false,
-        ));
+        $str = 'contains "' . $needle . '"';
+        \str_contains($this->value, $needle)
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the substring is not found', $message);
+        return $this;
     }
 
     /**
      * Asserts that the string does not contain the given substring.
      *
-     * @param string $needle Substring to search for.
+     * @param non-empty-string $needle Substring to search for.
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      */
+    #[CutTrace]
     #[\Override]
     public function notContains(string $needle, string $message = ''): static
     {
-        if (!\str_contains($this->value, $needle)) {
-            StaticState::success($this->value, 'does not contain "' . $needle . '"', $message);
-            return $this;
-        }
-
-        StaticState::fail(AssertException::compare(
-            $needle,
-            $this->value,
-            $message,
-            pattern: 'Failed asserting that string `%2$s` does not contain `%1$s`.',
-            showDiff: false,
-        ));
+        $str = 'does not contain "' . $needle . '"';
+        !\str_contains($this->value, $needle)
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the substring is found', $message);
+        return $this;
     }
 }

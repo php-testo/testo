@@ -6,6 +6,7 @@ namespace Testo\Assert\Internal\Assertion\Traits;
 
 use Testo\Assert\Internal\Support;
 use Testo\Assert\State\Assertion\AssertionComposite;
+use Testo\Output\Rendering\CutTrace;
 
 /**
  * Contains assertion methods for iterable values.
@@ -15,6 +16,7 @@ use Testo\Assert\State\Assertion\AssertionComposite;
  */
 trait IterableTrait
 {
+    #[CutTrace]
     #[\Override]
     public function notEmpty(string $message = ''): static
     {
@@ -31,6 +33,7 @@ trait IterableTrait
         );
     }
 
+    #[CutTrace]
     #[\Override]
     public function contains(mixed $needle, string $message = ''): static
     {
@@ -68,6 +71,7 @@ trait IterableTrait
         return $this;
     }
 
+    #[CutTrace]
     #[\Override]
     public function sameSizeAs(iterable $expected, string $message = ''): static
     {
@@ -86,6 +90,7 @@ trait IterableTrait
         );
     }
 
+    #[CutTrace]
     #[\Override]
     public function allOf(string $type, string $message = ''): static
     {
@@ -111,6 +116,7 @@ trait IterableTrait
         return $this;
     }
 
+    #[CutTrace]
     #[\Override]
     public function hasCount(int $expected): static
     {
