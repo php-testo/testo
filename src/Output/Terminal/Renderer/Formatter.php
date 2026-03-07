@@ -200,16 +200,18 @@ final class Formatter
         string $message,
         string $details,
         ?int $duration,
+        ?string $location = null,
     ): string {
         $durationStr = $duration !== null
             ? Style::dim(" ({$duration}ms)")
             : '';
 
         $header = "\n " . Style::bold("{$index}) {$testName}") . $durationStr . "\n";
+        $locationBlock = $location !== null ? "    " . Style::dim($location) . "\n" : '';
         $messageBlock = "\n    {$message}\n";
         $detailsBlock = $details !== '' ? "\n" . self::indentText($details, '    ') . "\n" : '';
 
-        return $header . $messageBlock . $detailsBlock;
+        return $header . $locationBlock . $messageBlock . $detailsBlock;
     }
 
     /**

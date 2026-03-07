@@ -37,7 +37,7 @@ final class TerminalLogger
     /** @var int<0, max> */
     private int $riskyTests = 0;
 
-    /** @var list<array{result: TestResult, duration: int<0, max>|null}> */
+    /** @var list<array{result: TestResult, duration: int<0, max>|null, suiteName: string|null, datasetName: string|null}> */
     private array $failures = [];
 
     /**
@@ -52,6 +52,11 @@ final class TerminalLogger
      */
     private ?string $currentTestName = null;
 
+    /**
+     * Current suite name for failure context.
+     */
+    private ?string $currentSuiteName = null;
+
     public function __construct(
         private readonly OutputFormat $format = OutputFormat::Compact,
     ) {}
@@ -61,6 +66,7 @@ final class TerminalLogger
      */
     public function suiteStartedFromInfo(SuiteInfo $info): void
     {
+        $this->currentSuiteName = $info->name;
         echo Formatter::suiteHeader($info->name, $this->format);
     }
 
@@ -211,7 +217,12 @@ final class TerminalLogger
     private function handleFailedTest(TestResult $result, ?int $duration): void
     {
         $this->failedTests++;
-        $this->failures[] = ['result' => $result, 'duration' => $duration];
+        $this->failures[] = [
+            'result' => $result,
+            'duration' => $duration,
+            'suiteName' => $this->currentSuiteName,
+            'datasetName' => $this->currentTestName,
+        ];
 
         $item = new FormattedItem(
             name: $this->currentTestName ?? $result->info->name,
@@ -341,16 +352,54 @@ final class TerminalLogger
                 )
                 : '';
 
+            $testName = self::buildFullTestName(
+                $result->info,
+                $failure['suiteName'],
+                $failure['datasetName'],
+            );
+
+            $reflection = $result->info->testDefinition->reflection;
+            $file = $reflection->getFileName();
+            $line = $reflection->getStartLine();
+            $location = $file !== false && $line !== false
+                ? "{$file}:{$line}"
+                : null;
+
             echo Formatter::failureDetail(
                 $index,
-                $result->info->name,
+                $testName,
                 $message,
                 $details,
                 $duration,
+                $location,
             );
 
             $index++;
         }
+    }
+
+    /**
+     * Builds a fully qualified test name with suite, case, method, and dataset.
+     *
+     * Format: Suite / CaseName :: methodName > DatasetName
+     *
+     * @return non-empty-string
+     */
+    private static function buildFullTestName(
+        TestInfo $info,
+        ?string $suiteName,
+        ?string $datasetName,
+    ): string {
+        $parts = [];
+
+        $suiteName !== null and $parts[] = $suiteName;
+        $parts[] = $info->caseInfo->name;
+
+        $name = \implode(' / ', $parts) . ' :: ' . $info->name;
+
+        $datasetName !== null and $name .= ' > ' . $datasetName;
+
+        return $name;
     }
 
     /**
