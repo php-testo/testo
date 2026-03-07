@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Application\Attribute;
+namespace Testo\Attribute;
 
 /**
  * Marks a class (public methods), or a method or a function as a test.

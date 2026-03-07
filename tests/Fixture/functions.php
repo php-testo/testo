@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Fixture;
 
-use Testo\Application\Attribute\Test;
+use Testo\Attribute\Test;
 use Testo\Retry\RetryPolicy;
 
 #[Test]

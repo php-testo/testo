@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Assert\Self;
 
-use Testo\Application\Attribute\Test;
 use Testo\Assert;
+use Testo\Attribute\Test;
 
 /**
  * Assertion examples.

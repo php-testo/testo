@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Middleware\Locator;
 
-use Testo\Application\Attribute\Test;
+use Testo\Attribute\Test;
 use Testo\Common\Reflection;
 use Testo\Core\Definition\CaseDefinitions;
 use Testo\Core\Value\TestType;

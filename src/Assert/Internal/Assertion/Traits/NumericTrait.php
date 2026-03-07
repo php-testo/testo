@@ -6,7 +6,7 @@ namespace Testo\Assert\Internal\Assertion\Traits;
 
 use Testo\Assert\State\AssertException;
 use Testo\Assert\State\Assertion\AssertionComposite;
-use Testo\Output\Rendering\CutTrace;
+use Testo\Attribute\CutTrace;
 
 /**
  * Contains methods for comparing numeric values

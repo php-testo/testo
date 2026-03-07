@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Output\Stub;
 
-use Testo\Output\Rendering\CutTrace;
+use Testo\Attribute\CutTrace;
 
 final class CutTraceStub
 {

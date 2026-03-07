@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Assert\Self;
 
-use Testo\Application\Attribute\Test;
 use Testo\Assert\ExpectException;
 use Testo\Assert\State\Expectation\ExpectLeaksFailure;
+use Testo\Attribute\Test;
 use Testo\Expect;
 
 /**

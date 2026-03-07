@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Testo\Self\TestCase;
 
-use Testo\Application\Attribute\Test;
 use Testo\Assert;
+use Testo\Attribute\Test;
 
 /**
  * If there are static methods only in the test case, Testo must not try to instantiate the class.

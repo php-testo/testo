@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Testo\Self;
 
-use Testo\Application\Attribute\Test;
 use Testo\Assert;
 use Testo\Assert\ExpectException;
 use Testo\Assert\State\AssertException;
+use Testo\Attribute\Test;
 use Testo\Data\DataProvider;
 use Testo\Data\DataSet;
 use Testo\Expect;

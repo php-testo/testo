@@ -9,7 +9,7 @@ use Testo\Assert\Internal\Assertion\Traits\IterableTrait;
 use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
-use Testo\Output\Rendering\CutTrace;
+use Testo\Attribute\CutTrace;
 
 /**
  * Assertion utilities for arrays.

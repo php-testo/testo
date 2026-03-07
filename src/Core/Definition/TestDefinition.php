@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Core\Definition;
 
-use Testo\Application\Attribute\Test;
+use Testo\Attribute\Test;
 
 final class TestDefinition
 {
@@ -19,7 +19,7 @@ final class TestDefinition
             return null;
         }
 
-        /** @var Test $testAttribute */
+        /** @var \Testo\Attribute\Test $testAttribute */
         $testAttribute = $attributes[0]->newInstance();
         return $testAttribute->description !== '' ? $testAttribute->description : null;
     }

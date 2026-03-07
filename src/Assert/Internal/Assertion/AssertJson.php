@@ -10,7 +10,7 @@ use Testo\Assert\Api\Json\JsonCommon;
 use Testo\Assert\Api\Json\JsonObject;
 use Testo\Assert\Api\Json\JsonStructure;
 use Testo\Assert\State\Assertion\AssertionComposite;
-use Testo\Output\Rendering\CutTrace;
+use Testo\Attribute\CutTrace;
 
 /**
  * Implementation of JSON assertions.

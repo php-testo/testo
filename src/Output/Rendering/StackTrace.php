@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Output\Rendering;
 
+use Testo\Attribute\CutTrace;
+
 /**
  * @internal
  */

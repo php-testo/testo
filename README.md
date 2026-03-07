@@ -79,9 +79,9 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use Testo\Application\Attribute\Test;
 use Testo\Assert;
 use Testo\Assert\ExpectException;
+use Testo\Attribute\Test;
 use Testo\Retry\RetryPolicy;
 
 final class CalculatorTest

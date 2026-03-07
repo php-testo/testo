@@ -6,7 +6,7 @@ namespace Testo\Assert\Internal\Assertion\Traits;
 
 use Testo\Assert\Internal\Support;
 use Testo\Assert\State\Assertion\AssertionComposite;
-use Testo\Output\Rendering\CutTrace;
+use Testo\Attribute\CutTrace;
 
 /**
  * Contains assertion methods for iterable values.
