@@ -12,6 +12,9 @@ final class StackTrace
     /** Max number of frames to scan for {@see CutTrace} before giving up. Resets on each match. */
     private const SEARCH_DEPTH = 3;
 
+    /** @var array<string, bool> Cached {@see CutTrace} attribute lookup results */
+    private static array $cutTraceCache = [];
+
     /**
      * @param list<array<string, mixed>> $trace
      * @param \ReflectionFunctionAbstract|null $boundary Test function — stops CutTrace search at this frame.
@@ -24,6 +27,8 @@ final class StackTrace
         bool $trimAtBoundary = true,
     ): array {
         $cutIndex = null;
+        /** @var list<string> $uncached Keys of frames checked but not yet cached */
+        $uncached = [];
         $boundaryName = $boundary?->getName();
         $boundaryClass = $boundary instanceof \ReflectionMethod
             ? $boundary->getDeclaringClass()->getName()
@@ -49,20 +54,40 @@ final class StackTrace
                 continue;
             }
 
-            try {
-                $method = new \ReflectionMethod($class, $function);
-            } catch (\ReflectionException) {
-                continue;
-            }
+            $key = $class . '::' . $function;
 
-            if ($method->getAttributes(CutTrace::class) !== []) {
+            if (self::$cutTraceCache[$key] ?? self::resolveHasCutTrace($key, $class, $function)) {
                 $cutIndex = $index;
                 $boundary !== null or $limit = \min(\count($trace), $index + 1 + self::SEARCH_DEPTH);
+                // Cache preceding uncached frames as false
+                foreach ($uncached as $k) {
+                    self::$cutTraceCache[$k] = false;
+                }
+                $uncached = [];
+            } elseif (!isset(self::$cutTraceCache[$key])) {
+                $uncached[] = $key;
             }
         }
 
         return $cutIndex !== null
             ? \array_slice($trace, $cutIndex)
             : $trace;
+    }
+
+    private static function resolveHasCutTrace(string $key, string $class, string $function): bool
+    {
+        try {
+            $method = new \ReflectionMethod($class, $function);
+        } catch (\ReflectionException) {
+            return false;
+        }
+
+        if ($method->getAttributes(CutTrace::class) === []) {
+            return false;
+        }
+
+        self::$cutTraceCache[$key] = true;
+
+        return true;
     }
 }
