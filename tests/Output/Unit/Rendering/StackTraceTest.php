@@ -114,4 +114,81 @@ final class StackTraceTest
         // Assert: CutTrace too far from the error, nothing is cut
         Assert::same($trace, $result);
     }
+
+    public function testBoundaryStopsCutTraceSearch(): void
+    {
+        // Arrange: CutTrace -> middleware -> boundary (no CutTrace between error and boundary)
+        try {
+            CutTraceStub::run(static fn() => MiddlewareStub::run(ThrowingStub::fail(...)));
+        } catch (\RuntimeException $e) {
+            $trace = $e->getTrace();
+        }
+        $boundary = new \ReflectionMethod(MiddlewareStub::class, 'run');
+
+        // Act: boundary stops search before CutTrace is reached
+        $result = StackTrace::cutStackTrace($trace, $boundary, false);
+
+        // Assert: trace unchanged — CutTrace is after boundary, not found
+        Assert::same($trace, $result);
+    }
+
+    public function testBoundaryWithCutTraceBeforeBoundary(): void
+    {
+        // Arrange: error -> CutTrace -> middleware -> boundary
+        try {
+            MiddlewareStub::run(
+                static fn() => CutTraceStub::run(ThrowingStub::fail(...)),
+            );
+        } catch (\RuntimeException $e) {
+            $trace = $e->getTrace();
+        }
+        $boundary = new \ReflectionMethod(MiddlewareStub::class, 'run');
+
+        // Act
+        $result = StackTrace::cutStackTrace($trace, $boundary);
+
+        // Assert: CutTrace found before boundary, internal frames cut
+        Assert::same(CutTraceStub::class, $result[0]['class']);
+        Assert::same('run', $result[0]['function']);
+    }
+
+    public function testBoundaryBypassesDepthLimit(): void
+    {
+        // Arrange: CutTrace is beyond SEARCH_DEPTH but before boundary
+        try {
+            MiddlewareStub::run(static fn() => CutTraceStub::run(
+                static fn() => MiddlewareStub::runDeep(ThrowingStub::fail(...)),
+            ));
+        } catch (\RuntimeException $e) {
+            $trace = $e->getTrace();
+        }
+        $boundary = new \ReflectionMethod(MiddlewareStub::class, 'run');
+
+        // Act
+        $result = StackTrace::cutStackTrace($trace, $boundary);
+
+        // Assert: CutTrace found despite being beyond SEARCH_DEPTH
+        Assert::same(CutTraceStub::class, $result[0]['class']);
+        Assert::same('run', $result[0]['function']);
+    }
+
+    public function testTrimAtBoundaryCutsFramesAfterBoundary(): void
+    {
+        // Arrange
+        try {
+            MiddlewareStub::run(ThrowingStub::fail(...));
+        } catch (\RuntimeException $e) {
+            $trace = $e->getTrace();
+        }
+        $boundary = new \ReflectionMethod(MiddlewareStub::class, 'run');
+
+        // Act
+        $result = StackTrace::cutStackTrace($trace, $boundary, trimAtBoundary: true);
+
+        // Assert: trace ends at the boundary method
+        Assert::true(\count($result) < \count($trace));
+        $lastFrame = $result[\count($result) - 1];
+        Assert::same(MiddlewareStub::class, $lastFrame['class']);
+        Assert::same('run', $lastFrame['function']);
+    }
 }

@@ -32,8 +32,10 @@ final class TeamcityLogger
     /**
      * Formats a throwable into a detailed string with class, message, file, line, and stack trace.
      */
-    public static function formatThrowable(\Throwable $throwable): string
-    {
+    public static function formatThrowable(
+        \Throwable $throwable,
+        ?\ReflectionFunctionAbstract $boundary = null,
+    ): string {
         $parts = [];
         $current = $throwable;
 
@@ -41,7 +43,7 @@ final class TeamcityLogger
             $class = $current::class;
             $file = $current->getFile();
             $line = $current->getLine();
-            $trace = self::formatTrace(StackTrace::cutStackTrace($current->getTrace()));
+            $trace = self::formatTrace(StackTrace::cutStackTrace($current->getTrace(), $boundary));
 
             $parts[] = "{$class}\nFile: {$file}:{$line}\n\nStack trace:\n{$trace}";
         } while ($current = $current->getPrevious());
@@ -204,7 +206,9 @@ final class TeamcityLogger
         $message = $failure?->getMessage() ?? 'Test failed';
 
         $assertionHistory = $this->formatAssertionHistory($result);
-        $details = $failure !== null ? self::formatThrowable($failure) : '';
+        $details = $failure !== null
+            ? self::formatThrowable($failure, $result->info->testDefinition->reflection)
+            : '';
 
         if ($assertionHistory !== '') {
             $details = $assertionHistory . $details;
@@ -332,7 +336,9 @@ final class TeamcityLogger
         $message = $failure?->getMessage() ?? 'Test failed';
 
         $assertionHistory = $this->formatAssertionHistory($result);
-        $details = $failure !== null ? self::formatThrowable($failure) : '';
+        $details = $failure !== null
+            ? self::formatThrowable($failure, $result->info->testDefinition->reflection)
+            : '';
 
         if ($assertionHistory !== '') {
             $details = $assertionHistory . $details;
@@ -358,7 +364,9 @@ final class TeamcityLogger
         $name = $overrideName ?? $result->info->name;
 
         $assertionHistory = $this->formatAssertionHistory($result);
-        $details = $result->failure !== null ? self::formatThrowable($result->failure) : '';
+        $details = $result->failure !== null
+            ? self::formatThrowable($result->failure, $result->info->testDefinition->reflection)
+            : '';
 
         if ($assertionHistory !== '') {
             $details = $assertionHistory . $details;

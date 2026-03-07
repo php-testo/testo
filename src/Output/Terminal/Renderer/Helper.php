@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Output\Terminal\Renderer;
 
+use Testo\Output\Rendering\StackTrace;
+
 /**
  * Helper utilities for text-based rendering (CLI, TeamCity, logs, etc.).
  *
@@ -58,61 +60,14 @@ final class Helper
 
         $result .= "\nFile: {$file}:{$line}";
 
-        // Get stack trace and cut it at the test method
-        $trace = $throwable->getTrace();
-        $cutTrace = self::cutTraceAtFunction($trace, $function);
+        // Get stack trace: cut internal frames (CutTrace) and trim at test boundary
+        $cutTrace = StackTrace::cutStackTrace($throwable->getTrace(), $function);
 
         if ($cutTrace !== []) {
             $result .= "\n\nStack trace:\n" . self::formatTraceArray($cutTrace);
         }
 
         return $result;
-    }
-
-    /**
-     * Cuts the stack trace array at the specified function call.
-     *
-     * @param array<int, array{file?: string, line?: int, function?: string, class?: string, type?: string, args?: array<mixed>}> $trace
-     * @return array<int, array{file?: string, line?: int, function?: string, class?: string, type?: string, args?: array<mixed>}>
-     */
-    private static function cutTraceAtFunction(
-        array $trace,
-        \ReflectionFunctionAbstract $function,
-    ): array {
-        $targetClass = null;
-        $targetFunction = $function->getName();
-
-        if ($function instanceof \ReflectionMethod) {
-            $targetClass = $function->getDeclaringClass()->getName();
-        }
-
-        $cutIndex = null;
-        foreach ($trace as $index => $frame) {
-            $frameClass = $frame['class'] ?? null;
-            $frameFunction = $frame['function'] ?? null;
-
-            // Match function/method call
-            if ($targetClass !== null) {
-                // Method call
-                if ($frameClass === $targetClass && $frameFunction === $targetFunction) {
-                    $cutIndex = $index;
-                    break;
-                }
-            } else {
-                // Function call
-                if ($frameFunction === $targetFunction && $frameClass === null) {
-                    $cutIndex = $index;
-                    break;
-                }
-            }
-        }
-
-        // Return trace up to (and including) the matched frame
-        if ($cutIndex !== null) {
-            return \array_slice($trace, 0, $cutIndex);
-        }
-
-        return $trace;
     }
 
     /**
