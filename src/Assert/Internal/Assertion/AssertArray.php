@@ -9,7 +9,7 @@ use Testo\Assert\Internal\Assertion\Traits\IterableTrait;
 use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
-use Testo\Attribute\CutTrace;
+use Testo\Attribute\AssertMethod;
 
 /**
  * Assertion utilities for arrays.
@@ -40,7 +40,7 @@ class AssertArray implements ArrayType
         return new self($value, $parent);
     }
 
-    #[CutTrace]
+    #[AssertMethod]
     #[\Override]
     public function hasKeys(int|string ...$keys): static
     {
@@ -72,7 +72,7 @@ class AssertArray implements ArrayType
         );
     }
 
-    #[CutTrace]
+    #[AssertMethod]
     #[\Override]
     public function doesNotHaveKeys(string|int ...$keys): static
     {
@@ -104,7 +104,7 @@ class AssertArray implements ArrayType
         );
     }
 
-    #[CutTrace]
+    #[AssertMethod]
     #[\Override]
     public function isList(string $message = ''): static
     {

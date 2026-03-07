@@ -6,6 +6,7 @@ namespace Tests\Assert\Self;
 
 use Testo\Assert;
 use Testo\Assert\State\AssertException;
+use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Attribute\Test;
 use Testo\Expect;
 
@@ -41,14 +42,14 @@ final class AssertString
     #[Test]
     public function checkWrongDataType(): void
     {
-        Expect::exception(Assert\State\Assertion\AssertionException::class);
+        Expect::exception(AssertionException::class);
         Assert::string([666]);
     }
 
     #[Test]
     public function checkStringDoesNotContain(): void
     {
-        Expect::exception(AssertException::class);
+        Expect::exception(AssertionException::class);
         Assert::string("What makes PHP the best programming language?")->contains("PHP is dying");
     }
 }

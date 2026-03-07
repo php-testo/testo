@@ -60,7 +60,7 @@ final class Helper
 
         $result .= "\nFile: {$file}:{$line}";
 
-        // Get stack trace: cut internal frames (CutTrace) and trim at test boundary
+        // Get stack trace: cut internal frames (AssertMethod) and trim at test boundary
         $cutTrace = StackTrace::cutStackTrace($throwable->getTrace(), $function);
 
         if ($cutTrace !== []) {

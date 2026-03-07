@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Testo\Output\Rendering;
 
-use Testo\Attribute\CutTrace;
+use Testo\Attribute\AssertMethod;
 
 /**
  * @internal
  */
 final class StackTrace
 {
-    /** Max number of frames to scan for {@see CutTrace} before giving up. Resets on each match. */
+    /** Max number of frames to scan for {@see AssertMethod} before giving up. Resets on each match. */
     private const SEARCH_DEPTH = 3;
 
-    /** @var array<string, bool> Cached {@see CutTrace} attribute lookup results */
+    /** @var array<string, bool> Cached {@see AssertMethod} attribute lookup results */
     private static array $cutTraceCache = [];
 
     /**
      * @param list<array<string, mixed>> $trace
-     * @param \ReflectionFunctionAbstract|null $boundary Test function — stops CutTrace search at this frame.
+     * @param \ReflectionFunctionAbstract|null $boundary Test function — stops AssertMethod search at this frame.
      * @param bool $trimAtBoundary If true, also removes all frames after the boundary.
      * @return list<array<string, mixed>>
      */
@@ -44,7 +44,7 @@ final class StackTrace
             $class = $frame['class'] ?? null;
             $function = $frame['function'] ?? null;
 
-            // Boundary reached — stop searching for CutTrace
+            // Boundary reached — stop searching for AssertMethod
             if ($boundaryName !== null and $function === $boundaryName
                 and ($boundaryClass === null ? $class === null : $class === $boundaryClass)
             ) {
@@ -58,7 +58,7 @@ final class StackTrace
 
             $key = $class . '::' . $function;
 
-            if (self::$cutTraceCache[$key] ?? self::resolveHasCutTrace($key, $class, $function)) {
+            if (self::$cutTraceCache[$key] ?? self::resolveHasAssertMethod($key, $class, $function)) {
                 $cutIndex = $index;
                 $boundary !== null or $limit = \min(\count($trace), $index + 1 + self::SEARCH_DEPTH);
                 // Cache preceding uncached frames as false
@@ -76,7 +76,7 @@ final class StackTrace
             : $trace;
     }
 
-    private static function resolveHasCutTrace(string $key, string $class, string $function): bool
+    private static function resolveHasAssertMethod(string $key, string $class, string $function): bool
     {
         try {
             $method = new \ReflectionMethod($class, $function);
@@ -84,7 +84,7 @@ final class StackTrace
             return false;
         }
 
-        if ($method->getAttributes(CutTrace::class) === []) {
+        if ($method->getAttributes(AssertMethod::class) === []) {
             return false;
         }
 

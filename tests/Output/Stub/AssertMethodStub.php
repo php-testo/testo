@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Output\Stub;
 
-use Testo\Attribute\CutTrace;
+use Testo\Attribute\AssertMethod;
 
-final class CutTraceStub
+final class AssertMethodStub
 {
-    #[CutTrace]
+    #[AssertMethod]
     public static function run(callable $callback): mixed
     {
         return $callback();

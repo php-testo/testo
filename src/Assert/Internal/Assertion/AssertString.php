@@ -9,7 +9,7 @@ use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\AssertException;
 use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
-use Testo\Attribute\CutTrace;
+use Testo\Attribute\AssertMethod;
 
 /**
  * Assertion utilities for string data type.
@@ -46,7 +46,7 @@ class AssertString implements StringType
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      */
-    #[CutTrace]
+    #[AssertMethod]
     #[\Override]
     public function contains(string $needle, string $message = ''): static
     {
@@ -64,7 +64,7 @@ class AssertString implements StringType
      * @param string $message Optional message for the assertion.
      * @throws AssertException when the assertion fails.
      */
-    #[CutTrace]
+    #[AssertMethod]
     #[\Override]
     public function notContains(string $needle, string $message = ''): static
     {
