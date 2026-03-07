@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.0](https://github.com/php-testo/testo/compare/0.7.2...0.8.0) (2026-03-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* Move `#[Test]` attribute into `Testo\Attribute` namespace
+
+### Features
+
+* Add `#[AssertMethod]` attribute ([#99](https://github.com/php-testo/testo/issues/99)) ([5623710](https://github.com/php-testo/testo/commit/562371045b248e81bd0bb03f0269d8c7c48fbe95))
+
+
+### Code Refactoring
+
+* Move `#[Test]` attribute into `Testo\Attribute` namespace ([5623710](https://github.com/php-testo/testo/commit/562371045b248e81bd0bb03f0269d8c7c48fbe95))
+* Move Terminal and Teamcity renderers into Output namespace ([5623710](https://github.com/php-testo/testo/commit/562371045b248e81bd0bb03f0269d8c7c48fbe95))
+
 ## [0.7.2](https://github.com/php-testo/testo/compare/0.7.1...0.7.2) (2026-03-05)
 
 
