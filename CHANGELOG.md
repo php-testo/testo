@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.1](https://github.com/php-testo/testo/compare/0.8.0...0.8.1) (2026-03-11)
+
+
+### Features
+
+* **Application:** Add `plugins` into `SuiteConfig` ([82f7d8c](https://github.com/php-testo/testo/commit/82f7d8c5df23f4042725950b7a8f96c945065be2))
+* **Bench:** Benchmarking feature is a plugin now ([ea05797](https://github.com/php-testo/testo/commit/ea0579712d6c3587e0452232847eb767b436d283))
+* **Config:** Add plugin configuration system with defaults management. ([2380d15](https://github.com/php-testo/testo/commit/2380d15930c8d16fc8dc3df7b097ae1f8c060a5e))
+* **Container:** Add `scope()` method ([8e6697a](https://github.com/php-testo/testo/commit/8e6697a2ed5b6b4f305db15f507d4af1375ed6dd))
+* **Convention:** Move tests prefix-suffix finder into the new `Convention` plugin ([e09c90c](https://github.com/php-testo/testo/commit/e09c90cc0f3b1e77a5621def064dd515d6737342))
+* **Inline:** Inline Tests feature is a plugin now ([09b166b](https://github.com/php-testo/testo/commit/09b166b44f0bd1c6bed07a318a56d319bc954c1d))
+* **Lifecycle:** Lifecycle feature is a plugin now ([dd9e483](https://github.com/php-testo/testo/commit/dd9e4839862c9471fa69ba4d5ff85b1043710732))
+* **Pipeline:** Make `Interceptor` interface public ([2bebcd8](https://github.com/php-testo/testo/commit/2bebcd896cc5879eb1cc3408061e376ae0027077))
+
+
+### Code Refactoring
+
+* **Application:** Run each test suite in an isolated container scope ([aa29419](https://github.com/php-testo/testo/commit/aa294190051d8301e246aaafc482fbba731492fc))
+* **Core:** Rename Test Invoker into Test Handler ([82f7d8c](https://github.com/php-testo/testo/commit/82f7d8c5df23f4042725950b7a8f96c945065be2))
+* **Filter:** Filter by path before scanning FS ([f11130a](https://github.com/php-testo/testo/commit/f11130a21d1b1be3f62112e69d219f5f68bff476))
+
 ## [0.8.0](https://github.com/php-testo/testo/compare/0.7.2...0.8.0) (2026-03-07)
 
 
