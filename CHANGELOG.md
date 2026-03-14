@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.9.0](https://github.com/php-testo/testo/compare/0.8.1...0.9.0) (2026-03-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **Assert:** Use ACTUAL, EXPECTED order in assertions
+
+### Features
+
+* **Assert:** Add `Assert::count()` method ([16dfa0f](https://github.com/php-testo/testo/commit/16dfa0fc707fffa106c1887654670e01908d3eda))
+* **Assert:** All the assertion and expectation exceptions are extended from `LogicException` now ([#96](https://github.com/php-testo/testo/issues/96)) ([8c1a510](https://github.com/php-testo/testo/commit/8c1a510c19f41722aaa1c19941402b2542125127))
+* **Assert:** Assertion feature is a plugin now ([365b52f](https://github.com/php-testo/testo/commit/365b52ff668d72d9fa096ac62f50b0b0c09e55e1))
+* **Config:** Support arrays instead of `FinderConfig` in `ApplicationConfig` and `SuiteConfig` ([df26e30](https://github.com/php-testo/testo/commit/df26e30cc1d9866a8afd688d6657aebb3a1bf607))
+
+
+### Bug Fixes
+
+* **Inline:** Respect filtering DataProvider options ([8656891](https://github.com/php-testo/testo/commit/8656891a73df2f8f52af9d9fdac2ee87ee14a0ae))
+* **Teamcity:** Send full DataSet coordinates in FQN ([8656891](https://github.com/php-testo/testo/commit/8656891a73df2f8f52af9d9fdac2ee87ee14a0ae))
+
+
+### Code Refactoring
+
+* **Assert:** Use ACTUAL, EXPECTED order in assertions ([b606c3d](https://github.com/php-testo/testo/commit/b606c3daaa0ff06273536b37a7878ef6549c7c78))
+* **Filter:** Add properties normalization to absolute Path ([e3a2e8e](https://github.com/php-testo/testo/commit/e3a2e8e04ea5b2b5c68188507bea5bbb1591bde9))
+
 ## [0.8.1](https://github.com/php-testo/testo/compare/0.8.0...0.8.1) (2026-03-11)
 
 
