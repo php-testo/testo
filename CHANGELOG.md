@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.10.0](https://github.com/php-testo/testo/compare/0.9.0...0.10.0) (2026-03-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **Test:** Remove `description` parameter from the `#[Test]` attribute
+* **Lifecycle:** Rename attributes to be more clear
+* Remove `$parallel` flag from `SuiteConfig`
+* Rename `\Testo\Retry\RetryPolicy` to `\Testo\Retry`
+* Prepare moving `ObjectContainer` into `internal/container` package
+* Change namespaces for many classes
+* **Bench:** Move `#[Bench]` into `Testo` namespace
+* Change namespaces for `PluginConfigurator`, `Filter`
+* **Test:** `#[AssertMethod]` attribute moved to the `Testo\Common\Attribute` namespace
+* **Test:** `#[Test]` attribute moved to the `Testo` namespace
+
+### Features
+
+* **Test:** `#[Test]` attribute finder is a plugin now ([7987dc7](https://github.com/php-testo/testo/commit/7987dc7fc09b0d373a940e63603950d6a07e5436))
+
+
+### Bug Fixes
+
+* Resolve decrement on type `null` ([9c79e00](https://github.com/php-testo/testo/commit/9c79e0038a4c8d0f9b4ac670502789d1863fed5a))
+* **Test:** Detect test methods with 'never' return type in annotated class ([e2eafbd](https://github.com/php-testo/testo/commit/e2eafbd1f7702771df05202d56bfc89c8c146756))
+
+
+### Code Refactoring
+
+* **Bench:** Move `#[Bench]` into `Testo` namespace ([46c46bb](https://github.com/php-testo/testo/commit/46c46bbe8701df5e74d33199a8204f2566679530))
+* Change namespaces for `PluginConfigurator`, `Filter` ([53808e8](https://github.com/php-testo/testo/commit/53808e88e06b17654c97d6f1b940331272a51913))
+* Change namespaces for many classes ([7a24e94](https://github.com/php-testo/testo/commit/7a24e945292339ef50ae63ca42475c2768ac639b))
+* **Filter:** Filter functionality separated to a plugin ([53808e8](https://github.com/php-testo/testo/commit/53808e88e06b17654c97d6f1b940331272a51913))
+* **Lifecycle:** Rename attributes to be more clear ([aa314b3](https://github.com/php-testo/testo/commit/aa314b3dc98278547a32837e1d658035b1e587cb))
+* Prepare moving `ObjectContainer` into `internal/container` package ([0728069](https://github.com/php-testo/testo/commit/0728069423cf368c5614429c94a4db74468ed9ac))
+* Remove `$parallel` flag from `SuiteConfig` ([27fefa8](https://github.com/php-testo/testo/commit/27fefa8ba6d28dda197d16a7b7ef37c7dff4069f))
+* Rename `\Testo\Retry\RetryPolicy` to `\Testo\Retry` ([8ad754b](https://github.com/php-testo/testo/commit/8ad754b1c12ec444a9b2eefe357c99b8dc8d44aa))
+* **Test:** `#[AssertMethod]` attribute moved to the `Testo\Common\Attribute` namespace ([277d2c4](https://github.com/php-testo/testo/commit/277d2c40b4f473b1e156d859fb789ccb37f624e5))
+* **Test:** `#[Test]` attribute moved to the `Testo` namespace ([7987dc7](https://github.com/php-testo/testo/commit/7987dc7fc09b0d373a940e63603950d6a07e5436))
+* **Test:** Remove `description` parameter from the `#[Test]` attribute ([4667abd](https://github.com/php-testo/testo/commit/4667abd81b0c4cb94548bc1fc5b29f5108b135db))
+
 ## [0.9.0](https://github.com/php-testo/testo/compare/0.8.1...0.9.0) (2026-03-14)
 
 
