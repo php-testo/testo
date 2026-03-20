@@ -10,6 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         php: [ 8.2, 8.3, 8.4, 8.5 ]
+        dependencies: [ lowest , highest ]
       max-parallel: 2
 
     name: Tests PHP${{ matrix.php }}
@@ -19,12 +20,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.composer/cache/files
-          key: dependencies-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -32,7 +27,9 @@ jobs:
           coverage: none
 
       - name: Install Composer dependencies
-        run: composer update --no-interaction --prefer-dist
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: ${{ matrix.dependencies }}
 
       - name: Run Tests
         run: composer test:ci

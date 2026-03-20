@@ -13,9 +13,10 @@ final class BenchAttr
         [
             'shift' => [self::class, 'sumLinearF2'],
             'multi' => [self::class, 'sumLinearF3'],
+            'recursion' => [self::class, 'rangeSum'],
         ],
         arguments: [1, 20_000],
-        calls: 20,
+        calls: 2000,
         iterations: 10,
     )]
     #[TestInline([1, 2000], 2001000)]
@@ -40,22 +41,32 @@ final class BenchAttr
         return ((($d - 1) * $d) >> 1) + $a * $d;
     }
 
+    #[TestInline([1, 2000], 2001000)]
+    #[TestInline([24, 2000], 2000724)]
+    public static function rangeSum(int $a, int $b): int
+    {
+        return $a === $b ? $a : $a + self::rangeSum($a + 1, $b);
+    }
+
+    // #[Bench(
+    //     [
+    //         'sumInArray' => [self::class, 'sumRange'],
+    //         'sumLinearF' => [self::class, 'sumLinearF1'],
+    //     ],
+    //     arguments: [1, 5_000],
+    //     calls: 20,
+    //     iterations: 10,
+    // )]
     #[Bench(
         [
             'sumInArray' => [self::class, 'sumRange'],
             'sumLinearF' => [self::class, 'sumLinearF1'],
+            'eval1' => [self::class, 'eval1'],
+            'recursion' => [self::class, 'rangeSum'],
         ],
         arguments: [1, 5_000],
-        calls: 20,
-        iterations: 10,
-    )]
-    #[Bench(
-        [
-            'sumInArray' => [self::class, 'sumRange'],
-            'sumLinearF' => [self::class, 'sumLinearF1'],
-        ],
-        arguments: [1, 5_000],
-        calls: 20,
+        warmup: 10,
+        calls: 200,
         iterations: 10,
     )]
     public static function sumInCycle(int $a, int $b): int
@@ -72,5 +83,18 @@ final class BenchAttr
     public static function sumRange(int $a, int $b): int
     {
         return \array_sum(\range($a, $b));
+    }
+
+    #[TestInline([24, 2000], 2000724)]
+    public static function eval1(int $a, int $b): int
+    {
+        return eval('return ' . \implode('+', \range($a, $b)) . ';');
+    }
+
+    #[TestInline([24, 2000], 2000724)]
+    public static function eval2(int $a, int $b): int
+    {
+        eval('$a = ' . \implode('+', \range($a, $b)) . ';');
+        return $a;
     }
 }

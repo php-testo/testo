@@ -34,7 +34,7 @@
     "require-dev": {
         "buggregator/trap": "^1.10",
         "internal/dload": "^1.6",
-        "roxblnfk/unpoly": "^1.8.1",
+        "roxblnfk/unpoly": "^1.8.2",
         "spiral/code-style": "^2.2.2",
         "vimeo/psalm": "^7.0@dev"
     },
