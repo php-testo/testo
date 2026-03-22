@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.1](https://github.com/php-testo/testo/compare/0.10.0...0.10.1) (2026-03-22)
+
+
+### Features
+
+* **Assert:** Implement JSON assertion features ([#106](https://github.com/php-testo/testo/issues/106)) ([25bf75c](https://github.com/php-testo/testo/commit/25bf75c7a1c2bdfad49b751be831e45080aa3f18))
+* Implement `Expect::exception()` methods ([#104](https://github.com/php-testo/testo/issues/104)) ([8b89874](https://github.com/php-testo/testo/commit/8b8987412dcb87cdaec963c82509b6e58675f1f4))
+
+
+### Code Refactoring
+
+* **Assert:** Change return type from `self` to `static` in exception handling methods ([6b25254](https://github.com/php-testo/testo/commit/6b25254654841a877a2318955139befcd426e398))
+
 ## [0.10.0](https://github.com/php-testo/testo/compare/0.9.0...0.10.0) (2026-03-17)
 
 
