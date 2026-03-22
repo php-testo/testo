@@ -322,13 +322,11 @@ final class Assert
      * Asserts that the given string is a valid JSON.
      *
      * @param string $actual The actual JSON string to check.
-     * @throws AssertException when the assertion fails.
-     *
-     * @deprecated To be implemented
+     * @throws AssertionException when the value is not valid JSON.
      */
     public static function json(string $actual): JsonAbstract
     {
-        return new AssertJson($actual);
+        return AssertJson::validateAndCreate($actual);
     }
 
     /**

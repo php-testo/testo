@@ -76,4 +76,103 @@ final class AssertJson
                 ->hasKeys(['id', 'name'])
                 ->matchesType('array{id: int<0, max>, name: non-empty-string}'));
     }
+
+    #[Test]
+    public function decode(): void
+    {
+        Assert::same(Assert::json('42')->decode(), 42);
+        Assert::same(Assert::json('"hello"')->decode(), 'hello');
+        Assert::same(Assert::json('true')->decode(), true);
+        Assert::same(Assert::json('null')->decode(), null);
+    }
+
+    #[Test]
+    public function isObject(): void
+    {
+        Assert::json('{"id": 1}')->isObject();
+        Assert::json('{}')->isObject();
+    }
+
+    #[Test]
+    public function isArray(): void
+    {
+        Assert::json('[1, 2, 3]')->isArray();
+        Assert::json('[]')->isArray();
+    }
+
+    #[Test]
+    public function isPrimitive(): void
+    {
+        Assert::json('42')->isPrimitive();
+        Assert::json('"hello"')->isPrimitive();
+        Assert::json('true')->isPrimitive();
+        Assert::json('null')->isPrimitive();
+        Assert::json('3.14')->isPrimitive();
+    }
+
+    #[Test]
+    public function emptyStructures(): void
+    {
+        Assert::json('{}')->empty();
+        Assert::json('[]')->empty();
+    }
+
+    #[Test]
+    public function countElements(): void
+    {
+        Assert::json('[1, 2, 3]')->count(3);
+        Assert::json('{"a": 1, "b": 2}')->count(2);
+        Assert::json('[]')->count(0);
+    }
+
+    #[Test]
+    public function hasKeys(): void
+    {
+        Assert::json('{"id": 1, "name": "test", "email": "a@b.com"}')
+            ->hasKeys(['id', 'name'])
+            ->hasKeys('email');
+    }
+
+    #[Test]
+    public function maxDepth(): void
+    {
+        Assert::json('42')->maxDepth(1);
+        Assert::json('[1, 2, 3]')->maxDepth(1);
+        Assert::json('{"a": {"b": 1}}')->maxDepth(2);
+        Assert::json('{"a": {"b": {"c": 1}}}')->maxDepth(3);
+    }
+
+    #[Test]
+    public function assertPathDotNotation(): void
+    {
+        $json = '{"user": {"name": "Alice", "age": 30}}';
+
+        Assert::json($json)
+            ->assertPath('$.user', static fn(JsonAbstract $json) => $json
+                ->isObject()
+                ->hasKeys(['name', 'age']));
+
+        Assert::json($json)
+            ->assertPath('$.user.name', static fn(JsonAbstract $json) => $json
+                ->isPrimitive()
+                ->matchesType('non-empty-string'));
+    }
+
+    #[Test]
+    public function matchesTypeUnion(): void
+    {
+        Assert::json('42')->matchesType('int|string');
+        Assert::json('"hello"')->matchesType('int|string');
+        Assert::json('null')->matchesType('int|null');
+    }
+
+    #[Test]
+    public function matchesTypeOptionalShape(): void
+    {
+        Assert::json('{"id": 1}')
+            ->matchesType('array{id: int, name?: string}');
+
+        Assert::json('{"id": 1, "name": "test"}')
+            ->matchesType('array{id: int, name?: string}');
+    }
 }
