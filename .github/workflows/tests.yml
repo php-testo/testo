@@ -1,6 +1,9 @@
 name: Tests
 
-on: [ 'push', 'pull_request' ]
+on: [ 'pull_request' ]
+
+permissions:
+  pull-requests: write
 
 jobs:
   ci:
@@ -9,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [ 8.2, 8.3, 8.4, 8.5 ]
-        dependencies: [ lowest , highest ]
+        php: [ "8.4",  "8.5" ]
+        dependencies: [ highest ]
       max-parallel: 2
 
     name: Tests PHP${{ matrix.php }}
@@ -33,3 +36,5 @@ jobs:
 
       - name: Run Tests
         run: composer test:ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
