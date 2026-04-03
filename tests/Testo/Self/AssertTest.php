@@ -17,7 +17,7 @@ use Tests\Fixture\ClassDataProvider;
 /**
  * Assertion examples.
  */
-final class AsserTest
+final class AssertTest
 {
     #[Test]
     public function simpleAssertions(): void

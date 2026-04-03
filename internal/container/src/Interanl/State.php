@@ -178,7 +178,7 @@ final class State
             }
 
             $reflection = new \ReflectionClass($service);
-            if ($reflection->isReadOnly()) {
+            if ($reflection->isReadOnly() || $reflection->isEnum()) {
                 $self->cache[$id] = $service;
                 continue;
             }

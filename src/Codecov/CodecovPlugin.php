@@ -20,7 +20,10 @@ use Testo\Pipeline\InterceptorCollector;
 /**
  * Plugin that enables code coverage collection during test execution.
  *
- * Requires either the PCOV or XDebug extension to be installed.
+ * Behavior depends on {@see CoverageMode} in the container:
+ * - {@see CoverageMode::Required} — throws if no extension available
+ * - {@see CoverageMode::Available} — collects if extension present, skips silently if not (default)
+ * - {@see CoverageMode::Disabled} — skips entirely
  *
  * @api
  */
@@ -41,8 +44,19 @@ final readonly class CodecovPlugin implements PluginConfigurator
     #[\Override]
     public function configure(Container $container): void
     {
+        $mode = $container->has(CoverageMode::class)
+            ? $container->get(CoverageMode::class)
+            : CoverageMode::Available;
+        $container->set($mode);
+
+        $driver = self::detectDriver($mode);
+
+        if ($driver === null) {
+            return;
+        }
+
         $src = $container->get(ApplicationConfig::class)->src;
-        $driver = self::detectDriver()->withFilter($src);
+        $driver = $driver->withFilter($src);
 
         $container->get(InterceptorCollector::class)
             ->addInterceptor(new CoverageTestInterceptor($driver));
@@ -56,12 +70,14 @@ final readonly class CodecovPlugin implements PluginConfigurator
             });
     }
 
-    private static function detectDriver(): CoverageDriver
+    private static function detectDriver(CoverageMode $mode): ?CoverageDriver
     {
         return match (true) {
+            $mode === CoverageMode::Disabled => null,
             \extension_loaded('pcov') => new PcovDriver(),
             \extension_loaded('xdebug') => new XdebugDriver(),
-            default => throw new CoverageDriverNotAvailable(),
+            $mode === CoverageMode::Required => throw new CoverageDriverNotAvailable(),
+            default => null,
         };
     }
 }
