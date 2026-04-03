@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Codecov;
 
 use Testo\Application\Config\FinderConfig;
+use Testo\Codecov\Dto\CoverageResult;
 
 /**
  * Interface for code coverage collection engines.
@@ -23,20 +24,25 @@ interface CoverageDriver
     public function withFilter(FinderConfig $filter): static;
 
     /**
+     * Returns a new driver instance with the given coverage level.
+     *
+     * If the driver does not support the requested level, it should fall back
+     * to the highest supported level (e.g. PCOV supports only {@see CoverageLevel::Line}).
+     */
+    public function withLevel(CoverageLevel $level): static;
+
+    /**
      * Starts code coverage collection.
      */
     public function start(): void;
 
     /**
-     * Stops collection and returns the raw coverage data.
+     * Stops collection and returns coverage data as DTOs.
      *
-     * The returned data must already be filtered by the configured {@see FinderConfig}
-     * (set via {@see withFilter()}). Callers should not need to apply file-level filtering.
-     *
-     * @return array<string, array<int, int>> File path => [line number => status].
-     *         Status values: 1 = executed, -1 = not executed, -2 = not executable.
+     * The returned data is already filtered by the configured {@see FinderConfig}
+     * and parsed according to the configured {@see CoverageLevel}.
      */
-    public function collect(): array;
+    public function collect(): CoverageResult;
 
     /**
      * Clears any accumulated coverage data.

@@ -6,6 +6,8 @@ namespace Testo\Codecov\Internal\Driver;
 
 use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\CoverageDriver;
+use Testo\Codecov\CoverageLevel;
+use Testo\Codecov\Dto\CoverageResult;
 
 /**
  * XDebug-based coverage driver.
@@ -16,6 +18,7 @@ use Testo\Codecov\CoverageDriver;
  */
 final readonly class XdebugDriver implements CoverageDriver
 {
+    use NormalizePath;
     /**
      * @param list<non-empty-string> $includes
      * @param list<non-empty-string> $excludes
@@ -23,6 +26,7 @@ final readonly class XdebugDriver implements CoverageDriver
     public function __construct(
         private array $includes = [],
         private array $excludes = [],
+        private CoverageLevel $level = CoverageLevel::Line,
     ) {
         // Tag files not yet loaded by the autoloader for engine-level filtering.
         // Files already compiled are filtered in collect() as a fallback.
@@ -37,49 +41,54 @@ final readonly class XdebugDriver implements CoverageDriver
     public function withFilter(FinderConfig $filter): static
     {
         return new self(
-            \array_map(\strval(...), $filter->includes),
-            \array_map(\strval(...), $filter->excludes),
+            \array_map(self::normalizePath(...), $filter->includes),
+            \array_map(self::normalizePath(...), $filter->excludes),
+            $this->level,
         );
+    }
+
+    #[\Override]
+    public function withLevel(CoverageLevel $level): static
+    {
+        return new self($this->includes, $this->excludes, $level);
     }
 
     #[\Override]
     public function start(): void
     {
-        \xdebug_start_code_coverage(\XDEBUG_CC_UNUSED | \XDEBUG_CC_DEAD_CODE);
+        $flags = \XDEBUG_CC_UNUSED | \XDEBUG_CC_DEAD_CODE;
+
+        $this->level !== CoverageLevel::Line and $flags |= \XDEBUG_CC_BRANCH_CHECK;
+
+        \xdebug_start_code_coverage($flags);
     }
 
     #[\Override]
-    public function collect(): array
+    public function collect(): CoverageResult
     {
         $data = \xdebug_get_code_coverage();
         \xdebug_stop_code_coverage();
 
-        if ($this->includes === [] && $this->excludes === []) {
-            return $data;
+        if ($this->includes !== [] || $this->excludes !== []) {
+            foreach ($data as $filePath => $_) {
+                if ($this->includes !== [] && !$this->matchesAny($filePath, $this->includes)) {
+                    unset($data[$filePath]);
+                    continue;
+                }
+
+                if ($this->matchesAny($filePath, $this->excludes)) {
+                    unset($data[$filePath]);
+                }
+            }
         }
 
-        $filtered = [];
-        foreach ($data as $filePath => $lines) {
-            $normalized = \str_replace('\\', '/', $filePath);
-
-            if ($this->includes !== [] && !$this->matchesAny($normalized, $this->includes)) {
-                continue;
-            }
-
-            if ($this->matchesAny($normalized, $this->excludes)) {
-                continue;
-            }
-
-            $filtered[$filePath] = $lines;
-        }
-
-        return $filtered;
+        return CoverageResult::fromRawData($data);
     }
 
     #[\Override]
     public function clear(): void
     {
-        // XDebug clears data on \xdebug_stop_code_coverage() by default.
+        // XDebug clears data on \\xdebug_stop_code_coverage() by default.
     }
 
     /**

@@ -34,10 +34,8 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
         try {
             $result = $next($info);
         } finally {
-            $rawData = $this->driver->collect();
+            $coverage = $this->driver->collect();
         }
-
-        $coverage = CoverageResult::fromRawData($rawData);
 
         return $result->withAttribute(CoverageResult::class, $coverage);
     }

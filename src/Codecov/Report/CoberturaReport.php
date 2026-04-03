@@ -11,6 +11,7 @@ use Testo\Codecov\Dto\LineStatus;
 /**
  * Generates a Cobertura XML coverage report.
  *
+ * When branch/path data is available, fills in branch-rate and per-line condition coverage.
  * Compatible with CI tools such as GitHub Actions, GitLab CI, and Jenkins.
  *
  * @api
@@ -42,21 +43,26 @@ final readonly class CoberturaReport implements CoverageReport
         $packages = $this->groupByPackage($result, $sourceRoot);
 
         // Calculate totals
-        $totalStatements = 0;
-        $totalCovered = 0;
+        $totalLines = 0;
+        $totalLinesCovered = 0;
+        $totalBranches = 0;
+        $totalBranchesCovered = 0;
         foreach ($result->files as $fileCoverage) {
             [$s, $c] = self::countLines($fileCoverage);
-            $totalStatements += $s;
-            $totalCovered += $c;
+            $totalLines += $s;
+            $totalLinesCovered += $c;
+            [$b, $bc] = self::countBranches($fileCoverage);
+            $totalBranches += $b;
+            $totalBranchesCovered += $bc;
         }
 
         $xml->startElement('coverage');
-        $xml->writeAttribute('line-rate', self::rate($totalCovered, $totalStatements));
-        $xml->writeAttribute('branch-rate', '0');
-        $xml->writeAttribute('lines-covered', (string) $totalCovered);
-        $xml->writeAttribute('lines-valid', (string) $totalStatements);
-        $xml->writeAttribute('branches-covered', '0');
-        $xml->writeAttribute('branches-valid', '0');
+        $xml->writeAttribute('line-rate', self::rate($totalLinesCovered, $totalLines));
+        $xml->writeAttribute('branch-rate', self::rate($totalBranchesCovered, $totalBranches));
+        $xml->writeAttribute('lines-covered', (string) $totalLinesCovered);
+        $xml->writeAttribute('lines-valid', (string) $totalLines);
+        $xml->writeAttribute('branches-covered', (string) $totalBranchesCovered);
+        $xml->writeAttribute('branches-valid', (string) $totalBranches);
         $xml->writeAttribute('complexity', '0');
         $xml->writeAttribute('version', '0.4');
         $xml->writeAttribute('timestamp', (string) \time());
@@ -112,18 +118,23 @@ final readonly class CoberturaReport implements CoverageReport
      */
     private function writePackage(\XMLWriter $xml, string $packageName, array $files): void
     {
-        $pkgStatements = 0;
-        $pkgCovered = 0;
+        $pkgLines = 0;
+        $pkgLinesCovered = 0;
+        $pkgBranches = 0;
+        $pkgBranchesCovered = 0;
         foreach ($files as $file) {
             [$s, $c] = self::countLines($file['coverage']);
-            $pkgStatements += $s;
-            $pkgCovered += $c;
+            $pkgLines += $s;
+            $pkgLinesCovered += $c;
+            [$b, $bc] = self::countBranches($file['coverage']);
+            $pkgBranches += $b;
+            $pkgBranchesCovered += $bc;
         }
 
         $xml->startElement('package');
         $xml->writeAttribute('name', $packageName);
-        $xml->writeAttribute('line-rate', self::rate($pkgCovered, $pkgStatements));
-        $xml->writeAttribute('branch-rate', '0');
+        $xml->writeAttribute('line-rate', self::rate($pkgLinesCovered, $pkgLines));
+        $xml->writeAttribute('branch-rate', self::rate($pkgBranchesCovered, $pkgBranches));
         $xml->writeAttribute('complexity', '0');
 
         $xml->startElement('classes');
@@ -138,16 +149,19 @@ final readonly class CoberturaReport implements CoverageReport
     private function writeClass(\XMLWriter $xml, string $relativePath, FileCoverage $fileCoverage): void
     {
         [$statements, $covered] = self::countLines($fileCoverage);
+        [$branches, $branchesCovered] = self::countBranches($fileCoverage);
 
-        // Use filename without extension as class name
         $className = \basename($relativePath, '.php');
 
         $xml->startElement('class');
         $xml->writeAttribute('name', $className);
         $xml->writeAttribute('filename', $relativePath);
         $xml->writeAttribute('line-rate', self::rate($covered, $statements));
-        $xml->writeAttribute('branch-rate', '0');
+        $xml->writeAttribute('branch-rate', self::rate($branchesCovered, $branches));
         $xml->writeAttribute('complexity', '0');
+
+        // Build per-line branch map
+        $lineBranches = self::buildLineBranchMap($fileCoverage);
 
         $xml->startElement('lines');
 
@@ -162,6 +176,14 @@ final readonly class CoberturaReport implements CoverageReport
             $xml->startElement('line');
             $xml->writeAttribute('number', (string) $lineNumber);
             $xml->writeAttribute('hits', $status === LineStatus::Executed ? '1' : '0');
+
+            if (isset($lineBranches[$lineNumber])) {
+                [$brTotal, $brCovered] = $lineBranches[$lineNumber];
+                $xml->writeAttribute('branch', 'true');
+                $pct = $brTotal > 0 ? (int) (100 * $brCovered / $brTotal) : 0;
+                $xml->writeAttribute('condition-coverage', \sprintf('%d%% (%d/%d)', $pct, $brCovered, $brTotal));
+            }
+
             $xml->endElement();
         }
 
@@ -187,6 +209,57 @@ final readonly class CoberturaReport implements CoverageReport
         }
 
         return [$statements, $covered];
+    }
+
+    /**
+     * @return array{int<0, max>, int<0, max>} [total branches, covered branches]
+     */
+    private static function countBranches(FileCoverage $fileCoverage): array
+    {
+        $total = 0;
+        $covered = 0;
+
+        foreach ($fileCoverage->functions as $function) {
+            foreach ($function->branches as $branch) {
+                $total += \count($branch->outHit);
+                $covered += \count(\array_filter($branch->outHit));
+            }
+        }
+
+        return [$total, $covered];
+    }
+
+    /**
+     * Builds a map of line number => [total_branches, covered_branches]
+     * for lines that are branch decision points.
+     *
+     * @return array<int, array{int<0, max>, int<0, max>}>
+     */
+    private static function buildLineBranchMap(FileCoverage $fileCoverage): array
+    {
+        $map = [];
+
+        foreach ($fileCoverage->functions as $function) {
+            foreach ($function->branches as $branch) {
+                // Only mark lines with multiple outgoing edges as branch points
+                if (\count($branch->out) < 2) {
+                    continue;
+                }
+
+                $line = $branch->lineStart;
+                $total = \count($branch->outHit);
+                $covered = \count(\array_filter($branch->outHit));
+
+                if (!isset($map[$line])) {
+                    $map[$line] = [0, 0];
+                }
+
+                $map[$line][0] += $total;
+                $map[$line][1] += $covered;
+            }
+        }
+
+        return $map;
     }
 
     private static function rate(int $covered, int $total): string

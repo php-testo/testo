@@ -6,6 +6,8 @@ namespace Testo\Codecov\Internal\Driver;
 
 use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\CoverageDriver;
+use Testo\Codecov\CoverageLevel;
+use Testo\Codecov\Dto\CoverageResult;
 
 /**
  * PCOV-based coverage driver.
@@ -14,6 +16,7 @@ use Testo\Codecov\CoverageDriver;
  */
 final readonly class PcovDriver implements CoverageDriver
 {
+    use NormalizePath;
     /**
      * @param list<non-empty-string> $includes
      * @param list<non-empty-string> $excludes
@@ -27,9 +30,18 @@ final readonly class PcovDriver implements CoverageDriver
     public function withFilter(FinderConfig $filter): static
     {
         return new self(
-            \array_map(\strval(...), $filter->includes),
-            \array_map(\strval(...), $filter->excludes),
+            \array_map(self::normalizePath(...), $filter->includes),
+            \array_map(self::normalizePath(...), $filter->excludes),
         );
+    }
+
+    /**
+     * PCOV only supports line coverage. Higher levels silently fall back to Line.
+     */
+    #[\Override]
+    public function withLevel(CoverageLevel $level): static
+    {
+        return $this;
     }
 
     #[\Override]
@@ -39,7 +51,7 @@ final readonly class PcovDriver implements CoverageDriver
     }
 
     #[\Override]
-    public function collect(): array
+    public function collect(): CoverageResult
     {
         \pcov\stop();
 
@@ -55,7 +67,7 @@ final readonly class PcovDriver implements CoverageDriver
 
         \pcov\clear();
 
-        return $data;
+        return CoverageResult::fromRawData($data);
     }
 
     #[\Override]
@@ -66,12 +78,9 @@ final readonly class PcovDriver implements CoverageDriver
 
     private function matchesFilter(string $file): bool
     {
-        // Normalize separators: Path uses '/', but PCOV on Windows may return '\'
-        $normalized = \str_replace('\\', '/', $file);
-
         $included = false;
         foreach ($this->includes as $path) {
-            if (\str_starts_with($normalized, $path)) {
+            if (\str_starts_with($file, $path)) {
                 $included = true;
                 break;
             }
@@ -82,7 +91,7 @@ final readonly class PcovDriver implements CoverageDriver
         }
 
         foreach ($this->excludes as $path) {
-            if (\str_starts_with($normalized, $path)) {
+            if (\str_starts_with($file, $path)) {
                 return false;
             }
         }

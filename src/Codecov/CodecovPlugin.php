@@ -33,11 +33,20 @@ final readonly class CodecovPlugin implements PluginConfigurator
     private array $reports;
 
     /**
-     * @param CoverageReport ...$reports Report generators to run after all tests complete.
+     * @param CoverageLevel $level Depth of coverage analysis.
+     * @param list<CoverageReport> $reports Report generators to run after all tests complete.
      */
     public function __construct(
-        CoverageReport ...$reports,
+        private CoverageLevel $level = CoverageLevel::Line,
+        array $reports = [],
     ) {
+        foreach ($reports as $report) {
+            $report instanceof CoverageReport or throw new \InvalidArgumentException(\sprintf(
+                'Codecov report must implement `%s`, got `%s`.',
+                CoverageReport::class,
+                \get_debug_type($report),
+            ));
+        }
         $this->reports = $reports;
     }
 
@@ -56,7 +65,7 @@ final readonly class CodecovPlugin implements PluginConfigurator
         }
 
         $src = $container->get(ApplicationConfig::class)->src;
-        $driver = $driver->withFilter($src);
+        $driver = $driver->withFilter($src)->withLevel($this->level);
 
         $container->get(InterceptorCollector::class)
             ->addInterceptor(new CoverageTestInterceptor($driver));

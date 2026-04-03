@@ -6,6 +6,10 @@ namespace Testo\Codecov\Dto;
 
 /**
  * Code coverage data for a single source file.
+ *
+ * Line coverage is always present. Branch and path coverage (via {@see $functions})
+ * is optional and only populated when collected with {@see CoverageLevel::Branch}
+ * or {@see CoverageLevel::Path}.
  */
 final readonly class FileCoverage
 {
@@ -15,6 +19,9 @@ final readonly class FileCoverage
 
         /** @var array<int<0, max>, LineStatus> Line number => coverage status. */
         public array $lines,
+
+        /** @var array<non-empty-string, FunctionCoverage> Function name => branch/path data. */
+        public array $functions = [],
     ) {}
 
     /**
@@ -23,17 +30,23 @@ final readonly class FileCoverage
      */
     public function merge(self $other): self
     {
-        $merged = $this->lines;
-
+        $mergedLines = $this->lines;
         foreach ($other->lines as $line => $status) {
-            $merged[$line] = match (true) {
-                !isset($merged[$line]) => $status,
-                $merged[$line] === LineStatus::Executed,
+            $mergedLines[$line] = match (true) {
+                !isset($mergedLines[$line]) => $status,
+                $mergedLines[$line] === LineStatus::Executed,
                 $status === LineStatus::Executed => LineStatus::Executed,
-                default => $merged[$line],
+                default => $mergedLines[$line],
             };
         }
 
-        return new self($this->path, $merged);
+        $mergedFunctions = $this->functions;
+        foreach ($other->functions as $name => $function) {
+            $mergedFunctions[$name] = isset($mergedFunctions[$name])
+                ? $mergedFunctions[$name]->merge($function)
+                : $function;
+        }
+
+        return new self($this->path, $mergedLines, $mergedFunctions);
     }
 }
