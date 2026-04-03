@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Internal\Middleware;
 
-use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\CoverageDriver;
 use Testo\Codecov\Dto\CoverageResult;
 use Testo\Core\Context\TestInfo;
@@ -16,16 +15,15 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * Collects per-test code coverage data.
  *
  * Wraps each test execution with driver start/collect calls and attaches
- * the filtered coverage result to the {@see TestResult} attributes.
+ * the coverage result to the {@see TestResult} attributes.
  *
  * @internal
  */
-#[InterceptorOptions(order: InterceptorOptions::ORDER_RIGHT_BEFORE_TEST)]
+#[InterceptorOptions(order: \PHP_INT_MAX)]
 final readonly class CoverageTestInterceptor implements TestRunInterceptor
 {
     public function __construct(
         private CoverageDriver $driver,
-        private FinderConfig $filter,
     ) {}
 
     #[\Override]
@@ -39,7 +37,7 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
             $rawData = $this->driver->collect();
         }
 
-        $coverage = CoverageResult::fromRawData($rawData, $this->filter);
+        $coverage = CoverageResult::fromRawData($rawData);
 
         return $result->withAttribute(CoverageResult::class, $coverage);
     }

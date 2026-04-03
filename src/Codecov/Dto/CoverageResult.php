@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Dto;
 
-use Testo\Application\Config\FinderConfig;
-
 /**
  * Aggregated code coverage data across multiple files.
  */
@@ -17,19 +15,17 @@ final readonly class CoverageResult
     ) {}
 
     /**
-     * Creates a CoverageResult from raw driver data, filtered by the given config.
+     * Creates a CoverageResult from raw driver data.
+     *
+     * File-level filtering is the driver's responsibility.
      *
      * @param array<string, array<int, int>> $rawData Raw coverage data from the driver.
      */
-    public static function fromRawData(array $rawData, FinderConfig $filter): self
+    public static function fromRawData(array $rawData): self
     {
         $files = [];
 
         foreach ($rawData as $filePath => $lines) {
-            if (!self::matchesFilter($filePath, $filter)) {
-                continue;
-            }
-
             $lineStatuses = [];
             foreach ($lines as $lineNumber => $status) {
                 $lineStatus = LineStatus::tryFrom($status);
@@ -56,30 +52,5 @@ final readonly class CoverageResult
         }
 
         return new self($merged);
-    }
-
-    private static function matchesFilter(string $filePath, FinderConfig $filter): bool
-    {
-        if ($filter->includes !== []) {
-            $included = false;
-            foreach ($filter->includes as $path) {
-                if (\str_starts_with($filePath, (string) $path)) {
-                    $included = true;
-                    break;
-                }
-            }
-
-            if (!$included) {
-                return false;
-            }
-        }
-
-        foreach ($filter->excludes as $path) {
-            if (\str_starts_with($filePath, (string) $path)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

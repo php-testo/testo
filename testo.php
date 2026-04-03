@@ -10,6 +10,7 @@ use Testo\Bench\BenchmarkPlugin;
 use Testo\Inline\InlineTestPlugin;
 
 return new ApplicationConfig(
+    src: ['src'],
     suites: \array_merge(
         [
             new SuiteConfig(
@@ -24,7 +25,7 @@ return new ApplicationConfig(
             ),
         ],
         # If running in CI, skip the sandbox
-        \filter_var(dump(\getenv('TESTO_CI')), FILTER_VALIDATE_BOOLEAN) ? [] : [
+        \filter_var(\getenv('TESTO_CI'), FILTER_VALIDATE_BOOLEAN) ? [] : [
             new SuiteConfig(
                 name: 'sandbox',
                 location: new FinderConfig(
@@ -41,4 +42,10 @@ return new ApplicationConfig(
         require 'tests/Output/suites.php',
         require 'tests/Test/suites.php',
     ),
+    plugins: [
+        new \Testo\Codecov\CodecovPlugin(
+            new \Testo\Codecov\Report\CloverReport(__DIR__ . '/clover.xml', 'Testo'),
+            new \Testo\Codecov\Report\CoberturaReport(__DIR__ . '/cobertura.xml'),
+        ),
+    ],
 );

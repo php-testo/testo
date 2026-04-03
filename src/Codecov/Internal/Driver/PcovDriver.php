@@ -66,9 +66,12 @@ final readonly class PcovDriver implements CoverageDriver
 
     private function matchesFilter(string $file): bool
     {
+        // Normalize separators: Path uses '/', but PCOV on Windows may return '\'
+        $normalized = \str_replace('\\', '/', $file);
+
         $included = false;
         foreach ($this->includes as $path) {
-            if (\str_starts_with($file, $path)) {
+            if (\str_starts_with($normalized, $path)) {
                 $included = true;
                 break;
             }
@@ -79,7 +82,7 @@ final readonly class PcovDriver implements CoverageDriver
         }
 
         foreach ($this->excludes as $path) {
-            if (\str_starts_with($file, $path)) {
+            if (\str_starts_with($normalized, $path)) {
                 return false;
             }
         }

@@ -23,7 +23,15 @@ final readonly class XdebugDriver implements CoverageDriver
     public function __construct(
         private array $includes = [],
         private array $excludes = [],
-    ) {}
+    ) {
+        // Tag files not yet loaded by the autoloader for engine-level filtering.
+        // Files already compiled are filtered in collect() as a fallback.
+        $this->includes !== [] and \xdebug_set_filter(
+            \XDEBUG_FILTER_CODE_COVERAGE,
+            \XDEBUG_PATH_INCLUDE,
+            $this->includes,
+        );
+    }
 
     #[\Override]
     public function withFilter(FinderConfig $filter): static
@@ -37,12 +45,6 @@ final readonly class XdebugDriver implements CoverageDriver
     #[\Override]
     public function start(): void
     {
-        $this->includes !== [] and \xdebug_set_filter(
-            \XDEBUG_FILTER_CODE_COVERAGE,
-            \XDEBUG_PATH_INCLUDE,
-            $this->includes,
-        );
-
         \xdebug_start_code_coverage(\XDEBUG_CC_UNUSED | \XDEBUG_CC_DEAD_CODE);
     }
 
@@ -52,18 +54,45 @@ final readonly class XdebugDriver implements CoverageDriver
         $data = \xdebug_get_code_coverage();
         \xdebug_stop_code_coverage();
 
-        foreach ($this->excludes as $exclude) {
-            foreach ($data as $filePath => $_) {
-                \str_starts_with($filePath, $exclude) and $data[$filePath] = null;
-            }
+        if ($this->includes === [] && $this->excludes === []) {
+            return $data;
         }
 
-        return \array_filter($data);
+        $filtered = [];
+        foreach ($data as $filePath => $lines) {
+            $normalized = \str_replace('\\', '/', $filePath);
+
+            if ($this->includes !== [] && !$this->matchesAny($normalized, $this->includes)) {
+                continue;
+            }
+
+            if ($this->matchesAny($normalized, $this->excludes)) {
+                continue;
+            }
+
+            $filtered[$filePath] = $lines;
+        }
+
+        return $filtered;
     }
 
     #[\Override]
     public function clear(): void
     {
-        // XDebug clears data on xdebug_stop_code_coverage() by default.
+        // XDebug clears data on \xdebug_stop_code_coverage() by default.
+    }
+
+    /**
+     * @param list<non-empty-string> $prefixes
+     */
+    private function matchesAny(string $path, array $prefixes): bool
+    {
+        foreach ($prefixes as $prefix) {
+            if (\str_starts_with($path, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
