@@ -7,6 +7,7 @@ namespace Tests\Testo\Self;
 use Testo\Assert;
 use Testo\Assert\ExpectException;
 use Testo\Assert\State\AssertException;
+use Testo\Codecov\CoversNothing;
 use Testo\Data\DataProvider;
 use Testo\Data\DataSet;
 use Testo\Expect;

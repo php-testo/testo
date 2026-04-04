@@ -16,6 +16,7 @@ final class Reflection
      * @param bool $includePrototypes Whether to include attributes from method prototypes (only applicable for methods).
      * @param class-string|null $attributeClass If provided, only attributes of this class will be returned.
      * @param int $flags Flags to pass to {@see ReflectionFunctionAbstract::getAttributes()}.
+     * @param int<1, max> $limit Maximum number of attributes to return. If reached, the search will stop early.
      *
      * @return \ReflectionAttribute[]
      */
@@ -24,11 +25,16 @@ final class Reflection
         bool $includePrototypes = true,
         ?string $attributeClass = null,
         int $flags = 0,
+        int $limit = \PHP_INT_MAX,
     ): array {
         $attributes = [];
 
         do {
             $attributes = \array_merge($attributes, $function->getAttributes($attributeClass, $flags));
+
+            if (\count($attributes) >= $limit) {
+                return \array_slice($attributes, 0, $limit);
+            }
 
             if ($includePrototypes && $function instanceof \ReflectionMethod) {
                 if ($function->hasPrototype()) {
