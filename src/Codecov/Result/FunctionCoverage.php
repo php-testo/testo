@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Codecov\Dto;
+namespace Testo\Codecov\Result;
 
 /**
  * Branch and path coverage data for a single function or method.

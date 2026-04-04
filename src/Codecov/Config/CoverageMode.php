@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Codecov;
+namespace Testo\Codecov\Config;
 
 /**
  * Controls code coverage collection behavior.

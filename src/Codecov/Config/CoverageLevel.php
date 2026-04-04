@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Codecov;
+namespace Testo\Codecov\Config;
 
 /**
  * Defines the depth of code coverage analysis.

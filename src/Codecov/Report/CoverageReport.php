@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Report;
 
-use Testo\Codecov\Dto\CoverageResult;
+use Testo\Codecov\Result\CoverageResult;
 
 /**
  * Generates a coverage report in a specific format.

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Internal\Middleware;
 
-use Testo\Codecov\CoverageDriver;
-use Testo\Codecov\Dto\CoverageResult;
+use Testo\Codecov\Result\CoverageResult;
+use Testo\Codecov\Internal\CoverageDriver;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Pipeline\Attribute\InterceptorOptions;

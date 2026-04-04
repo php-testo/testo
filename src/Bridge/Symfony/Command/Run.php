@@ -9,7 +9,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Testo\Codecov\CoverageMode;
 use Testo\Output\Teamcity\TeamcityPlugin;
 use Testo\Output\Terminal\TerminalPlugin;
 
@@ -111,12 +110,6 @@ final class Run extends Base
         InputInterface  $input,
         OutputInterface $output,
     ): int {
-        if ($input->getOption('coverage')) {
-            $this->container->bind(CoverageMode::class, static fn(): CoverageMode => CoverageMode::Required);
-        } elseif ($input->getOption('no-coverage')) {
-            $this->container->bind(CoverageMode::class, static fn(): CoverageMode => CoverageMode::Disabled);
-        }
-
         $input->getOption('teamcity')
             ? $this->container->get(TeamcityPlugin::class)->configure($this->container)
             : $this->container->get(TerminalPlugin::class)->configure($this->container);

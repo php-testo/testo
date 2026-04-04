@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Testo\Codecov\Internal;
 
 use Internal\Destroy\Destroyable;
-use Testo\Codecov\Dto\CoverageResult;
+use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Core\Context\SuiteResult;
 

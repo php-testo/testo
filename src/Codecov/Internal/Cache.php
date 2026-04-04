@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Internal;
 
-use Testo\Codecov\Dto\CoverageResult;
+use Testo\Codecov\Result\CoverageResult;
 
 /**
  * @internal

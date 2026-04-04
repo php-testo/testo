@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Testo\Codecov;
+namespace Testo\Codecov\Internal;
 
 use Testo\Application\Config\FinderConfig;
-use Testo\Codecov\Dto\CoverageResult;
+use Testo\Codecov\Config\CoverageLevel;
+use Testo\Codecov\Result\CoverageResult;
 
 /**
  * Interface for code coverage collection engines.

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Codecov\Unit\Dto;
 
 use Testo\Assert;
-use Testo\Codecov\Dto\PathCoverage;
+use Testo\Codecov\Result\PathCoverage;
 use Testo\Test;
 
 #[Test]

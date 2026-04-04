@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Codecov\Unit\Dto;
 
 use Testo\Assert;
-use Testo\Codecov\Dto\LineStatus;
+use Testo\Codecov\Result\LineStatus;
 use Testo\Test;
 
 #[Test]

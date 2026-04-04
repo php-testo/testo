@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Testo\Codecov\Internal\Driver;
 
 use Testo\Application\Config\FinderConfig;
-use Testo\Codecov\CoverageDriver;
-use Testo\Codecov\CoverageLevel;
-use Testo\Codecov\Dto\CoverageResult;
+use Testo\Codecov\Config\CoverageLevel;
+use Testo\Codecov\Result\CoverageResult;
+use Testo\Codecov\Internal\CoverageDriver;
 
 /**
  * XDebug-based coverage driver.

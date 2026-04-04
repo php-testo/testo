@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Codecov\Unit\Dto;
 
 use Testo\Assert;
-use Testo\Codecov\Dto\BranchCoverage;
+use Testo\Codecov\Result\BranchCoverage;
 use Testo\Test;
 
 #[Test]

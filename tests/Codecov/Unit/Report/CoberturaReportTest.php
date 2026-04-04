@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Tests\Codecov\Unit\Report;
 
 use Testo\Assert;
-use Testo\Codecov\Dto\BranchCoverage;
-use Testo\Codecov\Dto\CoverageResult;
-use Testo\Codecov\Dto\FileCoverage;
-use Testo\Codecov\Dto\FunctionCoverage;
-use Testo\Codecov\Dto\LineStatus;
-use Testo\Codecov\Dto\PathCoverage;
+use Testo\Codecov\Result\BranchCoverage;
+use Testo\Codecov\Result\CoverageResult;
+use Testo\Codecov\Result\FileCoverage;
+use Testo\Codecov\Result\FunctionCoverage;
+use Testo\Codecov\Result\LineStatus;
+use Testo\Codecov\Result\PathCoverage;
 use Testo\Codecov\Report\CoberturaReport;
 use Testo\Test;
 

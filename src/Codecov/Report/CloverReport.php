@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Report;
 
-use Testo\Codecov\Dto\CoverageResult;
-use Testo\Codecov\Dto\FileCoverage;
-use Testo\Codecov\Dto\LineStatus;
+use Testo\Codecov\Result\CoverageResult;
+use Testo\Codecov\Result\FileCoverage;
+use Testo\Codecov\Result\LineStatus;
 
 /**
  * Generates a Clover XML coverage report.

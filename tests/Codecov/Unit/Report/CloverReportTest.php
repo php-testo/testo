@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Codecov\Unit\Report;
 
 use Testo\Assert;
-use Testo\Codecov\Dto\CoverageResult;
-use Testo\Codecov\Dto\FileCoverage;
-use Testo\Codecov\Dto\LineStatus;
+use Testo\Codecov\Result\CoverageResult;
+use Testo\Codecov\Result\FileCoverage;
+use Testo\Codecov\Result\LineStatus;
 use Testo\Codecov\Report\CloverReport;
 use Testo\Test;
 

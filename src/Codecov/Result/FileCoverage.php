@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Testo\Codecov\Dto;
+namespace Testo\Codecov\Result;
+
+use Testo\Codecov\Config\CoverageLevel;
 
 /**
  * Code coverage data for a single source file.

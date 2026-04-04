@@ -6,8 +6,12 @@ namespace Testo\Codecov;
 
 use Internal\Container\Container;
 use Testo\Application\Config\ApplicationConfig;
+use Testo\Codecov\Config\CoverageLevel;
+use Testo\Codecov\Config\CoverageMode;
 use Testo\Codecov\Exception\CoverageDriverNotAvailable;
 use Testo\Codecov\Internal\CoverageCollector;
+use Testo\Codecov\Internal\CoverageDriver;
+use Testo\Codecov\Internal\CoverageInput;
 use Testo\Codecov\Internal\Driver\PcovDriver;
 use Testo\Codecov\Internal\Driver\XdebugDriver;
 use Testo\Codecov\Internal\Middleware\CoverageTestInterceptor;
@@ -20,10 +24,10 @@ use Testo\Pipeline\InterceptorCollector;
 /**
  * Plugin that enables code coverage collection during test execution.
  *
- * Behavior depends on {@see CoverageMode} in the container:
- * - {@see CoverageMode::Required} — throws if no extension available
- * - {@see CoverageMode::Available} — collects if extension present, skips silently if not (default)
- * - {@see CoverageMode::Disabled} — skips entirely
+ * Default behavior is controlled by the `mode` constructor parameter.
+ * CLI flags override the configured mode:
+ * - `--coverage` → {@see CoverageMode::Required} (fail if no extension)
+ * - `--no-coverage` → {@see CoverageMode::Disabled} (skip entirely)
  *
  * @api
  */
@@ -34,10 +38,13 @@ final readonly class CodecovPlugin implements PluginConfigurator
 
     /**
      * @param CoverageLevel $level Depth of coverage analysis.
+     * @param CoverageMode $mode Default activation mode. Can be overridden by CLI flags
+     *        (`--coverage` → Required, `--no-coverage` → Disabled).
      * @param list<CoverageReport> $reports Report generators to run after all tests complete.
      */
     public function __construct(
         private CoverageLevel $level = CoverageLevel::Line,
+        private CoverageMode $mode = CoverageMode::Available,
         array $reports = [],
     ) {
         foreach ($reports as $report) {
@@ -53,10 +60,8 @@ final readonly class CodecovPlugin implements PluginConfigurator
     #[\Override]
     public function configure(Container $container): void
     {
-        $mode = $container->has(CoverageMode::class)
-            ? $container->get(CoverageMode::class)
-            : CoverageMode::Available;
-        $container->set($mode);
+        // CLI flag overrides plugin config
+        $mode = $container->get(CoverageInput::class)->resolveMode() ?? $this->mode;
 
         $driver = self::detectDriver($mode);
 

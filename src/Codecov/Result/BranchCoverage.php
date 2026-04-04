@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Codecov\Dto;
+namespace Testo\Codecov\Result;
 
 /**
  * A single branch within a function's control flow graph.
