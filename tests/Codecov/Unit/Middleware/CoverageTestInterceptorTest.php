@@ -16,8 +16,12 @@ use Testo\Core\Value\Status;
 use Testo\Test;
 use Tests\Codecov\Stub\CoveredCase;
 use Tests\Codecov\Stub\SpyDriver;
+use Testo\Expect;
 use Tests\Codecov\Stub\ChildOverridesMethod;
+use Tests\Codecov\Stub\ChildOverridesWithCovers;
+use Tests\Codecov\Stub\ConflictingAttributes;
 use Tests\Codecov\Stub\ChildWithoutAttribute;
+use Tests\Codecov\Stub\TargetClassA;
 use Tests\Codecov\Stub\UncoveredClass;
 use Tests\Codecov\Stub\UncoveredMethod;
 
@@ -140,6 +144,53 @@ final class CoverageTestInterceptorTest
         Assert::same($driver->startCount, 0);
         Assert::same($driver->collectCount, 0);
         Assert::null($result->getAttribute(CoverageResult::class));
+    }
+
+    public function childCoversOverridesParentCoversNothing(): void
+    {
+        // Arrange — parent has #[CoversNothing], child has #[Covers(TargetClassA::class)]
+        $refA = new \ReflectionClass(TargetClassA::class);
+        $fileA = $refA->getFileName();
+
+        $driver = new SpyDriver(new CoverageResult([
+            $fileA => new \Testo\Codecov\Result\FileCoverage($fileA, [
+                $refA->getStartLine() => \Testo\Codecov\Result\LineStatus::Executed,
+            ]),
+            '/src/Other.php' => new \Testo\Codecov\Result\FileCoverage('/src/Other.php', [
+                5 => \Testo\Codecov\Result\LineStatus::Executed,
+            ]),
+        ]));
+        $interceptor = new CoverageTestInterceptor($driver);
+        $info = self::makeTestInfo(ChildOverridesWithCovers::class, 'testWithCovers');
+        $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
+
+        // Act
+        $result = $interceptor->runTest($info, $next);
+
+        // Assert — coverage IS collected (child's #[Covers] overrides parent's #[CoversNothing])
+        Assert::same($driver->startCount, 1);
+        Assert::same($driver->collectCount, 1);
+
+        $coverage = $result->getAttribute(CoverageResult::class);
+        Assert::instanceOf($coverage, CoverageResult::class);
+        // Filtered to TargetClassA only
+        Assert::count($coverage->files, 1);
+        Assert::true(isset($coverage->files[$fileA]));
+    }
+
+    public function throwsOnConflictingCoversAndCoversNothing(): void
+    {
+        // Arrange
+        $driver = new SpyDriver();
+        $interceptor = new CoverageTestInterceptor($driver);
+        $info = self::makeTestInfo(ConflictingAttributes::class, 'testConflictOnMethod');
+        $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
+
+        // Assert
+        Expect::exception(\LogicException::class);
+
+        // Act
+        $interceptor->runTest($info, $next);
     }
 
     /**

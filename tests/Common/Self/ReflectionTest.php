@@ -15,6 +15,7 @@ use Tests\Common\Stub\CallStack\CallStackTestClass;
 use Tests\Common\Stub\ChildClass;
 use Tests\Common\Stub\ClassWithoutMarkedMethods;
 use Tests\Common\Stub\MarkerAttribute;
+use Tests\Common\Stub\MergePolicyChild;
 use Tests\Common\Stub\MiddleClass;
 
 use function Tests\Common\Stub\CallStack\nestedFunction;
@@ -310,6 +311,101 @@ function testGetAttributesFromCallStackWithLimitAndNestedCalls(): void
     // Should find the first two attributes from the call stack
     Assert::true(\in_array('methodA', $labels, true));
     Assert::true(\in_array('methodB', $labels, true));
+}
+
+// --- fetchFunctionAttributes: mergePolicy ---
+
+function testMergeAllReturnsBothLayers(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithAttrOnBothLayers');
+
+    $attrs = Reflection::fetchFunctionAttributes($ref, mergePolicy: Reflection::MERGE_ALL);
+
+    // Child has AnotherMarkerAttribute, parent has MarkerAttribute
+    Assert::count($attrs, 2);
+}
+
+function testMergeFirstReturnsChildLayerOnly(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithAttrOnBothLayers');
+
+    $attrs = Reflection::fetchFunctionAttributes($ref, mergePolicy: Reflection::MERGE_FIRST);
+
+    // Child has AnotherMarkerAttribute — first non-empty layer
+    Assert::count($attrs, 1);
+    Assert::same($attrs[0]->getName(), AnotherMarkerAttribute::class);
+}
+
+function testMergeLastReturnsParentLayerOnly(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithAttrOnBothLayers');
+
+    $attrs = Reflection::fetchFunctionAttributes($ref, mergePolicy: Reflection::MERGE_LAST);
+
+    // Parent has MarkerAttribute — last non-empty layer
+    Assert::count($attrs, 1);
+    Assert::same($attrs[0]->getName(), MarkerAttribute::class);
+}
+
+function testMergeFirstSkipsEmptyChildGoesToParent(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithAttrOnParentOnly');
+
+    $attrs = Reflection::fetchFunctionAttributes($ref, mergePolicy: Reflection::MERGE_FIRST);
+
+    // Child has no attrs, parent has MarkerAttribute
+    Assert::count($attrs, 1);
+    Assert::same($attrs[0]->getName(), MarkerAttribute::class);
+}
+
+function testMergeLastSkipsEmptyParentUsesChild(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithAttrOnChildOnly');
+
+    $attrs = Reflection::fetchFunctionAttributes($ref, mergePolicy: Reflection::MERGE_LAST);
+
+    // Child has MarkerAttribute, parent has nothing
+    Assert::count($attrs, 1);
+    Assert::same($attrs[0]->getName(), MarkerAttribute::class);
+}
+
+function testMergePolicyReturnsEmptyWhenNoAttrs(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithNoAttr');
+
+    Assert::same(Reflection::fetchFunctionAttributes($ref, mergePolicy: Reflection::MERGE_FIRST), []);
+    Assert::same(Reflection::fetchFunctionAttributes($ref, mergePolicy: Reflection::MERGE_LAST), []);
+    Assert::same(Reflection::fetchFunctionAttributes($ref, mergePolicy: Reflection::MERGE_ALL), []);
+}
+
+// --- fetchFunctionAttributes: limit ---
+
+function testLimitReturnsCappedResults(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithAttrOnBothLayers');
+
+    $attrs = Reflection::fetchFunctionAttributes($ref, limit: 1, mergePolicy: Reflection::MERGE_ALL);
+
+    Assert::count($attrs, 1);
+}
+
+function testLimitWithMergeFirstCapsResults(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithAttrOnBothLayers');
+
+    // MERGE_FIRST returns only first layer — 1 attribute, limit 5 won't exceed
+    $attrs = Reflection::fetchFunctionAttributes($ref, limit: 5, mergePolicy: Reflection::MERGE_FIRST);
+
+    Assert::count($attrs, 1);
+}
+
+function testLimitWithMergeLastCapsResults(): void
+{
+    $ref = new \ReflectionMethod(MergePolicyChild::class, 'methodWithAttrOnBothLayers');
+
+    $attrs = Reflection::fetchFunctionAttributes($ref, limit: 1, mergePolicy: Reflection::MERGE_LAST);
+
+    Assert::count($attrs, 1);
 }
 
 function testGetAttributesFromCallStackDuplicatesClassAttributesFromHierarchy(): void

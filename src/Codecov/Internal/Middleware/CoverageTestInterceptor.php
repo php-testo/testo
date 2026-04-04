@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Internal\Middleware;
 
+use Testo\Codecov\Covers;
 use Testo\Codecov\CoversNothing;
+use Testo\Codecov\Internal\CoverageAttribute;
 use Testo\Codecov\Internal\CoverageDriver;
-use Testo\Common\Reflection;
+use Testo\Codecov\Internal\CoverageFilter;
 use Testo\Codecov\Result\CoverageResult;
+use Testo\Common\Reflection;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Pipeline\Attribute\InterceptorOptions;
@@ -20,6 +23,7 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * the coverage result to the {@see TestResult} attributes.
  *
  * Tests marked with {@see CoversNothing} are executed without coverage collection.
+ * Tests marked with {@see Covers} have their coverage filtered to the specified targets.
  *
  * @internal
  */
@@ -33,7 +37,21 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
-        if (self::hasCoversNothing($info)) {
+        $attributes = self::getCoverageAttributes($info);
+
+        $hasCoversNothing = false;
+        $hasCovers = false;
+        foreach ($attributes as $attr) {
+            $attr::class === CoversNothing::class and $hasCoversNothing = true;
+            $attr::class === Covers::class and $hasCovers = true;
+        }
+
+        $hasCoversNothing && $hasCovers and throw new \LogicException(\sprintf(
+            'Test "%s" has both #[Covers] and #[CoversNothing] on the same level. Remove one of them.',
+            $info->name,
+        ));
+
+        if ($hasCoversNothing) {
             return $next($info);
         }
 
@@ -45,22 +63,48 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
             $coverage = $this->driver->collect();
         }
 
+        /**
+         * Filter by #[Covers] targets
+         * @var list<Covers> $coversTargets
+         */
+        $coversTargets = \array_filter($attributes, static fn(CoverageAttribute $a): bool => $a instanceof Covers);
+        $coversTargets === [] or $coverage = CoverageFilter::apply($coverage, \array_values($coversTargets));
+
         return $result->withAttribute(CoverageResult::class, $coverage);
     }
 
-    private static function hasCoversNothing(TestInfo $info): bool
+    /**
+     * Collects all coverage attributes from the method/function and class hierarchy.
+     *
+     * @return list<CoverageAttribute>
+     */
+    private static function getCoverageAttributes(TestInfo $info): array
     {
-        if (Reflection::fetchFunctionAttributes(
-            $info->testDefinition->reflection,
-            attributeClass: CoversNothing::class,
-            limit: 1,
-        ) !== []) {
-            return true;
+        # MERGE_FIRST: closest layer wins — child's attributes override parent's
+        $attributes = \array_map(
+            static fn(\ReflectionAttribute $a): CoverageAttribute => $a->newInstance(),
+            Reflection::fetchFunctionAttributes(
+                $info->testDefinition->reflection,
+                attributeClass: CoverageAttribute::class,
+                flags: \ReflectionAttribute::IS_INSTANCEOF,
+                mergePolicy: Reflection::MERGE_FIRST,
+            ),
+        );
+
+        # Method-level attributes take priority over class-level
+        if ($attributes === []) {
+            $class = $info->caseInfo->definition->reflection;
+            $class === null or $attributes = \array_map(
+                static fn(\ReflectionAttribute $a): CoverageAttribute => $a->newInstance(),
+                Reflection::fetchClassAttributes(
+                    $class,
+                    attributeClass: CoverageAttribute::class,
+                    flags: \ReflectionAttribute::IS_INSTANCEOF,
+                    mergePolicy: Reflection::MERGE_FIRST,
+                ),
+            );
         }
 
-        $class = $info->caseInfo->definition->reflection;
-
-        return $class !== null
-            && Reflection::fetchClassAttributes($class, attributeClass: CoversNothing::class) !== [];
+        return $attributes;
     }
 }

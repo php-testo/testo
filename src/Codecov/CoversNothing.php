@@ -23,4 +23,4 @@ namespace Testo\Codecov;
  * @api
  */
 #[\Attribute(\Attribute::TARGET_METHOD | \Attribute::TARGET_FUNCTION | \Attribute::TARGET_CLASS)]
-final readonly class CoversNothing {}
+final readonly class CoversNothing implements Internal\CoverageAttribute {}

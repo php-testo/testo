@@ -9,6 +9,10 @@ namespace Testo\Common;
  */
 final class Reflection
 {
+    public const MERGE_FIRST = 1;
+    public const MERGE_LAST = 2;
+    public const MERGE_ALL = 3;
+
     /**
      * Fetch all attributes for a given function or method.
      *
@@ -17,6 +21,11 @@ final class Reflection
      * @param class-string|null $attributeClass If provided, only attributes of this class will be returned.
      * @param int $flags Flags to pass to {@see ReflectionFunctionAbstract::getAttributes()}.
      * @param int<1, max> $limit Maximum number of attributes to return. If reached, the search will stop early.
+     * @param self::MERGE_* $mergePolicy Controls how attributes from prototype layers are combined.
+     *        Layers without matching attributes are skipped.
+     *        - {@see self::MERGE_ALL} — merge attributes from all layers (default)
+     *        - {@see self::MERGE_FIRST} — take attributes from the first layer that has them
+     *        - {@see self::MERGE_LAST} — take attributes from the last (most distant parent) layer that has them
      *
      * @return \ReflectionAttribute[]
      */
@@ -26,27 +35,41 @@ final class Reflection
         ?string $attributeClass = null,
         int $flags = 0,
         int $limit = \PHP_INT_MAX,
+        int $mergePolicy = self::MERGE_ALL,
     ): array {
         $attributes = [];
+        $lastNonEmpty = [];
 
         do {
-            $attributes = \array_merge($attributes, $function->getAttributes($attributeClass, $flags));
+            $current = $function->getAttributes($attributeClass, $flags);
 
-            if (\count($attributes) >= $limit) {
-                return \array_slice($attributes, 0, $limit);
-            }
-
-            if ($includePrototypes && $function instanceof \ReflectionMethod) {
-                if ($function->hasPrototype()) {
-                    $function = $function->getPrototype();
-                    continue;
+            if ($current !== []) {
+                if ($mergePolicy === self::MERGE_FIRST && $attributes === []) {
+                    return \count($current) > $limit ? \array_slice($current, 0, $limit) : $current;
                 }
 
-                break;
+                if ($mergePolicy === self::MERGE_LAST) {
+                    $lastNonEmpty = $current;
+                } else {
+                    $attributes = \array_merge($attributes, $current);
+
+                    if (\count($attributes) >= $limit) {
+                        return \array_slice($attributes, 0, $limit);
+                    }
+                }
+            }
+
+            if ($includePrototypes && $function instanceof \ReflectionMethod && $function->hasPrototype()) {
+                $function = $function->getPrototype();
+                continue;
             }
 
             break;
         } while (true);
+
+        if ($mergePolicy === self::MERGE_LAST) {
+            return \count($lastNonEmpty) > $limit ? \array_slice($lastNonEmpty, 0, $limit) : $lastNonEmpty;
+        }
 
         return $attributes;
     }
@@ -61,6 +84,12 @@ final class Reflection
      * @param bool $includeTraits Whether to include attributes from traits.
      * @param class-string<T>|null $attributeClass If provided, only attributes of this class will be returned.
      * @param int $flags Flags to pass to {@see ReflectionClass::getAttributes()}.
+     * @param int<1, max> $limit Maximum number of attributes to return. If reached, the search will stop early.
+     * @param self::MERGE_* $mergePolicy Controls how attributes from parent layers are combined.
+     *        Layers without matching attributes are skipped.
+     *        - {@see self::MERGE_ALL} — merge attributes from all layers (default)
+     *        - {@see self::MERGE_FIRST} — take attributes from the first layer that has them
+     *        - {@see self::MERGE_LAST} — take attributes from the last (most distant parent) layer that has them
      *
      * @return ($attributeClass is null ? list<\ReflectionAttribute> : list<\ReflectionAttribute<T>>)
      */
@@ -70,29 +99,49 @@ final class Reflection
         bool $includeTraits = true,
         ?string $attributeClass = null,
         int $flags = 0,
+        int $limit = \PHP_INT_MAX,
+        int $mergePolicy = self::MERGE_ALL,
     ): array {
         $attributes = [];
+        $lastNonEmpty = [];
 
         do {
             \is_string($class) and $class = new \ReflectionClass($class);
 
-            $attributes = \array_merge(
-                $attributes,
-                $class->getAttributes($attributeClass, $flags),
-            );
+            $current = $class->getAttributes($attributeClass, $flags);
 
             if ($includeTraits) {
                 foreach (self::fetchTraits($class->getName(), includeParents: false) as $trait) {
                     $traitReflection = new \ReflectionClass($trait);
-                    $attributes = \array_merge(
-                        $attributes,
+                    $current = \array_merge(
+                        $current,
                         $traitReflection->getAttributes($attributeClass, $flags),
                     );
                 }
             }
 
+            if ($current !== []) {
+                if ($mergePolicy === self::MERGE_FIRST && $attributes === []) {
+                    return \count($current) > $limit ? \array_slice($current, 0, $limit) : $current;
+                }
+
+                if ($mergePolicy === self::MERGE_LAST) {
+                    $lastNonEmpty = $current;
+                } else {
+                    $attributes = \array_merge($attributes, $current);
+
+                    if (\count($attributes) >= $limit) {
+                        return \array_slice($attributes, 0, $limit);
+                    }
+                }
+            }
+
             $class = $includeParents ? $class->getParentClass() : false;
         } while ($class !== false);
+
+        if ($mergePolicy === self::MERGE_LAST) {
+            return \count($lastNonEmpty) > $limit ? \array_slice($lastNonEmpty, 0, $limit) : $lastNonEmpty;
+        }
 
         return $attributes;
     }
