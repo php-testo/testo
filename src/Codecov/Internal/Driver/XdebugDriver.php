@@ -19,22 +19,36 @@ use Testo\Codecov\Internal\CoverageDriver;
 final readonly class XdebugDriver implements CoverageDriver
 {
     use NormalizePath;
+
     /**
      * @param list<non-empty-string> $includes
      * @param list<non-empty-string> $excludes
      */
-    public function __construct(
+    private function __construct(
         private array $includes = [],
         private array $excludes = [],
         private CoverageLevel $level = CoverageLevel::Line,
-    ) {
-        # Tag files not yet loaded by the autoloader for engine-level filtering.
-        # Files already compiled are filtered in collect() as a fallback.
-        $this->includes !== [] and \xdebug_set_filter(
+    ) {}
+
+    /**
+     * Creates a new XDebug driver and sets the global engine-level filter.
+     *
+     * `xdebug_set_filter()` tags files at first include/require and cannot re-tag
+     * already loaded files. It must be called once with the broadest scope (e.g. `src/`).
+     * Per-test narrowing is handled in {@see collect()} at PHP level.
+     */
+    public static function create(FinderConfig $src): self
+    {
+        $includes = \array_map(self::normalizePath(...), $src->includes);
+        $excludes = \array_map(self::normalizePath(...), $src->excludes);
+
+        $includes !== [] and \xdebug_set_filter(
             \XDEBUG_FILTER_CODE_COVERAGE,
             \XDEBUG_PATH_INCLUDE,
-            $this->includes,
+            $includes,
         );
+
+        return new self($includes, $excludes);
     }
 
     #[\Override]
@@ -88,7 +102,7 @@ final readonly class XdebugDriver implements CoverageDriver
     #[\Override]
     public function clear(): void
     {
-        # XDebug clears data on \\xdebug_stop_code_coverage() by default.
+        # XDebug clears data on \xdebug_stop_code_coverage() by default.
     }
 
     /**

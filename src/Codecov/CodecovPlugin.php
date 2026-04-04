@@ -6,6 +6,7 @@ namespace Testo\Codecov;
 
 use Internal\Container\Container;
 use Testo\Application\Config\ApplicationConfig;
+use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\Config\CoverageLevel;
 use Testo\Codecov\Config\CoverageMode;
 use Testo\Codecov\Exception\CoverageDriverNotAvailable;
@@ -63,14 +64,14 @@ final readonly class CodecovPlugin implements PluginConfigurator
         // CLI flag overrides plugin config
         $mode = $container->get(CoverageInput::class)->resolveMode() ?? $this->mode;
 
-        $driver = self::detectDriver($mode);
+        $src = $container->get(ApplicationConfig::class)->src;
+        $driver = self::detectDriver($mode, $src);
 
         if ($driver === null) {
             return;
         }
 
-        $src = $container->get(ApplicationConfig::class)->src;
-        $driver = $driver->withFilter($src)->withLevel($this->level);
+        $driver = $driver->withLevel($this->level);
 
         $container->get(InterceptorCollector::class)
             ->addInterceptor(new CoverageTestInterceptor($driver));
@@ -84,12 +85,12 @@ final readonly class CodecovPlugin implements PluginConfigurator
             });
     }
 
-    private static function detectDriver(CoverageMode $mode): ?CoverageDriver
+    private static function detectDriver(CoverageMode $mode, FinderConfig $src): ?CoverageDriver
     {
         return match (true) {
             $mode === CoverageMode::Disabled => null,
-            \extension_loaded('pcov') => new PcovDriver(),
-            \extension_loaded('xdebug') => new XdebugDriver(),
+            \extension_loaded('pcov') => PcovDriver::create($src),
+            \extension_loaded('xdebug') => XdebugDriver::create($src),
             $mode === CoverageMode::Required => throw new CoverageDriverNotAvailable(),
             default => null,
         };

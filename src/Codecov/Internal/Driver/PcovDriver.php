@@ -17,14 +17,26 @@ use Testo\Codecov\Internal\CoverageDriver;
 final readonly class PcovDriver implements CoverageDriver
 {
     use NormalizePath;
+
     /**
      * @param list<non-empty-string> $includes
      * @param list<non-empty-string> $excludes
      */
-    public function __construct(
+    private function __construct(
         private array $includes = [],
         private array $excludes = [],
     ) {}
+
+    /**
+     * Creates a new PCOV driver.
+     */
+    public static function create(FinderConfig $src): self
+    {
+        return new self(
+            \array_map(self::normalizePath(...), $src->includes),
+            \array_map(self::normalizePath(...), $src->excludes),
+        );
+    }
 
     #[\Override]
     public function withFilter(FinderConfig $filter): static
