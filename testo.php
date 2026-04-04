@@ -41,11 +41,15 @@ return new ApplicationConfig(
         require 'tests/Application/suites.php',
         require 'tests/Output/suites.php',
         require 'tests/Test/suites.php',
+        require 'tests/Codecov/suites.php',
     ),
     plugins: [
         new \Testo\Codecov\CodecovPlugin(
-            new \Testo\Codecov\Report\CloverReport(__DIR__ . '/clover.xml', 'Testo'),
-            new \Testo\Codecov\Report\CoberturaReport(__DIR__ . '/cobertura.xml'),
+            level: \Testo\Codecov\CoverageLevel::Path,
+            reports: [
+                new \Testo\Codecov\Report\CloverReport(__DIR__ . '/clover.xml', 'Testo'),
+                new \Testo\Codecov\Report\CoberturaReport(__DIR__ . '/cobertura.xml'),
+            ],
         ),
     ],
 );

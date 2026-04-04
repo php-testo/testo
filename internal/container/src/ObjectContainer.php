@@ -42,10 +42,10 @@ final class ObjectContainer implements Container
     }
 
     #[\Override]
-    public function set(object $service, ?string $id = null): void
+    public function set(object $service, ?string $id = null, bool $destroy = false): void
     {
         \assert($id === null || $service instanceof $id, "Service must be instance of {$id}.");
-        $this->state->set($service, $id);
+        $this->state->set($service, $id, $destroy);
     }
 
     #[\Override]

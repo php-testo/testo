@@ -28,8 +28,8 @@ final readonly class XdebugDriver implements CoverageDriver
         private array $excludes = [],
         private CoverageLevel $level = CoverageLevel::Line,
     ) {
-        // Tag files not yet loaded by the autoloader for engine-level filtering.
-        // Files already compiled are filtered in collect() as a fallback.
+        # Tag files not yet loaded by the autoloader for engine-level filtering.
+        # Files already compiled are filtered in collect() as a fallback.
         $this->includes !== [] and \xdebug_set_filter(
             \XDEBUG_FILTER_CODE_COVERAGE,
             \XDEBUG_PATH_INCLUDE,
@@ -88,7 +88,7 @@ final readonly class XdebugDriver implements CoverageDriver
     #[\Override]
     public function clear(): void
     {
-        // XDebug clears data on \\xdebug_stop_code_coverage() by default.
+        # XDebug clears data on \\xdebug_stop_code_coverage() by default.
     }
 
     /**

@@ -17,33 +17,36 @@ use Testo\Core\Context\SuiteResult;
  *
  * @internal
  */
-final class CoverageAggregate implements Destroyable
+final readonly class CoverageCollector implements Destroyable
 {
-    private CoverageResult $result;
+    private Cache $cache;
 
     /**
      * @param list<CoverageReport> $reports
      */
     public function __construct(
-        private readonly array $reports,
+        private array $reports,
     ) {
-        $this->result = new CoverageResult();
+        $this->cache = new Cache(new CoverageResult());
     }
 
     public function mergeSuiteResult(SuiteResult $suiteResult): void
     {
+        $r = $this->cache->value;
         foreach ($suiteResult as $caseResult) {
             foreach ($caseResult as $testResult) {
                 $coverage = $testResult->getAttribute(CoverageResult::class);
-                $coverage instanceof CoverageResult and $this->result = $this->result->merge($coverage);
+                $coverage instanceof CoverageResult and $r = $r->merge($coverage);
             }
         }
+
+        $this->cache->value = $r;
     }
 
     public function destroy(): void
     {
         foreach ($this->reports as $report) {
-            $report->generate($this->result);
+            $report->generate($this->cache->value);
         }
     }
 }

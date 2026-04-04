@@ -60,8 +60,10 @@ interface Container extends Destroyable, ContainerInterface
      * @template T
      * @param T $service Service instance to register
      * @param class-string<T>|null $id Optional service identifier (defaults to object's class)
+     * @param bool $destroy Whether the container should manage the service's lifecycle and call its destroy
+     *        method on Container destruction (if it implements {@see Destroyable}).
      */
-    public function set(object $service, ?string $id = null): void;
+    public function set(object $service, ?string $id = null, bool $destroy = false): void;
 
     /**
      * Creates a new instance without storing it in the container.

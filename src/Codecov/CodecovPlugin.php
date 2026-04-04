@@ -7,7 +7,7 @@ namespace Testo\Codecov;
 use Internal\Container\Container;
 use Testo\Application\Config\ApplicationConfig;
 use Testo\Codecov\Exception\CoverageDriverNotAvailable;
-use Testo\Codecov\Internal\CoverageAggregate;
+use Testo\Codecov\Internal\CoverageCollector;
 use Testo\Codecov\Internal\Driver\PcovDriver;
 use Testo\Codecov\Internal\Driver\XdebugDriver;
 use Testo\Codecov\Internal\Middleware\CoverageTestInterceptor;
@@ -70,8 +70,8 @@ final readonly class CodecovPlugin implements PluginConfigurator
         $container->get(InterceptorCollector::class)
             ->addInterceptor(new CoverageTestInterceptor($driver));
 
-        $aggregate = new CoverageAggregate($this->reports);
-        $container->set($aggregate);
+        $aggregate = new CoverageCollector($this->reports);
+        $container->set($aggregate, destroy: true);
 
         $container->get(EventListenerCollector::class)
             ->addListener(TestSuiteFinished::class, static function (TestSuiteFinished $event) use ($aggregate): void {

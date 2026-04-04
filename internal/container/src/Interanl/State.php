@@ -83,9 +83,10 @@ final class State
         return \array_key_exists($id, $this->cache) || \array_key_exists($id, $this->factory);
     }
 
-    public function set(object $service, ?string $id = null): void
+    public function set(object $service, ?string $id = null, bool $destroy = false): void
     {
         $this->cache[$id ?? $service::class] = $service;
+        $service instanceof Destroyable and $this->destroy[\spl_object_id($service)] = $service;
     }
 
     /**
