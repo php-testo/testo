@@ -19,6 +19,7 @@ use Testo\Codecov\Internal\Middleware\CoverageTestInterceptor;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
+use Testo\Core\Value\TestType;
 use Testo\Event\TestSuite\TestSuiteFinished;
 use Testo\Pipeline\InterceptorCollector;
 
@@ -37,17 +38,28 @@ final readonly class CodecovPlugin implements PluginConfigurator
     /** @var list<CoverageReport> */
     private array $reports;
 
+    /** @var list<non-empty-string> */
+    private array $testTypes;
+
     /**
      * @param CoverageLevel $level Depth of coverage analysis.
      * @param CoverageMode $mode Default activation mode. Can be overridden by CLI flags
      *        (`--coverage` → Required, `--no-coverage` → Disabled).
+     * @param list<non-empty-string|\BackedEnum> $testTypes Test types to collect coverage for.
+     *        Empty array means all types. Use {@see TestType} cases or custom string identifiers.
      * @param list<CoverageReport> $reports Report generators to run after all tests complete.
      */
     public function __construct(
         private CoverageLevel $level = CoverageLevel::Line,
         private CoverageMode $mode = CoverageMode::Available,
+        array $testTypes = [TestType::Test, TestType::TestInline],
         array $reports = [],
     ) {
+        $this->testTypes = \array_map(
+            static fn(string|\BackedEnum $t): string => $t instanceof \BackedEnum ? $t->value : $t,
+            $testTypes,
+        );
+
         foreach ($reports as $report) {
             $report instanceof CoverageReport or throw new \InvalidArgumentException(\sprintf(
                 'Codecov report must implement `%s`, got `%s`.',
@@ -74,7 +86,7 @@ final readonly class CodecovPlugin implements PluginConfigurator
         $driver = $driver->withLevel($this->level);
 
         $container->get(InterceptorCollector::class)
-            ->addInterceptor(new CoverageTestInterceptor($driver));
+            ->addInterceptor(new CoverageTestInterceptor($driver, $this->testTypes));
 
         $aggregate = new CoverageCollector($this->reports);
         $container->set($aggregate, destroy: true);

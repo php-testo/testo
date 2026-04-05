@@ -30,13 +30,21 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
 #[InterceptorOptions(order: \PHP_INT_MAX)]
 final readonly class CoverageTestInterceptor implements TestRunInterceptor
 {
+    /**
+     * @param non-empty-list<non-empty-string> $testTypes Test types to collect coverage for. Empty = all.
+     */
     public function __construct(
         private CoverageDriver $driver,
+        private array $testTypes = [],
     ) {}
 
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
+        if ($this->testTypes !== [] && !\in_array($info->caseInfo->definition->type, $this->testTypes, true)) {
+            return $next($info);
+        }
+
         $attributes = self::getCoverageAttributes($info);
 
         $hasCoversNothing = false;

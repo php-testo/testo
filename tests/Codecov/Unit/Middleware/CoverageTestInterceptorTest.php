@@ -13,14 +13,14 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
-use Testo\Test;
-use Tests\Codecov\Stub\CoveredCase;
-use Tests\Codecov\Stub\SpyDriver;
 use Testo\Expect;
+use Testo\Test;
 use Tests\Codecov\Stub\ChildOverridesMethod;
 use Tests\Codecov\Stub\ChildOverridesWithCovers;
-use Tests\Codecov\Stub\ConflictingAttributes;
 use Tests\Codecov\Stub\ChildWithoutAttribute;
+use Tests\Codecov\Stub\ConflictingAttributes;
+use Tests\Codecov\Stub\CoveredCase;
+use Tests\Codecov\Stub\SpyDriver;
 use Tests\Codecov\Stub\TargetClassA;
 use Tests\Codecov\Stub\UncoveredClass;
 use Tests\Codecov\Stub\UncoveredMethod;
@@ -193,11 +193,60 @@ final class CoverageTestInterceptorTest
         $interceptor->runTest($info, $next);
     }
 
+    public function skipsTestTypeNotInAllowList(): void
+    {
+        // Arrange — interceptor only allows 'test' type
+        $driver = new SpyDriver();
+        $interceptor = new CoverageTestInterceptor($driver, ['test']);
+        $info = self::makeTestInfo(CoveredCase::class, 'testSomething', type: 'bench');
+        $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
+
+        // Act
+        $result = $interceptor->runTest($info, $next);
+
+        // Assert — driver not started
+        Assert::same($driver->startCount, 0);
+        Assert::null($result->getAttribute(CoverageResult::class));
+    }
+
+    public function collectsWhenTestTypeInAllowList(): void
+    {
+        // Arrange
+        $driver = new SpyDriver();
+        $interceptor = new CoverageTestInterceptor($driver, ['test', 'inline']);
+        $info = self::makeTestInfo(CoveredCase::class, 'testSomething', type: 'inline');
+        $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
+
+        // Act
+        $result = $interceptor->runTest($info, $next);
+
+        // Assert
+        Assert::same($driver->startCount, 1);
+        Assert::instanceOf($result->getAttribute(CoverageResult::class), CoverageResult::class);
+    }
+
+    public function emptyTestTypesCollectsAll(): void
+    {
+        // Arrange — empty list = all types
+        $driver = new SpyDriver();
+        $interceptor = new CoverageTestInterceptor($driver, []);
+        $info = self::makeTestInfo(CoveredCase::class, 'testSomething', type: 'bench');
+        $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
+
+        // Act
+        $result = $interceptor->runTest($info, $next);
+
+        // Assert
+        Assert::same($driver->startCount, 1);
+        Assert::instanceOf($result->getAttribute(CoverageResult::class), CoverageResult::class);
+    }
+
     /**
      * @param class-string $class
      * @param non-empty-string $method
+     * @param non-empty-string $type
      */
-    private static function makeTestInfo(string $class, string $method): TestInfo
+    private static function makeTestInfo(string $class, string $method, string $type = 'test'): TestInfo
     {
         $reflection = new \ReflectionMethod($class, $method);
 
@@ -206,7 +255,7 @@ final class CoverageTestInterceptorTest
             caseInfo: new CaseInfo(
                 definition: new CaseDefinition(
                     name: $class,
-                    type: 'test',
+                    type: $type,
                     reflection: new \ReflectionClass($class),
                 ),
             ),
