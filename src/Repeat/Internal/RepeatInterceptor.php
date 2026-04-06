@@ -32,7 +32,7 @@ final readonly class RepeatInterceptor implements TestRunInterceptor
         \assert($times > 0);
         do {
             $result = $next($info);
-        } while (--$times > 0 && !$result->status->isFailure());
+        } while (--$times > 0 && !($result->status->isFailure() && $result->status->isCompleted()));
 
         return $result;
     }

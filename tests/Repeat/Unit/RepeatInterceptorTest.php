@@ -11,6 +11,8 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
+use Testo\Data\DataProvider;
+use Testo\Data\DataSet;
 use Testo\Repeat;
 use Testo\Repeat\Internal\RepeatInterceptor;
 use Testo\Test;
@@ -55,7 +57,43 @@ final class RepeatInterceptorTest
         Assert::same($callCount, 2);
     }
 
-    public function stopsOnFailure(): void
+    public function singleRepeatRunsOnce(): void
+    {
+        // Arrange
+        $interceptor = new RepeatInterceptor(new Repeat(times: 1));
+        $info = self::createTestInfo();
+        $callCount = 0;
+        $next = static function (TestInfo $info) use (&$callCount): TestResult {
+            $callCount++;
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        // Act
+        $interceptor->runTest($info, $next);
+
+        // Assert
+        Assert::same($callCount, 1);
+    }
+
+    public function returnsLastSuccessfulResult(): void
+    {
+        // Arrange
+        $interceptor = new RepeatInterceptor(new Repeat(times: 3));
+        $info = self::createTestInfo();
+        $iteration = 0;
+        $next = static function (TestInfo $info) use (&$iteration): TestResult {
+            $iteration++;
+            return new TestResult(info: $info, status: Status::Passed, result: $iteration);
+        };
+
+        // Act
+        $result = $interceptor->runTest($info, $next);
+
+        // Assert
+        Assert::same($result->result, 3);
+    }
+
+    public function stopsOnFailureMidway(): void
     {
         // Arrange
         $interceptor = new RepeatInterceptor(new Repeat(times: 5));
@@ -77,78 +115,34 @@ final class RepeatInterceptorTest
         Assert::same($result->status, Status::Failed);
     }
 
-    public function stopsOnError(): void
+    /**
+     * Verifies repeat behavior per status: failure statuses stop the loop, others continue.
+     */
+    #[DataSet([Status::Passed, false])]
+    #[DataSet([Status::Risky, false])]
+    #[DataSet([Status::Flaky, false])]
+    #[DataSet([Status::Skipped, false])]
+    #[DataSet([Status::Cancelled, false])]
+    #[DataSet([Status::Aborted, false])]
+    #[DataSet([Status::Failed, true])]
+    #[DataSet([Status::Error, true])]
+    public function statusBehavior(Status $status, bool $stopsLoop): void
     {
         // Arrange
         $interceptor = new RepeatInterceptor(new Repeat(times: 3));
         $info = self::createTestInfo();
         $callCount = 0;
-        $next = static function (TestInfo $info) use (&$callCount): TestResult {
+        $next = static function (TestInfo $info) use (&$callCount, $status): TestResult {
             $callCount++;
-            return new TestResult(info: $info, status: Status::Error);
+            return new TestResult(info: $info, status: $status);
         };
 
         // Act
         $result = $interceptor->runTest($info, $next);
 
         // Assert
-        Assert::same($callCount, 1);
-        Assert::same($result->status, Status::Error);
-    }
-
-    public function returnsLastSuccessfulResult(): void
-    {
-        // Arrange
-        $interceptor = new RepeatInterceptor(new Repeat(times: 3));
-        $info = self::createTestInfo();
-        $iteration = 0;
-        $next = static function (TestInfo $info) use (&$iteration): TestResult {
-            $iteration++;
-            return new TestResult(info: $info, status: Status::Passed, result: $iteration);
-        };
-
-        // Act
-        $result = $interceptor->runTest($info, $next);
-
-        // Assert
-        Assert::same($result->result, 3);
-    }
-
-    public function singleRepeatRunsOnce(): void
-    {
-        // Arrange
-        $interceptor = new RepeatInterceptor(new Repeat(times: 1));
-        $info = self::createTestInfo();
-        $callCount = 0;
-        $next = static function (TestInfo $info) use (&$callCount): TestResult {
-            $callCount++;
-            return new TestResult(info: $info, status: Status::Passed);
-        };
-
-        // Act
-        $interceptor->runTest($info, $next);
-
-        // Assert
-        Assert::same($callCount, 1);
-    }
-
-    public function continuesOnNonFailureStatuses(): void
-    {
-        // Arrange
-        $interceptor = new RepeatInterceptor(new Repeat(times: 3));
-        $info = self::createTestInfo();
-        $callCount = 0;
-        $next = static function (TestInfo $info) use (&$callCount): TestResult {
-            $callCount++;
-            return new TestResult(info: $info, status: Status::Risky);
-        };
-
-        // Act
-        $result = $interceptor->runTest($info, $next);
-
-        // Assert
-        Assert::same($callCount, 3);
-        Assert::same($result->status, Status::Risky);
+        Assert::same($callCount, $stopsLoop ? 1 : 3);
+        Assert::same($result->status, $status);
     }
 
     public function passesTestInfoToNext(): void
