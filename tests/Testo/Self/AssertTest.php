@@ -62,12 +62,18 @@ final class AssertTest
     }
 
     #[Test]
+    #[Retry(maxAttempts: 3)]
     #[Repeat(times: 3)]
     public function repeatFail(): void
     {
         static $counter = 0;
         ++$counter;
-        Assert::int($counter)->lessThanOrEqual(2);
+        try {
+            Assert::int($counter)->lessThanOrEqual(2);
+        } catch (\Throwable $t) {
+            $counter = 0;
+            throw $t;
+        }
     }
 
     #[Test]
