@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Repeat\Interceptor;
+namespace Testo\Repeat\Internal;
 
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
@@ -18,8 +18,8 @@ use Testo\Repeat;
  *
  * @api
  */
-#[InterceptorOptions(order: InterceptorOptions::ORDER_DEFAULT, onConflict: ConflictPolicy::Last)]
-final readonly class RepeatPolicyRunInterceptor implements TestRunInterceptor
+#[InterceptorOptions(order: InterceptorOptions::ORDER_DEFAULT - 190, onConflict: ConflictPolicy::Last)]
+final readonly class RepeatInterceptor implements TestRunInterceptor
 {
     public function __construct(
         private Repeat $options,
@@ -29,13 +29,10 @@ final readonly class RepeatPolicyRunInterceptor implements TestRunInterceptor
     public function runTest(TestInfo $info, callable $next): TestResult
     {
         $times = $this->options->times;
-        for ($i = 0; $i < $times; $i++) {
+        \assert($times > 0);
+        do {
             $result = $next($info);
-
-            if ($result->status->isFailure()) {
-                return $result;
-            }
-        }
+        } while (--$times > 0 && !$result->status->isFailure());
 
         return $result;
     }

@@ -21,7 +21,7 @@ use Testo\Retry;
  *
  * @api
  */
-#[InterceptorOptions(order: InterceptorOptions::ORDER_DEFAULT, onConflict: ConflictPolicy::Last)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_DEFAULT - 200, onConflict: ConflictPolicy::Last)]
 final readonly class RetryPolicyRunInterceptor implements TestRunInterceptor
 {
     public function __construct(

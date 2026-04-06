@@ -26,12 +26,12 @@ final class InterceptorOptions
 
     public const ORDER_DATA_PROVIDER = -200_000;
 
+    public const ORDER_DEFAULT = 0;
+
     /**
      * Register assertions and expectations
      */
-    public const ORDER_ASSERTIONS = -2_000;
-
-    public const ORDER_DEFAULT = 0;
+    public const ORDER_ASSERTIONS = 2_000;
 
     /**
      * Interceptors that are close to the test function in the interceptor chain.
