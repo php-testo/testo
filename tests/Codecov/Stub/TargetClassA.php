@@ -10,4 +10,9 @@ namespace Tests\Codecov\Stub;
 final class TargetClassA
 {
     public function doSomething(): void {}
+
+    private function internalHelper(): string
+    {
+        return 'helper';
+    }
 }

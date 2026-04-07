@@ -8,6 +8,7 @@ use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\Config\CoverageLevel;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Internal\CoverageDriver;
+use Testo\Inline\TestInline;
 
 /**
  * XDebug-based coverage driver.
@@ -85,12 +86,12 @@ final readonly class XdebugDriver implements CoverageDriver
 
         if ($this->includes !== [] || $this->excludes !== []) {
             foreach ($data as $filePath => $_) {
-                if ($this->includes !== [] && !$this->matchesAny($filePath, $this->includes)) {
+                if ($this->includes !== [] && !self::matchesAny($filePath, $this->includes)) {
                     unset($data[$filePath]);
                     continue;
                 }
 
-                if ($this->matchesAny($filePath, $this->excludes)) {
+                if (self::matchesAny($filePath, $this->excludes)) {
                     unset($data[$filePath]);
                 }
             }
@@ -108,7 +109,14 @@ final readonly class XdebugDriver implements CoverageDriver
     /**
      * @param list<non-empty-string> $prefixes
      */
-    private function matchesAny(string $path, array $prefixes): bool
+    #[TestInline(['/src/Foo.php', ['/src/']], result: true)]
+    #[TestInline(['/src/Bar/Baz.php', ['/src/', '/lib/']], result: true)]
+    #[TestInline(['/vendor/Foo.php', ['/src/']], result: false)]
+    #[TestInline(['/src/Foo.php', []], result: false)]
+    #[TestInline(['', ['/src/']], result: false)]
+    #[TestInline(['/src/', ['/src/']], result: true)]
+    #[TestInline(['C:\\project\\src\\Foo.php', ['C:\\project\\src\\']], result: true)]
+    private static function matchesAny(string $path, array $prefixes): bool
     {
         foreach ($prefixes as $prefix) {
             if (\str_starts_with($path, $prefix)) {

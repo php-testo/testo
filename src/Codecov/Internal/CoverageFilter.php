@@ -68,7 +68,7 @@ final class CoverageFilter
             if ($covers->method !== null) {
                 // Class::method
                 self::addMethodRange($ranges, $covers->classOrFunction, $covers->method);
-            } elseif (\class_exists($covers->classOrFunction)) {
+            } elseif (\class_exists($covers->classOrFunction) || \trait_exists($covers->classOrFunction)) {
                 self::addClassRange($ranges, $covers->classOrFunction);
             } elseif (\function_exists($covers->classOrFunction)) {
                 self::addFunctionRange($ranges, $covers->classOrFunction);
