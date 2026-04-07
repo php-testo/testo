@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.10.2](https://github.com/php-testo/testo/compare/0.10.1...0.10.2) (2026-04-07)
+
+
+### Features
+
+* **Assert:** Add `::between` assertion method for numeric values ([6b18d6e](https://github.com/php-testo/testo/commit/6b18d6e531f82ea5eb9161ff005b38ac3bee2000))
+* **Codecov:** Add `Covers` and `CoversNothing` attributes ([#110](https://github.com/php-testo/testo/issues/110)) ([048ff91](https://github.com/php-testo/testo/commit/048ff9100c91bd23d9e1d65d0426e6846adcd081))
+* **Codecov:** Add Codecov plugin ([#109](https://github.com/php-testo/testo/issues/109)) ([add5065](https://github.com/php-testo/testo/commit/add5065588e7737140102ce512734364d8a2d307))
+* **Repeat:** Expose `#[Repeat] attribute ([#113](https://github.com/php-testo/testo/issues/113)) ([38e8d29](https://github.com/php-testo/testo/commit/38e8d29105b8ea5e20b485944e9bca8ccc92b1a4))
+
+
+### Bug Fixes
+
+* **Bench:** Fix running functions ([12daa52](https://github.com/php-testo/testo/commit/12daa52a9b3b44134eef5ec1a859a1e4cf0b0604))
+* **Repeat:** Stop repeating on Cancelled/Skipped/Aborted statuses ([2fdce34](https://github.com/php-testo/testo/commit/2fdce34a6f36bb908e51907e65709ca524857e3e))
+
+
+### Documentation
+
+* **Assert:** Add notes to interfaces indicating they are not for userland implementation ([e13d2c2](https://github.com/php-testo/testo/commit/e13d2c2518aeeec05e1e7f1518ef282b1a215376))
+
+
+### Code Refactoring
+
+* **Container:** Stop cloning enums; add `destroy` option to `Container::set()` method ([add5065](https://github.com/php-testo/testo/commit/add5065588e7737140102ce512734364d8a2d307))
+* **Repeat:** Change Retry/Repeat/Assert interceptors priority; polish the code ([38e8d29](https://github.com/php-testo/testo/commit/38e8d29105b8ea5e20b485944e9bca8ccc92b1a4))
+
 ## [0.10.1](https://github.com/php-testo/testo/compare/0.10.0...0.10.1) (2026-03-22)
 
 
