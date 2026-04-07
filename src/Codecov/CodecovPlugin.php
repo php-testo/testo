@@ -26,10 +26,10 @@ use Testo\Pipeline\InterceptorCollector;
 /**
  * Plugin that enables code coverage collection during test execution.
  *
- * Default behavior is controlled by the `mode` constructor parameter.
+ * Default behavior is controlled by the `collect` constructor parameter.
  * CLI flags override the configured mode:
- * - `--coverage` → {@see CoverageMode::Required} (fail if no extension)
- * - `--no-coverage` → {@see CoverageMode::Disabled} (skip entirely)
+ * - `--coverage` → {@see CoverageMode::Always} (fail if no extension)
+ * - `--no-coverage` → {@see CoverageMode::Never} (skip entirely)
  *
  * @api
  */
@@ -43,15 +43,15 @@ final readonly class CodecovPlugin implements PluginConfigurator
 
     /**
      * @param CoverageLevel $level Depth of coverage analysis.
-     * @param CoverageMode $mode Default activation mode. Can be overridden by CLI flags
-     *        (`--coverage` → Required, `--no-coverage` → Disabled).
+     * @param CoverageMode $collect Default activation mode. Can be overridden by CLI flags
+     *        (`--coverage` → Always, `--no-coverage` → Never).
      * @param list<non-empty-string|\BackedEnum> $testTypes Test types to collect coverage for.
      *        Empty array means all types. Use {@see TestType} cases or custom string identifiers.
      * @param list<CoverageReport> $reports Report generators to run after all tests complete.
      */
     public function __construct(
         private CoverageLevel $level = CoverageLevel::Line,
-        private CoverageMode $mode = CoverageMode::Available,
+        private CoverageMode $collect = CoverageMode::IfAvailable,
         array $testTypes = [TestType::Test, TestType::TestInline],
         array $reports = [],
     ) {
@@ -74,7 +74,7 @@ final readonly class CodecovPlugin implements PluginConfigurator
     public function configure(Container $container): void
     {
         // CLI flag overrides plugin config
-        $mode = $container->get(CoverageInput::class)->resolveMode() ?? $this->mode;
+        $mode = $container->get(CoverageInput::class)->resolveMode() ?? $this->collect;
 
         $src = $container->get(ApplicationConfig::class)->src;
         $driver = self::detectDriver($mode, $src);
@@ -100,10 +100,10 @@ final readonly class CodecovPlugin implements PluginConfigurator
     private static function detectDriver(CoverageMode $mode, FinderConfig $src): ?CoverageDriver
     {
         return match (true) {
-            $mode === CoverageMode::Disabled => null,
+            $mode === CoverageMode::Never => null,
             \extension_loaded('pcov') => PcovDriver::create($src),
             \extension_loaded('xdebug') => XdebugDriver::create($src),
-            $mode === CoverageMode::Required => throw new CoverageDriverNotAvailable(),
+            $mode === CoverageMode::Always => throw new CoverageDriverNotAvailable(),
             default => null,
         };
     }

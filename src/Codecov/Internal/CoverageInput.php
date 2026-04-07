@@ -26,8 +26,8 @@ final class CoverageInput
     public function resolveMode(): ?CoverageMode
     {
         return match (true) {
-            $this->coverage => CoverageMode::Required,
-            $this->noCoverage => CoverageMode::Disabled,
+            $this->coverage => CoverageMode::Always,
+            $this->noCoverage => CoverageMode::Never,
             default => null,
         };
     }

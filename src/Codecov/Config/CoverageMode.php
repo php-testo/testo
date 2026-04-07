@@ -8,24 +8,24 @@ namespace Testo\Codecov\Config;
  * Controls code coverage collection behavior.
  *
  * Set in the container (e.g. from CLI flags) before plugin configuration.
- * If not set, {@see CoverageMode::Available} is used as default.
+ * If not set, {@see CoverageMode::IfAvailable} is used as default.
  *
  * @api
  */
 enum CoverageMode
 {
     /**
-     * Coverage required. Throw if no extension is available.
+     * Always collect coverage. Throw if no extension is available.
      */
-    case Required;
+    case Always;
 
     /**
-     * Use coverage if extension is available, skip silently if not.
+     * Collect coverage if extension is available, skip silently if not.
      */
-    case Available;
+    case IfAvailable;
 
     /**
      * Skip coverage entirely, zero overhead.
      */
-    case Disabled;
+    case Never;
 }
