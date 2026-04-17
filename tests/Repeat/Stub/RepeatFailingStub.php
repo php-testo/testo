@@ -13,6 +13,8 @@ use Testo\Test;
  */
 final class RepeatFailingStub
 {
+    private int $reachesFailureThresholdCounter = 0;
+
     /**
      * Passes first time, fails on second iteration.
      */
@@ -43,11 +45,10 @@ final class RepeatFailingStub
     #[Repeat(times: 4, failureThreshold: 2)]
     public function reachesFailureThreshold(): void
     {
-        static $counter = 0;
-        ++$counter;
+        ++$this->reachesFailureThresholdCounter;
 
-        if ($counter % 2 === 0) {
-            Assert::same(1, 2);
+        if ($this->reachesFailureThresholdCounter % 2 === 0) {
+            Assert::fail('Simulated failure for threshold testing.');
         }
     }
 }

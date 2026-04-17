@@ -124,7 +124,11 @@ final class RepeatInterceptorTest
         $next = static function (TestInfo $info) use (&$callCount): TestResult {
             $callCount++;
             return match ($callCount) {
-                2, 4, 5 => new TestResult(info: $info, status: Status::Failed),
+                2, 4, 5 => new TestResult(
+                    info: $info,
+                    status: Status::Failed,
+                    failure: new \RuntimeException('Simulated failure for threshold testing.'),
+                ),
                 default => new TestResult(info: $info, status: Status::Passed),
             };
         };
@@ -146,7 +150,11 @@ final class RepeatInterceptorTest
         $next = static function (TestInfo $info) use (&$callCount): TestResult {
             $callCount++;
             return match ($callCount) {
-                2, 4 => new TestResult(info: $info, status: Status::Failed, failure: new \RuntimeException()),
+                2, 4 => new TestResult(
+                    info: $info,
+                    status: Status::Failed,
+                    failure: new \RuntimeException('Simulated failure for threshold testing.'),
+                ),
                 default => new TestResult(info: $info, status: Status::Passed),
             };
         };

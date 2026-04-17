@@ -32,6 +32,7 @@ final readonly class RepeatInterceptor implements TestRunInterceptor
         $times = $this->options->times;
         $failureThreshold = $this->options->failureThreshold;
         $failures = 0;
+        $result = null;
         \assert($times > 0);
         \assert($failureThreshold > 0);
 
@@ -49,6 +50,8 @@ final readonly class RepeatInterceptor implements TestRunInterceptor
                 return $result;
             }
         }
+
+        \assert($result instanceof TestResult);
 
         if ($failures > 0) {
             return $result
