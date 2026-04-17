@@ -41,6 +41,14 @@ final class RepeatFeatureTest
     }
 
     #[Test]
+    public function repeatWithToleratedFailuresPasses(): void
+    {
+        $result = TestRunner::runTest([RepeatPassingStub::class, 'repeatWithToleratedFailures']);
+
+        Assert::same($result->status, Status::Passed);
+    }
+
+    #[Test]
     public function failsOnSecondIteration(): void
     {
         $result = TestRunner::runTest([RepeatFailingStub::class, 'failsOnSecondIteration']);
@@ -52,6 +60,14 @@ final class RepeatFeatureTest
     public function failsImmediately(): void
     {
         $result = TestRunner::runTest([RepeatFailingStub::class, 'failsImmediately']);
+
+        Assert::same($result->status, Status::Failed);
+    }
+
+    #[Test]
+    public function reachesFailureThresholdFails(): void
+    {
+        $result = TestRunner::runTest([RepeatFailingStub::class, 'reachesFailureThreshold']);
 
         Assert::same($result->status, Status::Failed);
     }

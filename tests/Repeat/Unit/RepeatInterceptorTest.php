@@ -115,6 +115,51 @@ final class RepeatInterceptorTest
         Assert::same($result->status, Status::Failed);
     }
 
+    public function repeatsUntilFailureThresholdIsReached(): void
+    {
+        // Arrange
+        $interceptor = new RepeatInterceptor(new Repeat(times: 5, failureThreshold: 3));
+        $info = self::createTestInfo();
+        $callCount = 0;
+        $next = static function (TestInfo $info) use (&$callCount): TestResult {
+            $callCount++;
+            return match ($callCount) {
+                2, 4, 5 => new TestResult(info: $info, status: Status::Failed),
+                default => new TestResult(info: $info, status: Status::Passed),
+            };
+        };
+
+        // Act
+        $result = $interceptor->runTest($info, $next);
+
+        // Assert
+        Assert::same($callCount, 5);
+        Assert::same($result->status, Status::Failed);
+    }
+
+    public function failuresBelowThresholdPassAfterAllIterations(): void
+    {
+        // Arrange
+        $interceptor = new RepeatInterceptor(new Repeat(times: 4, failureThreshold: 3));
+        $info = self::createTestInfo();
+        $callCount = 0;
+        $next = static function (TestInfo $info) use (&$callCount): TestResult {
+            $callCount++;
+            return match ($callCount) {
+                2, 4 => new TestResult(info: $info, status: Status::Failed, failure: new \RuntimeException()),
+                default => new TestResult(info: $info, status: Status::Passed),
+            };
+        };
+
+        // Act
+        $result = $interceptor->runTest($info, $next);
+
+        // Assert
+        Assert::same($callCount, 4);
+        Assert::same($result->status, Status::Passed);
+        Assert::null($result->failure);
+    }
+
     /**
      * Verifies repeat behavior per status: failure statuses stop the loop, others continue.
      */

@@ -35,4 +35,19 @@ final class RepeatFailingStub
     {
         Assert::same(1, 2);
     }
+
+    /**
+     * Fails twice and reaches the failure threshold.
+     */
+    #[Test]
+    #[Repeat(times: 4, failureThreshold: 2)]
+    public function reachesFailureThreshold(): void
+    {
+        static $counter = 0;
+        ++$counter;
+
+        if ($counter % 2 === 0) {
+            Assert::same(1, 2);
+        }
+    }
 }

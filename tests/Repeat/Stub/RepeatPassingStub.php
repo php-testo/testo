@@ -42,4 +42,19 @@ final class RepeatPassingStub
     {
         Assert::true(true);
     }
+
+    /**
+     * Fails occasionally but stays below failure threshold.
+     */
+    #[Test]
+    #[Repeat(times: 4, failureThreshold: 3)]
+    public function repeatWithToleratedFailures(): void
+    {
+        static $counter = 0;
+        ++$counter;
+
+        if ($counter % 2 === 0) {
+            Assert::same(1, 2);
+        }
+    }
 }
