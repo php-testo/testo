@@ -19,7 +19,6 @@ final class ExpectExceptionTest
     {
         Expect::exception(\LogicException::class)
             ->withMessage('This is a logic exception')
-            ->withCode(123)
             ->withCode([320, 123, 456])
             ->fromMethod(self::class, __FUNCTION__)
             ->withoutPrevious();
@@ -218,6 +217,56 @@ final class ExpectExceptionTest
         Expect::sameException($expected);
 
         throw $expected;
+    }
+
+    /**
+     * A specimen with the default code (0) does not constrain the actual code —
+     * any thrown code is accepted.
+     */
+    #[Test]
+    public function specimenWithDefaultCodeDoesNotConstrainCode(): never
+    {
+        Expect::exception(new \RuntimeException('boom'));
+
+        throw new \RuntimeException('boom', 999);
+    }
+
+    /**
+     * A specimen with an empty message does not constrain the actual message —
+     * any thrown message is accepted.
+     */
+    #[Test]
+    public function specimenWithEmptyMessageDoesNotConstrainMessage(): never
+    {
+        Expect::exception(new \RuntimeException('', 42));
+
+        throw new \RuntimeException('any message here', 42);
+    }
+
+    /**
+     * Specimen with default code combined with explicit withCode — only the explicit value is enforced.
+     */
+    #[Test]
+    public function specimenDefaultCodePlusExplicitWithCode(): never
+    {
+        Expect::exception(new \RuntimeException('boom'))
+            ->withCode(99);
+
+        throw new \RuntimeException('boom', 99);
+    }
+
+    /**
+     * Multiple withCode calls — only the last one is in effect (replace semantics).
+     */
+    #[Test]
+    public function withCodeReplacesPrevious(): never
+    {
+        Expect::exception(\RuntimeException::class)
+            ->withCode(1)
+            ->withCode(2)
+            ->withCode([7, 99]);
+
+        throw new \RuntimeException('', 99);
     }
 
     private function throwHelper(): never

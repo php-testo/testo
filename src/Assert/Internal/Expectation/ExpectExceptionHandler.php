@@ -32,8 +32,8 @@ final class ExpectExceptionHandler implements ExpectedException
     /** @var list<non-empty-string> */
     private array $expectedMessageContaining = [];
 
-    /** @var list<int|list<int>> */
-    private array $expectedCodes = [];
+    /** @var list<int>|null */
+    private ?array $expectedCodes = null;
 
     private bool $expectNoPrevious = false;
 
@@ -41,14 +41,13 @@ final class ExpectExceptionHandler implements ExpectedException
     private ?array $expectedPrevious = null;
 
     /**
-     * @param class-string|\Throwable $classOrObject Expected exception class, interface, or an object.
-     * @param bool $identity When true and an object is passed, requires the actual exception to be the
-     *        very same instance (`===`). When false (default), an object input is treated as a specimen:
-     *        class (instanceof) plus message and code must match.
+     * @param class-string|\Throwable $classOrObject Expected exception. A class-string triggers an
+     *        `instanceof` check; an object triggers an identity check (`===`). Equivalence
+     *        comparison is built on top by {@see self::createEquals()} via {@see self::withMessage()}
+     *        and {@see self::withCode()}.
      */
     private function __construct(
         public readonly string|\Throwable $classOrObject,
-        private readonly bool $identity = false,
     ) {}
 
     /**
@@ -57,11 +56,22 @@ final class ExpectExceptionHandler implements ExpectedException
      * Accepts a class-string (`instanceof` check) or an exception object treated as a specimen —
      * the actual exception must be of the same class and have the same message and code.
      *
+     * Default values from the specimen (code `0`, message `''`) are treated as "not specified" and
+     * are not enforced, so `Expect::exception(new Foo('msg'))->withCode(99)` works as expected
+     * without the specimen's implicit `code=0` conflicting with the explicit `withCode(99)`.
+     *
      * @param class-string|\Throwable $classOrObject Expected exception class, interface, or a specimen object.
      */
     public static function createEquals(string|\Throwable $classOrObject): self
     {
-        return new self($classOrObject, identity: false);
+        if (\is_string($classOrObject)) {
+            return new self($classOrObject);
+        }
+
+        $result = new self($classOrObject::class);
+        $classOrObject->getCode() === 0 or $result->withCode($classOrObject->getCode());
+        $classOrObject->getMessage() === '' or $result->withMessage($classOrObject->getMessage());
+        return $result;
     }
 
     /**
@@ -75,7 +85,7 @@ final class ExpectExceptionHandler implements ExpectedException
      */
     public static function createSame(\Throwable $classOrObject): self
     {
-        return new self($classOrObject, identity: true);
+        return new self($classOrObject);
     }
 
     /**
@@ -118,7 +128,7 @@ final class ExpectExceptionHandler implements ExpectedException
     #[\Override]
     public function withCode(int|array $code): static
     {
-        $this->expectedCodes[] = $code;
+        $this->expectedCodes = (array) $code;
         return $this;
     }
 
@@ -150,16 +160,15 @@ final class ExpectExceptionHandler implements ExpectedException
     {
         $isObject = \is_object($this->classOrObject);
         $class = $isObject ? $this->classOrObject::class : $this->classOrObject;
-        $identityMode = $isObject && $this->identity;
         $composite = new ExpectationComposite(
-            expectation: $identityMode
+            expectation: $isObject
                 ? 'the same ' . $class . ' instance is thrown'
                 : 'exception of type ' . $class . ' is thrown',
             context: '',
         );
 
-        # Type check
-        if ($identityMode) {
+        # Type check: identity (object input) vs instanceof (class-string input)
+        if ($isObject) {
             if ($actual === $this->classOrObject) {
                 $composite->success('the same ' . $class . ' instance is thrown');
             } else {
@@ -183,20 +192,6 @@ final class ExpectExceptionHandler implements ExpectedException
                 reason: $actual === null ? 'none thrown' : 'got ' . $actual::class,
             );
             return $composite;
-        }
-
-        # Auto-derive message/code expectations from a specimen object (equivalence mode).
-        # Skipped if the user already provided an explicit message- or code-related check.
-        if ($isObject && !$this->identity) {
-            if ($this->expectedMessage === null
-                && $this->expectedMessagePattern === null
-                && $this->expectedMessageContaining === []
-            ) {
-                $this->expectedMessage = $this->classOrObject->getMessage();
-            }
-            if ($this->expectedCodes === []) {
-                $this->expectedCodes[] = $this->classOrObject->getCode();
-            }
         }
 
         # fromMethod check
@@ -243,22 +238,17 @@ final class ExpectExceptionHandler implements ExpectedException
         }
 
         # Code check
-        foreach ($this->expectedCodes as $code) {
-            if (\is_array($code)) {
-                \in_array($actual->getCode(), $code, true)
-                    ? $composite->success('code is one of [' . \implode(', ', $code) . ']')
-                    : $composite->fail(
-                        expectation: 'code is one of [' . \implode(', ', $code) . ']',
-                        reason: 'got ' . $actual->getCode(),
-                    );
-            } else {
-                $actual->getCode() === $code
-                    ? $composite->success('code is ' . $code)
-                    : $composite->fail(
-                        expectation: 'code is ' . $code,
-                        reason: 'got ' . $actual->getCode(),
-                    );
-            }
+        if ($this->expectedCodes !== null) {
+            $code = $this->expectedCodes;
+            $label = \count($code) === 1
+                ? 'code is ' . $code[0]
+                : 'code is one of [' . \implode(', ', $code) . ']';
+            \in_array($actual->getCode(), $code, true)
+                ? $composite->success($label)
+                : $composite->fail(
+                    expectation: $label,
+                    reason: 'got ' . $actual->getCode(),
+                );
         }
 
         # Previous exception checks

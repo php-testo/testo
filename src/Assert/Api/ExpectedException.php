@@ -32,11 +32,15 @@ interface ExpectedException
 
     /**
      * The expected exception should have the exact message.
+     *
+     * Subsequent calls replace the previous expectation.
      */
     public function withMessage(string $message): static;
 
     /**
      * The expected exception message should match the given pattern.
+     *
+     * Subsequent calls replace the previous expectation.
      *
      * @param non-empty-string $pattern Regex pattern.
      */
@@ -45,6 +49,8 @@ interface ExpectedException
     /**
      * The expected exception message should contain the given substring.
      *
+     * Can be called multiple times — the message must contain every specified substring.
+     *
      * @param non-empty-string $substring Substring to search for.
      */
     public function withMessageContaining(string $substring): static;
@@ -52,17 +58,23 @@ interface ExpectedException
     /**
      * The expected exception should have the given code or one of the given codes.
      *
-     * @param int|list<int> $code Expected code or list of expected codes.
+     * Subsequent calls replace the previous expectation.
+     *
+     * @param int|list<int> $code Expected code or list of acceptable codes.
      */
     public function withCode(int|array $code): static;
 
     /**
      * The expected exception should not have a previous exception.
+     *
+     * Subsequent calls have no additional effect.
      */
     public function withoutPrevious(): static;
 
     /**
      * The expected exception was caused by the given previous exception.
+     *
+     * Subsequent calls replace the previous expectation.
      *
      * @param class-string|\Throwable $classOrObject Expected previous exception class, interface, or an object.
      * @param (callable(self): mixed)|null $assertion Optional assertion callback for the previous exception.
