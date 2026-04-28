@@ -20,8 +20,12 @@ final class Expect
     /**
      * Expect that the test will throw the given exception object or an exception of the given class/interface.
      *
-     * @param class-string|\Throwable $classOrObject The expected exception class, interface,
-     *        or an exact exception object.
+     * When an object is passed, it is treated as a specimen — the actual exception must be of the same
+     * class (instanceof) and have the same message and code. Use {@see self::sameException()} when the
+     * exact same instance must propagate.
+     *
+     * @param class-string|\Throwable $classOrObject The expected exception class, interface, or a
+     *        specimen object describing the exception to match.
      *
      * @note Requires {@see ExpectationsInterceptor} to be registered.
      */
@@ -29,6 +33,21 @@ final class Expect
         string|\Throwable $classOrObject,
     ): ExpectedException {
         return StaticState::expectException($classOrObject);
+    }
+
+    /**
+     * Expect that the test will throw the very same exception instance as the given one.
+     *
+     * Useful for verifying that an exception propagates unchanged through middleware, decorators,
+     * or rethrow points without being replaced by an equivalent copy.
+     *
+     * @param \Throwable $exception The exact instance that must be thrown.
+     *
+     * @note Requires {@see ExpectationsInterceptor} to be registered.
+     */
+    public static function sameException(\Throwable $exception): ExpectedException
+    {
+        return StaticState::expectException($exception, identity: true);
     }
 
     /**

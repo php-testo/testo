@@ -102,14 +102,19 @@ final class StaticState
      * Set the expected exception for the current test.
      *
      * @param class-string|\Throwable $classOrObject The expected exception class, interface, or an exception object.
+     * @param bool $identity When true (only meaningful with an object input), requires the actual
+     *        exception to be the very same instance.
      *
      * @throws \RuntimeException when there is no current {@see TestState}.
      */
     public static function expectException(
         string|\Throwable $classOrObject,
+        bool $identity = false,
     ): ExpectExceptionHandler {
         self::$state === null and throw new StateNotFound();
-        return self::$state->expectations[] = new ExpectExceptionHandler($classOrObject);
+        return self::$state->expectations[] = $identity
+            ? ExpectExceptionHandler::createSame($classOrObject)
+            : ExpectExceptionHandler::createEquals($classOrObject);
     }
 
     public static function expectFail(Fail $exception): void

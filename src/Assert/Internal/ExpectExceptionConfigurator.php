@@ -19,10 +19,10 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * @psalm-internal Testo\Assert
  */
 #[InterceptorOptions(order: InterceptorOptions::ORDER_ASSERTIONS + 10)]
-final class ExpectExceptionConfigurator implements TestRunInterceptor
+final readonly class ExpectExceptionConfigurator implements TestRunInterceptor
 {
     public function __construct(
-        private readonly ExpectException $options,
+        private ExpectException $options,
     ) {}
 
     #[\Override]
@@ -30,9 +30,7 @@ final class ExpectExceptionConfigurator implements TestRunInterceptor
     {
         $context = StaticState::current() ?? throw new StateNotFound();
 
-        $context->expectations[] = new ExpectExceptionHandler(
-            classOrObject: $this->options->class,
-        );
+        $context->expectations[] = ExpectExceptionHandler::createEquals($this->options->class);
 
         return $next($info);
     }

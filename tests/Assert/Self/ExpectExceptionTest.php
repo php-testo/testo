@@ -161,6 +161,65 @@ final class ExpectExceptionTest
         throw new \LogicException('This is a logic exception', 123, $previous);
     }
 
+    /**
+     * Object input is treated as a specimen — class, message and code must match,
+     * but the actual exception is a different instance.
+     */
+    #[Test]
+    public function equivalenceFromSpecimen(): never
+    {
+        Expect::exception(new \RuntimeException('boom', 42));
+
+        throw new \RuntimeException('boom', 42);
+    }
+
+    /**
+     * A subclass of the specimen's class is accepted (instanceof, not strict class match).
+     */
+    #[Test]
+    public function equivalenceAcceptsSubclass(): never
+    {
+        Expect::exception(new \RuntimeException('boom', 42));
+
+        throw new class('boom', 42) extends \RuntimeException {};
+    }
+
+    /**
+     * Explicit withMessage overrides the auto-derived one from the specimen.
+     */
+    #[Test]
+    public function equivalenceMessageOverride(): never
+    {
+        Expect::exception(new \RuntimeException('default', 7))
+            ->withMessage('override');
+
+        throw new \RuntimeException('override', 7);
+    }
+
+    /**
+     * Explicit withCode overrides the auto-derived one from the specimen.
+     */
+    #[Test]
+    public function equivalenceCodeOverride(): never
+    {
+        Expect::exception(new \RuntimeException('boom', 7))
+            ->withCode(99);
+
+        throw new \RuntimeException('boom', 99);
+    }
+
+    /**
+     * sameException requires the very same instance to be thrown.
+     */
+    #[Test]
+    public function sameExceptionInstance(): never
+    {
+        $expected = new \RuntimeException('boom', 42);
+        Expect::sameException($expected);
+
+        throw $expected;
+    }
+
     private function throwHelper(): never
     {
         throw new \RuntimeException('from helper');

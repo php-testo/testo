@@ -42,10 +42,41 @@ final class ExpectExceptionHandler implements ExpectedException
 
     /**
      * @param class-string|\Throwable $classOrObject Expected exception class, interface, or an object.
+     * @param bool $identity When true and an object is passed, requires the actual exception to be the
+     *        very same instance (`===`). When false (default), an object input is treated as a specimen:
+     *        class (instanceof) plus message and code must match.
      */
-    public function __construct(
+    private function __construct(
         public readonly string|\Throwable $classOrObject,
+        private readonly bool $identity = false,
     ) {}
+
+    /**
+     * Create a handler in equivalence mode.
+     *
+     * Accepts a class-string (`instanceof` check) or an exception object treated as a specimen —
+     * the actual exception must be of the same class and have the same message and code.
+     *
+     * @param class-string|\Throwable $classOrObject Expected exception class, interface, or a specimen object.
+     */
+    public static function createEquals(string|\Throwable $classOrObject): self
+    {
+        return new self($classOrObject, identity: false);
+    }
+
+    /**
+     * Create a handler in identity mode.
+     *
+     * The actual exception must be the very same instance (`===`) as the given one. Use for
+     * verifying that an exception propagates unchanged through middleware, decorators, or rethrow
+     * points.
+     *
+     * @param \Throwable $classOrObject The exact instance that must be thrown.
+     */
+    public static function createSame(\Throwable $classOrObject): self
+    {
+        return new self($classOrObject, identity: true);
+    }
 
     /**
      * The expected exception was thrown by the given method.
@@ -117,18 +148,32 @@ final class ExpectExceptionHandler implements ExpectedException
 
     private function evaluate(?\Throwable $actual): Expectation|\Throwable
     {
-        $class = \is_string($this->classOrObject) ? $this->classOrObject : $this->classOrObject::class;
+        $isObject = \is_object($this->classOrObject);
+        $class = $isObject ? $this->classOrObject::class : $this->classOrObject;
+        $identityMode = $isObject && $this->identity;
         $composite = new ExpectationComposite(
-            expectation: 'exception of type ' . $class . ' is thrown',
+            expectation: $identityMode
+                ? 'the same ' . $class . ' instance is thrown'
+                : 'exception of type ' . $class . ' is thrown',
             context: '',
         );
 
         # Type check
-        $typeMatched = \is_object($this->classOrObject)
-            ? ($actual === $this->classOrObject)
-            : ($actual instanceof $class);
-
-        if ($typeMatched) {
+        if ($identityMode) {
+            if ($actual === $this->classOrObject) {
+                $composite->success('the same ' . $class . ' instance is thrown');
+            } else {
+                $composite->fail(
+                    expectation: 'the same ' . $class . ' instance is thrown',
+                    reason: $actual === null
+                        ? 'none thrown'
+                        : ($actual instanceof $class
+                            ? 'got a different ' . $class . ' instance'
+                            : 'got ' . $actual::class),
+                );
+                return $composite;
+            }
+        } elseif ($actual instanceof $class) {
             $composite->success($class === $actual::class
                 ? $class . ' is thrown'
                 : $actual::class . ' is thrown as an instance of ' . $class);
@@ -138,6 +183,20 @@ final class ExpectExceptionHandler implements ExpectedException
                 reason: $actual === null ? 'none thrown' : 'got ' . $actual::class,
             );
             return $composite;
+        }
+
+        # Auto-derive message/code expectations from a specimen object (equivalence mode).
+        # Skipped if the user already provided an explicit message- or code-related check.
+        if ($isObject && !$this->identity) {
+            if ($this->expectedMessage === null
+                && $this->expectedMessagePattern === null
+                && $this->expectedMessageContaining === []
+            ) {
+                $this->expectedMessage = $this->classOrObject->getMessage();
+            }
+            if ($this->expectedCodes === []) {
+                $this->expectedCodes[] = $this->classOrObject->getCode();
+            }
         }
 
         # fromMethod check
@@ -225,11 +284,7 @@ final class ExpectExceptionHandler implements ExpectedException
         $previous = $actual->getPrevious();
         $prevClass = \is_string($prevClassOrObject) ? $prevClassOrObject : $prevClassOrObject::class;
 
-        $prevMatched = $previous !== null && (
-            \is_object($prevClassOrObject)
-                ? ($previous === $prevClassOrObject)
-                : ($previous instanceof $prevClass)
-        );
+        $prevMatched = $previous !== null && $previous instanceof $prevClass;
 
         if (!$prevMatched) {
             $composite->fail(
@@ -242,7 +297,7 @@ final class ExpectExceptionHandler implements ExpectedException
         $composite->success('has previous exception of type ' . $prevClass);
 
         if ($callback !== null) {
-            $subHandler = new self($prevClassOrObject);
+            $subHandler = self::createEquals($prevClassOrObject);
             $callback($subHandler);
             $subResult = $subHandler->evaluate($previous);
 

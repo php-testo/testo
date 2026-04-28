@@ -133,4 +133,48 @@ final class ExpectExceptionNegative
 
         throw new \RuntimeException('', 0, new \LogicException('actual previous message', 999));
     }
+
+    /**
+     * Specimen object: class matches, but the message differs.
+     */
+    #[Test]
+    public function equivalenceWrongMessage(): never
+    {
+        Expect::exception(new \RuntimeException('expected', 7));
+
+        throw new \RuntimeException('actual', 7);
+    }
+
+    /**
+     * Specimen object: class and message match, but the code differs.
+     */
+    #[Test]
+    public function equivalenceWrongCode(): never
+    {
+        Expect::exception(new \RuntimeException('boom', 42));
+
+        throw new \RuntimeException('boom', 99);
+    }
+
+    /**
+     * sameException: an equivalent but different instance must fail.
+     */
+    #[Test]
+    public function sameExceptionDifferentInstance(): never
+    {
+        Expect::sameException(new \RuntimeException('boom', 42));
+
+        throw new \RuntimeException('boom', 42);
+    }
+
+    /**
+     * sameException: a wrong class must fail.
+     */
+    #[Test]
+    public function sameExceptionWrongClass(): never
+    {
+        Expect::sameException(new \RuntimeException('boom'));
+
+        throw new \LogicException('boom');
+    }
 }
