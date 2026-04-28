@@ -157,24 +157,35 @@ final class ExpectExceptionNegative
     }
 
     /**
-     * sameException: an equivalent but different instance must fail.
+     * `same: true` with object: an equivalent but different instance must fail.
      */
     #[Test]
-    public function sameExceptionDifferentInstance(): never
+    public function sameDifferentInstance(): never
     {
-        Expect::sameException(new \RuntimeException('boom', 42));
+        Expect::exception(new \RuntimeException('boom', 42), same: true);
 
         throw new \RuntimeException('boom', 42);
     }
 
     /**
-     * sameException: a wrong class must fail.
+     * `same: true` with object: a wrong class must fail.
      */
     #[Test]
-    public function sameExceptionWrongClass(): never
+    public function sameWrongClass(): never
     {
-        Expect::sameException(new \RuntimeException('boom'));
+        Expect::exception(new \RuntimeException('boom'), same: true);
 
         throw new \LogicException('boom');
+    }
+
+    /**
+     * `same: true` with class-string: a subclass must be rejected.
+     */
+    #[Test]
+    public function strictClassRejectsSubclass(): never
+    {
+        Expect::exception(\RuntimeException::class, same: true);
+
+        throw new class('subclass') extends \RuntimeException {};
     }
 }

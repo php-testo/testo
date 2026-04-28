@@ -157,9 +157,9 @@ final class ExpectExceptionNegativeTest
     }
 
     #[Test]
-    public function sameExceptionDifferentInstance(): void
+    public function sameDifferentInstance(): void
     {
-        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'sameExceptionDifferentInstance']);
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'sameDifferentInstance']);
 
         Assert::same($result->status, Status::Failed);
         Assert::instanceOf($result->failure, Expectation::class);
@@ -169,14 +169,26 @@ final class ExpectExceptionNegativeTest
     }
 
     #[Test]
-    public function sameExceptionWrongClass(): void
+    public function sameWrongClass(): void
     {
-        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'sameExceptionWrongClass']);
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'sameWrongClass']);
 
         Assert::same($result->status, Status::Failed);
         Assert::instanceOf($result->failure, Expectation::class);
         Assert::string($result->failure->getFailReason())
             ->contains('the same RuntimeException instance is thrown')
             ->contains('got LogicException');
+    }
+
+    #[Test]
+    public function strictClassRejectsSubclass(): void
+    {
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'strictClassRejectsSubclass']);
+
+        Assert::same($result->status, Status::Failed);
+        Assert::instanceOf($result->failure, Expectation::class);
+        Assert::string($result->failure->getFailReason())
+            ->contains('exactly RuntimeException is thrown')
+            ->contains('subclass of RuntimeException');
     }
 }

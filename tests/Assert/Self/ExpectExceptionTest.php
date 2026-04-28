@@ -208,15 +208,26 @@ final class ExpectExceptionTest
     }
 
     /**
-     * sameException requires the very same instance to be thrown.
+     * `same: true` with an object input requires the very same instance to be thrown.
      */
     #[Test]
-    public function sameExceptionInstance(): never
+    public function sameInstance(): never
     {
         $expected = new \RuntimeException('boom', 42);
-        Expect::sameException($expected);
+        Expect::exception($expected, same: true);
 
         throw $expected;
+    }
+
+    /**
+     * `same: true` with a class-string requires exact class match — subclasses are rejected.
+     */
+    #[Test]
+    public function strictClassMatch(): never
+    {
+        Expect::exception(\RuntimeException::class, same: true);
+
+        throw new \RuntimeException('boom');
     }
 
     /**

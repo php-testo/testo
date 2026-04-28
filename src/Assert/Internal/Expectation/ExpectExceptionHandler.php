@@ -41,13 +41,19 @@ final class ExpectExceptionHandler implements ExpectedException
     private ?array $expectedPrevious = null;
 
     /**
-     * @param class-string|\Throwable $classOrObject Expected exception. A class-string triggers an
-     *        `instanceof` check; an object triggers an identity check (`===`). Equivalence
-     *        comparison is built on top by {@see self::createEquals()} via {@see self::withMessage()}
-     *        and {@see self::withCode()}.
+     * @param class-string|\Throwable $classOrObject Expected exception. The type-check mode is
+     *        determined by the input type and {@see $strictClass}:
+     *        - object → identity (`$actual === $classOrObject`),
+     *        - class-string + `$strictClass = false` → `instanceof` (default),
+     *        - class-string + `$strictClass = true` → exact class match (no subclasses).
+     *        Equivalence comparison (instanceof + message + code) is built on top by
+     *        {@see self::createEquals()} via {@see self::withMessage()} and {@see self::withCode()}.
+     * @param bool $strictClass Only meaningful for class-string input; selects exact class match
+     *        instead of `instanceof`.
      */
     private function __construct(
         public readonly string|\Throwable $classOrObject,
+        private readonly bool $strictClass = false,
     ) {}
 
     /**
@@ -75,17 +81,18 @@ final class ExpectExceptionHandler implements ExpectedException
     }
 
     /**
-     * Create a handler in identity mode.
+     * Create a handler that performs the strictest comparison the input allows.
      *
-     * The actual exception must be the very same instance (`===`) as the given one. Use for
-     * verifying that an exception propagates unchanged through middleware, decorators, or rethrow
-     * points.
+     * - class-string ⇒ exact class match (subclasses rejected),
+     * - object ⇒ identity (`===`, the very same instance must be thrown).
      *
-     * @param \Throwable $classOrObject The exact instance that must be thrown.
+     * @param class-string|\Throwable $classOrObject Expected exception class or the exact instance.
      */
-    public static function createSame(\Throwable $classOrObject): self
+    public static function createSame(string|\Throwable $classOrObject): self
     {
-        return new self($classOrObject);
+        return \is_string($classOrObject)
+            ? new self($classOrObject, strictClass: true)
+            : new self($classOrObject);
     }
 
     /**
@@ -160,24 +167,41 @@ final class ExpectExceptionHandler implements ExpectedException
     {
         $isObject = \is_object($this->classOrObject);
         $class = $isObject ? $this->classOrObject::class : $this->classOrObject;
+        $headline = match (true) {
+            $isObject => 'the same ' . $class . ' instance is thrown',
+            $this->strictClass => 'exactly ' . $class . ' is thrown',
+            default => 'exception of type ' . $class . ' is thrown',
+        };
         $composite = new ExpectationComposite(
-            expectation: $isObject
-                ? 'the same ' . $class . ' instance is thrown'
-                : 'exception of type ' . $class . ' is thrown',
+            expectation: $headline,
             context: '',
         );
 
-        # Type check: identity (object input) vs instanceof (class-string input)
+        # Type check: identity (object) | exact class (strictClass) | instanceof (default)
         if ($isObject) {
             if ($actual === $this->classOrObject) {
-                $composite->success('the same ' . $class . ' instance is thrown');
+                $composite->success($headline);
             } else {
                 $composite->fail(
-                    expectation: 'the same ' . $class . ' instance is thrown',
+                    expectation: $headline,
                     reason: $actual === null
                         ? 'none thrown'
                         : ($actual instanceof $class
                             ? 'got a different ' . $class . ' instance'
+                            : 'got ' . $actual::class),
+                );
+                return $composite;
+            }
+        } elseif ($this->strictClass) {
+            if ($actual !== null && $actual::class === $class) {
+                $composite->success($headline);
+            } else {
+                $composite->fail(
+                    expectation: $headline,
+                    reason: $actual === null
+                        ? 'none thrown'
+                        : ($actual instanceof $class
+                            ? 'got ' . $actual::class . ' (subclass of ' . $class . ')'
                             : 'got ' . $actual::class),
                 );
                 return $composite;
