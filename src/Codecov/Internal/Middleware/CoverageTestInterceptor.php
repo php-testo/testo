@@ -78,7 +78,35 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
         $coversTargets = \array_filter($attributes, static fn(CoverageAttribute $a): bool => $a instanceof Covers);
         $coversTargets === [] or $coverage = CoverageFilter::apply($coverage, \array_values($coversTargets));
 
+        $method = self::buildMethodId($info);
+        $method === null or $coverage = $coverage->withTestMethod($method);
+
         return $result->withAttribute(CoverageResult::class, $coverage);
+    }
+
+    /**
+     * Builds a PHPUnit-style identifier for the test method.
+     *
+     * - Class methods: `Tests\\FooTest::testBar`.
+     * - Free functions: `Tests\\testFooBar` (FQN, no leading backslash).
+     *
+     * Data-set entries within data providers reuse the same identifier — Testo's
+     * `--filter` selects by method, not by individual dataset, so per-dataset granularity
+     * isn't useful for downstream consumers (e.g. Infection).
+     *
+     * @return non-empty-string|null
+     */
+    private static function buildMethodId(TestInfo $info): ?string
+    {
+        $reflection = $info->testDefinition->reflection;
+
+        if ($reflection instanceof \ReflectionMethod) {
+            $name = $reflection->getDeclaringClass()->getName() . '::' . $reflection->getName();
+            return $name === '' ? null : $name;
+        }
+
+        $name = $reflection->getName();
+        return $name === '' ? null : $name;
     }
 
     /**

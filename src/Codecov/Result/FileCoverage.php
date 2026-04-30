@@ -19,7 +19,7 @@ final readonly class FileCoverage
         /** @var non-empty-string Absolute path to the source file. */
         public string $path,
 
-        /** @var array<int<0, max>, LineStatus> Line number => coverage status. */
+        /** @var array<int<0, max>, LineCoverage> Line number => coverage data. */
         public array $lines,
 
         /** @var array<non-empty-string, FunctionCoverage> Function name => branch/path data. */
@@ -28,18 +28,16 @@ final readonly class FileCoverage
 
     /**
      * Merges another coverage into this one.
-     * A line is considered Executed if it was executed in either coverage run.
+     *
+     * Line status follows the OR rule (any executed run wins); test method lists are unioned.
      */
     public function merge(self $other): self
     {
         $mergedLines = $this->lines;
-        foreach ($other->lines as $line => $status) {
-            $mergedLines[$line] = match (true) {
-                !isset($mergedLines[$line]) => $status,
-                $mergedLines[$line] === LineStatus::Executed,
-                $status === LineStatus::Executed => LineStatus::Executed,
-                default => $mergedLines[$line],
-            };
+        foreach ($other->lines as $line => $lineCoverage) {
+            $mergedLines[$line] = isset($mergedLines[$line])
+                ? $mergedLines[$line]->merge($lineCoverage)
+                : $lineCoverage;
         }
 
         $mergedFunctions = $this->functions;
@@ -50,5 +48,23 @@ final readonly class FileCoverage
         }
 
         return new self($this->path, $mergedLines, $mergedFunctions);
+    }
+
+    /**
+     * Returns a copy with the given test method stamped on every executed line.
+     *
+     * Used by {@see \Testo\Codecov\Internal\Middleware\CoverageTestInterceptor} to
+     * record per-test attribution before merging into the suite-wide aggregate.
+     *
+     * @param non-empty-string $method
+     */
+    public function withTestMethod(string $method): self
+    {
+        $stamped = [];
+        foreach ($this->lines as $line => $lineCoverage) {
+            $stamped[$line] = $lineCoverage->withTestMethod($method);
+        }
+
+        return new self($this->path, $stamped, $this->functions);
     }
 }

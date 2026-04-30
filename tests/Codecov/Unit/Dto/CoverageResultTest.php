@@ -31,10 +31,10 @@ final class CoverageResultTest
 
         // Assert
         Assert::count($result->files, 2);
-        Assert::same($result->files['/src/Foo.php']->lines[5], LineStatus::Executed);
-        Assert::same($result->files['/src/Foo.php']->lines[6], LineStatus::NotExecuted);
-        Assert::same($result->files['/src/Foo.php']->lines[7], LineStatus::Dead);
-        Assert::same($result->files['/src/Bar.php']->lines[10], LineStatus::Executed);
+        Assert::same($result->files['/src/Foo.php']->lines[5]->status, LineStatus::Executed);
+        Assert::same($result->files['/src/Foo.php']->lines[6]->status, LineStatus::NotExecuted);
+        Assert::same($result->files['/src/Foo.php']->lines[7]->status, LineStatus::Dead);
+        Assert::same($result->files['/src/Bar.php']->lines[10]->status, LineStatus::Executed);
     }
 
     public function fromRawDataSkipsInvalidStatuses(): void
@@ -90,8 +90,8 @@ final class CoverageResultTest
         $result = CoverageResult::fromRawData($raw);
 
         // Assert lines
-        Assert::same($result->files['/src/Foo.php']->lines[5], LineStatus::Executed);
-        Assert::same($result->files['/src/Foo.php']->lines[6], LineStatus::NotExecuted);
+        Assert::same($result->files['/src/Foo.php']->lines[5]->status, LineStatus::Executed);
+        Assert::same($result->files['/src/Foo.php']->lines[6]->status, LineStatus::NotExecuted);
 
         // Assert functions
         $functions = $result->files['/src/Foo.php']->functions;
@@ -133,8 +133,61 @@ final class CoverageResultTest
         $merged = $a->merge($b);
 
         Assert::count($merged->files, 1);
-        Assert::same($merged->files['/src/Foo.php']->lines[5], LineStatus::Executed);
-        Assert::same($merged->files['/src/Foo.php']->lines[6], LineStatus::Executed);
-        Assert::same($merged->files['/src/Foo.php']->lines[7], LineStatus::NotExecuted);
+        Assert::same($merged->files['/src/Foo.php']->lines[5]->status, LineStatus::Executed);
+        Assert::same($merged->files['/src/Foo.php']->lines[6]->status, LineStatus::Executed);
+        Assert::same($merged->files['/src/Foo.php']->lines[7]->status, LineStatus::NotExecuted);
+    }
+
+    public function withTestMethodPropagatesToFiles(): void
+    {
+        $result = CoverageResult::fromRawData([
+            '/src/Foo.php' => [5 => 1, 6 => -1],
+            '/src/Bar.php' => [10 => 1],
+        ]);
+
+        $stamped = $result->withTestMethod('Tests\\FooTest::testA');
+
+        Assert::same($stamped->files['/src/Foo.php']->lines[5]->testMethods, ['Tests\\FooTest::testA']);
+        Assert::same($stamped->files['/src/Foo.php']->lines[6]->testMethods, []);
+        Assert::same($stamped->files['/src/Bar.php']->lines[10]->testMethods, ['Tests\\FooTest::testA']);
+    }
+
+    public function defaultsToNullSourceRoot(): void
+    {
+        Assert::null((new CoverageResult())->sourceRoot);
+    }
+
+    public function withSourceRootSetsValue(): void
+    {
+        $result = (new CoverageResult())->withSourceRoot('/project');
+
+        Assert::same($result->sourceRoot, '/project');
+    }
+
+    public function withTestMethodPreservesSourceRoot(): void
+    {
+        $result = CoverageResult::fromRawData([
+            '/src/Foo.php' => [5 => 1],
+        ])->withSourceRoot('/project');
+
+        $stamped = $result->withTestMethod('Tests\\FooTest::testA');
+
+        Assert::same($stamped->sourceRoot, '/project');
+    }
+
+    public function mergePrefersReceiverSourceRoot(): void
+    {
+        $a = (new CoverageResult())->withSourceRoot('/a');
+        $b = (new CoverageResult())->withSourceRoot('/b');
+
+        Assert::same($a->merge($b)->sourceRoot, '/a');
+    }
+
+    public function mergeFallsBackToOtherSourceRoot(): void
+    {
+        $a = new CoverageResult();
+        $b = (new CoverageResult())->withSourceRoot('/b');
+
+        Assert::same($a->merge($b)->sourceRoot, '/b');
     }
 }

@@ -9,6 +9,7 @@ use Testo\Codecov\Covers;
 use Testo\Codecov\Internal\CoverageFilter;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
+use Testo\Codecov\Result\LineCoverage;
 use Testo\Codecov\Result\LineStatus;
 use Testo\Test;
 use Tests\Codecov\Stub\TargetClassA;
@@ -251,7 +252,7 @@ final class CoverageFilterTest
     public function emptyTargetsReturnEmpty(): void
     {
         // Arrange
-        $coverage = new CoverageResult(['foo.php' => new FileCoverage('foo.php', [1 => LineStatus::Executed])]);
+        $coverage = new CoverageResult(['foo.php' => new FileCoverage('foo.php', [1 => new LineCoverage(1, LineStatus::Executed)])]);
 
         // Act
         $result = CoverageFilter::apply($coverage, []);
@@ -269,13 +270,13 @@ final class CoverageFilterTest
     }
 
     /**
-     * @return array<int, LineStatus>
+     * @return array<int, LineCoverage>
      */
     private static function lineRange(int $start, int $end): array
     {
         $lines = [];
         for ($i = $start; $i <= $end; $i++) {
-            $lines[$i] = LineStatus::Executed;
+            $lines[$i] = new LineCoverage($i, LineStatus::Executed);
         }
         return $lines;
     }

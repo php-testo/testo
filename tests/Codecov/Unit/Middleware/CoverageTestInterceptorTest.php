@@ -154,10 +154,13 @@ final class CoverageTestInterceptorTest
 
         $driver = new SpyDriver(new CoverageResult([
             $fileA => new \Testo\Codecov\Result\FileCoverage($fileA, [
-                $refA->getStartLine() => \Testo\Codecov\Result\LineStatus::Executed,
+                $refA->getStartLine() => new \Testo\Codecov\Result\LineCoverage(
+                    $refA->getStartLine(),
+                    \Testo\Codecov\Result\LineStatus::Executed,
+                ),
             ]),
             '/src/Other.php' => new \Testo\Codecov\Result\FileCoverage('/src/Other.php', [
-                5 => \Testo\Codecov\Result\LineStatus::Executed,
+                5 => new \Testo\Codecov\Result\LineCoverage(5, \Testo\Codecov\Result\LineStatus::Executed),
             ]),
         ]));
         $interceptor = new CoverageTestInterceptor($driver);

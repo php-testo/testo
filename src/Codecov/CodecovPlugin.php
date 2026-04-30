@@ -88,7 +88,7 @@ final readonly class CodecovPlugin implements PluginConfigurator
         $container->get(InterceptorCollector::class)
             ->addInterceptor(new CoverageTestInterceptor($driver, $this->testTypes));
 
-        $aggregate = new CoverageCollector($this->reports);
+        $aggregate = new CoverageCollector($this->reports, self::resolveSourceRoot($src));
         $container->set($aggregate, destroy: true);
 
         $container->get(EventListenerCollector::class)
@@ -106,5 +106,44 @@ final readonly class CodecovPlugin implements PluginConfigurator
             $mode === CoverageMode::Always => throw new CoverageDriverNotAvailable(),
             default => null,
         };
+    }
+
+    /**
+     * Derives a project source root from the configured source includes.
+     *
+     * For the typical `src: ['src']` config, returns the parent of `src/` — the project root,
+     * which is what reports want for relative-path computation. For multiple includes, returns
+     * their common parent directory. Reports treat `null` as "fall back to {@see \getcwd()}".
+     */
+    private static function resolveSourceRoot(FinderConfig $src): ?string
+    {
+        if ($src->includes === []) {
+            return null;
+        }
+
+        $paths = \array_map(
+            static fn($p): string => \rtrim(\str_replace('\\', '/', (string) $p), '/'),
+            $src->includes,
+        );
+
+        if (\count($paths) === 1) {
+            $parent = \dirname($paths[0]);
+            return $parent === '' || $parent === '.' ? null : $parent;
+        }
+
+        // Common prefix at the directory-segment level.
+        $segments = \array_map(static fn(string $p): array => \explode('/', $p), $paths);
+        $first = $segments[0];
+        $commonLen = \count($first);
+        foreach ($segments as $seg) {
+            $i = 0;
+            $max = \min($commonLen, \count($seg));
+            while ($i < $max && $first[$i] === $seg[$i]) {
+                $i++;
+            }
+            $commonLen = $i;
+        }
+
+        return $commonLen === 0 ? null : \implode('/', \array_slice($first, 0, $commonLen));
     }
 }

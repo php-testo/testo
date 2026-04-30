@@ -26,6 +26,7 @@ final readonly class CoverageCollector implements Destroyable
      */
     public function __construct(
         private array $reports,
+        private ?string $sourceRoot = null,
     ) {
         $this->cache = new Cache(new CoverageResult());
     }
@@ -45,8 +46,12 @@ final readonly class CoverageCollector implements Destroyable
 
     public function destroy(): void
     {
+        $result = $this->sourceRoot !== null
+            ? $this->cache->value->withSourceRoot($this->sourceRoot)
+            : $this->cache->value;
+
         foreach ($this->reports as $report) {
-            $report->generate($this->cache->value);
+            $report->generate($result);
         }
     }
 }

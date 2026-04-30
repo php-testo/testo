@@ -21,14 +21,19 @@ final readonly class CoberturaReport implements CoverageReport
     public function __construct(
         /** @var non-empty-string Output file path. */
         private string $outputPath,
-        /** @var non-empty-string Source root for relative paths. */
+        /**
+         * Override source root. Empty string falls back to {@see CoverageResult::$sourceRoot}
+         * (stamped by the framework from `ApplicationConfig::$src`) or {@see \getcwd()}.
+         */
         private string $sourceRoot = '',
     ) {}
 
     #[\Override]
     public function generate(CoverageResult $result): void
     {
-        $sourceRoot = $this->sourceRoot !== '' ? $this->sourceRoot : (string) \getcwd();
+        $sourceRoot = $this->sourceRoot !== ''
+            ? $this->sourceRoot
+            : ($result->sourceRoot ?? (string) \getcwd());
         $sourceRoot = \rtrim(\str_replace('\\', '/', $sourceRoot), '/');
 
         $xml = new \XMLWriter();
@@ -168,14 +173,14 @@ final readonly class CoberturaReport implements CoverageReport
         $lines = $fileCoverage->lines;
         \ksort($lines);
 
-        foreach ($lines as $lineNumber => $status) {
-            if (!$status->isExecutable()) {
+        foreach ($lines as $lineNumber => $line) {
+            if (!$line->status->isExecutable()) {
                 continue;
             }
 
             $xml->startElement('line');
             $xml->writeAttribute('number', (string) $lineNumber);
-            $xml->writeAttribute('hits', $status === LineStatus::Executed ? '1' : '0');
+            $xml->writeAttribute('hits', $line->status === LineStatus::Executed ? '1' : '0');
 
             if (isset($lineBranches[$lineNumber])) {
                 [$brTotal, $brCovered] = $lineBranches[$lineNumber];
@@ -199,13 +204,13 @@ final readonly class CoberturaReport implements CoverageReport
         $statements = 0;
         $covered = 0;
 
-        foreach ($fileCoverage->lines as $status) {
-            if (!$status->isExecutable()) {
+        foreach ($fileCoverage->lines as $line) {
+            if (!$line->status->isExecutable()) {
                 continue;
             }
 
             $statements++;
-            $status === LineStatus::Executed and $covered++;
+            $line->status === LineStatus::Executed and $covered++;
         }
 
         return [$statements, $covered];

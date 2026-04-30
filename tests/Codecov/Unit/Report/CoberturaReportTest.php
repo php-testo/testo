@@ -9,6 +9,7 @@ use Testo\Codecov\Result\BranchCoverage;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\FunctionCoverage;
+use Testo\Codecov\Result\LineCoverage;
 use Testo\Codecov\Result\LineStatus;
 use Testo\Codecov\Result\PathCoverage;
 use Testo\Codecov\Report\CoberturaReport;
@@ -22,8 +23,8 @@ final class CoberturaReportTest
         // Arrange
         $result = new CoverageResult([
             '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
-                5 => LineStatus::Executed,
-                6 => LineStatus::NotExecuted,
+                5 => new LineCoverage(5, LineStatus::Executed),
+                6 => new LineCoverage(6, LineStatus::NotExecuted),
             ]),
         ]);
         $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';
@@ -46,13 +47,13 @@ final class CoberturaReportTest
         // Arrange
         $result = new CoverageResult([
             '/project/src/Core/Foo.php' => new FileCoverage('/project/src/Core/Foo.php', [
-                5 => LineStatus::Executed,
+                5 => new LineCoverage(5, LineStatus::Executed),
             ]),
             '/project/src/Core/Bar.php' => new FileCoverage('/project/src/Core/Bar.php', [
-                10 => LineStatus::Executed,
+                10 => new LineCoverage(10, LineStatus::Executed),
             ]),
             '/project/src/Http/Handler.php' => new FileCoverage('/project/src/Http/Handler.php', [
-                3 => LineStatus::NotExecuted,
+                3 => new LineCoverage(3, LineStatus::NotExecuted),
             ]),
         ]);
         $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';
@@ -73,7 +74,7 @@ final class CoberturaReportTest
         // Arrange
         $result = new CoverageResult([
             '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
-                5 => LineStatus::Executed,
+                5 => new LineCoverage(5, LineStatus::Executed),
             ]),
         ]);
         $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';
@@ -95,8 +96,8 @@ final class CoberturaReportTest
         // Arrange — file with branch data
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
-                5 => LineStatus::Executed,
-                6 => LineStatus::NotExecuted,
+                5 => new LineCoverage(5, LineStatus::Executed),
+                6 => new LineCoverage(6, LineStatus::NotExecuted),
             ], [
                 'Foo->bar' => new FunctionCoverage('Foo->bar', [
                     0 => new BranchCoverage(0, 3, 5, 6, hit: true, out: [4, 7], outHit: [true, false]),
@@ -140,7 +141,7 @@ final class CoberturaReportTest
         // Arrange
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
-                5 => LineStatus::Executed,
+                5 => new LineCoverage(5, LineStatus::Executed),
             ]),
         ]);
         $path = \sys_get_temp_dir() . '/testo_cobertura_' . \uniqid() . '.xml';

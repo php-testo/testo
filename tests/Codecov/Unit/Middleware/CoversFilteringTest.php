@@ -8,6 +8,7 @@ use Testo\Assert;
 use Testo\Codecov\Internal\Middleware\CoverageTestInterceptor;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
+use Testo\Codecov\Result\LineCoverage;
 use Testo\Codecov\Result\LineStatus;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\TestInfo;
@@ -34,10 +35,10 @@ final class CoversFilteringTest
 
         $driver = new SpyDriver(new CoverageResult([
             $fileA => new FileCoverage($fileA, [
-                $refA->getStartLine() => LineStatus::Executed,
-                $refA->getEndLine() => LineStatus::NotExecuted,
+                $refA->getStartLine() => new LineCoverage($refA->getStartLine(), LineStatus::Executed),
+                $refA->getEndLine() => new LineCoverage($refA->getEndLine(), LineStatus::NotExecuted),
             ]),
-            $fileB => new FileCoverage($fileB, [$refB->getStartLine() => LineStatus::Executed]),
+            $fileB => new FileCoverage($fileB, [$refB->getStartLine() => new LineCoverage($refB->getStartLine(), LineStatus::Executed)]),
         ]));
 
         $interceptor = new CoverageTestInterceptor($driver);
@@ -65,9 +66,9 @@ final class CoversFilteringTest
         $fileB = $refB->getFileName();
 
         $driver = new SpyDriver(new CoverageResult([
-            $fileA => new FileCoverage($fileA, [$refA->getStartLine() => LineStatus::Executed]),
-            $fileB => new FileCoverage($fileB, [$refB->getStartLine() => LineStatus::Executed]),
-            '/src/Unrelated.php' => new FileCoverage('/src/Unrelated.php', [5 => LineStatus::Executed]),
+            $fileA => new FileCoverage($fileA, [$refA->getStartLine() => new LineCoverage($refA->getStartLine(), LineStatus::Executed)]),
+            $fileB => new FileCoverage($fileB, [$refB->getStartLine() => new LineCoverage($refB->getStartLine(), LineStatus::Executed)]),
+            '/src/Unrelated.php' => new FileCoverage('/src/Unrelated.php', [5 => new LineCoverage(5, LineStatus::Executed)]),
         ]));
 
         $interceptor = new CoverageTestInterceptor($driver);
@@ -97,12 +98,12 @@ final class CoversFilteringTest
 
         // Coverage includes lines both inside and outside the method
         $lines = [];
-        $lines[1] = LineStatus::Executed;   // outside method (class declaration)
-        $lines[$methodStart] = LineStatus::Executed;  // inside method
+        $lines[1] = new LineCoverage(1, LineStatus::Executed);   // outside method (class declaration)
+        $lines[$methodStart] = new LineCoverage($methodStart, LineStatus::Executed);  // inside method
         if ($methodEnd > $methodStart) {
-            $lines[$methodEnd] = LineStatus::Executed; // inside method
+            $lines[$methodEnd] = new LineCoverage($methodEnd, LineStatus::Executed); // inside method
         }
-        $lines[999] = LineStatus::Executed; // outside method
+        $lines[999] = new LineCoverage(999, LineStatus::Executed); // outside method
 
         $driver = new SpyDriver(new CoverageResult([
             $fileA => new FileCoverage($fileA, $lines),
@@ -135,8 +136,8 @@ final class CoversFilteringTest
     {
         // Arrange
         $driver = new SpyDriver(new CoverageResult([
-            '/src/Foo.php' => new FileCoverage('/src/Foo.php', [10 => LineStatus::Executed]),
-            '/src/Bar.php' => new FileCoverage('/src/Bar.php', [20 => LineStatus::Executed]),
+            '/src/Foo.php' => new FileCoverage('/src/Foo.php', [10 => new LineCoverage(10, LineStatus::Executed)]),
+            '/src/Bar.php' => new FileCoverage('/src/Bar.php', [20 => new LineCoverage(20, LineStatus::Executed)]),
         ]));
 
         $interceptor = new CoverageTestInterceptor($driver);

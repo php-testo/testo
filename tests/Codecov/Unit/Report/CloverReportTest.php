@@ -7,6 +7,7 @@ namespace Tests\Codecov\Unit\Report;
 use Testo\Assert;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
+use Testo\Codecov\Result\LineCoverage;
 use Testo\Codecov\Result\LineStatus;
 use Testo\Codecov\Report\CloverReport;
 use Testo\Test;
@@ -19,9 +20,9 @@ final class CloverReportTest
         // Arrange
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
-                5 => LineStatus::Executed,
-                6 => LineStatus::NotExecuted,
-                7 => LineStatus::Dead,
+                5 => new LineCoverage(5, LineStatus::Executed),
+                6 => new LineCoverage(6, LineStatus::NotExecuted),
+                7 => new LineCoverage(7, LineStatus::Dead),
             ]),
         ]);
         $path = \sys_get_temp_dir() . '/testo_clover_' . \uniqid() . '.xml';
@@ -43,10 +44,10 @@ final class CloverReportTest
         // Arrange
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
-                5 => LineStatus::Executed,
-                6 => LineStatus::Executed,
-                7 => LineStatus::NotExecuted,
-                8 => LineStatus::Dead,
+                5 => new LineCoverage(5, LineStatus::Executed),
+                6 => new LineCoverage(6, LineStatus::Executed),
+                7 => new LineCoverage(7, LineStatus::NotExecuted),
+                8 => new LineCoverage(8, LineStatus::Dead),
             ]),
         ]);
         $path = \sys_get_temp_dir() . '/testo_clover_' . \uniqid() . '.xml';
@@ -85,8 +86,8 @@ final class CloverReportTest
         // Arrange
         $result = new CoverageResult([
             '/src/Foo.php' => new FileCoverage('/src/Foo.php', [
-                10 => LineStatus::Executed,
-                20 => LineStatus::NotExecuted,
+                10 => new LineCoverage(10, LineStatus::Executed),
+                20 => new LineCoverage(20, LineStatus::NotExecuted),
             ]),
         ]);
         $path = \sys_get_temp_dir() . '/testo_clover_' . \uniqid() . '.xml';

@@ -35,10 +35,10 @@ final class CoverageFilter
             }
 
             $filteredLines = [];
-            foreach ($fileCoverage->lines as $line => $status) {
+            foreach ($fileCoverage->lines as $line => $lineCoverage) {
                 foreach ($ranges[$normalized] as [$start, $end]) {
                     if ($line >= $start && $line <= $end) {
-                        $filteredLines[$line] = $status;
+                        $filteredLines[$line] = $lineCoverage;
                         break;
                     }
                 }

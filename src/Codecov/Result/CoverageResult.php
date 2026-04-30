@@ -12,6 +12,13 @@ final readonly class CoverageResult
     public function __construct(
         /** @var array<non-empty-string, FileCoverage> File path => coverage data. */
         public array $files = [],
+
+        /**
+         * Project source root, used by reports that emit relative paths.
+         * Stamped by {@see \Testo\Codecov\Internal\CoverageCollector} from
+         * `ApplicationConfig::$src` before reports run. `null` until stamped.
+         */
+        public ?string $sourceRoot = null,
     ) {}
 
     /**
@@ -33,10 +40,10 @@ final readonly class CoverageResult
 
             $rawLines = $hasFunction ? $fileData['lines'] : $fileData;
 
-            $lineStatuses = [];
+            $lineCoverages = [];
             foreach ($rawLines as $lineNumber => $status) {
                 $lineStatus = LineStatus::tryFrom($status);
-                $lineStatus !== null and $lineStatuses[$lineNumber] = $lineStatus;
+                $lineStatus !== null and $lineCoverages[$lineNumber] = new LineCoverage($lineNumber, $lineStatus);
             }
 
             $functions = [];
@@ -44,15 +51,42 @@ final readonly class CoverageResult
                 $functions = self::parseFunctions($fileData['functions']);
             }
 
-            ($lineStatuses !== [] || $functions !== [])
-                and $files[$filePath] = new FileCoverage($filePath, $lineStatuses, $functions);
+            ($lineCoverages !== [] || $functions !== [])
+                and $files[$filePath] = new FileCoverage($filePath, $lineCoverages, $functions);
         }
 
         return new self($files);
     }
 
     /**
+     * Returns a copy with the given test method stamped on every executed line of every file.
+     *
+     * @param non-empty-string $method
+     */
+    public function withTestMethod(string $method): self
+    {
+        $stamped = [];
+        foreach ($this->files as $path => $fileCoverage) {
+            $stamped[$path] = $fileCoverage->withTestMethod($method);
+        }
+
+        return new self($stamped, $this->sourceRoot);
+    }
+
+    /**
+     * Returns a copy with the given source root.
+     */
+    public function withSourceRoot(string $sourceRoot): self
+    {
+        return new self($this->files, $sourceRoot);
+    }
+
+    /**
      * Merges another result into this one.
+     *
+     * If both sides carry a {@see $sourceRoot}, the receiver wins. Per-test results
+     * coming from the interceptor never carry a source root — it's stamped once at
+     * the end by {@see \Testo\Codecov\Internal\CoverageCollector}.
      */
     public function merge(self $other): self
     {
@@ -64,7 +98,7 @@ final readonly class CoverageResult
                 : $fileCoverage;
         }
 
-        return new self($merged);
+        return new self($merged, $this->sourceRoot ?? $other->sourceRoot);
     }
 
     /**

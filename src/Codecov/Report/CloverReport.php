@@ -88,12 +88,12 @@ final readonly class CloverReport implements CoverageReport
         $lines = $fileCoverage->lines;
         \ksort($lines);
 
-        foreach ($lines as $lineNumber => $status) {
-            if (!$status->isExecutable()) {
+        foreach ($lines as $lineNumber => $line) {
+            if (!$line->status->isExecutable()) {
                 continue;
             }
 
-            $count = $status === LineStatus::Executed ? 1 : 0;
+            $count = $line->status === LineStatus::Executed ? 1 : 0;
             $statements++;
             $covered += $count;
 
