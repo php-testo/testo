@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+  Stub file. Infection's TestFrameworkConfigLocator hard-codes a list of
+  config-file extensions (xml, yml, *.dist) and refuses to start without
+  finding one. Testo's real config is testo.php; this empty file exists
+  only so locate() can return *something*. The path is then handed to
+  TestoAdapterFactory::create() as $testFrameworkConfigPath where it is
+  ignored.
+
+  infection.json points phpUnit.configDir at this directory.
+-->
+<testo/>

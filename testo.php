@@ -43,6 +43,7 @@ return new ApplicationConfig(
         require 'tests/Test/suites.php',
         require 'tests/Codecov/suites.php',
         require 'tests/Repeat/suites.php',
+        require 'tests/Tokenizer/suites.php',
     ),
     plugins: [
         new \Testo\Codecov\CodecovPlugin(
@@ -51,7 +52,10 @@ return new ApplicationConfig(
                 new \Testo\Codecov\Report\CloverReport(__DIR__ . '/runtime/clover.xml', 'Testo'),
                 new \Testo\Codecov\Report\CoberturaReport(__DIR__ . '/runtime/cobertura.xml'),
                 new \Testo\Codecov\Report\PhpUnitXmlReport(
-                    outputDir: __DIR__ . '/runtime/coverage-xml',
+                    // Infection's TmpDirProvider appends `/infection` to `tmpDir`, so
+                    // when infection.json sets `tmpDir: "runtime"`, Infection looks for
+                    // coverage at `runtime/infection/coverage-xml/index.xml`.
+                    outputDir: __DIR__ . '/runtime/infection/coverage-xml',
                 ),
             ],
         ),

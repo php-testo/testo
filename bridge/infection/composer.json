@@ -1,0 +1,34 @@
+{
+    "name": "testo/bridge-infection",
+    "description": "Infection mutation testing adapter for the Testo testing framework.",
+    "license": "BSD-3-Clause",
+    "type": "infection-extension",
+    "keywords": [
+        "testo",
+        "infection",
+        "mutation testing"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "infection/abstract-testframework-adapter": "^0.5",
+        "infection/include-interceptor": "^0.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Bridge\\Infection\\": "src/"
+        }
+    },
+    "extra": {
+        "infection": {
+            "class": "Testo\\Bridge\\Infection\\TestoAdapterFactory"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
