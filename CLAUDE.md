@@ -1,6 +1,8 @@
 ## Important
 
-- Always use guidelines from the `docs/guidelines` folder when generating any code or documentation.
+- There is a guideline about writing PHP code: docs/guidelines/how-to-write-php-code-best-practices.mdhow-to-write-php-code-best-practices.md
+- To write tests using Testo read https://php-testo.github.io/llms.txt
+- About Self-Tests read tests/README.md
 
 ## Project Overview
 

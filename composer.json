@@ -23,6 +23,8 @@
     ],
     "require": {
         "php": ">=8.2",
+        "ext-tokenizer": "*",
+        "ext-xmlwriter": "*",
         "internal/destroy": "^1.0",
         "internal/path": "^1.2",
         "psr/container": "1 - 2",
