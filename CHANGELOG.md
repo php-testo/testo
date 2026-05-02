@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.4](https://github.com/php-testo/testo/compare/0.10.3...0.10.4) (2026-05-02)
+
+
+### Bug Fixes
+
+* **composer:** Switch testo/* requires from `^1.0@dev` to `0.1 - 1` ([403768f](https://github.com/php-testo/testo/commit/403768f9058cf09bca8c823f76e64530e31e1dc4))
+
 ## [0.10.3](https://github.com/php-testo/testo/compare/0.10.2...0.10.3) (2026-05-02)
 
 
