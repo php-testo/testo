@@ -3,7 +3,10 @@
     "description": "Data provider plugin for the Testo testing framework.",
     "license": "BSD-3-Clause",
     "type": "library",
-    "keywords": ["testo", "data-provider"],
+    "keywords": [
+        "testo",
+        "data-provider"
+    ],
     "authors": [
         {
             "name": "Aleksei Gagarin (roxblnfk)",
