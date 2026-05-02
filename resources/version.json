@@ -12,5 +12,5 @@
     "plugin/bench": "0.1.1",
     "plugin/codecov": "0.1.1",
     "bridge/symfony": "0.1.1",
-    "bridge/infection": "0.1.0"
+    "bridge/infection": "0.1.1"
 }
