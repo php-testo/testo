@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/php-testo/testo/compare/repeat-0.1.1...repeat-0.1.2) (2026-05-02)
+
+
+### Documentation
+
+* **repeat:** Update README with project details and usage instructions ([eac870d](https://github.com/php-testo/testo/commit/eac870df54d381ad181b94af855c56acd4fdc895))
+
 ## [0.1.1](https://github.com/php-testo/testo/compare/repeat-0.1.0...repeat-0.1.1) (2026-05-02)
 
 
