@@ -4,5 +4,5 @@
     "plugin/convention": "0.1.1",
     "plugin/lifecycle": "0.1.0",
     "plugin/retry": "0.1.0",
-    "plugin/filter": "0.1.0"
+    "plugin/filter": "0.1.1"
 }
