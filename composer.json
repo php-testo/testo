@@ -31,11 +31,19 @@
         "psr/event-dispatcher": "^1.0",
         "symfony/console": "^6.4 || ^7 || ^8.0",
         "symfony/finder": "^6.4 || ^7 || ^8.0",
+        "testo/assert": "^1.0@dev",
+        "testo/bench": "^1.0@dev",
+        "testo/bridge-symfony": "^1.0@dev",
+        "testo/codecov": "^1.0@dev",
         "testo/convention": "^1.0@dev",
+        "testo/data": "^1.0@dev",
         "testo/filter": "^1.0@dev",
+        "testo/inline": "^1.0@dev",
         "testo/lifecycle": "^1.0@dev",
+        "testo/output-teamcity": "^1.0@dev",
         "testo/repeat": "^1.0@dev",
         "testo/retry": "^1.0@dev",
+        "testo/test": "^1.0@dev",
         "yiisoft/injector": "^1.2"
     },
     "require-dev": {
@@ -44,7 +52,7 @@
         "internal/dload": "^1.6",
         "roxblnfk/unpoly": "1.8.2",
         "spiral/code-style": "^2.2.2",
-        "testo/bridge-infection": "@dev",
+        "testo/bridge-infection": "^1.0@dev",
         "vimeo/psalm": "^7.0@dev"
     },
     "minimum-stability": "dev",
@@ -61,8 +69,13 @@
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/",
+            "Tests\\Assert\\": "plugin/assert/tests/",
+            "Tests\\Bench\\": "plugin/bench/tests/",
+            "Tests\\Codecov\\": "plugin/codecov/tests/",
+            "Tests\\Data\\": "plugin/data/tests/",
             "Tests\\Lifecycle\\": "plugin/lifecycle/tests/",
-            "Tests\\Repeat\\": "plugin/repeat/tests/"
+            "Tests\\Repeat\\": "plugin/repeat/tests/",
+            "Tests\\Test\\": "plugin/test/tests/"
         },
         "files": [
             "tests/Fixture/functions.php"
@@ -110,6 +123,62 @@
         {
             "type": "path",
             "url": "plugin/filter",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "plugin/test",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "plugin/assert",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "plugin/data",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "plugin/inline",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "plugin/bench",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "plugin/codecov",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "plugin/output-teamcity",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "bridge/symfony",
             "options": {
                 "symlink": true
             }

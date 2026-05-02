@@ -1,11 +1,11 @@
 {
-    "name": "testo/filter",
-    "description": "Test filtering plugin for the Testo testing framework.",
+    "name": "testo/inline",
+    "description": "Inline test plugin for the Testo testing framework.",
     "license": "BSD-3-Clause",
     "type": "library",
     "keywords": [
         "testo",
-        "filter"
+        "inline"
     ],
     "authors": [
         {
@@ -21,15 +21,15 @@
     ],
     "require": {
         "php": ">=8.2",
+        "testo/assert": "^1.0@dev",
+        "testo/data": "^1.0@dev",
+        "testo/filter": "^1.0@dev",
         "testo/testo": "*"
     },
     "autoload": {
         "psr-4": {
-            "Testo\\Filter\\": "src/"
-        },
-        "files": [
-            "Filter.php"
-        ]
+            "Testo\\Inline\\": "src/"
+        }
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

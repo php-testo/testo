@@ -37,6 +37,60 @@
             "component": "filter",
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
+        },
+        "plugin/test": {
+            "package-name": "testo/test",
+            "component": "test",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "plugin/assert": {
+            "package-name": "testo/assert",
+            "component": "assert",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "plugin/data": {
+            "package-name": "testo/data",
+            "component": "data",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "plugin/inline": {
+            "package-name": "testo/inline",
+            "component": "inline",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "plugin/bench": {
+            "package-name": "testo/bench",
+            "component": "bench",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "plugin/codecov": {
+            "package-name": "testo/codecov",
+            "component": "codecov",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "plugin/output-teamcity": {
+            "package-name": "testo/output-teamcity",
+            "component": "output-teamcity",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/symfony": {
+            "package-name": "testo/bridge-symfony",
+            "component": "bridge-symfony",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/infection": {
+            "package-name": "testo/bridge-infection",
+            "component": "bridge-infection",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
         }
     },
     "bump-patch-for-minor-pre-major": true,
