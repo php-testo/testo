@@ -1,19 +1,30 @@
+# Line-ending normalization for text files.
 * text=auto
 
-.github                export-ignore
-.phive                 export-ignore
-.*                     export-ignore
-*.dist                 export-ignore
-*.yaml                 export-ignore
-*.xml                  export-ignore
-composer.lock          export-ignore
-composer-require-*     export-ignore
-Makefile               export-ignore
-Dockerfile             export-ignore
-infection.*            export-ignore
-tests                  export-ignore
-docs                   export-ignore
-CLAUDE.local.md        export-ignore
+# PHP-aware hunk headers in `git diff`.
+*.php diff=php
 
+# Binary files keep their bytes.
 *.http binary
 *.gpg binary
+
+# Default: nothing is included in the `composer archive` of testo/testo.
+# Re-include only the files that actually belong to the root metapackage below.
+* export-ignore
+
+# Top-level documentation and the manifest itself.
+/composer.json   -export-ignore
+/LICENSE.md      -export-ignore
+/README.md       -export-ignore
+/CHANGELOG.md    -export-ignore
+
+# CLI entry point (registered in composer.json `bin`).
+/bin             -export-ignore
+/bin/**          -export-ignore
+
+# Core source code (`Testo\` namespace) and the bundled `internal/container`
+# (mapped through composer.json `replace`).
+/core            -export-ignore
+/core/**         -export-ignore
+/internal        -export-ignore
+/internal/**     -export-ignore

@@ -63,6 +63,12 @@ git mv plugin/<short-name>/src/<MovedFile>.php plugin/<short-name>/src/Internal/
             "homepage": "https://github.com/roxblnfk"
         }
     ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
     "require": {
         "php": ">=8.2",
         "testo/testo": "*"
@@ -121,6 +127,12 @@ composer require "testo/<short-name>:^1.0@dev"
 
 The plugin should land in `vendor/testo/<short-name>` as a symlink/junction.
 
+> If `composer require` reports `(exact version match)` and reverts the lockfile, fall back to editing `composer.json` directly (already done above) and run:
+> ```bash
+> composer update testo/<short-name>
+> ```
+> This commonly happens for the very first `require` of a brand-new path-repo package when Composer's resolver hasn't seen the alias yet.
+
 ### 5. Wire the plugin's test suite
 
 In root `testo.php`, replace any reference to the old `tests/<Module>/suites.php` with the new path:
@@ -128,6 +140,42 @@ In root `testo.php`, replace any reference to the old `tests/<Module>/suites.php
 ```php
 require 'plugin/<short-name>/tests/suites.php',
 ```
+
+#### Suite naming
+
+Use `<PluginName>/<Layer>` style — no colons, no spaces. Layers in use:
+
+- `<Plugin>/Unit` — unit tests for the plugin's own internals
+- `<Plugin>/Self` — self-tests that exercise the plugin against Testo itself
+- `<Plugin>/Inline` — inline tests collected from the plugin's `src/` (see below)
+
+Example: `Codecov/Unit`, `Lifecycle/Self`, `Bench/Inline`.
+
+#### Plugin with inline tests in `src/`
+
+If the plugin's own source files contain `#[TestInline]`/`#[Bench]` cases (e.g. inline assertions on internal helpers), the plugin must add its own `<Plugin>/Inline` suite — **don't** extend the root SRC suite's `include` paths to reach into the plugin. The root `testo.php` SRC suite must stay plugin-agnostic.
+
+```php
+// plugin/<short-name>/tests/suites.php
+use Testo\Application\Config\FinderConfig;
+use Testo\Application\Config\Plugin\SuitePlugins;
+use Testo\Application\Config\SuiteConfig;
+use Testo\Inline\InlineTestPlugin;
+
+return [
+    new SuiteConfig(
+        name: '<Plugin>/Unit',
+        location: new FinderConfig(include: [__DIR__ . '/Unit']),
+    ),
+    new SuiteConfig(
+        name: '<Plugin>/Inline',
+        location: new FinderConfig(include: [__DIR__ . '/../src']),
+        plugins: SuitePlugins::only(new InlineTestPlugin()),
+    ),
+];
+```
+
+If the plugin **also** has benchmark-style inline cases, additionally include `BenchmarkPlugin` in the `SuitePlugins::only(...)` call.
 
 ### 6. release-please config
 
@@ -150,53 +198,16 @@ In `resources/version.json`, add the initial version:
 
 ### 7. split-publish workflow
 
-In `.github/workflows/split-publish.yml`, append a new job mirroring `split-repeat`. The trigger pattern catches the component-prefixed tags release-please will produce:
+`.github/workflows/split-publish.yml` is a single bash-resolving job — component, directory and version are derived from the tag name at runtime. Adding a new plugin needs **one one-line addition**:
 
 ```yaml
 on:
   push:
     tags:
-      - '<short-name>-[0-9]*'   # add to the existing tags list
+      - '<short-name>-[0-9]*'   # add this line
 ```
 
-```yaml
-jobs:
-  split-<short-name>:
-    name: ↪ plugin/<short-name> → php-testo/<short-name>
-    if: startsWith(github.ref, 'refs/tags/<short-name>-')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#<short-name>-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/<short-name>
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/<short-name>
-          repository_organization: php-testo
-          repository_name: <short-name>
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-```
+That's it. The job uses `${tag%-*}` to extract the component (`repeat-0.1.0` → `repeat`, `bridge-infection-0.1.0` → `bridge-infection`) and routes `bridge-*` components to `bridge/<name>`, everything else to `plugin/<name>`.
 
 ### 8. Verify locally
 
@@ -212,21 +223,17 @@ If the plugin is on a coverage-aware path, also smoke `composer infect` (uses In
 
 ### 1. Create the target repository
 
+The mirror is read-only — disable Issues and Wiki up front so contributors find them in the monorepo:
+
 ```bash
 gh repo create php-testo/<short-name> --public \
     --description "<one-line description> (split-published from php-testo/testo)" \
-    --homepage "https://github.com/php-testo/testo"
+    --homepage "https://github.com/php-testo/testo" \
+    --disable-issues \
+    --disable-wiki
 ```
 
-### 2. Disable Issues and Wiki
-
-The mirror is read-only — issues and wikis must live in the monorepo:
-
-```bash
-gh repo edit php-testo/<short-name> --enable-issues=false --enable-wiki=false
-```
-
-### 3. Default branch (after the first split)
+### 2. Default branch (after the first split)
 
 The repository starts empty. After the first split-publish run completes, set the default branch to match the release branch:
 
@@ -236,7 +243,7 @@ gh repo edit php-testo/<short-name> --default-branch 1.x
 
 This matters for Packagist — it reads `composer.json` from the default branch.
 
-### 4. Register on Packagist
+### 3. Register on Packagist
 
 Once the first split has populated the repository:
 
@@ -254,7 +261,7 @@ Once the first split has populated the repository:
 2. Push to the release branch (`1.x`). Release-please opens a PR titled `chore(<short-name>): release 0.1.0`.
 3. Merge the PR. Release-please creates a GitHub release with tag `<short-name>-0.1.0` (no `v` prefix — the project convention is `include-v-in-tag: false`).
 4. The tag triggers `split-publish.yml`, which pushes `plugin/<short-name>/` into `php-testo/<short-name>:1.x` with a bare tag `0.1.0`.
-5. Set the default branch on the target repo (step 3 of "On GitHub" above) and register the package on Packagist.
+5. Set the default branch on the target repo (step 2 of "On GitHub" above) and register the package on Packagist.
 6. Verify the install path:
    ```bash
    composer require testo/<short-name>:^0.1
