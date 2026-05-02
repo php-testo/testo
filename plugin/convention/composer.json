@@ -3,7 +3,10 @@
     "description": "Naming convention plugin for the Testo testing framework.",
     "license": "BSD-3-Clause",
     "type": "library",
-    "keywords": ["testo", "convention"],
+    "keywords": [
+        "testo",
+        "convention"
+    ],
     "authors": [
         {
             "name": "Aleksei Gagarin (roxblnfk)",
