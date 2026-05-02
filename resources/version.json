@@ -11,6 +11,6 @@
     "plugin/inline": "0.1.1",
     "plugin/bench": "0.1.1",
     "plugin/codecov": "0.1.1",
-    "bridge/symfony-console": "0.1.0",
+    "bridge/symfony-console": "0.1.1",
     "bridge/infection": "0.1.1"
 }
