@@ -1,51 +1,46 @@
 ---
 
-# Splits plugin/bridge subtrees into their own dedicated repositories
-# whenever release-please tags a new component release in the monorepo.
+# Splits a plugin/bridge subtree into its dedicated repository whenever
+# release-please tags a new component release in the monorepo.
 #
-# Each job:
-#   - watches for tags matching its component prefix (e.g. "repeat-0.1.0",
-#     produced by release-please thanks to per-package include-component-in-tag);
-#   - extracts the bare semver portion of the tag (e.g. "0.1.0");
-#   - uses symplify/monorepo-split-github-action to push the subdirectory
-#     into the target repo with that bare tag, so Packagist sees a normal
-#     0.1.0 release.
-#
-# Tag format follows the project convention `include-v-in-tag: false`, so
-# tags carry the bare version without a `v` prefix on both ends (monorepo
-# and split repos).
-#
-# References:
-#   - https://github.com/symplify/monorepo-split-github-action
-#   - https://github.com/googleapis/release-please/blob/main/docs/customizing.md#subpackages
+# Tag format follows the project convention `include-v-in-tag: false`:
+# `<component>-X.Y.Z`, no `v` prefix anywhere. Component is everything
+# before the last dash; version is everything after. Bridges live under
+# `bridge/<name>` (component prefixed with `bridge-`), plugins under
+# `plugin/<name>`.
 #
 # Required secrets:
 #   - RELEASE_TOKEN: a GitHub token (PAT or fine-grained) with `contents: write`
-#     access to every target repo listed below. Same secret is reused for release-please.
+#     access to every target repo. Same secret is reused for release-please.
 
 on:  # yamllint disable-line rule:truthy
   push:
     tags:
-      - 'repeat-[0-9]*'
-      - 'convention-[0-9]*'
-      - 'lifecycle-[0-9]*'
-      - 'retry-[0-9]*'
-      - 'filter-[0-9]*'
-      - 'test-[0-9]*'
       - 'assert-[0-9]*'
-      - 'data-[0-9]*'
-      - 'inline-[0-9]*'
       - 'bench-[0-9]*'
-      - 'codecov-[0-9]*'
-      - 'output-teamcity-[0-9]*'
+      - 'bridge-infection-[0-9]*'
       - 'bridge-symfony-[0-9]*'
+      - 'codecov-[0-9]*'
+      - 'convention-[0-9]*'
+      - 'data-[0-9]*'
+      - 'filter-[0-9]*'
+      - 'inline-[0-9]*'
+      - 'lifecycle-[0-9]*'
+      - 'repeat-[0-9]*'
+      - 'retry-[0-9]*'
+      - 'test-[0-9]*'
 
 name: 📦 Split publish
 
+# Serialize runs that target the same tag (e.g. tag rewritten by hand)
+# instead of letting two parallel runs race into the same target repo.
+concurrency:
+  group: split-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  split-repeat:
-    name: ↪ plugin/repeat → php-testo/repeat
-    if: startsWith(github.ref, 'refs/tags/repeat-')
+  split:
+    name: ↪ Subtree push
     runs-on: ubuntu-latest
     steps:
       - name: ⤵ Checkout monorepo (full history)
@@ -53,15 +48,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#repeat-}" >> "$GITHUB_OUTPUT"
+      - name: 🧭 Resolve component / directory / version from tag
+        id: c
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          component="${tag%-*}"
+          version="${tag##*-}"
+
+          if [[ "${component}" == bridge-* ]]; then
+            directory="bridge/${component#bridge-}"
+          else
+            directory="plugin/${component}"
+          fi
+
+          echo "component=${component}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}"     >> "$GITHUB_OUTPUT"
+          echo "directory=${directory}" >> "$GITHUB_OUTPUT"
 
       - name: 🌿 Resolve source branch for the tag
         id: branch
-        # The tag is created on a major-version branch (1.x, 2.x, …).
-        # Push the subtree into the same branch name on the target repo so
-        # major series stay isolated end-to-end.
+        # Tag is created on a major-version branch (1.x, 2.x, …). Push the subtree
+        # into the same branch name on the target repo so major series stay isolated.
         run: |
           branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
                     | sed 's|origin/||' \
@@ -70,460 +77,16 @@ jobs:
                     | tr -d ' ')
           echo "name=${branch}" >> "$GITHUB_OUTPUT"
 
-      - name: 🚀 Push subtree to php-testo/repeat
+      - name: 🚀 Push subtree to php-testo/${{ steps.c.outputs.component }}
         uses: symplify/monorepo-split-github-action@v2.3.0
         with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/repeat
+          tag: ${{ steps.c.outputs.version }}
+          package_directory: ${{ steps.c.outputs.directory }}
           repository_organization: php-testo
-          repository_name: repeat
+          repository_name: ${{ steps.c.outputs.component }}
           branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-convention:
-    name: ↪ plugin/convention → php-testo/convention
-    if: startsWith(github.ref, 'refs/tags/convention-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#convention-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/convention
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/convention
-          repository_organization: php-testo
-          repository_name: convention
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-lifecycle:
-    name: ↪ plugin/lifecycle → php-testo/lifecycle
-    if: startsWith(github.ref, 'refs/tags/lifecycle-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#lifecycle-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/lifecycle
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/lifecycle
-          repository_organization: php-testo
-          repository_name: lifecycle
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-retry:
-    name: ↪ plugin/retry → php-testo/retry
-    if: startsWith(github.ref, 'refs/tags/retry-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#retry-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/retry
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/retry
-          repository_organization: php-testo
-          repository_name: retry
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-filter:
-    name: ↪ plugin/filter → php-testo/filter
-    if: startsWith(github.ref, 'refs/tags/filter-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#filter-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/filter
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/filter
-          repository_organization: php-testo
-          repository_name: filter
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-test:
-    name: ↪ plugin/test → php-testo/test
-    if: startsWith(github.ref, 'refs/tags/test-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#test-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/test
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/test
-          repository_organization: php-testo
-          repository_name: test
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-assert:
-    name: ↪ plugin/assert → php-testo/assert
-    if: startsWith(github.ref, 'refs/tags/assert-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#assert-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/assert
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/assert
-          repository_organization: php-testo
-          repository_name: assert
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-data:
-    name: ↪ plugin/data → php-testo/data
-    if: startsWith(github.ref, 'refs/tags/data-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#data-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/data
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/data
-          repository_organization: php-testo
-          repository_name: data
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-inline:
-    name: ↪ plugin/inline → php-testo/inline
-    if: startsWith(github.ref, 'refs/tags/inline-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#inline-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/inline
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/inline
-          repository_organization: php-testo
-          repository_name: inline
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-bench:
-    name: ↪ plugin/bench → php-testo/bench
-    if: startsWith(github.ref, 'refs/tags/bench-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#bench-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/bench
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/bench
-          repository_organization: php-testo
-          repository_name: bench
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-codecov:
-    name: ↪ plugin/codecov → php-testo/codecov
-    if: startsWith(github.ref, 'refs/tags/codecov-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#codecov-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/codecov
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/codecov
-          repository_organization: php-testo
-          repository_name: codecov
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-output-teamcity:
-    name: ↪ plugin/output-teamcity → php-testo/output-teamcity
-    if: startsWith(github.ref, 'refs/tags/output-teamcity-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#output-teamcity-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/output-teamcity
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: plugin/output-teamcity
-          repository_organization: php-testo
-          repository_name: output-teamcity
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  split-bridge-symfony:
-    name: ↪ bridge/symfony → php-testo/bridge-symfony
-    if: startsWith(github.ref, 'refs/tags/bridge-symfony-')
-    runs-on: ubuntu-latest
-    steps:
-      - name: ⤵ Checkout monorepo (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#bridge-symfony-}" >> "$GITHUB_OUTPUT"
-
-      - name: 🌿 Resolve source branch for the tag
-        id: branch
-        run: |
-          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
-                    | sed 's|origin/||' \
-                    | grep -v 'HEAD' \
-                    | head -n 1 \
-                    | tr -d ' ')
-          echo "name=${branch}" >> "$GITHUB_OUTPUT"
-
-      - name: 🚀 Push subtree to php-testo/bridge-symfony
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: bridge/symfony
-          repository_organization: php-testo
-          repository_name: bridge-symfony
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: testo-bot
-          user_email: bot@testo.dev
+          user_name: 'github-actions[bot]'
+          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
