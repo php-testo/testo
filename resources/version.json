@@ -9,7 +9,7 @@
     "plugin/assert": "0.1.0",
     "plugin/data": "0.1.0",
     "plugin/inline": "0.1.0",
-    "plugin/bench": "0.1.0",
+    "plugin/bench": "0.1.1",
     "plugin/codecov": "0.1.0",
     "plugin/output-teamcity": "0.1.0",
     "bridge/symfony": "0.1.0"
