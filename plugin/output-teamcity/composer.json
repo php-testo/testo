@@ -3,11 +3,21 @@
     "description": "TeamCity service-message output plugin for the Testo testing framework.",
     "license": "BSD-3-Clause",
     "type": "library",
-    "keywords": ["testo", "teamcity", "output"],
+    "keywords": [
+        "testo",
+        "teamcity",
+        "output"
+    ],
     "authors": [
         {
             "name": "Aleksei Gagarin (roxblnfk)",
             "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
         }
     ],
     "require": {
