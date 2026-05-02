@@ -83,93 +83,33 @@
     "repositories": [
         {
             "type": "path",
-            "url": "bridge/infection",
+            "url": "plugin/*",
             "options": {
-                "symlink": true
+                "symlink": true,
+                "versions": {
+                    "testo/assert": "1.x-dev",
+                    "testo/bench": "1.x-dev",
+                    "testo/codecov": "1.x-dev",
+                    "testo/convention": "1.x-dev",
+                    "testo/data": "1.x-dev",
+                    "testo/filter": "1.x-dev",
+                    "testo/inline": "1.x-dev",
+                    "testo/lifecycle": "1.x-dev",
+                    "testo/repeat": "1.x-dev",
+                    "testo/retry": "1.x-dev",
+                    "testo/test": "1.x-dev"
+                }
             }
         },
         {
             "type": "path",
-            "url": "plugin/repeat",
+            "url": "bridge/*",
             "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/convention",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/lifecycle",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/retry",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/filter",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/test",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/assert",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/data",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/inline",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/bench",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/codecov",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "bridge/symfony-console",
-            "options": {
-                "symlink": true
+                "symlink": true,
+                "versions": {
+                    "testo/bridge-infection": "1.x-dev",
+                    "testo/bridge-symfony-console": "1.x-dev"
+                }
             }
         }
     ],

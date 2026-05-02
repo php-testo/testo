@@ -106,14 +106,13 @@ In root `composer.json`:
   "testo/<short-name>": "^1.0@dev"
   ```
   > `composer validate --strict` rejects unbound (`@dev`) and exact-version (`1.x-dev` as a require constraint) values. Use `^1.0@dev` everywhere for consistency, and keep the plugin's `branch-alias: dev-1.x → 1.x-dev` so the caret matches the path-repo dev version. After the first stable release the constraint stays the same — just drop the `@dev` flag (`^1.0`).
-- **`repositories`**:
+- **`repositories`** — there is already a glob entry for `plugin/*`. Just add one line to its `options.versions` map:
   ```json
-  {
-      "type": "path",
-      "url": "plugin/<short-name>",
-      "options": { "symlink": true }
-  }
+  "testo/<short-name>": "1.x-dev"
   ```
+  > The explicit `versions` map pins what the path repo reports as the package version, regardless of which git branch CI happens to be on. Without it, Composer derives the version from the current branch name and breaks on release-please PR branches like `release-please--branches--1.x-…`. Using `<major>.x-dev` also lets different plugins live on independent major series in the same monorepo (one on `1.x-dev`, another on `2.x-dev`) without affecting each other.
+
+  For bridges the line goes under the `bridge/*` glob entry instead.
 - **`autoload-dev.psr-4`** — map test namespace if the plugin has tests under `Tests\<UpperShortName>\`:
   ```json
   "Tests\\<UpperShortName>\\": "plugin/<short-name>/tests/"
