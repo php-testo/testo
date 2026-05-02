@@ -14,6 +14,12 @@
             "homepage": "https://github.com/roxblnfk"
         }
     ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
     "require": {
         "php": ">=8.2",
         "infection/abstract-testframework-adapter": "^0.5",
@@ -27,6 +33,9 @@
     "extra": {
         "infection": {
             "class": "Testo\\Bridge\\Infection\\TestoAdapterFactory"
+        },
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
         }
     },
     "minimum-stability": "dev",

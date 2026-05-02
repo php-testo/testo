@@ -10,7 +10,7 @@ use Testo\Application\Config\SuiteConfig;
  */
 return [
     new SuiteConfig(
-        name: 'Lifecycle: Self Testing',
+        name: 'Lifecycle/Self',
         location: new FinderConfig(
             include: [__DIR__ . '/Self'],
         ),

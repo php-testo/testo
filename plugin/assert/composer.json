@@ -1,11 +1,11 @@
 {
-    "name": "testo/filter",
-    "description": "Test filtering plugin for the Testo testing framework.",
+    "name": "testo/assert",
+    "description": "Assert plugin for the Testo testing framework.",
     "license": "BSD-3-Clause",
     "type": "library",
     "keywords": [
         "testo",
-        "filter"
+        "assert"
     ],
     "authors": [
         {
@@ -25,10 +25,11 @@
     },
     "autoload": {
         "psr-4": {
-            "Testo\\Filter\\": "src/"
+            "Testo\\Assert\\": "src/"
         },
         "files": [
-            "Filter.php"
+            "Assert.php",
+            "Expect.php"
         ]
     },
     "minimum-stability": "dev",
