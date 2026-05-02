@@ -52,7 +52,7 @@
         "internal/dload": "^1.6",
         "roxblnfk/unpoly": "1.8.2",
         "spiral/code-style": "^2.2.2",
-        "testo/bridge-infection": "@dev",
+        "testo/bridge-infection": "^1.0@dev",
         "vimeo/psalm": "^7.0@dev"
     },
     "minimum-stability": "dev",

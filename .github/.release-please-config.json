@@ -85,6 +85,12 @@
             "component": "bridge-symfony",
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/infection": {
+            "package-name": "testo/bridge-infection",
+            "component": "bridge-infection",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
         }
     },
     "bump-patch-for-minor-pre-major": true,
