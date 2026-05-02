@@ -3,7 +3,10 @@
     "description": "Code coverage plugin for the Testo testing framework.",
     "license": "BSD-3-Clause",
     "type": "library",
-    "keywords": ["testo", "code-coverage"],
+    "keywords": [
+        "testo",
+        "code-coverage"
+    ],
     "authors": [
         {
             "name": "Aleksei Gagarin (roxblnfk)",
