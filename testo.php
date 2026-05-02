@@ -10,11 +10,23 @@ use Testo\Bench\BenchmarkPlugin;
 use Testo\Inline\InlineTestPlugin;
 
 return new ApplicationConfig(
-    src: ['core'],
+    src: new FinderConfig(
+        ['core', 'plugin', 'bridge'],
+        [
+            'plugin/assert/tests',
+            'plugin/bench/tests',
+            'plugin/codecov/tests',
+            'plugin/data/tests',
+            'plugin/inline/tests',
+            'plugin/lifecycle/tests',
+            'plugin/repeat/tests',
+            'plugin/test/tests',
+        ],
+    ),
     suites: \array_merge(
         [
             new SuiteConfig(
-                name: 'SRC',
+                name: 'Core/Inline',
                 location: new FinderConfig(
                     include: ['core'],
                 ),
@@ -25,23 +37,24 @@ return new ApplicationConfig(
             ),
         ],
         # If running in CI, skip the sandbox
-        \filter_var(\getenv('TESTO_CI'), FILTER_VALIDATE_BOOLEAN) ? [] : [
-            new SuiteConfig(
-                name: 'sandbox',
-                location: new FinderConfig(
-                    include: ['tests/Testo'],
-                ),
-            ),
-        ],
-        require 'tests/Assert/suites.php',
+        // \filter_var(\getenv('TESTO_CI'), FILTER_VALIDATE_BOOLEAN) ? [] : [
+        //     new SuiteConfig(
+        //         name: 'sandbox',
+        //         location: new FinderConfig(
+        //             include: ['tests/Testo'],
+        //         ),
+        //     ),
+        // ],
+        require 'plugin/assert/tests/suites.php',
         require 'tests/Common/suites.php',
         require 'plugin/lifecycle/tests/suites.php',
-        require 'tests/Data/suites.php',
-        require 'tests/Bench/suites.php',
+        require 'plugin/data/tests/suites.php',
+        require 'plugin/bench/tests/suites.php',
+        require 'plugin/inline/tests/suites.php',
         require 'tests/Application/suites.php',
         require 'tests/Output/suites.php',
-        require 'tests/Test/suites.php',
-        require 'tests/Codecov/suites.php',
+        require 'plugin/test/tests/suites.php',
+        require 'plugin/codecov/tests/suites.php',
         require 'plugin/repeat/tests/suites.php',
         require 'tests/Tokenizer/suites.php',
     ),

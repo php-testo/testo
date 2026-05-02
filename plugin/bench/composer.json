@@ -1,11 +1,11 @@
 {
-    "name": "testo/filter",
-    "description": "Test filtering plugin for the Testo testing framework.",
+    "name": "testo/bench",
+    "description": "Benchmark plugin for the Testo testing framework.",
     "license": "BSD-3-Clause",
     "type": "library",
     "keywords": [
         "testo",
-        "filter"
+        "benchmark"
     ],
     "authors": [
         {
@@ -21,14 +21,16 @@
     ],
     "require": {
         "php": ">=8.2",
+        "testo/data": "^1.0@dev",
+        "testo/inline": "^1.0@dev",
         "testo/testo": "*"
     },
     "autoload": {
         "psr-4": {
-            "Testo\\Filter\\": "src/"
+            "Testo\\Bench\\": "src/"
         },
         "files": [
-            "Filter.php"
+            "Bench.php"
         ]
     },
     "minimum-stability": "dev",
