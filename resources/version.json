@@ -6,11 +6,11 @@
     "plugin/retry": "0.1.1",
     "plugin/filter": "0.1.1",
     "plugin/test": "0.1.1",
-    "plugin/assert": "0.1.0",
+    "plugin/assert": "0.1.1",
     "plugin/data": "0.1.2",
     "plugin/inline": "0.1.1",
-    "plugin/bench": "0.1.0",
-    "plugin/codecov": "0.1.0",
+    "plugin/bench": "0.1.1",
+    "plugin/codecov": "0.1.1",
     "bridge/symfony": "0.1.1",
     "bridge/infection": "0.1.0"
 }
