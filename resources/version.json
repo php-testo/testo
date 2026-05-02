@@ -9,7 +9,7 @@
     "plugin/assert": "0.1.1",
     "plugin/data": "0.1.2",
     "plugin/inline": "0.1.1",
-    "plugin/bench": "0.1.1",
+    "plugin/bench": "0.1.2",
     "plugin/codecov": "0.1.1",
     "bridge/symfony-console": "0.1.1",
     "bridge/infection": "0.1.1"
