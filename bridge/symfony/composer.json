@@ -23,7 +23,6 @@
     "require": {
         "php": ">=8.2",
         "symfony/console": "^6.4 || ^7 || ^8.0",
-        "testo/output-teamcity": "^1.0@dev",
         "testo/testo": "*"
     },
     "autoload": {

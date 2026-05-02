@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/repeat-0.1.2...repeat-0.1.3) (2026-05-02)
+
+
+### Code Refactoring
+
+* Normalize branch-aliases ([6fd048c](https://github.com/php-testo/testo/commit/6fd048c31fa46080c68aad61f518fb4bf564e8b9))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/repeat-0.1.1...repeat-0.1.2) (2026-05-02)
 
 

@@ -198,23 +198,16 @@ In `resources/version.json`, add the initial version:
 
 ### 7. split-publish workflow
 
-`.github/workflows/split-publish.yml` is a single matrix-driven job that handles every component. Adding a new plugin needs **two one-line additions**:
+`.github/workflows/split-publish.yml` is a single bash-resolving job — component, directory and version are derived from the tag name at runtime. Adding a new plugin needs **one one-line addition**:
 
-1. New tag pattern under `on.push.tags`:
-   ```yaml
-   - '<short-name>-[0-9]*'
-   ```
-2. New row in `strategy.matrix.include`:
-   ```yaml
-   - { component: <short-name>, directory: plugin/<short-name>, target: <short-name> }
-   ```
-
-That's it — the matrix's per-row `if: startsWith(github.ref, format('refs/tags/{0}-', matrix.component))` filter picks the right entry on each tag push.
-
-For bridges the row uses the bridge directory:
 ```yaml
-- { component: bridge-<name>, directory: bridge/<name>, target: bridge-<name> }
+on:
+  push:
+    tags:
+      - '<short-name>-[0-9]*'   # add this line
 ```
+
+That's it. The job uses `${tag%-*}` to extract the component (`repeat-0.1.0` → `repeat`, `bridge-infection-0.1.0` → `bridge-infection`) and routes `bridge-*` components to `bridge/<name>`, everything else to `plugin/<name>`.
 
 ### 8. Verify locally
 

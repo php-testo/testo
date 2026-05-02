@@ -1,14 +1,13 @@
 ---
 
-# Splits plugin/bridge subtrees into their own dedicated repositories
-# whenever release-please tags a new component release in the monorepo.
-#
-# A single matrix-driven job covers every component. Each row decides via
-# `if: startsWith(github.ref, …)` whether it runs for the current tag —
-# a tag like `repeat-0.1.0` activates exactly one matrix entry.
+# Splits a plugin/bridge subtree into its dedicated repository whenever
+# release-please tags a new component release in the monorepo.
 #
 # Tag format follows the project convention `include-v-in-tag: false`:
-# `<component>-X.Y.Z`, no `v` prefix anywhere.
+# `<component>-X.Y.Z`, no `v` prefix anywhere. Component is everything
+# before the last dash; version is everything after. Bridges live under
+# `bridge/<name>` (component prefixed with `bridge-`), plugins under
+# `plugin/<name>`.
 #
 # Required secrets:
 #   - RELEASE_TOKEN: a GitHub token (PAT or fine-grained) with `contents: write`
@@ -27,45 +26,44 @@ on:  # yamllint disable-line rule:truthy
       - 'filter-[0-9]*'
       - 'inline-[0-9]*'
       - 'lifecycle-[0-9]*'
-      - 'output-teamcity-[0-9]*'
       - 'repeat-[0-9]*'
       - 'retry-[0-9]*'
       - 'test-[0-9]*'
 
 name: 📦 Split publish
 
+# Serialize runs that target the same tag (e.g. tag rewritten by hand)
+# instead of letting two parallel runs race into the same target repo.
+concurrency:
+  group: split-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   split:
-    name: ↪ ${{ matrix.directory }} → php-testo/${{ matrix.target }}
-    if: startsWith(github.ref, format('refs/tags/{0}-', matrix.component))
+    name: ↪ Subtree push
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { component: assert,            directory: plugin/assert,            target: assert }
-          - { component: bench,             directory: plugin/bench,             target: bench }
-          - { component: bridge-infection,  directory: bridge/infection,         target: bridge-infection }
-          - { component: bridge-symfony,    directory: bridge/symfony,           target: bridge-symfony }
-          - { component: codecov,           directory: plugin/codecov,           target: codecov }
-          - { component: convention,        directory: plugin/convention,        target: convention }
-          - { component: data,              directory: plugin/data,              target: data }
-          - { component: filter,            directory: plugin/filter,            target: filter }
-          - { component: inline,            directory: plugin/inline,            target: inline }
-          - { component: lifecycle,         directory: plugin/lifecycle,         target: lifecycle }
-          - { component: output-teamcity,   directory: plugin/output-teamcity,   target: output-teamcity }
-          - { component: repeat,            directory: plugin/repeat,            target: repeat }
-          - { component: retry,             directory: plugin/retry,             target: retry }
-          - { component: test,              directory: plugin/test,              target: test }
     steps:
       - name: ⤵ Checkout monorepo (full history)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 🏷 Extract bare version from component tag
-        id: tag
-        run: echo "version=${GITHUB_REF_NAME#${{ matrix.component }}-}" >> "$GITHUB_OUTPUT"
+      - name: 🧭 Resolve component / directory / version from tag
+        id: c
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          component="${tag%-*}"
+          version="${tag##*-}"
+
+          if [[ "${component}" == bridge-* ]]; then
+            directory="bridge/${component#bridge-}"
+          else
+            directory="plugin/${component}"
+          fi
+
+          echo "component=${component}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}"     >> "$GITHUB_OUTPUT"
+          echo "directory=${directory}" >> "$GITHUB_OUTPUT"
 
       - name: 🌿 Resolve source branch for the tag
         id: branch
@@ -79,13 +77,13 @@ jobs:
                     | tr -d ' ')
           echo "name=${branch}" >> "$GITHUB_OUTPUT"
 
-      - name: 🚀 Push subtree to php-testo/${{ matrix.target }}
+      - name: 🚀 Push subtree to php-testo/${{ steps.c.outputs.component }}
         uses: symplify/monorepo-split-github-action@v2.3.0
         with:
-          tag: ${{ steps.tag.outputs.version }}
-          package_directory: ${{ matrix.directory }}
+          tag: ${{ steps.c.outputs.version }}
+          package_directory: ${{ steps.c.outputs.directory }}
           repository_organization: php-testo
-          repository_name: ${{ matrix.target }}
+          repository_name: ${{ steps.c.outputs.component }}
           branch: ${{ steps.branch.outputs.name }}
           user_name: 'github-actions[bot]'
           user_email: '41898282+github-actions[bot]@users.noreply.github.com'

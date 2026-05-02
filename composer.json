@@ -40,7 +40,6 @@
         "testo/filter": "^1.0@dev",
         "testo/inline": "^1.0@dev",
         "testo/lifecycle": "^1.0@dev",
-        "testo/output-teamcity": "^1.0@dev",
         "testo/repeat": "^1.0@dev",
         "testo/retry": "^1.0@dev",
         "testo/test": "^1.0@dev",
@@ -165,13 +164,6 @@
         {
             "type": "path",
             "url": "plugin/codecov",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "plugin/output-teamcity",
             "options": {
                 "symlink": true
             }
