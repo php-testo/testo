@@ -42,7 +42,7 @@ return new ApplicationConfig(
         require 'tests/Output/suites.php',
         require 'tests/Test/suites.php',
         require 'tests/Codecov/suites.php',
-        require 'tests/Repeat/suites.php',
+        require 'plugin/repeat/tests/suites.php',
         require 'tests/Tokenizer/suites.php',
     ),
     plugins: [

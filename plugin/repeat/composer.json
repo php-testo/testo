@@ -1,0 +1,36 @@
+{
+    "name": "testo/repeat",
+    "description": "Repeat policy plugin for the Testo testing framework.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "repeat",
+        "test"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "testo/testo": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Repeat\\": "src/"
+        },
+        "files": [
+            "Repeat.php"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "0.1.x-dev"
+        }
+    }
+}

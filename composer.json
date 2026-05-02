@@ -31,6 +31,7 @@
         "psr/event-dispatcher": "^1.0",
         "symfony/console": "^6.4 || ^7 || ^8.0",
         "symfony/finder": "^6.4 || ^7 || ^8.0",
+        "testo/repeat": "@dev",
         "yiisoft/injector": "^1.2"
     },
     "require-dev": {
@@ -55,7 +56,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Tests\\": "tests/",
+            "Tests\\Repeat\\": "plugin/repeat/tests/"
         },
         "files": [
             "tests/Fixture/functions.php"
@@ -68,6 +70,13 @@
         {
             "type": "path",
             "url": "bridge/infection",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "plugin/repeat",
             "options": {
                 "symlink": true
             }

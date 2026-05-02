@@ -1,0 +1,70 @@
+---
+
+# Splits plugin/bridge subtrees into their own dedicated repositories
+# whenever release-please tags a new component release in the monorepo.
+#
+# Each job:
+#   - watches for tags matching its component prefix (e.g. "repeat-v0.1.0",
+#     produced by release-please thanks to per-package include-component-in-tag);
+#   - extracts the bare semver portion of the tag (e.g. "v0.1.0");
+#   - uses symplify/monorepo-split-github-action to push the subdirectory
+#     into the target repo with that bare tag, so Packagist sees a normal
+#     v0.1.0 release.
+#
+# References:
+#   - https://github.com/symplify/monorepo-split-github-action
+#   - https://github.com/googleapis/release-please/blob/main/docs/customizing.md#subpackages
+#
+# Required secrets:
+#   - RELEASE_TOKEN: a GitHub token (PAT or fine-grained) with `contents: write`
+#     access to every target repo listed below. Same secret is reused for release-please.
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    tags:
+      - 'repeat-v*'
+
+name: 📦 Split publish
+
+jobs:
+  split-repeat:
+    name: ↪ plugin/repeat → php-testo/repeat
+    if: startsWith(github.ref, 'refs/tags/repeat-v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⤵ Checkout monorepo (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🏷 Extract bare version from component tag
+        id: tag
+        run: echo "version=${GITHUB_REF_NAME#repeat-}" >> "$GITHUB_OUTPUT"
+
+      - name: 🌿 Resolve source branch for the tag
+        id: branch
+        # The tag is created on a major-version branch (1.x, 2.x, …).
+        # Push the subtree into the same branch name on the target repo so
+        # major series stay isolated end-to-end.
+        run: |
+          branch=$(git branch --remotes --contains "${GITHUB_REF_NAME}" \
+                    | sed 's|origin/||' \
+                    | grep -v 'HEAD' \
+                    | head -n 1 \
+                    | tr -d ' ')
+          echo "name=${branch}" >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Push subtree to php-testo/repeat
+        uses: symplify/monorepo-split-github-action@v2.3.0
+        with:
+          tag: ${{ steps.tag.outputs.version }}
+          package_directory: plugin/repeat
+          repository_organization: php-testo
+          repository_name: repeat
+          branch: ${{ steps.branch.outputs.name }}
+          user_name: testo-bot
+          user_email: bot@testo.dev
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+...
