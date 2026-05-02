@@ -3,7 +3,10 @@
     "description": "Inline test plugin for the Testo testing framework.",
     "license": "BSD-3-Clause",
     "type": "library",
-    "keywords": ["testo", "inline"],
+    "keywords": [
+        "testo",
+        "inline"
+    ],
     "authors": [
         {
             "name": "Aleksei Gagarin (roxblnfk)",
