@@ -1,16 +1,16 @@
 {
     ".": "0.10.2",
-    "plugin/repeat": "0.1.2",
-    "plugin/convention": "0.1.1",
-    "plugin/lifecycle": "0.1.0",
-    "plugin/retry": "0.1.0",
-    "plugin/filter": "0.1.0",
-    "plugin/test": "0.1.0",
-    "plugin/assert": "0.1.0",
-    "plugin/data": "0.1.0",
-    "plugin/inline": "0.1.0",
+    "plugin/repeat": "0.1.3",
+    "plugin/convention": "0.1.2",
+    "plugin/lifecycle": "0.1.1",
+    "plugin/retry": "0.1.1",
+    "plugin/filter": "0.1.1",
+    "plugin/test": "0.1.1",
+    "plugin/assert": "0.1.1",
+    "plugin/data": "0.1.2",
+    "plugin/inline": "0.1.1",
     "plugin/bench": "0.1.1",
     "plugin/codecov": "0.1.0",
-    "plugin/output-teamcity": "0.1.0",
-    "bridge/symfony": "0.1.0"
+    "bridge/symfony": "0.1.0",
+    "bridge/infection": "0.1.0"
 }
