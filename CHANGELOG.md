@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.10.3](https://github.com/php-testo/testo/compare/0.10.2...0.10.3) (2026-05-02)
+
+
+### Features
+
+* Add Infection bridge ([#126](https://github.com/php-testo/testo/issues/126)) ([3229bcc](https://github.com/php-testo/testo/commit/3229bcc529bdde8b582bec54361a1ab44c69220c))
+* **Assert:** Add `Expect::exception()` strictness mode ([#118](https://github.com/php-testo/testo/issues/118)) ([ee35079](https://github.com/php-testo/testo/commit/ee35079a24e02fdd15d2235a5396e360a083a06c))
+* **Codecov:** Add PHPUnit XML report format ([#124](https://github.com/php-testo/testo/issues/124)) ([604af51](https://github.com/php-testo/testo/commit/604af51245448d567382938b18a2a5b6e1777aa8))
+
+
+### Bug Fixes
+
+* **Tokenizer:** Fixed methods detecting in the `getMethodsFQN` method ([323d815](https://github.com/php-testo/testo/commit/323d815ee8d0796065e0c61ce71acb890b71d75a))
+
+
+### Documentation
+
+* **repeat:** Update README with project details and usage instructions ([eac870d](https://github.com/php-testo/testo/commit/eac870df54d381ad181b94af855c56acd4fdc895))
+* **spec:** Add guide for creating new plugins ([219ecb6](https://github.com/php-testo/testo/commit/219ecb62931cf49ecf4f0b5eca69867177ebd482))
+
+
+### Code Refactoring
+
+* **assert:** Move Assert plugin in a separated repository ([12d2796](https://github.com/php-testo/testo/commit/12d27966971e2451286bdd224d0f19d8e6d27b06))
+* **bench:** Move Bench plugin in a separated repository ([fd0fd73](https://github.com/php-testo/testo/commit/fd0fd735c164de256289b902e1227d4bcf653036))
+* **bridge-symfony-console:** Rename Symfony Console bridge ([0261f06](https://github.com/php-testo/testo/commit/0261f0641e7650cf92f5a3306bc5706bf8dcdf0b))
+* **bridge-symfony:** Move Symfony bridge in a separated repository ([0d5d1c9](https://github.com/php-testo/testo/commit/0d5d1c9fe17a93046d77388586f1cf7b1e50da84))
+* **codecov:** Move Codecov plugin in a separated repository ([63983b1](https://github.com/php-testo/testo/commit/63983b13b811a50ddbe5dfbbca3630105d75700d))
+* **Codecov:** Simplify PhpUnitXmlReport ([180f3cb](https://github.com/php-testo/testo/commit/180f3cbac7082cd991ca8d216554c5d1bc2d3f80))
+* **convention:** Move Convention plugin in a separated repository ([1a4044f](https://github.com/php-testo/testo/commit/1a4044f0390d3cd16964f47b069471d7a5c9a3b6))
+* **data:** Move Data plugin in a separated repository ([8f3d971](https://github.com/php-testo/testo/commit/8f3d971a331db5e3d6bfb911a5f941e75d498945))
+* **filter:** Move Filter plugin in a separated repository ([651a761](https://github.com/php-testo/testo/commit/651a76145a5833716a042dec19cbee2c01c67208))
+* **inline:** Move Inline plugin in a separated repository ([4e2342c](https://github.com/php-testo/testo/commit/4e2342c9cefc0b3c92a7570ed02b3369f3ad6206))
+* **lifecycle:** Move Lifecycle plugin in a separated repository ([cb0ea16](https://github.com/php-testo/testo/commit/cb0ea1656137d4406ac843c921aa1ff1ad4997a8))
+* Move all php files into `core` dir ([743cb4f](https://github.com/php-testo/testo/commit/743cb4f42d7e6a8bcd5c3ca467b03aa8236cd645))
+* Normalize branch-aliases ([6fd048c](https://github.com/php-testo/testo/commit/6fd048c31fa46080c68aad61f518fb4bf564e8b9))
+* Normalize Test Suite naming ([9fd0cd3](https://github.com/php-testo/testo/commit/9fd0cd33f1ce6e6a49332be53d98bf6f78a15217))
+* **output-teamcity:** Move Output/Teamcity back into core ([9558d46](https://github.com/php-testo/testo/commit/9558d466dfdb94ff2f08a48ac16a4706efc2baa2))
+* **output-teamcity:** Move Output/Teamcity plugin in a separated repository ([1db6c20](https://github.com/php-testo/testo/commit/1db6c20b63f86f880a98e047ef2340827d059bdc))
+* **repeat:** Move Repeat plugin in a separated repository ([a3bf466](https://github.com/php-testo/testo/commit/a3bf466a5ed743e747718f64d95f139557b311f0))
+* **retry:** Move Retry plugin in a separated repository ([0fa769e](https://github.com/php-testo/testo/commit/0fa769ec9e570e6ed57f195d15ca9e3db3851e47))
+* **test:** Move Test plugin in a separated repository ([21033ca](https://github.com/php-testo/testo/commit/21033cadbbf23f10aa660fc15f00c68b9a67a59c))
+
 ## [0.10.2](https://github.com/php-testo/testo/compare/0.10.1...0.10.2) (2026-04-07)
 
 

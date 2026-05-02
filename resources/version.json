@@ -1,5 +1,5 @@
 {
-    ".": "0.10.2",
+    ".": "0.10.3",
     "plugin/repeat": "0.1.3",
     "plugin/convention": "0.1.2",
     "plugin/lifecycle": "0.1.1",
