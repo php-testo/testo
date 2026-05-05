@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.5](https://github.com/php-testo/testo/compare/0.10.4...0.10.5) (2026-05-05)
+
+
+### Features
+
+* Add JUnit output format with CLI flag `--log-junit` ([#122](https://github.com/php-testo/testo/issues/122)) ([c138d1d](https://github.com/php-testo/testo/commit/c138d1dc1481bca85f0851c7ca3e25427a3cecda))
+* **infection:** Use JUnit format with fallback to reflection ([248d811](https://github.com/php-testo/testo/commit/248d811345df0dc462f98a5ac5fc5d8ebe98265c))
+
 ## [0.10.4](https://github.com/php-testo/testo/compare/0.10.3...0.10.4) (2026-05-02)
 
 
