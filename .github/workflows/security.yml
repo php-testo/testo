@@ -5,14 +5,23 @@ name: 🔐 Security analysis
 on:  # yamllint disable-line rule:truthy
   pull_request:
   push:
+    branches: [1.x]
+
+# `head_ref` is the PR source branch on `pull_request` events and empty on `push`
+# (falls back to `github.ref` = `refs/heads/<branch>`). Different PRs from different
+# branches → different groups, so they never cross-cancel. Same PR pushed again
+# → same group, the new run cancels the previous one.
+#
+# `cancel-in-progress` is only enabled on PR events: pushes to the default branch
+# (1.x) keep their full history of CI runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   security-analysis:
     timeout-minutes: 4
     runs-on: ${{ matrix.os }}
-    concurrency:
-      cancel-in-progress: true
-      group: security-analysis-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     strategy:
       fail-fast: true
       matrix:
