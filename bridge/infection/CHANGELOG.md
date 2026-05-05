@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/php-testo/testo/compare/bridge-infection-0.1.1...bridge-infection-0.1.2) (2026-05-05)
+
+
+### Features
+
+* **infection:** Use JUnit format with fallback to reflection ([248d811](https://github.com/php-testo/testo/commit/248d811345df0dc462f98a5ac5fc5d8ebe98265c))
+
 ## [0.1.1](https://github.com/php-testo/testo/compare/bridge-infection-0.1.0...bridge-infection-0.1.1) (2026-05-02)
 
 
