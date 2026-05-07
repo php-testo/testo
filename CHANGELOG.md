@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.10.6](https://github.com/php-testo/testo/compare/0.10.5...0.10.6) (2026-05-07)
+
+
+### Features
+
+* **output:** Add `testo:data-*` attributes into JUnit format ([ccb19ed](https://github.com/php-testo/testo/commit/ccb19ed566ecb977dca276394888207a317df95d))
+* **output:** Add test type filter to JUnit plugin ([954b3c4](https://github.com/php-testo/testo/commit/954b3c402af77a74881391e48f58260a7887f196))
+
+
+### Bug Fixes
+
+* **inline:** Repair running of inline tests on a user function ([3866d6d](https://github.com/php-testo/testo/commit/3866d6dc56fb8e8916e37c51cb3e81949805e2cc))
+* **output:** Wrap every test function with individual testsuite tag with its namespace in JUnit report ([ccb19ed](https://github.com/php-testo/testo/commit/ccb19ed566ecb977dca276394888207a317df95d))
+
+
+### Code Refactoring
+
+* **codecov:** Enable covering Inline tests by default again ([4b9bc47](https://github.com/php-testo/testo/commit/4b9bc47491a6b448ae6042986a615f46429f035c))
+* **codecov:** Stop covering Inline tests by default because of [#159](https://github.com/php-testo/testo/issues/159) ([94ac94c](https://github.com/php-testo/testo/commit/94ac94c5ce146b08cc1f461e5bb907addb17d620))
+
 ## [0.10.5](https://github.com/php-testo/testo/compare/0.10.4...0.10.5) (2026-05-05)
 
 
