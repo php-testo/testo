@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/inline-0.1.2...inline-0.1.3) (2026-05-07)
+
+
+### Bug Fixes
+
+* **inline:** Repair running of inline tests on a user function ([3866d6d](https://github.com/php-testo/testo/commit/3866d6dc56fb8e8916e37c51cb3e81949805e2cc))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/inline-0.1.1...inline-0.1.2) (2026-05-02)
 
 
