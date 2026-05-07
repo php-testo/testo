@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/php-testo/testo/compare/codecov-0.1.3...codecov-0.1.4) (2026-05-07)
+
+
+### Code Refactoring
+
+* **codecov:** Enable covering Inline tests by default again ([4b9bc47](https://github.com/php-testo/testo/commit/4b9bc47491a6b448ae6042986a615f46429f035c))
+
 ## [0.1.3](https://github.com/php-testo/testo/compare/codecov-0.1.2...codecov-0.1.3) (2026-05-07)
 
 
