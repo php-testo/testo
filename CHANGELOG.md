@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.7](https://github.com/php-testo/testo/compare/0.10.6...0.10.7) (2026-05-08)
+
+
+### Features
+
+* **test:** allow #[Test] attribute on private methods ([86a1dfd](https://github.com/php-testo/testo/commit/86a1dfdbb33e41926ded9f9052139265ca440046))
+
+
+### Code Refactoring
+
+* **core:** Remove block-annotations from tests description ([c6a1e20](https://github.com/php-testo/testo/commit/c6a1e20ed79489acd0a14e962de52de320a931f0))
+
 ## [0.10.6](https://github.com/php-testo/testo/compare/0.10.5...0.10.6) (2026-05-07)
 
 
