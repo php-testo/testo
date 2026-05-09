@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/php-testo/testo/compare/assert-0.1.1...assert-0.1.2) (2026-05-09)
+
+
+### Features
+
+* **assert:** Add `ComparisonFailure` ([46c7045](https://github.com/php-testo/testo/commit/46c704591af17a66f25c4b4e674b6d9c51b5db9a))
+* **assert:** Add DIFF into output ([bf41558](https://github.com/php-testo/testo/commit/bf415588296700bbcb56ce08d59b9f1fcd0f9ea6))
+
+
+### Code Refactoring
+
+* **assert:** Remove `AssertException` and use `AssertionException` instead ([b4166f6](https://github.com/php-testo/testo/commit/b4166f65b1832156dbad289525750b2729f11354))
+
 ## [0.1.1](https://github.com/php-testo/testo/compare/assert-0.1.0...assert-0.1.1) (2026-05-02)
 
 
