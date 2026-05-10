@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/bridge-infection-0.1.2...bridge-infection-0.1.3) (2026-05-10)
+
+
+### Bug Fixes
+
+* **infection:** enable IncludeInterceptor before requiring composer autoload ([0240517](https://github.com/php-testo/testo/commit/0240517bae0f6178b71f4fc4325c9baa0ace2446))
+* **infection:** pass Testo's `--path` values relative to `projectDir` ([c624250](https://github.com/php-testo/testo/commit/c62425072ddd19c134268f490fbf64973481e291))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/bridge-infection-0.1.1...bridge-infection-0.1.2) (2026-05-05)
 
 
