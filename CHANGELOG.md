@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.10.8](https://github.com/php-testo/testo/compare/0.10.7...0.10.8) (2026-05-10)
+
+
+### Features
+
+* **assert:** Add `ComparisonFailure` ([46c7045](https://github.com/php-testo/testo/commit/46c704591af17a66f25c4b4e674b6d9c51b5db9a))
+* **assert:** Add DIFF into output ([bf41558](https://github.com/php-testo/testo/commit/bf415588296700bbcb56ce08d59b9f1fcd0f9ea6))
+
+
+### Bug Fixes
+
+* **core:** Repair filtering by multiple files in the same directory ([861923c](https://github.com/php-testo/testo/commit/861923c4bb9965e24723e6487a3d2da538a42571))
+* **infection:** enable IncludeInterceptor before requiring composer autoload ([0240517](https://github.com/php-testo/testo/commit/0240517bae0f6178b71f4fc4325c9baa0ace2446))
+* **infection:** pass Testo's `--path` values relative to `projectDir` ([c624250](https://github.com/php-testo/testo/commit/c62425072ddd19c134268f490fbf64973481e291))
+
+
+### Code Refactoring
+
+* **assert:** Remove `AssertException` and use `AssertionException` instead ([b4166f6](https://github.com/php-testo/testo/commit/b4166f65b1832156dbad289525750b2729f11354))
+
 ## [0.10.7](https://github.com/php-testo/testo/compare/0.10.6...0.10.7) (2026-05-08)
 
 
