@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/php-testo/testo/compare/repeat-0.1.3...repeat-0.1.4) (2026-05-11)
+
+
+### Features
+
+* **repeat:** Add `maxFailures` option ([#114](https://github.com/php-testo/testo/issues/114)) ([b250922](https://github.com/php-testo/testo/commit/b250922567a47337ce47f4e6f7431b95d56c9179))
+
 ## [0.1.3](https://github.com/php-testo/testo/compare/repeat-0.1.2...repeat-0.1.3) (2026-05-02)
 
 
