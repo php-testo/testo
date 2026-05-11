@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/repeat-0.1.4...repeat-0.1.5) (2026-05-11)
+
+
+### Documentation
+
+* **repeat:** Clarify documentation for Repeat class and parameters ([2544390](https://github.com/php-testo/testo/commit/25443909fb6f309b61d921796b63d51585d35908))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/repeat-0.1.3...repeat-0.1.4) (2026-05-11)
 
 

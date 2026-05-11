@@ -1,6 +1,6 @@
 {
     ".": "0.10.8",
-    "plugin/repeat": "0.1.4",
+    "plugin/repeat": "0.1.5",
     "plugin/convention": "0.1.2",
     "plugin/lifecycle": "0.1.1",
     "plugin/retry": "0.1.1",
