@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/php-testo/testo/compare/lifecycle-0.1.1...lifecycle-0.1.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* **lifecycle:** Remove lifecycle methods from test collection ([268e635](https://github.com/php-testo/testo/commit/268e6352e859ce5b8c3d208dd4b5a2cc8d318da2))
+
 ## [0.1.1](https://github.com/php-testo/testo/compare/lifecycle-0.1.0...lifecycle-0.1.1) (2026-05-02)
 
 

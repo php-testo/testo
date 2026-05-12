@@ -2,7 +2,7 @@
     ".": "0.10.9",
     "plugin/repeat": "0.1.5",
     "plugin/convention": "0.1.2",
-    "plugin/lifecycle": "0.1.1",
+    "plugin/lifecycle": "0.1.2",
     "plugin/retry": "0.1.1",
     "plugin/filter": "0.1.1",
     "plugin/test": "0.1.2",
