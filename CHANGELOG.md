@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.9](https://github.com/php-testo/testo/compare/0.10.8...0.10.9) (2026-05-12)
+
+
+### Features
+
+* **core:** Add ability to remove a test from a test set on locating ([77e50eb](https://github.com/php-testo/testo/commit/77e50eb39a6cd725ff9f9f0532e9767067036dfe))
+* **repeat:** Add `maxFailures` option ([#114](https://github.com/php-testo/testo/issues/114)) ([b250922](https://github.com/php-testo/testo/commit/b250922567a47337ce47f4e6f7431b95d56c9179))
+
+
+### Documentation
+
+* Add AGENTS.md for AI coding agents and update CLAUDE.md links ([849e035](https://github.com/php-testo/testo/commit/849e03500582940c44409162251d61861cfc2b33))
+* **repeat:** Clarify documentation for Repeat class and parameters ([2544390](https://github.com/php-testo/testo/commit/25443909fb6f309b61d921796b63d51585d35908))
+
 ## [0.10.8](https://github.com/php-testo/testo/compare/0.10.7...0.10.8) (2026-05-10)
 
 
