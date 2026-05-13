@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/codecov-0.1.4...codecov-0.1.5) (2026-05-13)
+
+
+### Bug Fixes
+
+* **coverage:** Check for Xdebug coverage mode before initializing driver ([5254038](https://github.com/php-testo/testo/commit/52540384e80dde58697007c4ee42925f72b70b7b))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/codecov-0.1.3...codecov-0.1.4) (2026-05-07)
 
 
