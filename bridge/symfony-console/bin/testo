@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\CommandLoader\FactoryCommandLoader;
+use Testo\Bridge\Symfony\Console\Command\Init;
 use Testo\Bridge\Symfony\Console\Command\Run;
 use Testo\Common\Info;
 
@@ -48,6 +49,7 @@ use Testo\Common\Info;
     $application->setCommandLoader(
         new FactoryCommandLoader([
             'run' => static fn() => new Run(),
+            'init' => static fn() => new Init(),
         ]),
     );
     $application->setDefaultCommand('run', false);
