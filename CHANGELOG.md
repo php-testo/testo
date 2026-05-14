@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.10](https://github.com/php-testo/testo/compare/0.10.9...0.10.10) (2026-05-14)
+
+
+### Bug Fixes
+
+* **coverage:** Check for Xdebug coverage mode before initializing driver ([5254038](https://github.com/php-testo/testo/commit/52540384e80dde58697007c4ee42925f72b70b7b))
+* **lifecycle:** Remove lifecycle methods from test collection ([268e635](https://github.com/php-testo/testo/commit/268e6352e859ce5b8c3d208dd4b5a2cc8d318da2))
+
+
+### Documentation
+
+* Add AI Agent skills ([0315d1c](https://github.com/php-testo/testo/commit/0315d1c7fa52df012f50bfe8b0fe7e4ef0587bb9))
+
 ## [0.10.9](https://github.com/php-testo/testo/compare/0.10.8...0.10.9) (2026-05-12)
 
 
