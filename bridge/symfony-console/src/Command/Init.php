@@ -52,7 +52,6 @@ final class Init extends Command
             ));
         }
 
-
         /**
          * Step tests/ + Functional and Unit dir
          */
