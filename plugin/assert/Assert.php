@@ -36,10 +36,15 @@ final class Assert
     /**
      * Asserts that two values are the same (identical).
      *
+     * @template ExpectedType
+     *
      * @param mixed $actual The actual value to compare against the expected value.
-     * @param mixed $expected The expected value.
+     * @param ExpectedType $expected The expected value.
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertionException when the assertion fails.
+     *
+     * @psalm-assert =ExpectedType $actual
+     * @phpstan-assert =ExpectedType $actual
      */
     #[AssertMethod]
     public static function same(mixed $actual, mixed $expected, string $message = ''): void
