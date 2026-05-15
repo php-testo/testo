@@ -12,10 +12,17 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
+ * Initializes Testo in the project:
+ * 1. Resolves the source directory (src/ or user-provided)
+ * 2. Creates tests/ and tests/Unit/ directories if missing
+ * 3. Adds a "testo:unit" script to composer.json
+ * 4. Generates testo.php from a stub
+ *
  * @internal
  */
 #[AsCommand(
     name: 'init',
+    description: 'Initialize Testo in your project',
 )]
 final class Init extends Command
 {
@@ -57,43 +64,32 @@ final class Init extends Command
 
         $testsPath = Path::create('tests');
         if (!$testsPath->isDir()) {
-            if (!$input->isInteractive()) {
-                $io->warning('tests/ directory not found. Skipping (non-interactive mode).');
-                return Command::SUCCESS;
+            if ($input->isInteractive()) {
+                $testsPath = Path::create((string) $io->ask(
+                    question: 'tests/ directory not found. Path to tests directory (will be created if missing)',
+                    default: 'tests',
+                ));
             }
 
-            $testsPath = Path::create((string) $io->ask(
-                question: 'Path to tests directory',
-                default: 'tests',
-                validator: static function (?string $value): string {
-                    $value ??= 'tests';
-                    if (!Path::create($value)->isDir()) {
-                        throw new \RuntimeException(\sprintf("Directory '%s' does not exist.", $value));
-                    }
-                    return $value;
-                },
-            ));
+            if (!$testsPath->isDir()) {
+                \mkdir((string) $testsPath, 0755, true);
+                $io->success(\sprintf('Created %s/', $testsPath));
+            }
         }
 
         $testsUnitPath = $testsPath->join('Unit');
-
         if (!$testsUnitPath->isDir()) {
-            if (!$input->isInteractive()) {
-                $io->warning('tests/Unit/ directory not found. Skipping (non-interactive mode).');
-                return Command::SUCCESS;
+            if ($input->isInteractive()) {
+                $testsUnitPath = Path::create((string) $io->ask(
+                    question: \sprintf('%s/Unit/ directory not found. Path to unit tests directory (will be created if missing)', $testsPath),
+                    default: \sprintf('%s/Unit', $testsPath),
+                ));
             }
 
-            $testsUnitPath = Path::create((string) $io->ask(
-                question: 'Path to unit tests directory',
-                default: \sprintf('%s/Unit', $testsPath),
-                validator: static function (?string $value): string {
-                    $value ??= 'Unit';
-                    if (!Path::create($value)->isDir()) {
-                        throw new \RuntimeException(\sprintf("Directory '%s' does not exist.", $value));
-                    }
-                    return $value;
-                },
-            ));
+            if (!$testsUnitPath->isDir()) {
+                \mkdir((string) $testsUnitPath, 0755, true);
+                $io->success(\sprintf('Created %s/', $testsUnitPath));
+            }
         }
 
         /**
