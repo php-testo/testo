@@ -58,12 +58,12 @@ final class Init extends Command
         $testsPath = Path::create('tests');
         if (!$testsPath->isDir()) {
             if (!$input->isInteractive()) {
-                $io->warning('src/ directory not found. Skipping (non-interactive mode).');
+                $io->warning('tests/ directory not found. Skipping (non-interactive mode).');
                 return Command::SUCCESS;
             }
 
             $testsPath = Path::create((string) $io->ask(
-                question: 'Path to source code',
+                question: 'Path to tests directory',
                 default: 'tests',
                 validator: static function (?string $value): string {
                     $value ??= 'tests';
@@ -79,13 +79,13 @@ final class Init extends Command
 
         if (!$testsUnitPath->isDir()) {
             if (!$input->isInteractive()) {
-                $io->warning('src/ directory not found. Skipping (non-interactive mode).');
+                $io->warning('tests/Unit/ directory not found. Skipping (non-interactive mode).');
                 return Command::SUCCESS;
             }
 
             $testsUnitPath = Path::create((string) $io->ask(
-                question: 'Path to source code',
-                default: 'Unit',
+                question: 'Path to unit tests directory',
+                default: \sprintf('%s/Unit', $testsPath),
                 validator: static function (?string $value): string {
                     $value ??= 'Unit';
                     if (!Path::create($value)->isDir()) {
@@ -158,7 +158,13 @@ final class Init extends Command
          *  - Link to docs
          */
 
-        //
+        $io->newLine();
+        $io->text([
+            \sprintf(' <info>Configuration:</info> %s', self::DESTINATION),
+            ' <info>Run tests:</info>     composer testo:unit',
+            ' <info>Documentation:</info> <href=https://php-testo.github.io/docs/intro/getting-started>https://php-testo.github.io/docs/intro/getting-started</>',
+        ]);
+        $io->newLine();
 
         return Command::SUCCESS;
     }
