@@ -253,6 +253,33 @@ final class Assert
     }
 
     /**
+     * Asserts that the given value is not null.
+     *
+     * @param mixed $actual The actual value to check for not null.
+     * @param string $message Short description about what exactly is being asserted.
+     * @throws AssertionException when the assertion fails.
+     *
+     * @psalm-assert !null $actual
+     * @phpstan-assert !null $actual
+     */
+    #[AssertMethod]
+    public static function notNull(
+        mixed $actual,
+        string $message = '',
+    ): void {
+        $actual !== null
+            ? StaticState::success($actual, 'is not `null`', $message)
+            : StaticState::fail(new ComparisonFailure(
+                expected: 'not null',
+                actual: null,
+                value: '`null`',
+                assertion: 'is not `null`',
+                context: $message,
+                reason: 'expected a non-null value, got `null`',
+            ));
+    }
+
+    /**
      * Checks if a value is blank.
      *
      * Successful only for values representing absence of data:
