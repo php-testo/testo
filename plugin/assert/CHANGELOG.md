@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/assert-0.1.2...assert-0.1.3) (2026-05-15)
+
+
+### Bug Fixes
+
+* **assert:** Add missing psalm/phpstan assert annotations ([#179](https://github.com/php-testo/testo/issues/179)) ([0af9eb0](https://github.com/php-testo/testo/commit/0af9eb082c5a54f79657ff47cfca47ffeef6f0c3))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/assert-0.1.1...assert-0.1.2) (2026-05-09)
 
 
