@@ -113,7 +113,7 @@ final class Init extends Command
                     );
                     $io->success(\sprintf('Updated "%s" script in composer.json', $scriptKey));
                 }
-            } else {
+            } elseif (!$input->isInteractive() || $io->confirm(\sprintf('Add "%s" script to composer.json?', $scriptKey))) {
                 $composerJson['scripts'][$scriptKey] = $scriptValue;
                 \file_put_contents(
                     (string) $composerJsonPath,
@@ -133,18 +133,16 @@ final class Init extends Command
                 return Command::SUCCESS;
             }
 
-            if (!$io->confirm('testo.php already exists. Overwrite?', false)) {
-                return Command::SUCCESS;
+            if ($io->confirm('testo.php already exists. Overwrite?', false)) {
+                $stubContent = \str_replace(
+                    ['__SRC_PATH__', '__TESTS_UNIT_PATH__'],
+                    [(string) $srcPath, (string) $testsUnitPath],
+                    \file_get_contents(self::STUB),
+                );
+                \file_put_contents(self::DESTINATION, $stubContent);
+                $io->success('Created testo.php');
             }
         }
-
-        $stubContent = \str_replace(
-            ['__SRC_PATH__', '__TESTS_UNIT_PATH__'],
-            [(string) $srcPath, (string) $testsUnitPath],
-            \file_get_contents(self::STUB),
-        );
-        \file_put_contents(self::DESTINATION, $stubContent);
-        $io->success('Created testo.php');
 
 
         /**
