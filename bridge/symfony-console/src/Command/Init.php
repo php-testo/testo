@@ -26,8 +26,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class Init extends Command
 {
-    private const string STUB = __DIR__ . '/../../resources/stubs/testo.php';
-    private const string DESTINATION = './testo.php';
+    private const STUB = __DIR__ . '/../../resources/stubs/testo.php';
+    private const DESTINATION = './testo.php';
 
     #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
