@@ -36,10 +36,15 @@ final class Assert
     /**
      * Asserts that two values are the same (identical).
      *
+     * @template ExpectedType
+     *
      * @param mixed $actual The actual value to compare against the expected value.
-     * @param mixed $expected The expected value.
+     * @param ExpectedType $expected The expected value.
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertionException when the assertion fails.
+     *
+     * @psalm-assert =ExpectedType $actual
+     * @phpstan-assert =ExpectedType $actual
      */
     #[AssertMethod]
     public static function same(mixed $actual, mixed $expected, string $message = ''): void
@@ -131,6 +136,9 @@ final class Assert
      * @param mixed $actual The actual value to check.
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertionException when the assertion fails.
+     *
+     * @psalm-assert true $actual
+     * @phpstan-assert true $actual
      */
     #[AssertMethod]
     public static function true(mixed $actual, string $message = ''): void
@@ -153,6 +161,9 @@ final class Assert
      * @param mixed $actual The actual value to check.
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertionException when the assertion fails.
+     *
+     * @psalm-assert false $actual
+     * @phpstan-assert false $actual
      */
     #[AssertMethod]
     public static function false(mixed $actual, string $message = ''): void
@@ -220,6 +231,9 @@ final class Assert
      * @param mixed $actual The actual value to check for null.
      * @param string $message Short description about what exactly is being asserted.
      * @throws AssertionException when the assertion fails.
+     *
+     * @psalm-assert null $actual
+     * @phpstan-assert null $actual
      */
     #[AssertMethod]
     public static function null(
@@ -306,6 +320,9 @@ final class Assert
      * Asserts that the given value is of `string` data type.
      *
      * @throws AssertionException when the assertion fails.
+     *
+     * @psalm-assert string $actual
+     * @phpstan-assert string $actual
      */
     #[AssertMethod]
     public static function string(mixed $actual): StringType
@@ -317,6 +334,9 @@ final class Assert
      * Asserts that the given value is of `int` data type.
      *
      * @throws AssertionException
+     *
+     * @psalm-assert int $actual
+     * @phpstan-assert int $actual
      */
     public static function int(mixed $actual): IntType
     {
@@ -327,6 +347,9 @@ final class Assert
      * Asserts that the given value is of `float` data type.
      *
      * @throws AssertionException
+     *
+     * @psalm-assert float $actual
+     * @phpstan-assert float $actual
      */
     public static function float(mixed $actual): FloatType
     {
@@ -365,6 +388,9 @@ final class Assert
      * Does not work with Generators.
      *
      * @throws AssertionException
+     *
+     * @psalm-assert iterable $actual
+     * @phpstan-assert iterable<mixed> $actual
      */
     public static function iterable(mixed $actual): IterableType
     {
@@ -375,6 +401,9 @@ final class Assert
      * Asserts that the given value is of `array` data type.
      *
      * @throws AssertionException
+     *
+     * @psalm-assert array $actual
+     * @phpstan-assert array<mixed, mixed> $actual
      */
     public static function array(mixed $actual): ArrayType
     {
@@ -386,6 +415,8 @@ final class Assert
      *
      * @throws AssertionException
      *
+     * @psalm-assert object $actual
+     * @phpstan-assert object $actual
      */
     public static function object(mixed $actual): ObjectType
     {
