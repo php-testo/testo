@@ -9,11 +9,11 @@ return new ApplicationConfig(
     suites: [
         new SuiteConfig(
             name: 'Unit',
-            location: ['tests/Unit'],
+            location: ['__TESTS_UNIT_PATH__'],
         ),
         new SuiteConfig(
             name: 'Sources',
-            location: ['src'],
+            location: ['__SRC_PATH__'],
         ),
     ],
 );
