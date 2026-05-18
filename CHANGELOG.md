@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.11](https://github.com/php-testo/testo/compare/0.10.10...0.10.11) (2026-05-18)
+
+
+### Bug Fixes
+
+* Allow `infection/include-interceptor` v1 ([#184](https://github.com/php-testo/testo/issues/184)) ([cc7018c](https://github.com/php-testo/testo/commit/cc7018cf5e997b7be9d34e544d581d2deb6781ba))
+* **assert:** Add missing psalm/phpstan assert annotations ([#179](https://github.com/php-testo/testo/issues/179)) ([0af9eb0](https://github.com/php-testo/testo/commit/0af9eb082c5a54f79657ff47cfca47ffeef6f0c3))
+
+
+### Documentation
+
+* Align Test/Test Case/Test Suite terminology across docs, events, and skills ([fa56ade](https://github.com/php-testo/testo/commit/fa56adef60dae79e613e60774ec871c184434a1f))
+
 ## [0.10.10](https://github.com/php-testo/testo/compare/0.10.9...0.10.10) (2026-05-14)
 
 
