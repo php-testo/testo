@@ -11,10 +11,19 @@ use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Traits\TestRunner;
 use Tests\Assert\Stub\AssertNotNullNegative;
+use Tests\Assert\Stub\AssertNotNullPositive;
 
 #[TestingSuite(path: __DIR__ . '/../Stub')]
 final class AssertNotNullTest
 {
+    #[Test]
+    public function nonNullValuePasses(): void
+    {
+        $result = TestRunner::runTest([AssertNotNullPositive::class, 'falsyNonNullValues']);
+
+        Assert::same($result->status, Status::Passed);
+    }
+
     #[Test]
     public function nullFails(): void
     {

@@ -34,4 +34,22 @@ final class AssertNotNull
         Expect::exception(AssertionException::class);
         Assert::notNull(null, 'Value must not be null.');
     }
+
+    #[Test]
+    public function checkExceptionContext(): void
+    {
+        try {
+            Assert::notNull(null, 'my context');
+        } catch (AssertionException $e) {
+            Assert::same($e->getContext(), 'my context');
+            return;
+        }
+        Assert::fail('Expected AssertionException to be thrown');
+    }
+
+    #[Test]
+    public function checkObjectIsNotNull(): void
+    {
+        Assert::notNull(new \stdClass());
+    }
 }
