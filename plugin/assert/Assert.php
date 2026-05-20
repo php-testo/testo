@@ -264,7 +264,7 @@ final class Assert
      */
     #[AssertMethod]
     public static function notNull(
-        mixed  $actual,
+        mixed $actual,
         string $message = '',
     ): void {
         $actual !== null
