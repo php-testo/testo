@@ -106,7 +106,10 @@ final class Init extends Command
             $scriptKeyTemplate = 'testo:%s';
             $scriptValueTemplate = 'vendor/bin/testo --suite=%s';
 
-            $composerJson['scripts'][$scriptKeyAll] = $scriptValueAll;
+            if (!isset($composerJson['scripts'][$scriptKeyAll])) {
+                $composerJson['scripts'][$scriptKeyAll] = $scriptValueAll;
+                $io->success(\sprintf('Added "%s" script to composer.json', $scriptKeyAll));
+            }
 
             $composerTestoKeyList = [$scriptKeyAll];
             foreach ($detectedSuites as $suite) {
