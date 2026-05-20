@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/php-testo/testo/compare/assert-0.1.3...assert-0.1.4) (2026-05-20)
+
+
+### Features
+
+* **assert:** Expose `Assert::notNull()` ([#189](https://github.com/php-testo/testo/issues/189)) ([6523c6a](https://github.com/php-testo/testo/commit/6523c6ad8b9c9bf3c40d721b4347488f14809bc3))
+
 ## [0.1.3](https://github.com/php-testo/testo/compare/assert-0.1.2...assert-0.1.3) (2026-05-15)
 
 
