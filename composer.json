@@ -79,6 +79,7 @@
             "Tests\\": "tests/",
             "Tests\\Assert\\": "plugin/assert/tests/",
             "Tests\\Bench\\": "plugin/bench/tests/",
+            "Tests\\Bridge\\SymfonyConsole\\": "bridge/symfony-console/tests/",
             "Tests\\Codecov\\": "plugin/codecov/tests/",
             "Tests\\Convention\\": "plugin/convention/tests/",
             "Tests\\Data\\": "plugin/data/tests/",
