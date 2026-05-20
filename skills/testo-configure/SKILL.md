@@ -32,6 +32,8 @@ Run it: `vendor/bin/testo`. The single suite `Unit` will be discovered under `te
 
 ## Anatomy
 
+> **Suite is the plugin-scope boundary.** A Test Suite is a named, configured collection of Test Cases (a Test Case = methods of one class or functions of one file). Different suites can carry different plugin sets — that's the whole reason `SuiteConfig::$plugins` and `SuitePlugins::only(...)` exist.
+
 `ApplicationConfig` takes:
 
 - `src` — directories (string[] or `FinderConfig`) holding **production** code. Used by coverage and inline tests.

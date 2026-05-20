@@ -7,8 +7,8 @@ namespace Testo\Event\TestSuite;
 /**
  * Event triggered before a test suite starts executing.
  *
- * A test suite represents a collection of test cases (test methods) from a single test class.
- * This event is fired once per test class, before any test cases are executed.
+ * A test suite is a named, configured collection of test cases gathered from one or more files.
+ * This event is fired once per suite, before any of its test cases are executed.
  *
  * @psalm-immutable
  * @api

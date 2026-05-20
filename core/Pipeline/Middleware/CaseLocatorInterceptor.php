@@ -9,7 +9,7 @@ use Testo\Pipeline\Interceptor;
 use Testo\Tokenizer\Reflection\FileDefinitions;
 
 /**
- * Intercept locating test files and test cases.TokenizedFile
+ * Intercept locating test cases in a file.
  *
  * @extends \Testo\Pipeline\Interceptor<FileDefinitions, CaseDefinitions>
  *

@@ -55,6 +55,7 @@
         "buggregator/trap": "^1.10",
         "infection/infection": "dev-testo-bridge-82 as 0.32.6",
         "internal/dload": "^1.6",
+        "llm/skills": "^1.1",
         "roxblnfk/unpoly": "1.8.2",
         "spiral/code-style": "^2.2.2",
         "testo/bridge-infection": "0.1 - 1",
@@ -131,7 +132,8 @@
     ],
     "config": {
         "allow-plugins": {
-            "infection/extension-installer": true
+            "infection/extension-installer": true,
+            "llm/skills": true
         },
         "audit": {
             "abandoned": "report"
@@ -141,7 +143,9 @@
     },
     "extra": {
         "skills": {
-            "source": "skills"
+            "source": "skills",
+            "target": ".claude/skills",
+            "auto-sync": true
         }
     },
     "scripts": {

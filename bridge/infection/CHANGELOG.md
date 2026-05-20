@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/php-testo/testo/compare/bridge-infection-0.1.3...bridge-infection-0.1.4) (2026-05-17)
+
+
+### Bug Fixes
+
+* Allow `infection/include-interceptor` v1 ([#184](https://github.com/php-testo/testo/issues/184)) ([cc7018c](https://github.com/php-testo/testo/commit/cc7018cf5e997b7be9d34e544d581d2deb6781ba))
+
 ## [0.1.3](https://github.com/php-testo/testo/compare/bridge-infection-0.1.2...bridge-infection-0.1.3) (2026-05-10)
 
 

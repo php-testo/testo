@@ -44,8 +44,8 @@ When events form a hierarchy, the entity name should reflect the nesting level:
 ```
 Session         → Outermost level (entire test run lifecycle)
   Worker        → Subprocess level (parallel/isolated execution)
-    TestSuite   → Suite level (collection of test cases)
-      TestCase  → Class level (single test class)
+    TestSuite   → Suite level (configured collection of test cases)
+      TestCase  → File-scope level (one class, or the functions of one file)
         TestPipeline  → Pipeline level (run interceptors)
           TestBatch   → Batch level (DataProvider/Retry)
             Test      → Individual test execution
@@ -57,7 +57,7 @@ Session         → Outermost level (entire test run lifecycle)
 SessionStarting        // Before any tests are discovered or executed
   WorkerStarting       // Before a subprocess starts (parallel/isolated mode)
     TestSuiteStarting  // Before a test suite (collection of cases) starts
-      TestCaseStarting // Before a test class starts
+      TestCaseStarting // Before a test case (file-scope group of tests) starts
         TestPipelineStarting   // Before run interceptors start
           TestBatchStarting    // Before batch of test runs (DataProvider/Retry)
             TestStarting       // Before individual test execution
@@ -67,7 +67,7 @@ SessionStarting        // Before any tests are discovered or executed
             TestFinished
           TestBatchFinished    // After all test runs in batch
         TestPipelineFinished   // After run interceptors finish
-      TestCaseFinished // After a test class finishes
+      TestCaseFinished // After a test case finishes
     TestSuiteFinished  // After a test suite finishes
   WorkerFinished       // After a subprocess finishes
 SessionFinished        // After all tests complete, carries RunResult
@@ -201,10 +201,10 @@ WorkerFinished         // After a subprocess finishes
 
 ### Suite and Case Events
 ```php
-TestSuiteStarting      // Before a suite (collection of test cases) starts
+TestSuiteStarting      // Before a suite (configured collection of test cases) starts
 TestSuiteFinished      // After a suite finishes
-TestCaseStarting       // Before a test class starts
-TestCaseFinished       // After a test class finishes
+TestCaseStarting       // Before a test case (one class, or the functions of one file) starts
+TestCaseFinished       // After a test case finishes
 ```
 
 ### Pipeline Events

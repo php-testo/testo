@@ -41,6 +41,14 @@ Projects requiring significant testing workflow customization:
 - ReactPHP for async operations
 - PSR standards compliance (Container, SimpleCache)
 
+## Domain Glossary
+
+- **Test** — a single test method (one `#[Test]` method, function, or `#[TestInline]` case).
+- **Test Case** — file-scope group of tests: methods of one class, or functions of one file. A file with several test classes yields several Test Cases.
+- **Test Suite** — a named, configured collection of Test Cases (`SuiteConfig`). Suite is the smallest unit that plugins can be applied to — different suites can have different plugin sets.
+
+Event hierarchy: `Session` → `Worker` → `TestSuite` → `TestCase` → `TestPipeline` → `TestBatch` → `Test`. See [docs/spec/events-naming.md](docs/spec/events-naming.md).
+
 ## Guidelines Index
 
 ### 📖 Documentation Guidelines

@@ -10,8 +10,8 @@ use Testo\Core\Context\SuiteResult;
 /**
  * Event triggered after a test suite has finished executing.
  *
- * This event is fired once per test class, after all test cases have completed.
- * It contains the aggregated result of all test cases within the suite.
+ * Fired once per suite, after all of its test cases have completed.
+ * It contains the aggregated result of every test case in the suite.
  *
  * @psalm-immutable
  * @api

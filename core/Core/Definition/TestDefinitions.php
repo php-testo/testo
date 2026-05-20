@@ -43,7 +43,7 @@ final class TestDefinitions
     }
 
     /**
-     * Get all located test cases.
+     * Get all located tests.
      *
      * @return array<non-empty-string, TestDefinition>
      */

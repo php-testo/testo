@@ -23,7 +23,7 @@
     "require": {
         "php": ">=8.2",
         "infection/abstract-testframework-adapter": "^0.5",
-        "infection/include-interceptor": "^0.2"
+        "infection/include-interceptor": "^0.2 || ^1.0"
     },
     "autoload": {
         "psr-4": {

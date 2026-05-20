@@ -8,7 +8,7 @@ description: Author a Testo plugin — event listeners, interceptors, custom con
 Testo's extensibility is the reason to choose it. Plugins implement `PluginConfigurator` and wire
 themselves into the per-suite DI container. From there a plugin can:
 
-- Subscribe to lifecycle **events** (PSR-14 dispatcher) — `TestStarted`, `TestFinished`, `SuiteStarted`, …
+- Subscribe to lifecycle **events** (PSR-14 dispatcher) — `TestStarting`, `TestFinished`, `TestSuiteStarting`, …
 - Register **interceptors** (middleware) that wrap test execution.
 - Bind services into the container — replace or augment Testo's defaults.
 - Discover and act on **custom attributes** placed on test classes/methods.
@@ -16,6 +16,14 @@ themselves into the per-suite DI container. From there a plugin can:
 **This is the advanced surface** — escalate to `https://php-testo.github.io/llms-full.txt` before
 writing real code. The concise `llms.txt` covers test authoring; the full doc has the plugin
 architecture, the container/interceptor APIs, and the event class hierarchy.
+
+## Concepts you must get right
+
+- **Test** — a single test method (`#[Test]` method, function, or `#[TestInline]` case).
+- **Test Case** — file-scope group of tests: methods of one class, or functions of one file. A file with several test classes yields several Test Cases.
+- **Test Suite** — a named, configured collection of Test Cases (`SuiteConfig`). **Suite is the smallest unit a plugin can be applied to** — different suites can have different plugin sets.
+
+Event hierarchy fires top-down: `Session` → `Worker` → `TestSuite` → `TestCase` → `TestPipeline` → `TestBatch` → `Test`. A listener on `TestCaseFinished` fires once per case (all its tests done), not per test method.
 
 ## When a plugin is the right answer
 

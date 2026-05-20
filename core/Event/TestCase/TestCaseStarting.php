@@ -7,9 +7,9 @@ namespace Testo\Event\TestCase;
 /**
  * Event triggered before a test case starts executing.
  *
- * A test case represents a single test method that may contain multiple test runs
- * (via DataProvider) or retry attempts. This event is fired once per test method,
- * before any batches or individual test runs.
+ * A test case is the file-level scope that groups tests: the methods of a single test class,
+ * or the functions of a single file. A file with several test classes yields several test cases.
+ * This event is fired once per case, before any of its tests run.
  *
  * @psalm-immutable
  * @api

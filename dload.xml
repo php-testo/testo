@@ -6,6 +6,6 @@
     temp-dir="./runtime"
 >
     <actions>
-        <download type="binary" software="mago" version="1.0@dev" />
+        <download type="binary" software="mago" version="^1.27" extract-path="runtime" />
     </actions>
 </dload>

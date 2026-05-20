@@ -86,7 +86,7 @@ If providers have different lengths, the shorter wins — surface that constrain
 
 **Mental model.** `DataCross(P1, P2, …, Pn)` takes *n* providers. For every combination of one row from each provider, it **concatenates** their arguments into the final call. So:
 
-- The number of test cases = `|P1| × |P2| × … × |Pn|`.
+- The number of test runs = `|P1| × |P2| × … × |Pn|`.
 - The number of method parameters = `arity(P1) + arity(P2) + … + arity(Pn)`.
 
 Each `#[DataSet]` attribute is **one row** of one argument-set. If you want several rows on the same axis, use a `DataProvider`, or wrap several `DataSet`s in `DataUnion`.
@@ -142,7 +142,7 @@ public function layoutRenders(string $browser, array $size): void
 ### What does NOT work
 
 ```php
-// WRONG — 4 axes × 1 row each = 1 case with 4 concatenated arguments,
+// WRONG — 4 axes × 1 row each = 1 run with 4 concatenated arguments,
 // but the method takes only 2 parameters → arity mismatch.
 #[DataCross(
     new DataSet(['chrome'],  'chrome'),

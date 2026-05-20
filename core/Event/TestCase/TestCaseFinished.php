@@ -10,8 +10,8 @@ use Testo\Core\Context\CaseResult;
 /**
  * Event triggered after a test case has finished executing.
  *
- * This event is fired once per test method, after all batches and individual test runs
- * have completed. It contains the aggregated result of all test runs within the case.
+ * Fired once per case, after all of its tests have completed.
+ * It contains the aggregated result of all tests within the case.
  *
  * @psalm-immutable
  * @api
