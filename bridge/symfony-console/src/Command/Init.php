@@ -59,32 +59,32 @@ final class Init extends Command
         }
 
         /**
-         * Step tests/ + Functional and Unit dir
+         * Step tests/ + suites
          */
 
         $testsPath = Path::create('tests');
         if (!$testsPath->isDir()) {
-            if ($input->isInteractive()) {
-                $testsPath = Path::create((string) $io->ask(
-                    question: 'tests/ directory not found. Path to tests directory (will be created if missing)',
-                    default: 'tests',
-                ));
-            }
+            \mkdir((string) $testsPath, 0755, true);
+            $io->success(\sprintf('Created %s/', $testsPath));
+        }
 
-            if (!$testsPath->isDir()) {
-                \mkdir((string) $testsPath, 0755, true);
-                $io->success(\sprintf('Created %s/', $testsPath));
+
+        $knownSuites = ['Unit', 'Integration', 'Functional', 'Acceptance', 'Feature', 'E2E', 'Contract'];
+        $detectedSuites = [];
+
+        // Iterate over each known suite type.
+        foreach ($knownSuites as $suite) {
+            // Check if a directory named after the suite exists inside the tests path.
+            if ($testsPath->join($suite)->isDir()) {
+                $detectedSuites[] = $suite;
             }
         }
 
-        $testsUnitPath = $testsPath->join('Unit');
-        if (!$testsUnitPath->isDir()) {
-            if ($input->isInteractive()) {
-                $testsUnitPath = Path::create((string) $io->ask(
-                    question: \sprintf('%s/Unit/ directory not found. Path to unit tests directory (will be created if missing)', $testsPath),
-                    default: \sprintf('%s/Unit', $testsPath),
-                ));
-            }
+        // The unit must always be there, otherwise create it.
+        if (!\in_array('Unit', $detectedSuites, true)) {
+            \array_unshift($detectedSuites, 'Unit');
+
+            $testsUnitPath = $testsPath->join('Unit');
 
             if (!$testsUnitPath->isDir()) {
                 \mkdir((string) $testsUnitPath, 0755, true);
@@ -99,28 +99,29 @@ final class Init extends Command
         $composerJsonPath = Path::create('composer.json');
         if ($composerJsonPath->isFile()) {
             $composerJson = \json_decode(\file_get_contents((string) $composerJsonPath), true);
-            $scriptKey = 'testo:unit';
-            $scriptValue = 'vendor/bin/testo --suite=Unit';
 
-            if (isset($composerJson['scripts'][$scriptKey])) {
-                if (!$input->isInteractive()) {
-                    $io->warning(\sprintf('"%s" script already exists in composer.json. Skipping (non-interactive mode).', $scriptKey));
-                } elseif ($io->confirm(\sprintf('"%s" script already exists in composer.json. Update it?', $scriptKey), false)) {
-                    $composerJson['scripts'][$scriptKey] = $scriptValue;
-                    \file_put_contents(
-                        (string) $composerJsonPath,
-                        \json_encode($composerJson, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE) . "\n",
-                    );
-                    $io->success(\sprintf('Updated "%s" script in composer.json', $scriptKey));
+            $scriptKeyAll = 'testo';
+            $scriptValueAll = 'vendor/bin/testo';
+
+            $scriptKeyTemplate = 'testo:%s';
+            $scriptValueTemplate = 'vendor/bin/testo --suite=%s';
+
+            $composerJson['scripts'][$scriptKeyAll] = $scriptValueAll;
+
+            $composerTestoKeyList = [$scriptKeyAll];
+            foreach ($detectedSuites as $suite) {
+                $scriptKey = \sprintf($scriptKeyTemplate, \strtolower($suite));
+                $composerTestoKeyList[] = $scriptKey;
+                if (!isset($composerJson['scripts'][$scriptKey])) {
+                    $composerJson['scripts'][$scriptKey] = \sprintf($scriptValueTemplate, $suite);
+                    $io->success(\sprintf('Added "%s" script to composer.json', $scriptKey));
                 }
-            } elseif (!$input->isInteractive() || $io->confirm(\sprintf('Add "%s" script to composer.json?', $scriptKey))) {
-                $composerJson['scripts'][$scriptKey] = $scriptValue;
-                \file_put_contents(
-                    (string) $composerJsonPath,
-                    \json_encode($composerJson, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE) . "\n",
-                );
-                $io->success(\sprintf('Added "%s" script to composer.json', $scriptKey));
             }
+
+            \file_put_contents(
+                (string) $composerJsonPath,
+                \json_encode($composerJson, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE) . "\n",
+            );
         }
 
         /**
@@ -134,9 +135,14 @@ final class Init extends Command
             }
 
             if ($io->confirm('testo.php already exists. Overwrite?', false)) {
+                $suitesCode = '';
+                foreach ($detectedSuites as $suite) {
+                    $suitesCode .= "        new SuiteConfig(\n            name: '$suite',\n            location: ['tests/$suite'],\n        ),\n";
+                }
+
                 $stubContent = \str_replace(
-                    ['__SRC_PATH__', '__TESTS_UNIT_PATH__'],
-                    [(string) $srcPath, (string) $testsUnitPath],
+                    ['__SRC_PATH__', '__SUITES__'],
+                    [(string) $srcPath, $suitesCode],
                     \file_get_contents(self::STUB),
                 );
                 \file_put_contents(self::DESTINATION, $stubContent);
@@ -153,11 +159,17 @@ final class Init extends Command
          */
 
         $io->newLine();
-        $io->text([
-            \sprintf(' <info>Configuration:</info> %s', self::DESTINATION),
-            ' <info>Run tests:</info>     composer testo:unit',
-            ' <info>Documentation:</info> <href=https://php-testo.github.io/docs/intro/getting-started>https://php-testo.github.io/docs/intro/getting-started</>',
-        ]);
+        $io->text(\array_merge(
+            [
+                \sprintf(' <info>Configuration:</info> %s', self::DESTINATION),
+                ' <info>Documentation:</info> <href=https://php-testo.github.io/docs/intro/getting-started>https://php-testo.github.io/docs/intro/getting-started</>',
+                ' <info>Run tests:</info>',
+            ],
+            \array_map(
+                static fn(string $testoKey) => \sprintf('   <comment>$ composer %s</comment>', $testoKey),
+                $composerTestoKeyList,
+            ),
+        ));
         $io->newLine();
 
         return Command::SUCCESS;
