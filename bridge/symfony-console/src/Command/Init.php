@@ -128,26 +128,30 @@ final class Init extends Command
          * Step testo.php
          */
 
+        $shouldCreate = true;
+
         if (\is_file(self::DESTINATION)) {
             if (!$input->isInteractive()) {
                 $io->warning('testo.php already exists. Skipping (non-interactive mode).');
                 return Command::SUCCESS;
             }
 
-            if ($io->confirm('testo.php already exists. Overwrite?', false)) {
-                $suitesCode = '';
-                foreach ($detectedSuites as $suite) {
-                    $suitesCode .= "        new SuiteConfig(\n            name: '$suite',\n            location: ['tests/$suite'],\n        ),\n";
-                }
+            $shouldCreate = $io->confirm('testo.php already exists. Overwrite?', false);
+        }
 
-                $stubContent = \str_replace(
-                    ['__SRC_PATH__', '__SUITES__'],
-                    [(string) $srcPath, $suitesCode],
-                    \file_get_contents(self::STUB),
-                );
-                \file_put_contents(self::DESTINATION, $stubContent);
-                $io->success('Created testo.php');
+        if ($shouldCreate) {
+            $suitesCode = '';
+            foreach ($detectedSuites as $suite) {
+                $suitesCode .= "        new SuiteConfig(\n            name: '$suite',\n            location: ['tests/$suite'],\n        ),\n";
             }
+
+            $stubContent = \str_replace(
+                ['__SRC_PATH__', '__SUITES__'],
+                [(string) $srcPath, $suitesCode],
+                \file_get_contents(self::STUB),
+            );
+            \file_put_contents(self::DESTINATION, $stubContent);
+            $io->success('Created testo.php');
         }
 
 
