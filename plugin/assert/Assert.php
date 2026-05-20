@@ -264,17 +264,18 @@ final class Assert
      */
     #[AssertMethod]
     public static function notNull(
-        mixed $actual,
+        mixed  $actual,
         string $message = '',
     ): void {
         $actual !== null
             ? StaticState::success($actual, 'is not `null`', $message)
-            : StaticState::fail(new AssertionException(
-                value: 'null',
+            : StaticState::fail(new ComparisonFailure(
+                expected: 'non-null',
+                actual: $actual,
+                value: Support::stringify($actual),
                 assertion: 'is not `null`',
                 context: $message,
                 reason: 'expected a non-null value, got `null`',
-                details: '',
             ));
     }
 
