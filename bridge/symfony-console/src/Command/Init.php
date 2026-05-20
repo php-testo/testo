@@ -160,9 +160,16 @@ final class Init extends Command
         }
 
         /** @var array{scripts?: array<string, string>}&array<string, mixed> $composer */
-        $composer = \json_decode(\file_get_contents((string) $composerJsonPath), true);
+        $composer = \json_decode(
+            \file_get_contents((string) $composerJsonPath),
+            associative: true,
+            flags: \JSON_THROW_ON_ERROR,
+        );
 
-        $composer['scripts'][self::SCRIPT_ALL_KEY] = self::SCRIPT_ALL_COMMAND;
+        if (!isset($composer['scripts'][self::SCRIPT_ALL_KEY])) {
+            $composer['scripts'][self::SCRIPT_ALL_KEY] = self::SCRIPT_ALL_COMMAND;
+            $io->success(\sprintf('Added "%s" script to composer.json', self::SCRIPT_ALL_KEY));
+        }
 
         foreach ($suites as $suite) {
             $key = \sprintf(self::SCRIPT_SUITE_KEY_TEMPLATE, \strtolower($suite));
@@ -201,7 +208,9 @@ final class Init extends Command
 
         $stub = \str_replace(
             ['__SRC_PATH__', '__SUITES__'],
-            [(string) $srcPath, $suitesCode],
+            # var_export emits PHP-literal quoting so paths containing apostrophes
+            # or backslashes can't break out of the generated config.
+            [\var_export((string) $srcPath, true), $suitesCode],
             \file_get_contents(self::STUB),
         );
 

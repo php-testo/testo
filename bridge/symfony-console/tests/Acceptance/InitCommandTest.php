@@ -128,6 +128,24 @@ final class InitCommandTest
         Assert::same($scripts['analyse'] ?? null, 'psalm');
     }
 
+    public function doesNotOverwriteExistingRootTestScript(): void
+    {
+        $this->givenMinimalProject([
+            'scripts' => [
+                'test' => 'phpunit && ecs',
+            ],
+        ]);
+
+        $this->run();
+
+        $scripts = $this->readComposerScripts();
+        Assert::same(
+            $scripts['test'] ?? null,
+            'phpunit && ecs',
+            'pre-existing root "test" script must not be replaced',
+        );
+    }
+
     public function doesNotOverwriteExistingSuiteSpecificScript(): void
     {
         $this->givenMinimalProject([
@@ -344,6 +362,58 @@ final class InitCommandTest
             \file_get_contents($this->sandbox->path('testo.php')),
             $existing,
             '--no-interaction must skip the overwrite prompt and leave testo.php untouched',
+        );
+    }
+
+    /**
+     * Guards against the generated stub being broken by special characters in the
+     * user-supplied source path (apostrophes, backslashes) — the path must be
+     * emitted as a safe PHP literal, not raw-interpolated into single quotes.
+     */
+    public function escapesSpecialCharactersInSourcePath(): void
+    {
+        $this->sandbox->makeDir("acme's lib");
+        $this->sandbox->writeFile(
+            'composer.json',
+            \json_encode(['name' => 'acme/example'], \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES) . "\n",
+        );
+
+        $tester = new CommandTester(new Init());
+        $tester->setInputs(["acme's lib"]);
+        $tester->execute(
+            ['--path' => '.'],
+            ['interactive' => true, 'capture_stderr_separately' => false],
+        );
+
+        Assert::same(
+            $tester->getStatusCode(),
+            Command::SUCCESS,
+            'init must succeed with an apostrophe in the src path; output: ' . $tester->getDisplay(),
+        );
+
+        $config = require $this->sandbox->path('testo.php');
+        Assert::instanceOf(
+            $config,
+            ApplicationConfig::class,
+            'generated testo.php must be valid PHP even with apostrophes in the src path',
+        );
+    }
+
+    public function failsGracefullyOnMalformedComposerJson(): void
+    {
+        $this->sandbox->makeDir('src');
+        $this->sandbox->writeFile('composer.json', "{ this is not valid json ");
+
+        $tester = $this->run();
+
+        Assert::same(
+            $tester->getStatusCode(),
+            Command::FAILURE,
+            'init must fail when composer.json is malformed instead of writing garbage; output: ' . $tester->getDisplay(),
+        );
+        Assert::false(
+            \is_file($this->sandbox->path('testo.php')),
+            'no testo.php must be generated when composer.json parsing fails',
         );
     }
 
