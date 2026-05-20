@@ -13,6 +13,7 @@ return new ApplicationConfig(
     src: new FinderConfig(
         ['core', 'plugin', 'bridge'],
         [
+            'bridge/symfony-console/tests',
             'plugin/assert/tests',
             'plugin/bench/tests',
             'plugin/codecov/tests',
