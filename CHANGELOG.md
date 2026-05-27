@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.14](https://github.com/php-testo/testo/compare/0.10.13...0.10.14) (2026-05-27)
+
+
+### Code Refactoring
+
+* Improve summary format in CLI ([e7f5948](https://github.com/php-testo/testo/commit/e7f59480b4bdc2d65d06f99bbeef15dc19a91ff3))
+
 ## [0.10.13](https://github.com/php-testo/testo/compare/0.10.12...0.10.13) (2026-05-27)
 
 
