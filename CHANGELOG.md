@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.13](https://github.com/php-testo/testo/compare/0.10.12...0.10.13) (2026-05-27)
+
+
+### Features
+
+* Add domain exceptions to skip or cancel test ([#191](https://github.com/php-testo/testo/issues/191)) ([6d800e0](https://github.com/php-testo/testo/commit/6d800e04d9c7185c7b48c51c9efce743492b9042))
+* **assert:** Expose `Assert::notNull()` ([#189](https://github.com/php-testo/testo/issues/189)) ([6523c6a](https://github.com/php-testo/testo/commit/6523c6ad8b9c9bf3c40d721b4347488f14809bc3))
+
+
+### Documentation
+
+* Update README to enhance `init` command setup instructions ([f7a8391](https://github.com/php-testo/testo/commit/f7a83916257af9d1cd0670f723301d347297e35a))
+* Update README with additional test execution instructions ([6ef9556](https://github.com/php-testo/testo/commit/6ef95564e8afe1d56714f827c35acfd86ef15d5f))
+
 ## [0.10.12](https://github.com/php-testo/testo/compare/0.10.11...0.10.12) (2026-05-20)
 
 
