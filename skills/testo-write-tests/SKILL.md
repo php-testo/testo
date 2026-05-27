@@ -104,6 +104,35 @@ public function rejectsNegativeAmount(): never
 Other Expect modifiers: `withMessageContaining(...)`, `withPrevious(class, closure)`, memory-leak expectations.
 Do **not** use try/catch-based assertions for expected exceptions — `Expect::exception` is the correct API.
 
+## Marking a test as skipped or cancelled
+
+Throw a status-bearing exception from the test body to short-circuit the run with a non-error verdict:
+
+```php
+use Testo\Core\Exception\SkipTest;
+use Testo\Core\Exception\CancelTest;
+
+#[Test]
+public function requiresPdoMysql(): void
+{
+    if (!extension_loaded('pdo_mysql')) {
+        throw new SkipTest('pdo_mysql required');
+    }
+
+    // ... real test ...
+}
+```
+
+- `SkipTest` → `Status::Skipped`. Use when the test isn't applicable in this environment (missing extension, disabled feature flag, unavailable optional dependency, etc.).
+- `CancelTest` → `Status::Cancelled`. Use for cooperative cancellation (deadline expired, Fiber unwind). Not a generic "I don't want to run" — that's `SkipTest`.
+
+Constraints:
+
+- Must escape the **test method itself**. The runner's inner try/catch maps the throw to a status; raising from an interceptor or `#[BeforeTest]`/`#[AfterTest]` hook bubbles out of the pipeline and is treated as `Status::Aborted` instead. To skip from a hook, leave the precondition check inside the test body.
+- These are not assertions — don't `try`/`catch` them inside the test, just `throw`.
+- Subclasses work: `class MissingExtensionSkip extends SkipTest {}` is still recognized.
+- Return type stays `void`, or `never` if the throw is unconditional.
+
 ## Lifecycle hooks
 
 ```php

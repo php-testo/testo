@@ -21,15 +21,15 @@ final class CaseInfo
     public readonly string $name;
 
     /**
-     * Invoker closure for the test method.
+     * Handler for executing the test method.
      *
      * @var \Closure(TestInfo): mixed
      */
-    public readonly \Closure $invoker;
+    public readonly \Closure $handler;
 
     /**
      * @param array<non-empty-string, mixed> $attributes
-     * @param callable(TestInfo): mixed $invoker Invoker for the test method.
+     * @param callable(TestInfo): mixed $handler Invoker for the test method.
      */
     public function __construct(
         public readonly CaseDefinition $definition,
@@ -38,21 +38,21 @@ final class CaseInfo
          */
         public readonly ?CaseInstance $instance = null,
         array $attributes = [],
-        callable $invoker = new DefaultTestHandler(),
+        callable $handler = new DefaultTestHandler(),
     ) {
         $this->name = $definition->getName();
         $this->attributes = $attributes;
-        $this->invoker = $invoker(...);
+        $this->handler = $handler(...);
     }
 
     public function with(
-        ?\Closure $invoker = null,
+        ?\Closure $handler = null,
     ): self {
         return new self(
             definition: $this->definition,
             instance: $this->instance,
             attributes: $this->attributes,
-            invoker: $invoker ?? $this->invoker,
+            handler: $handler ?? $this->handler,
         );
     }
 

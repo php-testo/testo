@@ -106,6 +106,27 @@ Outline:
    - Wraps the next callable with whatever behaviour you need (skip, retry, DB tx).
 3. Plugin sits in `ApplicationConfig::$plugins` so the attribute works everywhere.
 
+### Skipping from an interceptor
+
+**Do not** throw `\Testo\Core\Exception\SkipTest` (or `CancelTest`) from an interceptor — those exceptions are wired up only in the test handler's inner try/catch. From an interceptor they bubble past it and become `Status::Aborted` wrapped in `PipelineFailure`. To produce a `Skipped`/`Cancelled` verdict from an interceptor, **return a `TestResult` yourself** without delegating to `$next`:
+
+```php
+public function runTest(TestInfo $info, callable $next): TestResult
+{
+    if ($this->shouldSkip($info)) {
+        return new TestResult(
+            info: $info,
+            status: Status::Skipped,
+            failure: new SkipTest('not applicable in this env'),
+        );
+    }
+
+    return $next($info);
+}
+```
+
+This keeps the `$info` you observed (including any data-provider transforms) attached to the result.
+
 ## Replacing a default service
 
 The container can rebind interfaces — e.g. swap the default JUnit writer for a custom one. Pattern:

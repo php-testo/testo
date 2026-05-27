@@ -32,6 +32,8 @@ Fetch `https://php-testo.github.io/llms.txt` first — when in doubt about an at
 | `$this->assertInstanceOf(Foo::class, $o)` | `Assert::instanceOf($o, Foo::class)`. |
 | `$this->expectException(X::class)` etc. before Act | `Expect::exception(X::class)->withMessage(...)->withCode(...)` before Act. Method return type becomes `never`. |
 | `$this->expectExceptionMessageMatches('/.../')` | Use `withMessageContaining('substring')` or escalate to `llms-full.txt` for regex support. |
+| `$this->markTestSkipped('reason')` | `throw new \Testo\Core\Exception\SkipTest('reason')` from inside the test body. See the "Marking a test as skipped or cancelled" section in `testo-write-tests`. |
+| `$this->markTestIncomplete('reason')` | Testo has no distinct "incomplete" status. Port to `throw new SkipTest('TODO: reason')`, or leave the test empty so it's reported as `Status::Risky`. |
 | Mocks: `$this->createMock(Foo::class)` | Testo doesn't ship a mocking library. Bring your own (Mockery, Prophecy), or — preferred — write a hand-rolled fake. **Never** mock `final` classes or enums. |
 | `@group slow`, `@requires ext` | Suite separation in `testo.php` via `SuiteConfig` and finder excludes. |
 | `phpunit.xml` | `testo.php` (a real PHP file returning `ApplicationConfig`). See `testo-configure` skill. |

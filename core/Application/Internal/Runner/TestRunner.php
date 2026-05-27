@@ -8,6 +8,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Exception\PipelineFailure;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
+use Testo\Core\Exception\CancelTest;
+use Testo\Core\Exception\SkipTest;
 use Testo\Core\Value\Status;
 use Testo\Event\Test\TestFinished;
 use Testo\Event\Test\TestPipelineFinished;
@@ -43,7 +45,7 @@ final readonly class TestRunner
 
                     try {
                         $startTime = \microtime(true);
-                        $executionResult = ($info->caseInfo->invoker)($info);
+                        $executionResult = ($info->caseInfo->handler)($info);
                         $duration = \microtime(true) - $startTime;
 
                         $result = new TestResult(
@@ -58,9 +60,15 @@ final readonly class TestRunner
                     } catch (\Throwable $throwable) {
                         $duration = \microtime(true) - $startTime;
 
+                        $status = match (true) {
+                            $throwable instanceof SkipTest => Status::Skipped,
+                            $throwable instanceof CancelTest => Status::Cancelled,
+                            default => Status::Error,
+                        };
+
                         $result = new TestResult(
                             info: $info,
-                            status: Status::Error,
+                            status: $status,
                             failure: $throwable,
                             attributes: [
                                 'duration' => (int) \round($duration * 1000),

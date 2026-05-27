@@ -12,4 +12,10 @@ return [
             include: [__DIR__ . '/Unit'],
         ),
     ),
+    new SuiteConfig(
+        name: 'Application/Feature',
+        location: new FinderConfig(
+            include: [__DIR__ . '/Feature'],
+        ),
+    ),
 ];

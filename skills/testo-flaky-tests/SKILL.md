@@ -95,3 +95,4 @@ Don't ship `#[Repeat(times: 50)]` long-term on a fast suite — CI cost adds up.
 - Combining `#[Retry]` with `#[Repeat]` is allowed: Repeat runs **inside** Retry (each retry attempt re-runs the full repeat cycle). Only suggest both when the user genuinely wants that nesting.
 - A test with `Expect::exception(...)` and `#[Retry]` is almost always wrong — expected exceptions are deterministic by design.
 - Don't use retries to paper over network calls in unit tests — replace the dependency with a fake instead.
+- Throwing `SkipTest` / `CancelTest` from the body short-circuits both `#[Retry]` and `#[Repeat]` — the loop stops immediately and the result keeps the `Skipped` / `Cancelled` status. That's intentional (skipping isn't a failure to retry against), but worth knowing when a "flaky" test is actually skipping on some runs.
