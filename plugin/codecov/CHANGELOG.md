@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.6](https://github.com/php-testo/testo/compare/codecov-0.1.5...codecov-0.1.6) (2026-05-29)
+
+
+### Bug Fixes
+
+* **codecov:** collect per-data-set coverage from MultipleResult child results ([b287f91](https://github.com/php-testo/testo/commit/b287f91d6e8e019a7e8566c6905c20dad0393c23))
+* **data:** accumulate data sets across all provider attributes instead of keeping only the last ([b287f91](https://github.com/php-testo/testo/commit/b287f91d6e8e019a7e8566c6905c20dad0393c23))
+
 ## [0.1.5](https://github.com/php-testo/testo/compare/codecov-0.1.4...codecov-0.1.5) (2026-05-13)
 
 
