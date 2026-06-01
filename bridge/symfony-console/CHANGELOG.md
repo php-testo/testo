@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.3...bridge-symfony-console-0.1.4) (2026-06-01)
+
+
+### Features
+
+* introduce Verbosity enum to manage console output levels ([f0359d7](https://github.com/php-testo/testo/commit/f0359d7f6063154042591437e539e160ef7be460))
+
 ## [0.1.3](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.2...bridge-symfony-console-0.1.3) (2026-05-20)
 
 
