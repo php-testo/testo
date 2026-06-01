@@ -1,7 +1,7 @@
 {
     ".": "0.10.14",
     "plugin/repeat": "0.1.5",
-    "plugin/messenger": "0.1.0",
+    "plugin/messenger": "0.1.1",
     "plugin/convention": "0.1.2",
     "plugin/lifecycle": "0.1.2",
     "plugin/retry": "0.1.1",
