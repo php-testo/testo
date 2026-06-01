@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/bench-0.1.2...bench-0.1.3) (2026-06-01)
+
+
+### Code Refactoring
+
+* **bench:** Send benchmark results into messenger ([e7fa77a](https://github.com/php-testo/testo/commit/e7fa77a8d9a3ae49ab27ddf05a9cbd0d082b389c))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/bench-0.1.1...bench-0.1.2) (2026-05-02)
 
 
