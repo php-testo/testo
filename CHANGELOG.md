@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.15](https://github.com/php-testo/testo/compare/0.10.14...0.10.15) (2026-06-01)
+
+
+### Features
+
+* **core:** add `Message` DTOs to store test messages ([36e3e32](https://github.com/php-testo/testo/commit/36e3e323d8a338f3c6a1ac987d46514de72a7263))
+* introduce Verbosity enum to manage console output levels ([f0359d7](https://github.com/php-testo/testo/commit/f0359d7f6063154042591437e539e160ef7be460))
+* **messenger:** Add Messenger plugin ([3e50a92](https://github.com/php-testo/testo/commit/3e50a92a29a3803b7bd09fe97bb9aa922d40a84b))
+* **teamcity:** Support real-time message streaming with channel attributes ([39ed14b](https://github.com/php-testo/testo/commit/39ed14baf3de0dde4cc7677d74515ac6dfcae467))
+* **terminal:** Support messages stream rendering with verbosity ([b4175e8](https://github.com/php-testo/testo/commit/b4175e8d1727fe7902a012292ff522e16cbd6269))
+* **testing:** add support for extra plugins in TestingSuite configuration ([d2eae1c](https://github.com/php-testo/testo/commit/d2eae1c07140763cc9db584cc8b2a0dbf73ff7dc))
+
+
+### Bug Fixes
+
+* **codecov:** collect per-data-set coverage from MultipleResult child results ([b287f91](https://github.com/php-testo/testo/commit/b287f91d6e8e019a7e8566c6905c20dad0393c23))
+* **data:** accumulate data sets across all provider attributes instead of keeping only the last ([b287f91](https://github.com/php-testo/testo/commit/b287f91d6e8e019a7e8566c6905c20dad0393c23))
+
 ## [0.10.14](https://github.com/php-testo/testo/compare/0.10.13...0.10.14) (2026-05-27)
 
 
