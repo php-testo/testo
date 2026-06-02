@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.10.16](https://github.com/php-testo/testo/compare/0.10.15...0.10.16) (2026-06-02)
+
+
+### Features
+
+* **messenger:** implement fork functionality for mergeable child branches ([341f38a](https://github.com/php-testo/testo/commit/341f38a2e91d86121640842497ca5f749c12fade))
+* **repeat:** integrate Messenger into RepeatInterceptor ([fe12ad5](https://github.com/php-testo/testo/commit/fe12ad5b038351d5b4f35de286795caffc2a1b59))
+* **retry:** integrate Messenger for logging in right way ([cb7786f](https://github.com/php-testo/testo/commit/cb7786fac73378864a7b36a2da9430d6f8e75392))
+
+
+### Bug Fixes
+
+* **messenger:** correct package name from 'destroyable' to 'destroy' ([b11b6ee](https://github.com/php-testo/testo/commit/b11b6eebd38fe247c74b09367633efb0ccd202d4))
+
+
+### Code Refactoring
+
+* **assert:** Migrate Assert plugin to channels ([9a13ff1](https://github.com/php-testo/testo/commit/9a13ff17efea95b4ab8289dea8913b3ec4f96a30))
+* **bench:** Send benchmark results into messenger ([e7fa77a](https://github.com/php-testo/testo/commit/e7fa77a8d9a3ae49ab27ddf05a9cbd0d082b389c))
+* **messenger:** adjust ORDER constant for output capturing scope ([ea8b1f5](https://github.com/php-testo/testo/commit/ea8b1f52c907cff5b05635f89aef5ed49dee9366))
+* **retry:** Disable Messenger forks for this plugin ([e0fbc32](https://github.com/php-testo/testo/commit/e0fbc3264b72529cd6c040e17b75383b8713d900))
+
 ## [0.10.15](https://github.com/php-testo/testo/compare/0.10.14...0.10.15) (2026-06-01)
 
 
