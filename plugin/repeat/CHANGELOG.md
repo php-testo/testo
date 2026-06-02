@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/php-testo/testo/compare/repeat-0.1.5...repeat-0.1.6) (2026-06-02)
+
+
+### Features
+
+* **repeat:** integrate Messenger into RepeatInterceptor ([fe12ad5](https://github.com/php-testo/testo/commit/fe12ad5b038351d5b4f35de286795caffc2a1b59))
+
 ## [0.1.5](https://github.com/php-testo/testo/compare/repeat-0.1.4...repeat-0.1.5) (2026-05-11)
 
 
