@@ -21,6 +21,7 @@
     ],
     "require": {
         "php": ">=8.2",
+        "testo/messenger": "0.1 - 1",
         "testo/testo": "*"
     },
     "autoload": {

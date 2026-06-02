@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Testo\Output\Terminal\Renderer;
 
 use Testo\Assert\State\Assertion\ComparisonFailure;
-use Testo\Assert\State\CompositeRecord;
-use Testo\Assert\State\Record;
 use Testo\Common\Info;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\SuiteResult;
@@ -225,9 +223,6 @@ final class Formatter
      * Formats final summary section.
      *
      * @param int<0, max> $total
-     * @param int<0, max> $passed
-     * @param int<0, max> $failed
-     * @param int<0, max> $skipped
      * @param int<0, max> $total
      * @param array<string, int<0, max>> $statusCounts Counts keyed by Status::name
      * @param float $duration Duration in seconds
@@ -279,53 +274,6 @@ final class Formatter
         $text = $success ? 'PASSED' : 'FAILED';
 
         return "\n " . Style::banner($text, $bg) . "\n";
-    }
-
-    /**
-     * Formats assertion history header.
-     *
-     * @return non-empty-string
-     */
-    public static function assertionHistoryHeader(OutputFormat $format): string
-    {
-        if ($format === OutputFormat::Dots) {
-            return '';
-        }
-
-        $indent = $format === OutputFormat::Verbose ? self::INDENT_VERBOSE : self::INDENT_COMPACT;
-        $indent .= self::INDENT_STEP;
-        return $indent . Style::dim('Assertion history:') . "\n";
-    }
-
-    /**
-     * Formats a single assertion line.
-     *
-     * @return non-empty-string
-     */
-    public static function assertionLine(Record $assertion, OutputFormat $format, int $level = 1): string
-    {
-        if ($format === OutputFormat::Dots) {
-            return '';
-        }
-
-        $indent = $format === OutputFormat::Verbose ? self::INDENT_VERBOSE : self::INDENT_COMPACT;
-        $indent .= \str_repeat(self::INDENT_STEP, $level);
-        $symbol = $assertion->isSuccess()
-            ? Style::success('✓')
-            : Style::error('✗');
-
-        $text = (string) $assertion;
-        $message = $assertion->getContext();
-        $message === '' or $text =  $text . ' → ' . Style::dim($message);
-
-        $text = "{$indent}  {$symbol} {$text}\n";
-        if ($assertion instanceof CompositeRecord) {
-            foreach ($assertion->getRecords() as $record) {
-                $record->isSuccess() or $text .= self::assertionLine($record, $format, $level + 1);
-            }
-        }
-
-        return $text;
     }
 
     /**

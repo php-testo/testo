@@ -22,11 +22,17 @@ use Testo\Pipeline\InterceptorCollector;
  */
 final readonly class AssertPlugin implements PluginConfigurator
 {
+    /**
+     * Channel the assertion history is written to (see {@see \Testo\Messenger}).
+     */
+    public const CHANNEL_HISTORY = 'assert-history';
+
     #[\Override]
     public function configure(Container $container): void
     {
         $collector = $container->get(InterceptorCollector::class);
-        $collector->addInterceptor(new AssertCollectorInterceptor());
+        # Registered by class so the container autowires the Messenger into the collector.
+        $collector->addInterceptor(AssertCollectorInterceptor::class);
         $collector->addInterceptor(new ExpectationsInterceptor());
     }
 }

@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Testo\Output\Teamcity\Teamcity;
 
 use Testo\Assert\State\Assertion\ComparisonFailure;
-use Testo\Assert\State\CompositeRecord;
-use Testo\Assert\State\Record;
-use Testo\Assert\TestState;
 use Testo\Common\Environment;
 use Testo\Common\Info;
 use Testo\Core\Context\CaseInfo;
@@ -235,14 +232,9 @@ final class TeamcityLogger
         $failure = $result->failure;
         $message = $failure?->getMessage() ?? 'Test failed';
 
-        $assertionHistory = $this->formatAssertionHistory($result);
         $details = $failure !== null
             ? self::formatThrowable($failure, $result->info->testDefinition->reflection)
             : '';
-
-        if ($assertionHistory !== '') {
-            $details = $assertionHistory . $details;
-        }
 
         $isComparison = $failure instanceof ComparisonFailure;
 
@@ -357,11 +349,6 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
 
-        $assertionHistory = $this->formatAssertionHistory($result);
-        if ($assertionHistory !== '') {
-            $this->publish(Formatter::testStdOut($name, $assertionHistory));
-        }
-
         $this->publish(Formatter::testFinished($name, $duration));
     }
 
@@ -400,14 +387,9 @@ final class TeamcityLogger
         $failure = $result->failure;
         $message = $failure?->getMessage() ?? 'Test failed';
 
-        $assertionHistory = $this->formatAssertionHistory($result);
         $details = $failure !== null
             ? self::formatThrowable($failure, $result->info->testDefinition->reflection)
             : '';
-
-        if ($assertionHistory !== '') {
-            $details = $assertionHistory . $details;
-        }
 
         $isComparison = $failure instanceof ComparisonFailure;
 
@@ -433,14 +415,9 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
 
-        $assertionHistory = $this->formatAssertionHistory($result);
         $details = $result->failure !== null
             ? self::formatThrowable($result->failure, $result->info->testDefinition->reflection)
             : '';
-
-        if ($assertionHistory !== '') {
-            $details = $assertionHistory . $details;
-        }
 
         $this->publish(
             Formatter::testFailed(
@@ -461,73 +438,13 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
 
-        $assertionHistory = $this->formatAssertionHistory($result);
-        if ($assertionHistory !== '') {
-            $this->publish(Formatter::testStdOut($name, $assertionHistory));
-        }
-
         $this->publish(
             Formatter::testStdOut(
                 $name,
-                'Warning: This test has been marked as risky',
+                "\nWarning: This test has been marked as risky",
             ),
         );
         $this->publish(Formatter::testFinished($name, $duration));
-    }
-
-    /**
-     * Formats assertion history for TeamCity output.
-     *
-     * Returns a formatted string with assertion history or empty string if no history available.
-     */
-    private function formatAssertionHistory(TestResult $result): string
-    {
-        $testState = $result->getAttribute(TestState::class);
-
-        if ($testState === null) {
-            return '';
-        }
-
-        if ($testState->history === []) {
-            return "Assertion History:\n  No assertions were made.\n\n";
-        }
-
-        $output = "Assertion History:\n";
-
-        foreach ($testState->history as $assertion) {
-            $output .= $this->formatAssertionLine($assertion);
-        }
-
-        return $output . "\n";
-    }
-
-    /**
-     * Formats a single assertion line for TeamCity output.
-     *
-     * @param int<0, max> $level Indentation level for nested assertions
-     */
-    private function formatAssertionLine(Record $assertion, int $level = 0): string
-    {
-        $indent = \str_repeat('  ', $level);
-        $symbol = $assertion->isSuccess() ? '✓' : '✗';
-
-        $text = (string) $assertion;
-        $context = $assertion->getContext();
-        if ($context !== '') {
-            $text = $text . ' → ' . $context;
-        }
-
-        $output = "{$indent}  {$symbol} {$text}\n";
-
-        if ($assertion instanceof CompositeRecord) {
-            foreach ($assertion->getRecords() as $record) {
-                if (!$record->isSuccess()) {
-                    $output .= $this->formatAssertionLine($record, $level + 1);
-                }
-            }
-        }
-
-        return $output;
     }
 
     /**

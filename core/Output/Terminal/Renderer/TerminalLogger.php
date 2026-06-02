@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Testo\Output\Terminal\Renderer;
 
 use Testo\Assert\State\Assertion\ComparisonFailure;
-use Testo\Assert\TestState;
 use Testo\Common\Environment;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
@@ -70,11 +69,6 @@ final class TerminalLogger
     ) {
         $this->output = $output ?? \STDOUT;
         $this->channels = new ChannelRenderer();
-    }
-
-    private function write(string $text): void
-    {
-        \fwrite($this->output, $text);
     }
 
     /**
@@ -235,6 +229,55 @@ final class TerminalLogger
     }
 
     /**
+     * Renders a test's captured messages as grouped channel output (with `[channel]` headers), or
+     * an empty string when there are none. Used to show a failed test's output after the fact when
+     * it was not streamed live.
+     */
+    private static function renderMessages(MessageLog $messages): string
+    {
+        if ($messages->isEmpty()) {
+            return '';
+        }
+
+        $renderer = new ChannelRenderer();
+        $output = '';
+        foreach ($messages as $message) {
+            $message->content === '' or $output .= $renderer->render($message);
+        }
+
+        return $output === '' ? '' : Style::dim('Output:') . "\n" . $output;
+    }
+
+    /**
+     * Builds a fully qualified test name with suite, case, method, and dataset.
+     *
+     * Format: Suite / CaseName :: methodName > DatasetName
+     *
+     * @return non-empty-string
+     */
+    private static function buildFullTestName(
+        TestInfo $info,
+        ?string $suiteName,
+        ?string $datasetName,
+    ): string {
+        $parts = [];
+
+        $suiteName !== null and $parts[] = $suiteName;
+        $parts[] = $info->caseInfo->name;
+
+        $name = \implode(' / ', $parts) . ' :: ' . $info->name;
+
+        $datasetName !== null and $name .= ' > ' . $datasetName;
+
+        return $name;
+    }
+
+    private function write(string $text): void
+    {
+        \fwrite($this->output, $text);
+    }
+
+    /**
      * Handles passed test status.
      *
      * @param int<0, max>|null $duration
@@ -278,7 +321,6 @@ final class TerminalLogger
 
         $this->write(Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
-        $this->printAssertionHistory($result);
         $this->currentTestName = null;
     }
 
@@ -309,24 +351,6 @@ final class TerminalLogger
 
             $this->write(Formatter::formatRun($item, $this->format));
             $runNumber++;
-        }
-    }
-
-    /**
-     * Prints assertion history for a test result if available.
-     */
-    private function printAssertionHistory(TestResult $result): void
-    {
-        $testState = $result->getAttribute(TestState::class);
-
-        if ($testState === null || $testState->history === []) {
-            return;
-        }
-
-        $this->write(Formatter::assertionHistoryHeader($this->format));
-
-        foreach ($testState->history as $assertion) {
-            $this->write(Formatter::assertionLine($assertion, $this->format));
         }
     }
 
@@ -427,50 +451,6 @@ final class TerminalLogger
 
             $index++;
         }
-    }
-
-    /**
-     * Renders a test's captured messages as grouped channel output (with `[channel]` headers), or
-     * an empty string when there are none. Used to show a failed test's output after the fact when
-     * it was not streamed live.
-     */
-    private static function renderMessages(MessageLog $messages): string
-    {
-        if ($messages->isEmpty()) {
-            return '';
-        }
-
-        $renderer = new ChannelRenderer();
-        $output = '';
-        foreach ($messages as $message) {
-            $message->content === '' or $output .= $renderer->render($message);
-        }
-
-        return $output === '' ? '' : Style::dim('Output:') . "\n" . $output;
-    }
-
-    /**
-     * Builds a fully qualified test name with suite, case, method, and dataset.
-     *
-     * Format: Suite / CaseName :: methodName > DatasetName
-     *
-     * @return non-empty-string
-     */
-    private static function buildFullTestName(
-        TestInfo $info,
-        ?string $suiteName,
-        ?string $datasetName,
-    ): string {
-        $parts = [];
-
-        $suiteName !== null and $parts[] = $suiteName;
-        $parts[] = $info->caseInfo->name;
-
-        $name = \implode(' / ', $parts) . ' :: ' . $info->name;
-
-        $datasetName !== null and $name .= ' > ' . $datasetName;
-
-        return $name;
     }
 
     /**
