@@ -4,7 +4,7 @@
     "plugin/messenger": "0.1.1",
     "plugin/convention": "0.1.2",
     "plugin/lifecycle": "0.1.2",
-    "plugin/retry": "0.1.1",
+    "plugin/retry": "0.1.2",
     "plugin/filter": "0.1.1",
     "plugin/test": "0.1.2",
     "plugin/assert": "0.1.4",
