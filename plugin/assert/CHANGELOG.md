@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/assert-0.1.4...assert-0.1.5) (2026-06-02)
+
+
+### Code Refactoring
+
+* **assert:** Migrate Assert plugin to channels ([9a13ff1](https://github.com/php-testo/testo/commit/9a13ff17efea95b4ab8289dea8913b3ec4f96a30))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/assert-0.1.3...assert-0.1.4) (2026-05-20)
 
 
