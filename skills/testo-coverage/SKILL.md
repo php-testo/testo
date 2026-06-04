@@ -47,6 +47,25 @@ vendor/bin/testo --coverage
 vendor/bin/testo --no-coverage   # explicit off, overrides config
 ```
 
+## CLI report flags (no `testo.php` needed)
+
+A `CodecovPlugin` ships in the application defaults in **shadow** (inert) mode, so three flags let
+external tools (the IDE plugin, Infection) pin report destinations **without any `testo.php` change**:
+
+```
+vendor/bin/testo --coverage-clover=build/clover.xml
+vendor/bin/testo --coverage-cobertura=build/cobertura.xml
+vendor/bin/testo --coverage-xml=build/coverage-xml      # directory, for Infection
+```
+
+- **Soft activation.** Passing any of these implies coverage collection *if a driver is available*;
+  with no Xdebug/PCOV the run skips silently (no file). `--no-coverage` still wins and disables it.
+- **Parallel with your config.** If `testo.php` already declares a `CodecovPlugin`, the flag-driven
+  reports run **alongside** your configured ones — both sets of files are written. The two are
+  **merged** into a single coverage collection (no double overhead): the deepest requested level
+  wins, test-type filters are unioned, and every report (yours + the CLI ones) is emitted.
+- The shadow stays fully inert when no report flag is present, so default behavior is unchanged.
+
 ## Picking the coverage level
 
 | Level | Cost | When |

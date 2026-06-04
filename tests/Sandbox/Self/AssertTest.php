@@ -204,7 +204,7 @@ final class AssertTest
     #[Repeat(50)]
     public function streamRepeat(): void
     {
-        usleep(5_000);
+        \usleep(5_000);
         Assert::true(true);
     }
 }

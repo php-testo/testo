@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Config\Plugin;
 
+use Testo\Codecov\CodecovPlugin;
 use Testo\Common\PluginConfigurator;
 use Testo\Filter\FilterPlugin;
 use Testo\Messenger\MessengerPlugin;
@@ -15,6 +16,8 @@ $_ = [];
 \class_exists(FilterPlugin::class) and $_[] = new FilterPlugin();
 \class_exists(JUnitPlugin::class) and $_[] = new JUnitPlugin();
 \class_exists(MessengerPlugin::class) and $_[] = new MessengerPlugin();
+# Inert shadow: stays dormant unless a `--coverage-*` report flag activates it.
+\class_exists(CodecovPlugin::class) and $_[] = new CodecovPlugin();
 
 \define([__NAMESPACE__ . '\DEFAULT_APPLICATION_PLUGINS'][0], $_);
 unset($_);

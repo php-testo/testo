@@ -111,6 +111,27 @@ final class Run extends Base
             'Write JUnit XML report to the given path (overrides JUnitPlugin config). '
             . 'Flag name mirrors PHPUnit / Pest / ParaTest.',
         );
+        $this->addOption(
+            'coverage-clover',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'Write a Clover XML coverage report to the given file. '
+            . 'Implies coverage collection if a driver is available.',
+        );
+        $this->addOption(
+            'coverage-cobertura',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'Write a Cobertura XML coverage report to the given file. '
+            . 'Implies coverage collection if a driver is available.',
+        );
+        $this->addOption(
+            'coverage-xml',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'Write a PHPUnit-style coverage XML report to the given directory (consumed by Infection). '
+            . 'Implies coverage collection if a driver is available.',
+        );
     }
 
     public function __invoke(

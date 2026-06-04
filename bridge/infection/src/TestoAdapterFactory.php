@@ -30,6 +30,11 @@ final class TestoAdapterFactory implements TestFrameworkAdapterFactory
             projectDir: $projectDir,
             tmpDir: $tmpDir,
             jUnitFilePath: $jUnitFilePath,
+            // Infection locates the coverage XML index at `<coverageDir>/coverage-xml/index.xml`,
+            // where `<coverageDir>` is exactly this `$tmpDir` (see Infection's IndexXmlCoverageLocator
+            // and CoverageChecker). We pass that directory back to Testo via `--coverage-xml=` so the
+            // report lands where Infection looks — no `PhpUnitXmlReport` needed in the user's testo.php.
+            coverageXmlPath: $tmpDir . '/coverage-xml',
         );
     }
 

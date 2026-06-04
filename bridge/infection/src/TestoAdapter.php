@@ -31,9 +31,16 @@ final class TestoAdapter implements TestFrameworkAdapter
          *      reflection-based resolution.
          */
         private readonly string $jUnitFilePath,
+        /**
+         * @var non-empty-string Directory where Infection expects the PHPUnit-style coverage XML
+         *      (it reads `<dir>/index.xml`). We pass it back to Testo via `--coverage-xml=<dir>`,
+         *      which activates the default (shadow) `CodecovPlugin` — so the coverage report is
+         *      produced even when the user's `testo.php` declares no coverage plugin.
+         */
+        private readonly string $coverageXmlPath = '',
     ) {
-        // On Windows, Infection's TestFrameworkFinder may hand us `bin/testo.bat`.
-        // We can't `php testo.bat` — strip the `.bat` and run the sibling PHP script directly.
+        # On Windows, Infection's TestFrameworkFinder may hand us `bin/testo.bat`.
+        # We can't `php testo.bat` — strip the `.bat` and run the sibling PHP script directly.
         if (\str_ends_with($testFrameworkExecutable, '.bat')) {
             $stripped = \substr($testFrameworkExecutable, 0, -4);
             \is_file($stripped) and $testFrameworkExecutable = $stripped;
@@ -92,16 +99,24 @@ final class TestoAdapter implements TestFrameworkAdapter
     #[\Override]
     public function getInitialTestRunCommandLine(string $extraOptions, array $phpExtraArgs, bool $skipCoverage): array
     {
-        // Drop empty entries Infection may pass (e.g. when --initial-tests-php-options is unset).
+        # Drop empty entries Infection may pass (e.g. when --initial-tests-php-options is unset).
         $phpExtraArgs = \array_values(\array_filter($phpExtraArgs, static fn(string $arg): bool => $arg !== ''));
 
         $cmd = [\PHP_BINARY, ...$phpExtraArgs, $this->testFrameworkExecutable, 'run', '--teamcity'];
 
-        $skipCoverage or $cmd[] = '--coverage';
+        if (!$skipCoverage) {
+            $cmd[] = '--coverage';
 
-        // Always request JUnit output at Infection's expected path. The
-        // default JUnitPlugin in `ApplicationPlugins::defaults()` is inert
-        // until activated by this flag; user-added instances ignore it.
+            # Request the coverage XML at Infection's expected directory. Like JUnit below, the
+            # default (shadow) CodecovPlugin in `ApplicationPlugins::defaults()` is inert until a
+            # `--coverage-*` flag activates it, so this works without any coverage plugin in
+            # testo.php; if the user declares one, the two are merged into a single collection.
+            $this->coverageXmlPath === '' or $cmd[] = '--coverage-xml=' . $this->coverageXmlPath;
+        }
+
+        # Always request JUnit output at Infection's expected path. The
+        # default JUnitPlugin in `ApplicationPlugins::defaults()` is inert
+        # until activated by this flag; user-added instances ignore it.
         $cmd[] = '--log-junit=' . $this->jUnitFilePath;
 
         $extraOptions === '' or $cmd[] = $extraOptions;
@@ -129,14 +144,14 @@ final class TestoAdapter implements TestFrameworkAdapter
             '--no-coverage',
         ];
 
-        // Narrow Testo's discovery to the test files Infection knows cover this mutant.
-        // This avoids tokenizing every test file in every suite just to filter most of them out.
-        //
-        // `TestLocation::filePath` is populated when Infection consumed a JUnit
-        // report (see {@see hasJUnitReport()}). When it's not — either because
-        // the report was missing or because that particular test wasn't found
-        // in the XML (e.g. free-function tests) — we resolve the path from
-        // the class/function name via reflection.
+        # Narrow Testo's discovery to the test files Infection knows cover this mutant.
+        # This avoids tokenizing every test file in every suite just to filter most of them out.
+        #
+        # `TestLocation::filePath` is populated when Infection consumed a JUnit
+        # report (see {@see hasJUnitReport()}). When it's not — either because
+        # the report was missing or because that particular test wasn't found
+        # in the XML (e.g. free-function tests) — we resolve the path from
+        # the class/function name via reflection.
         $paths = [];
         $methods = [];
         foreach ($coverageTests as $test) {

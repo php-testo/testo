@@ -166,6 +166,9 @@ vendor/bin/testo --filter='UserService'  # by name
 vendor/bin/testo --type=test           # only #[Test], not benches/inline
 vendor/bin/testo --coverage            # force coverage on
 vendor/bin/testo --no-coverage         # force coverage off
+vendor/bin/testo --coverage-clover=build/clover.xml        # write Clover report (no testo.php needed)
+vendor/bin/testo --coverage-cobertura=build/cobertura.xml  # write Cobertura report
+vendor/bin/testo --coverage-xml=build/coverage-xml         # write coverage XML dir (Infection)
 vendor/bin/testo --teamcity            # TeamCity output (CI/IDE)
 vendor/bin/testo --config=path/to/testo.php
 ```

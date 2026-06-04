@@ -5,24 +5,13 @@ declare(strict_types=1);
 namespace Testo\Codecov;
 
 use Internal\Container\Container;
-use Internal\Path;
-use Testo\Application\Config\ApplicationConfig;
-use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\Config\CoverageLevel;
 use Testo\Codecov\Config\CoverageMode;
-use Testo\Codecov\Exception\CoverageDriverNotAvailable;
-use Testo\Codecov\Internal\CoverageCollector;
-use Testo\Codecov\Internal\CoverageDriver;
+use Testo\Codecov\Internal\CoverageActivation;
 use Testo\Codecov\Internal\CoverageInput;
-use Testo\Codecov\Internal\Driver\PcovDriver;
-use Testo\Codecov\Internal\Driver\XdebugDriver;
-use Testo\Codecov\Internal\Middleware\CoverageTestInterceptor;
 use Testo\Codecov\Report\CoverageReport;
-use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
 use Testo\Core\Value\TestType;
-use Testo\Event\TestSuite\TestSuiteFinished;
-use Testo\Pipeline\InterceptorCollector;
 
 /**
  * Plugin that enables code coverage collection during test execution.
@@ -31,6 +20,31 @@ use Testo\Pipeline\InterceptorCollector;
  * CLI flags override the configured mode:
  * - `--coverage` → {@see CoverageMode::Always} (fail if no extension)
  * - `--no-coverage` → {@see CoverageMode::Never} (skip entirely)
+ *
+ * # Reports and CLI flags
+ *
+ * Reports are normally declared via the `reports` constructor argument. In addition, three CLI
+ * flags let external tools (the IDE plugin, Infection) pin report destinations regardless of
+ * `testo.php`:
+ * - `--coverage-clover=<file>` → a {@see Report\CloverReport}
+ * - `--coverage-cobertura=<file>` → a {@see Report\CoberturaReport}
+ * - `--coverage-xml=<dir>` → a {@see Report\PhpUnitXmlReport}
+ *
+ * Passing any of these implies coverage collection at {@see CoverageMode::IfAvailable} (collect and
+ * write if a driver is present, skip silently otherwise); `--no-coverage` still wins.
+ *
+ * # How activation works
+ *
+ * A `CodecovPlugin` is part of {@see \Testo\Application\Config\Plugin\ApplicationPlugins::defaults()},
+ * so every project gets one **inert** shadow copy for free. Inert means: with no reports to write
+ * (no `reports` argument and no CLI report flag) the plugin does nothing. The shadow exists so the
+ * CLI report flags activate coverage without any change to `testo.php`.
+ *
+ * Multiple instances are **merged**, not run side by side: the shadow default and a user-declared
+ * plugin both feed a single {@see CoverageActivation} coordinator that collects coverage once. The
+ * merged collection uses the deepest requested {@see CoverageLevel}, the strongest mode, the union
+ * of `testTypes`, and runs every contributed report (user reports + CLI-flag reports). Users can
+ * therefore add their own report paths in parallel with the flag-driven ones without conflict.
  *
  * @api
  */
@@ -74,99 +88,35 @@ final readonly class CodecovPlugin implements PluginConfigurator
     #[\Override]
     public function configure(Container $container): void
     {
-        // CLI flag overrides plugin config
-        $mode = $container->get(CoverageInput::class)->resolveMode() ?? $this->collect;
-
-        $src = $container->get(ApplicationConfig::class)->src;
-        $driver = self::detectDriver($mode, $src);
-
-        if ($driver === null) {
+        // CLI flag overrides plugin config.
+        $input = $container->get(CoverageInput::class);
+        $mode = $input->resolveMode() ?? $this->collect;
+        if ($mode === CoverageMode::Never) {
             return;
         }
 
-        $driver = $driver->withLevel($this->level);
+        $activation = $container->has(CoverageActivation::class)
+            ? $container->get(CoverageActivation::class)
+            : self::createActivation($container);
 
-        $container->get(InterceptorCollector::class)
-            ->addInterceptor(new CoverageTestInterceptor($driver, $this->testTypes));
+        // Own reports plus the CLI-flag reports, which the first activating plugin claims for the
+        // whole run so multiple instances don't emit them twice.
+        $reports = [...$this->reports, ...$activation->claimCliReports($input)];
 
-        $aggregate = new CoverageCollector($this->reports, self::resolveSourceRoot($src));
-        $container->set($aggregate, destroy: true);
+        // Soft activation: with nothing to write, stay inert. This is how the shadow default with
+        // no CLI flags configured contributes nothing.
+        if ($reports === []) {
+            return;
+        }
 
-        $container->get(EventListenerCollector::class)
-            ->addListener(TestSuiteFinished::class, static function (TestSuiteFinished $event) use ($aggregate): void {
-                $aggregate->mergeSuiteResult($event->suiteResult);
-            });
+        $activation->contribute($this->level, $this->testTypes, $reports, $mode);
     }
 
-    private static function detectDriver(CoverageMode $mode, FinderConfig $src): ?CoverageDriver
+    private static function createActivation(Container $container): CoverageActivation
     {
-        return match (true) {
-            $mode === CoverageMode::Never => null,
-            \extension_loaded('pcov') => PcovDriver::create($src),
-            self::isXdebugCoverageEnabled() => XdebugDriver::create($src),
-            $mode === CoverageMode::Always => throw new CoverageDriverNotAvailable(),
-            default => null,
-        };
-    }
+        $activation = new CoverageActivation($container);
+        $container->set($activation);
 
-    /**
-     * Xdebug must be both loaded and running with `coverage` in its mode list;
-     * otherwise `xdebug_start_code_coverage()` is a no-op and reports come back empty.
-     */
-    private static function isXdebugCoverageEnabled(): bool
-    {
-        if (!\extension_loaded('xdebug')) {
-            return false;
-        }
-
-        $mode = \ini_get('xdebug.mode');
-        if (!\is_string($mode) || $mode === '') {
-            return false;
-        }
-
-        foreach (\explode(',', $mode) as $part) {
-            if (\trim($part) === 'coverage') {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Derives a project source root from the configured source includes.
-     *
-     * For the typical `src: ['src']` config, returns the parent of `src/` — the project root,
-     * which is what reports want for relative-path computation. For multiple includes, returns
-     * their common parent directory. Reports treat `null` as "fall back to {@see \getcwd()}".
-     */
-    private static function resolveSourceRoot(FinderConfig $src): ?string
-    {
-        if ($src->includes === []) {
-            return null;
-        }
-
-        if (\count($src->includes) === 1) {
-            $parent = (string) $src->includes[0]->parent();
-            return $parent === '.' ? null : $parent;
-        }
-
-        // Common prefix at the directory-segment level.
-        $segments = \array_map(
-            static fn(Path $p): array => \explode('/', (string) $p),
-            $src->includes,
-        );
-        $first = $segments[0];
-        $commonLen = \count($first);
-        foreach ($segments as $seg) {
-            $i = 0;
-            $max = \min($commonLen, \count($seg));
-            while ($i < $max && $first[$i] === $seg[$i]) {
-                $i++;
-            }
-            $commonLen = $i;
-        }
-
-        return $commonLen === 0 ? null : \implode('/', \array_slice($first, 0, $commonLen));
+        return $activation;
     }
 }
