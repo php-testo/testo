@@ -1,6 +1,28 @@
 name: Mutation Tests
 
-on: [ 'push', 'pull_request' ]
+on:
+  push:
+    paths:
+      - 'core/**'
+      - 'plugin/**'
+      - 'bridge/**'
+      - 'tests/**'
+      - 'infection.json'
+      - 'testo.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/infection.yml'
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'plugin/**'
+      - 'bridge/**'
+      - 'tests/**'
+      - 'infection.json'
+      - 'testo.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/infection.yml'
 
 jobs:
   infection:

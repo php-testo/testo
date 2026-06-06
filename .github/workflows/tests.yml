@@ -1,6 +1,26 @@
 name: Tests
 
-on: [ 'push', 'pull_request' ]
+on:
+  push:
+    paths:
+      - 'core/**'
+      - 'plugin/**'
+      - 'bridge/**'
+      - 'tests/**'
+      - 'testo.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'plugin/**'
+      - 'bridge/**'
+      - 'tests/**'
+      - 'testo.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/tests.yml'
 
 jobs:
   ci:
