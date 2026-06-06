@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/data-0.1.4...data-0.1.5) (2026-06-06)
+
+
+### Features
+
+* **core:** aggregate run statistics via Summary DTO and show assertions ([cd20c42](https://github.com/php-testo/testo/commit/cd20c42e034376721c820dc34d628ba5c1598f63))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/data-0.1.3...data-0.1.4) (2026-05-29)
 
 

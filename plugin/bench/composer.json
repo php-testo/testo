@@ -21,10 +21,10 @@
     ],
     "require": {
         "php": ">=8.2",
-        "testo/data": "0.1 - 1",
-        "testo/inline": "0.1 - 1",
-        "testo/messenger": "0.1 - 1",
-        "testo/testo": "*"
+        "testo/data": "^0.1.5",
+        "testo/inline": "^0.1.4",
+        "testo/messenger": "^0.1.3",
+        "testo/testo": "0.10.18 - 1"
     },
     "autoload": {
         "psr-4": {

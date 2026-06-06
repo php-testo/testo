@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/php-testo/testo/compare/codecov-0.1.6...codecov-0.1.7) (2026-06-06)
+
+
+### Features
+
+* **coverage:** add CLI flags for Clover, Cobertura, and XML coverage reports ([#204](https://github.com/php-testo/testo/issues/204)) ([f87365b](https://github.com/php-testo/testo/commit/f87365bacb1e1dab1f909258b698b28236f48bb1))
+
 ## [0.1.6](https://github.com/php-testo/testo/compare/codecov-0.1.5...codecov-0.1.6) (2026-05-29)
 
 

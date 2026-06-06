@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.7](https://github.com/php-testo/testo/compare/repeat-0.1.6...repeat-0.1.7) (2026-06-06)
+
+
+### Features
+
+* **core:** aggregate run statistics via Summary DTO and show assertions ([cd20c42](https://github.com/php-testo/testo/commit/cd20c42e034376721c820dc34d628ba5c1598f63))
+
+
+### Bug Fixes
+
+* **repeat:** ensure log messages end with a newline for clarity ([a549ce7](https://github.com/php-testo/testo/commit/a549ce7a68cacace7a507f599cb5cc0e34d7e014))
+
+
+### Code Refactoring
+
+* **testing:** update TestRunner namespace from Traits to Helper ([14ebce3](https://github.com/php-testo/testo/commit/14ebce3a0191f82e8dbf5ae145dd3c435ef64fd0))
+
 ## [0.1.6](https://github.com/php-testo/testo/compare/repeat-0.1.5...repeat-0.1.6) (2026-06-02)
 
 
