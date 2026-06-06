@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/php-testo/testo/compare/bench-0.1.3...bench-0.1.4) (2026-06-06)
+
+
+### Features
+
+* **core:** aggregate run statistics via Summary DTO and show assertions ([cd20c42](https://github.com/php-testo/testo/commit/cd20c42e034376721c820dc34d628ba5c1598f63))
+
 ## [0.1.3](https://github.com/php-testo/testo/compare/bench-0.1.2...bench-0.1.3) (2026-06-01)
 
 
