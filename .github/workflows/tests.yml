@@ -40,6 +40,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # The split sub-packages pin testo/testo; in CI the root is a detached
+      # commit (dev-<sha>), so its version must be declared explicitly.
+      - name: Resolve root package version
+        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
