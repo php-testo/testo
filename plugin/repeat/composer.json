@@ -22,8 +22,8 @@
     ],
     "require": {
         "php": ">=8.2",
-        "testo/messenger": "0.1 - 1",
-        "testo/testo": "*"
+        "testo/messenger": "^0.1.3",
+        "testo/testo": "0.10.18 - 1"
     },
     "autoload": {
         "psr-4": {
