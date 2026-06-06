@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/retry-0.1.2...retry-0.1.3) (2026-06-06)
+
+
+### Features
+
+* **core:** aggregate run statistics via Summary DTO and show assertions ([cd20c42](https://github.com/php-testo/testo/commit/cd20c42e034376721c820dc34d628ba5c1598f63))
+
+
+### Code Refactoring
+
+* **testing:** update TestRunner namespace from Traits to Helper ([14ebce3](https://github.com/php-testo/testo/commit/14ebce3a0191f82e8dbf5ae145dd3c435ef64fd0))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/retry-0.1.1...retry-0.1.2) (2026-06-02)
 
 
