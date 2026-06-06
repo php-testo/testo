@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/bridge-infection-0.1.4...bridge-infection-0.1.5) (2026-06-06)
+
+
+### Features
+
+* **coverage:** add CLI flags for Clover, Cobertura, and XML coverage reports ([#204](https://github.com/php-testo/testo/issues/204)) ([f87365b](https://github.com/php-testo/testo/commit/f87365bacb1e1dab1f909258b698b28236f48bb1))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/bridge-infection-0.1.3...bridge-infection-0.1.4) (2026-05-17)
 
 

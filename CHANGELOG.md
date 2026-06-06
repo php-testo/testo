@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.18](https://github.com/php-testo/testo/compare/0.10.17...0.10.18) (2026-06-06)
+
+
+### Bug Fixes
+
+* **release:** pin testo/testo with open upper bound to resolve on dev branches ([c9b4762](https://github.com/php-testo/testo/commit/c9b4762bb9331e022f6428c73a715f17cbc36cf8))
+
+
+### Code Refactoring
+
+* **core:** Change DTO classes to readonly ([1f3e49b](https://github.com/php-testo/testo/commit/1f3e49bba85a3a7b87d6c91bebc3c338276d4298))
+
 ## [0.10.17](https://github.com/php-testo/testo/compare/0.10.16...0.10.17) (2026-06-06)
 
 
