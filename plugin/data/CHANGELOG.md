@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.6](https://github.com/php-testo/testo/compare/data-0.1.5...data-0.1.6) (2026-06-07)
+
+
+### Features
+
+* **core:** aggregate run statistics via Summary DTO and show assertions ([cd20c42](https://github.com/php-testo/testo/commit/cd20c42e034376721c820dc34d628ba5c1598f63))
+
+
+### Code Refactoring
+
+* **messenger:** Move messenger into Core ([0ac2728](https://github.com/php-testo/testo/commit/0ac272898b9e24e240f1e301573c8102abbc2ce0))
+
 ## [0.1.5](https://github.com/php-testo/testo/compare/data-0.1.4...data-0.1.5) (2026-06-06)
 
 

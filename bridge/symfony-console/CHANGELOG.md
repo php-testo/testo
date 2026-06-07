@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.6](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.5...bridge-symfony-console-0.1.6) (2026-06-07)
+
+
+### Features
+
+* **coverage:** add CLI flags for Clover, Cobertura, and XML coverage reports ([#204](https://github.com/php-testo/testo/issues/204)) ([f87365b](https://github.com/php-testo/testo/commit/f87365bacb1e1dab1f909258b698b28236f48bb1))
+
+
+### Code Refactoring
+
+* **messenger:** Move messenger into Core ([0ac2728](https://github.com/php-testo/testo/commit/0ac272898b9e24e240f1e301573c8102abbc2ce0))
+
 ## [0.1.5](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.4...bridge-symfony-console-0.1.5) (2026-06-06)
 
 

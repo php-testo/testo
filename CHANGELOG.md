@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.10.19](https://github.com/php-testo/testo/compare/0.10.18...0.10.19) (2026-06-07)
+
+
+### Features
+
+* **core:** aggregate run statistics via Summary DTO and show assertions ([cd20c42](https://github.com/php-testo/testo/commit/cd20c42e034376721c820dc34d628ba5c1598f63))
+* **coverage:** add CLI flags for Clover, Cobertura, and XML coverage reports ([#204](https://github.com/php-testo/testo/issues/204)) ([f87365b](https://github.com/php-testo/testo/commit/f87365bacb1e1dab1f909258b698b28236f48bb1))
+* **testing:** implement property autowiring with `Inject` attribute and `InjectPlugin` ([0915a3f](https://github.com/php-testo/testo/commit/0915a3f0d6969b4b477278e023c6e4d5f44ae63b))
+
+
+### Bug Fixes
+
+* **release:** pin testo/testo with open upper bound to resolve on dev branches ([c9b4762](https://github.com/php-testo/testo/commit/c9b4762bb9331e022f6428c73a715f17cbc36cf8))
+* **repeat:** ensure log messages end with a newline for clarity ([a549ce7](https://github.com/php-testo/testo/commit/a549ce7a68cacace7a507f599cb5cc0e34d7e014))
+
+
+### Code Refactoring
+
+* **core:** Change DTO classes to readonly ([1f3e49b](https://github.com/php-testo/testo/commit/1f3e49bba85a3a7b87d6c91bebc3c338276d4298))
+* **messenger:** Move messenger into Core ([0ac2728](https://github.com/php-testo/testo/commit/0ac272898b9e24e240f1e301573c8102abbc2ce0))
+* **teamcity:** Disable rendering if channel title ([d12228f](https://github.com/php-testo/testo/commit/d12228fdd4bc3ca1604016aad1de9a561315072c))
+* **testing:** update TestRunner namespace from Traits to Helper ([14ebce3](https://github.com/php-testo/testo/commit/14ebce3a0191f82e8dbf5ae145dd3c435ef64fd0))
+
 ## [0.10.18](https://github.com/php-testo/testo/compare/0.10.17...0.10.18) (2026-06-06)
 
 
