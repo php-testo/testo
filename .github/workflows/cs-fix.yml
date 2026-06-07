@@ -1,5 +1,3 @@
-.release-please-config:
-  json:
 on:
   push:
     branches:
