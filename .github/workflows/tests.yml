@@ -33,7 +33,7 @@ jobs:
         dependencies: [ lowest , highest ]
       max-parallel: 2
 
-    name: Tests PHP${{ matrix.php }}-{{ matrix.dependencies }}
+    name: Tests PHP${{ matrix.php }}-${{ matrix.dependencies }}
 
     steps:
 
