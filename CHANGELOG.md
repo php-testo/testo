@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.20](https://github.com/php-testo/testo/compare/0.10.19...0.10.20) (2026-06-07)
+
+
+### Bug Fixes
+
+* **codecov:** enforce --coverage driver requirement during configuration ([1e143d3](https://github.com/php-testo/testo/commit/1e143d309b1cd24b2fccf6c0db39c03c1b30e0a1))
+
 ## [0.10.19](https://github.com/php-testo/testo/compare/0.10.18...0.10.19) (2026-06-07)
 
 

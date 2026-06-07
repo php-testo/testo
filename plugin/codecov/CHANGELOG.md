@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/php-testo/testo/compare/codecov-0.1.8...codecov-0.1.9) (2026-06-07)
+
+
+### Bug Fixes
+
+* **codecov:** enforce --coverage driver requirement during configuration ([1e143d3](https://github.com/php-testo/testo/commit/1e143d309b1cd24b2fccf6c0db39c03c1b30e0a1))
+
 ## [0.1.8](https://github.com/php-testo/testo/compare/codecov-0.1.7...codecov-0.1.8) (2026-06-07)
 
 
