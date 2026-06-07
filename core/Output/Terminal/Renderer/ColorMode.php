@@ -92,6 +92,6 @@ enum ColorMode
      */
     private static function isTTY(): bool
     {
-        return \function_exists('posix_isatty') && @posix_isatty(\STDOUT);
+        return \function_exists('posix_isatty') && @\posix_isatty(\STDOUT);
     }
 }

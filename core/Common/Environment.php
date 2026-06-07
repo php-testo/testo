@@ -59,7 +59,7 @@ final class Environment
     {
         self::init();
         return self::$xDebugExists && \function_exists('xdebug_info')
-            ? \xdebug_info('mode')
+            ? xdebug_info('mode')
             : [];
     }
 
