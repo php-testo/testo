@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.1.6](https://github.com/php-testo/testo/compare/data-0.1.5...data-0.1.6) (2026-06-07)
+
+
+### Features
+
+* **core:** aggregate run statistics via Summary DTO and show assertions ([cd20c42](https://github.com/php-testo/testo/commit/cd20c42e034376721c820dc34d628ba5c1598f63))
+
+
+### Bug Fixes
+
+* **codecov:** collect per-data-set coverage from MultipleResult child results ([b287f91](https://github.com/php-testo/testo/commit/b287f91d6e8e019a7e8566c6905c20dad0393c23))
+* **composer:** Switch testo/* requires from `^1.0@dev` to `0.1 - 1` ([403768f](https://github.com/php-testo/testo/commit/403768f9058cf09bca8c823f76e64530e31e1dc4))
+* **data:** accumulate data sets across all provider attributes instead of keeping only the last ([b287f91](https://github.com/php-testo/testo/commit/b287f91d6e8e019a7e8566c6905c20dad0393c23))
+
+
+### Code Refactoring
+
+* **data:** Move Data plugin in a separated repository ([8f3d971](https://github.com/php-testo/testo/commit/8f3d971a331db5e3d6bfb911a5f941e75d498945))
+* **messenger:** Move messenger into Core ([0ac2728](https://github.com/php-testo/testo/commit/0ac272898b9e24e240f1e301573c8102abbc2ce0))
+* Normalize Test Suite naming ([9fd0cd3](https://github.com/php-testo/testo/commit/9fd0cd33f1ce6e6a49332be53d98bf6f78a15217))
+
 ## [0.1.5](https://github.com/php-testo/testo/compare/data-0.1.4...data-0.1.5) (2026-06-06)
 
 

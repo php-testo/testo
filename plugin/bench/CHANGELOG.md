@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/bench-0.1.4...bench-0.1.5) (2026-06-07)
+
+
+### Code Refactoring
+
+* **messenger:** Move messenger into Core ([0ac2728](https://github.com/php-testo/testo/commit/0ac272898b9e24e240f1e301573c8102abbc2ce0))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/bench-0.1.3...bench-0.1.4) (2026-06-06)
 
 

@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/codecov-0.1.7...codecov-0.1.8) (2026-06-07)
+
+
+### Features
+
+* **coverage:** add CLI flags for Clover, Cobertura, and XML coverage reports ([#204](https://github.com/php-testo/testo/issues/204)) ([f87365b](https://github.com/php-testo/testo/commit/f87365bacb1e1dab1f909258b698b28236f48bb1))
+
+
+### Bug Fixes
+
+* **codecov:** collect per-data-set coverage from MultipleResult child results ([b287f91](https://github.com/php-testo/testo/commit/b287f91d6e8e019a7e8566c6905c20dad0393c23))
+* **composer:** Switch testo/* requires from `^1.0@dev` to `0.1 - 1` ([403768f](https://github.com/php-testo/testo/commit/403768f9058cf09bca8c823f76e64530e31e1dc4))
+* **coverage:** Check for Xdebug coverage mode before initializing driver ([5254038](https://github.com/php-testo/testo/commit/52540384e80dde58697007c4ee42925f72b70b7b))
+* **data:** accumulate data sets across all provider attributes instead of keeping only the last ([b287f91](https://github.com/php-testo/testo/commit/b287f91d6e8e019a7e8566c6905c20dad0393c23))
+
+
+### Code Refactoring
+
+* **codecov:** Enable covering Inline tests by default again ([4b9bc47](https://github.com/php-testo/testo/commit/4b9bc47491a6b448ae6042986a615f46429f035c))
+* **codecov:** Move Codecov plugin in a separated repository ([63983b1](https://github.com/php-testo/testo/commit/63983b13b811a50ddbe5dfbbca3630105d75700d))
+* **codecov:** Stop covering Inline tests by default because of [#159](https://github.com/php-testo/testo/issues/159) ([94ac94c](https://github.com/php-testo/testo/commit/94ac94c5ce146b08cc1f461e5bb907addb17d620))
+* **messenger:** Move messenger into Core ([0ac2728](https://github.com/php-testo/testo/commit/0ac272898b9e24e240f1e301573c8102abbc2ce0))
+* Normalize Test Suite naming ([9fd0cd3](https://github.com/php-testo/testo/commit/9fd0cd33f1ce6e6a49332be53d98bf6f78a15217))
+
 ## [0.1.7](https://github.com/php-testo/testo/compare/codecov-0.1.6...codecov-0.1.7) (2026-06-06)
 
 
