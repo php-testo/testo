@@ -24,7 +24,7 @@
         "ext-xmlwriter": "*",
         "testo/data": "^0.1.6",
         "testo/inline": "^0.1.5",
-        "testo/testo": "0.10.19 - 1"
+        "testo/testo": "0.10.20 - 1"
     },
     "autoload": {
         "psr-4": {

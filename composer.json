@@ -39,7 +39,7 @@
         "testo/assert": "^0.1.7",
         "testo/bench": "^0.1.5",
         "testo/bridge-symfony-console": "^0.1.6",
-        "testo/codecov": "^0.1.8",
+        "testo/codecov": "^0.1.9",
         "testo/convention": "^0.1.3",
         "testo/data": "^0.1.6",
         "testo/filter": "^0.1.2",

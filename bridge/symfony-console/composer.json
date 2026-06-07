@@ -23,7 +23,7 @@
     "require": {
         "php": ">=8.2",
         "symfony/console": "^6.4 || ^7 || ^8.0",
-        "testo/testo": "0.10.19 - 1"
+        "testo/testo": "0.10.20 - 1"
     },
     "autoload": {
         "psr-4": {

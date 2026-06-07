@@ -24,7 +24,7 @@
         "testo/assert": "^0.1.7",
         "testo/data": "^0.1.6",
         "testo/filter": "^0.1.2",
-        "testo/testo": "0.10.19 - 1"
+        "testo/testo": "0.10.20 - 1"
     },
     "autoload": {
         "psr-4": {
