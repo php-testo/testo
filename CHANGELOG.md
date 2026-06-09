@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.21](https://github.com/php-testo/testo/compare/0.10.20...0.10.21) (2026-06-09)
+
+
+### Bug Fixes
+
+* **codecov:** detect Xdebug coverage mode via xdebug_info('mode') ([703f9ca](https://github.com/php-testo/testo/commit/703f9ca54d29d15add1a32733a4964f81e4d3f89))
+
 ## [0.10.20](https://github.com/php-testo/testo/compare/0.10.19...0.10.20) (2026-06-07)
 
 
