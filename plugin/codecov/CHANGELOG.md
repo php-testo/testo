@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/php-testo/testo/compare/codecov-0.1.9...codecov-0.1.10) (2026-06-09)
+
+
+### Bug Fixes
+
+* **codecov:** detect Xdebug coverage mode via xdebug_info('mode') ([703f9ca](https://github.com/php-testo/testo/commit/703f9ca54d29d15add1a32733a4964f81e4d3f89))
+
 ## [0.1.9](https://github.com/php-testo/testo/compare/codecov-0.1.8...codecov-0.1.9) (2026-06-07)
 
 
