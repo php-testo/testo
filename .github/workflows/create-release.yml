@@ -44,7 +44,13 @@ jobs:
 
       - name: 🔗 Sync intra-package version constraints
         if: ${{ steps.release.outputs.prs_created == 'true' }}
-        run: php .github/release-please/sync-deps.php
+        run: |
+          # Provide the base-branch manifest so the sync only refreshes
+          # testo/testo in packages actually released this cycle.
+          git fetch --depth=1 origin 1.x
+          git show FETCH_HEAD:resources/version.json > "${RUNNER_TEMP}/prev-version.json" \
+            || cp resources/version.json "${RUNNER_TEMP}/prev-version.json"
+          php .github/release-please/sync-deps.php "${RUNNER_TEMP}/prev-version.json"
 
       - name: 📌 Commit synced constraints
         if: ${{ steps.release.outputs.prs_created == 'true' }}

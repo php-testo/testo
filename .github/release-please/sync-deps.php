@@ -9,19 +9,26 @@
  * release PR branch. At that point resources/version.json already holds the
  * versions that this release cycle will publish, so we just mirror them.
  *
- * For every `testo/*` entry in the `require` / `require-dev` sections we set the
- * constraint to `^<version>`, where <version> is taken from the manifest
- * (resources/version.json) by the package's real composer name.
+ * We only touch composer.json of packages ACTUALLY BEING RELEASED this cycle
+ * (their version changed in the manifest). For each such package every `testo/*`
+ * entry in `require` / `require-dev` is refreshed from the manifest by composer
+ * name: siblings to `^<version>`, the framework meta-package `testo/testo` to
+ * `<root> - 1` (see ROOT_PACKAGE). Dormant packages are left completely untouched
+ * — a release never churns the constraints of packages it isn't publishing.
+ *
+ * Usage:
+ *   php sync-deps.php [PREVIOUS_MANIFEST]
+ * PREVIOUS_MANIFEST is the base branch's resources/version.json. When given,
+ * packages whose version differs from it are "released this cycle". Without it we
+ * cannot tell what changed, so we fall back to refreshing every package.
  *
  * Notes:
  *  - Only `require` and `require-dev` are touched. `replace`, `suggest` and the
  *    `repositories[].options.versions` dev-aliases are deliberately left alone.
  *  - Editing is surgical (regex on the matched section block), so untouched
  *    lines keep their exact formatting — re-runs produce no spurious diff.
- *  - Bumping a constraint here does NOT bump that package's own version: the
- *    release version is decided by release-please from conventional commits.
- *    So "only B changed" never drags A into a release — A's composer.json may
- *    point at the newer B, but A is re-published only on its own next release.
+ *  - Refreshing a constraint here does NOT bump that package's own version:
+ *    the release version is decided by release-please from conventional commits.
  *
  * Exit code is always 0; it prints a summary of what changed. Git add/commit/
  * push is handled by the workflow, not here.
@@ -33,11 +40,10 @@ const MANIFEST = 'resources/version.json';
 const SECTIONS = ['require', 'require-dev'];
 
 /**
- * The framework meta-package. It is pinned with an open upper bound
- * (`<version> - 1`) instead of a caret, because in the dev monorepo the root is
- * resolved as the `1.x` branch (`1.9999…-dev`): a caret `^0.10.x` would exclude
- * it, while `0.10.x - 1` (i.e. `>=0.10.x <2.0.0`) spans the whole pre-2.0 range.
- * Every other testo/* package is a sibling pinned with a caret.
+ * The framework meta-package that plugins/bridges depend on. Unlike siblings
+ * (pinned with a caret), it is refreshed with an open upper bound
+ * (`<version> - 1`, i.e. `>=<version> <2.0.0`) so it still resolves against the
+ * `1.x` dev branch (`1.9999…-dev`), which a caret like `^0.10.x` would exclude.
  */
 const ROOT_PACKAGE = 'testo/testo';
 
@@ -45,36 +51,66 @@ $root = \getcwd();
 
 $manifest = readJson($root . '/' . MANIFEST);
 
+// Optional previous manifest (base branch's version.json). Lets us tell which
+// packages are being released this cycle.
+$hasPrevious = isset($argv[1]);
+$previous = $hasPrevious ? readJson($argv[1]) : [];
+
+// Paths released this cycle: version new or changed vs the previous manifest —
+// exactly the packages release-please is publishing now. These are the ONLY
+// composer.json files we touch. Without a previous manifest we cannot tell what
+// changed, so we fall back to refreshing every package.
+$released = [];
+foreach ($manifest as $path => $version) {
+    if (!$hasPrevious || !\array_key_exists($path, $previous) || $previous[$path] !== $version) {
+        $released[$path] = true;
+    }
+}
+
+// The version testo/testo is refreshed to (open upper bound applied later).
+$rootVersion = isset($manifest['.']) ? (string) $manifest['.'] : null;
+
 // Build map: real composer package name => target version, from the manifest.
+// The root (testo/testo) is intentionally excluded — siblings only.
 $versions = [];
 foreach ($manifest as $path => $version) {
-    $composerPath = $path === '.' ? 'composer.json' : "$path/composer.json";
-    $composer = readJson($root . '/' . $composerPath);
+    if ($path === '.') {
+        continue;
+    }
+    $composer = readJson($root . "/$path/composer.json");
     $name = $composer['name'] ?? null;
     if (!\is_string($name) || $name === '') {
-        \fwrite(\STDERR, "Skipping `$composerPath`: missing package name\n");
+        \fwrite(\STDERR, "Skipping `$path/composer.json`: missing package name\n");
         continue;
     }
     $versions[$name] = (string) $version;
 }
 
-// Every composer.json that may reference a testo/* package.
-$files = \array_merge(
-    [$root . '/composer.json'],
-    globFiles($root, 'plugin/*/composer.json'),
-    globFiles($root, 'bridge/*/composer.json'),
-);
+// Every composer.json that may reference a testo/* package, mapped to its
+// manifest path so we know whether the owning package is part of this release.
+$files = ['composer.json' => '.'];
+foreach (['plugin/*/composer.json', 'bridge/*/composer.json'] as $pattern) {
+    foreach (globFiles($root, $pattern) as $abs) {
+        $rel = \str_replace('\\', '/', \substr($abs, \strlen($root) + 1));
+        $files[$rel] = \dirname($rel); // e.g. plugin/repeat/composer.json => plugin/repeat
+    }
+}
 
 $changed = [];
-foreach ($files as $file) {
+foreach ($files as $rel => $path) {
+    $file = $root . '/' . $rel;
     if (!\is_file($file)) {
         continue;
     }
+    // Only touch packages being released this cycle; leave dormant ones alone.
+    if (!isset($released[$path])) {
+        continue;
+    }
     $original = (string) \file_get_contents($file);
-    $updated = syncFile($original, $versions);
+    $updated = syncFile($original, $versions, $rootVersion);
     if ($updated !== $original) {
         \file_put_contents($file, $updated);
-        $changed[] = substr($file, \strlen($root) + 1);
+        $changed[] = $rel;
     }
 }
 
@@ -92,27 +128,38 @@ exit(0);
 /**
  * Rewrite testo/* constraints in the require / require-dev blocks only.
  *
- * @param array<string, string> $versions package name => version
+ * Called only for packages released this cycle (the caller gates on that), so
+ * every managed testo/* constraint here is refreshed.
+ *
+ * @param array<string, string> $versions sibling package name => version (no root)
+ * @param string|null $rootVersion core version for testo/testo (`<rootVersion> - 1`);
+ *        null only if the manifest has no root entry, in which case it's left as-is
  */
-function syncFile(string $content, array $versions): string
+function syncFile(string $content, array $versions, ?string $rootVersion): string
 {
     foreach (SECTIONS as $section) {
         // require/require-dev values are plain strings, so the block contains
         // no nested braces — [^{}]* captures the whole section body safely.
         $pattern = '/("' . preg_quote($section, '/') . '"\s*:\s*\{)([^{}]*)(\})/';
 
-        $content = (string) \preg_replace_callback($pattern, static function (array $m) use ($versions): string {
+        $content = (string) \preg_replace_callback($pattern, static function (array $m) use ($versions, $rootVersion): string {
             $body = \preg_replace_callback(
                 '/("(testo\/[^"]+)"\s*:\s*")([^"]*)(")/',
-                static function (array $dep) use ($versions): string {
+                static function (array $dep) use ($versions, $rootVersion): string {
                     $name = $dep[2];
-                    if (!isset($versions[$name])) {
-                        return $dep[0]; // not a managed split package — leave as-is
+
+                    // Core meta-package: open upper bound instead of a caret.
+                    if ($name === ROOT_PACKAGE) {
+                        return $rootVersion === null
+                            ? $dep[0]
+                            : $dep[1] . $rootVersion . ' - 1' . $dep[4];
                     }
-                    $constraint = $name === ROOT_PACKAGE
-                        ? $versions[$name] . ' - 1'
-                        : '^' . $versions[$name];
-                    return $dep[1] . $constraint . $dep[4];
+
+                    // Not a managed split package — leave the constraint as authored.
+                    if (!isset($versions[$name])) {
+                        return $dep[0];
+                    }
+                    return $dep[1] . '^' . $versions[$name] . $dep[4];
                 },
                 $m[2],
             );

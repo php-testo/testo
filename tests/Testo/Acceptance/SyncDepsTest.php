@@ -6,6 +6,7 @@ namespace Tests\Testo\Acceptance;
 
 use Symfony\Component\Process\Process;
 use Testo\Assert;
+use Testo\Codecov\CoversNothing;
 use Testo\Test;
 
 /**
@@ -19,11 +20,17 @@ use Testo\Test;
  * No #[Covers]: the subject is a standalone CI script, not an autoloaded class.
  */
 #[Test]
+#[CoversNothing]
 final class SyncDepsTest
 {
     private const SCRIPT = '/.github/release-please/sync-deps.php';
 
-    public function pinsRequireConstraintsToManifestVersions(): void
+    /**
+     * Without a previous manifest the script can't tell what changed, so it falls
+     * back to refreshing every package: siblings get a caret, testo/testo gets an
+     * open upper bound, non-testo deps stay untouched.
+     */
+    public function refreshesEveryPackageWhenNoPreviousManifest(): void
     {
         $dir = $this->fixture(
             ['.' => '1.0.0', 'plugin/a' => '1.2.3', 'plugin/b' => '0.5.0'],
@@ -50,41 +57,58 @@ final class SyncDepsTest
             Assert::same($root['php'], '>=8.2', 'non-testo dependency must stay untouched');
 
             $a = $this->requireOf($dir, 'plugin/a/composer.json');
-            Assert::same($a['testo/b'], '^0.5.0');
-            Assert::same($a['testo/testo'], '1.0.0 - 1', 'core meta-package uses an open upper bound');
+            Assert::same($a['testo/b'], '^0.5.0', 'sibling: caret');
+            Assert::same($a['testo/testo'], '1.0.0 - 1', 'core meta-package: open upper bound');
         } finally {
             $this->cleanup($dir);
         }
     }
 
     /**
-     * The framework meta-package testo/testo is pinned with `<version> - 1`
-     * (open up to 2.0), while sibling packages keep a caret. The open bound is
-     * required because the dev monorepo resolves the root as the 1.x branch,
-     * which a caret like ^0.10.x would exclude.
+     * With a previous manifest, ONLY packages whose version changed this cycle
+     * are touched. For those, every testo/* constraint is refreshed (siblings
+     * with a caret, testo/testo with an open upper bound). Dormant packages —
+     * including the root — keep all their constraints exactly as authored, even
+     * when a sibling they depend on was released, so a release never churns
+     * packages it isn't publishing.
      */
-    public function pinsCoreMetaPackageWithOpenUpperBoundButSiblingsWithCaret(): void
+    public function touchesOnlyPackagesReleasedThisCycle(): void
     {
         $dir = $this->fixture(
-            ['.' => '0.10.18', 'plugin/a' => '0.3.1', 'plugin/b' => '0.4.0'],
+            ['.' => '0.10.20', 'plugin/a' => '0.3.2', 'plugin/b' => '0.4.0'],
             [
+                // root is dormant (version unchanged) — its testo/a must stay put
                 'composer.json' => $this->composer('testo/testo', ['testo/a' => '0.1 - 1']),
+                // plugin/a is released — everything in it gets refreshed
                 'plugin/a/composer.json' => $this->composer('testo/a', [
-                    'testo/testo' => '*',
+                    'testo/testo' => '0.10.10 - 1',
                     'testo/b' => '0.1 - 1',
                 ]),
-                'plugin/b/composer.json' => $this->composer('testo/b'),
+                // plugin/b is dormant — left completely alone
+                'plugin/b/composer.json' => $this->composer('testo/b', [
+                    'testo/testo' => '0.10.10 - 1',
+                    'testo/a' => '0.1 - 1',
+                ]),
             ],
         );
 
         try {
-            $this->run($dir);
+            # Previous manifest: only plugin/a's version differs (0.3.1 -> 0.3.2).
+            $this->run($dir, ['.' => '0.10.20', 'plugin/a' => '0.3.1', 'plugin/b' => '0.4.0']);
 
-            Assert::same($this->requireOf($dir, 'composer.json')['testo/a'], '^0.3.1', 'sibling: caret');
+            Assert::same(
+                $this->requireOf($dir, 'composer.json')['testo/a'],
+                '0.1 - 1',
+                'dormant root: sibling constraint left as authored',
+            );
 
             $a = $this->requireOf($dir, 'plugin/a/composer.json');
-            Assert::same($a['testo/testo'], '0.10.18 - 1', 'meta: open upper bound');
-            Assert::same($a['testo/b'], '^0.4.0', 'sibling: caret');
+            Assert::same($a['testo/testo'], '0.10.20 - 1', 'released package: testo/testo refreshed');
+            Assert::same($a['testo/b'], '^0.4.0', 'released package: sibling refreshed');
+
+            $b = $this->requireOf($dir, 'plugin/b/composer.json');
+            Assert::same($b['testo/testo'], '0.10.10 - 1', 'dormant package: testo/testo untouched');
+            Assert::same($b['testo/a'], '0.1 - 1', 'dormant package: sibling untouched');
         } finally {
             $this->cleanup($dir);
         }
@@ -223,10 +247,20 @@ final class SyncDepsTest
         return $this->encode($data);
     }
 
-    private function run(string $cwd): string
+    /**
+     * @param array<string, string>|null $previousManifest base-branch manifest;
+     *        when given, enables testo/testo syncing for changed packages
+     */
+    private function run(string $cwd, ?array $previousManifest = null): string
     {
         $script = \dirname(__DIR__, 3) . self::SCRIPT;
-        $process = new Process([\PHP_BINARY, $script], $cwd);
+        $args = [\PHP_BINARY, $script];
+        if ($previousManifest !== null) {
+            $prev = $cwd . '/prev-version.json';
+            \file_put_contents($prev, $this->encode($previousManifest));
+            $args[] = $prev;
+        }
+        $process = new Process($args, $cwd);
         $process->run();
 
         Assert::true($process->isSuccessful(), 'sync-deps.php exited with: ' . $process->getErrorOutput());
