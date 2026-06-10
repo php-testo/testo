@@ -1,5 +1,5 @@
 {
-    ".": "0.10.21",
+    ".": "0.10.22",
     "plugin/repeat": "0.1.8",
     "plugin/convention": "0.1.3",
     "plugin/lifecycle": "0.1.4",
@@ -11,7 +11,7 @@
     "plugin/inline": "0.1.5",
     "plugin/bench": "0.1.5",
     "plugin/codecov": "0.1.10",
-    "plugin/facade": "0.1.0",
+    "plugin/facade": "0.1.1",
     "bridge/symfony-console": "0.1.6",
     "bridge/infection": "0.1.6"
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.22](https://github.com/php-testo/testo/compare/0.10.21...0.10.22) (2026-06-10)
+
+
+### Features
+
+* Add Facade package ([50fe007](https://github.com/php-testo/testo/commit/50fe0070205b3f676f645e58e35df7d86e15b689))
+
 ## [0.10.21](https://github.com/php-testo/testo/compare/0.10.20...0.10.21) (2026-06-09)
 
 
