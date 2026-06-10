@@ -58,7 +58,7 @@
         "roxblnfk/unpoly": "1.8.2",
         "spiral/code-style": "^2.2.2",
         "testo/bridge-infection": "^0.1.6",
-        "testo/facade": "^0.1",
+        "testo/facade": "^0.1.1",
         "vimeo/psalm": "^7.0@dev"
     },
     "suggest": {
