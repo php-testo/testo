@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.23](https://github.com/php-testo/testo/compare/0.10.22...0.10.23) (2026-06-11)
+
+
+### Bug Fixes
+
+* add `psr/log` dependency for messenger ([d02ec96](https://github.com/php-testo/testo/commit/d02ec96d2dc6971b8ce6e841cc4f8ffd44ec8f5d))
+
 ## [0.10.22](https://github.com/php-testo/testo/compare/0.10.21...0.10.22) (2026-06-10)
 
 
