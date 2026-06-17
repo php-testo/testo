@@ -158,12 +158,12 @@
         "infect": [
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",
-            "infection --configuration=infection.json  --threads=max"
+            "infection --configuration=infection.json --threads=max --min-msi=50"
         ],
         "infect:ci": [
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",
-            "infection --ansi --configuration=infection.json --logger-github  --threads=max --show-mutations=0"
+            "infection --ansi --configuration=infection.json --logger-github --threads=max --show-mutations=0 --min-msi=50"
         ],
         "psalm": "psalm",
         "psalm:baseline": "psalm --set-baseline=psalm-baseline.xml",
