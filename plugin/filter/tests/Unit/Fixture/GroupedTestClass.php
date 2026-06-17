@@ -31,3 +31,20 @@ final class GroupedTestClass
     #[Group('db', 'fast')]
     public function multiTest(): void {}
 }
+
+/**
+ * Second test case in the same file (no class-level group). Used to verify that the
+ * interceptor processes every case and that a class-level group does not leak across classes.
+ *
+ * Effective group sets:
+ * - apiTest:    api
+ * - ungrouped:  (none)
+ */
+#[Test]
+final class OtherGroupedTestClass
+{
+    #[Group('api')]
+    public function apiTest(): void {}
+
+    public function ungrouped(): void {}
+}

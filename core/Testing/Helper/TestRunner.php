@@ -94,7 +94,16 @@ final class TestRunner
             static fn(PluginConfigurator $p): bool => !\in_array($p::class, $defaultClasses, true),
         ));
 
-        return Application::createFromConfig(
+        # Build the application through the input pipeline so that CLI options/arguments/env
+        # declared on the TestingSuite are hydrated into config scopes (e.g. FilterInput),
+        # then override the ApplicationConfig with the synthetic testing suite.
+        $app = Application::createFromInput(
+            inputOptions: $config->options,
+            inputArguments: $config->arguments,
+            environment: $config->env,
+        );
+
+        $app->getContainer()->set(
             new ApplicationConfig(
                 src: [],
                 suites: [
@@ -107,7 +116,10 @@ final class TestRunner
                     ),
                 ],
             ),
+            ApplicationConfig::class,
         );
+
+        return $app;
     }
 
     /**

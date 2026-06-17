@@ -51,20 +51,39 @@ final class GroupFilterTest
 
     public function classLevelGroupPropagatesToEveryTest(): void
     {
+        # `integration` is declared only on GroupedTestClass and must not leak into
+        # OtherGroupedTestClass (apiTest/ungrouped), so exactly its four methods survive.
         Assert::same(
             $this->select(new Filter(groups: ['integration'])),
             ['dbTest', 'multiTest', 'plainTest', 'slowTest'],
         );
     }
 
+    public function groupMatchingOnlyTheSecondCaseStillSurvives(): void
+    {
+        # The first case yields no match and is skipped; the interceptor must continue
+        # to the second case rather than stop. `api` lives only on OtherGroupedTestClass.
+        Assert::same($this->select(new Filter(groups: ['api'])), ['apiTest']);
+    }
+
+    public function nameMatchingOnlyTheSecondCaseStillSurvives(): void
+    {
+        # The name filter matches nothing in the first case (empty name-match -> skipped),
+        # while the second case matches: the interceptor must keep iterating past the first.
+        Assert::same($this->select(new Filter(names: ['apiTest'])), ['apiTest']);
+    }
+
     public function excludeDropsMatchingTests(): void
     {
+        # `slow` exists only on GroupedTestClass::slowTest; every other test survives.
         Assert::array($this->select(new Filter(excludeGroups: ['slow'])))
-            ->hasCount(3)
+            ->hasCount(5)
             ->notContains('slowTest')
             ->contains('dbTest')
             ->contains('plainTest')
-            ->contains('multiTest');
+            ->contains('multiTest')
+            ->contains('apiTest')
+            ->contains('ungrouped');
     }
 
     public function excludeTakesPrecedenceOverInclude(): void
@@ -90,11 +109,38 @@ final class GroupFilterTest
         Assert::same($this->select(new Filter(names: ['nonExistentMethod'], groups: ['db'])), []);
     }
 
+    public function leadingBackslashInFqnIsAccepted(): void
+    {
+        # A fully-qualified name written with a leading namespace separator must still match
+        # the whole case (the interceptor trims surrounding `\` before matching).
+        $fqn = '\\' . GroupedTestClass::class;
+
+        Assert::same(
+            $this->select(new Filter(names: [$fqn])),
+            ['dbTest', 'multiTest', 'plainTest', 'slowTest'],
+        );
+    }
+
+    public function includeGroupMatchingNothingYieldsEmpty(): void
+    {
+        Assert::same($this->select(new Filter(groups: ['nonExistentGroup'])), []);
+    }
+
+    public function excludeRemovingAllTestsOfACaseDropsIt(): void
+    {
+        # `integration` covers every method of GroupedTestClass, so the whole case is
+        # dropped, leaving only the second case's tests.
+        Assert::same(
+            $this->select(new Filter(excludeGroups: ['integration'])),
+            ['apiTest', 'ungrouped'],
+        );
+    }
+
     public function withoutAnyGroupFilterAllTestsRemain(): void
     {
         Assert::same(
             $this->select(new Filter()),
-            ['dbTest', 'multiTest', 'plainTest', 'slowTest'],
+            ['apiTest', 'dbTest', 'multiTest', 'plainTest', 'slowTest', 'ungrouped'],
         );
     }
 
