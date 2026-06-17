@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo;
+namespace Testo\Filter;
 
 /**
  * Labels a class, method, or function with one or more group names for selective filtering.
@@ -10,7 +10,7 @@ namespace Testo;
  * Groups are flat string labels — there is no key/value semantics. They let you run or skip
  * tests by category (e.g. `db`, `slow`, `integration`) without touching test names or paths.
  *
- * Selection happens through the `--group` CLI flag (or the {@see Filter} DTO):
+ * Selection happens through the `--group` CLI flag (or the {@see \Testo\Filter} DTO):
  * - `--group=db` runs only tests in group `db` (multiple `--group` values use OR logic).
  * - `--group=!slow` skips tests in group `slow` (the `!` prefix marks an exclusion).
  * - Group filters combine with name/path/suite filters using AND logic.

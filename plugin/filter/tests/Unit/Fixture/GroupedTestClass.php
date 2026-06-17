@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Filter\Unit\Fixture;
 
-use Testo\Group;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**

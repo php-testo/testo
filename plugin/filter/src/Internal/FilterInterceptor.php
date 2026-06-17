@@ -13,7 +13,7 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Definition\TestDefinitions;
 use Testo\Filter;
 use Testo\Filter\DataPointer;
-use Testo\Group;
+use Testo\Filter\Group;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\CaseLocatorInterceptor;
 use Testo\Pipeline\Middleware\FileLocatorInterceptor;
@@ -183,7 +183,7 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
      * - Otherwise: only methods/functions whose name matches are eligible.
      * - If no name filters are provided, every test is eligible.
      *
-     * Group pass ({@see \Testo\Group}):
+     * Group pass ({@see Group}):
      * - The group set of a test is the union of its class-level and method/function-level groups.
      * - With include groups: a test passes only if its group set intersects them (OR logic).
      * - With exclude groups: a test is dropped if its group set intersects them (takes precedence).
@@ -310,7 +310,7 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     }
 
     /**
-     * Collect all group names declared on a class, method, or function via {@see \Testo\Group}.
+     * Collect all group names declared on a class, method, or function via {@see Group}.
      *
      * @return list<non-empty-string>
      */

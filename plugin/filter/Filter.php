@@ -57,7 +57,7 @@ final readonly class Filter
      * Group names to include. A test passes when its group set intersects this list (OR logic).
      * An empty list means no group inclusion filter is applied.
      *
-     * @see Group
+     * @see \Testo\Filter\Group
      *
      * @var list<non-empty-string>
      */
@@ -67,7 +67,7 @@ final readonly class Filter
      * Group names to exclude. A test is dropped when its group set intersects this list.
      * Exclusion takes precedence over inclusion.
      *
-     * @see Group
+     * @see \Testo\Filter\Group
      *
      * @var list<non-empty-string>
      */

@@ -32,7 +32,7 @@ Selects which tests run on a given invocation by name patterns, paths, suites, t
 Label tests with the `#[Group]` attribute and select them with `--group`:
 
 ```php
-use Testo\Group;
+use Testo\Filter\Group;
 use Testo\Test;
 
 #[Test]

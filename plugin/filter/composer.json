@@ -28,8 +28,7 @@
             "Testo\\Filter\\": "src/"
         },
         "files": [
-            "Filter.php",
-            "Group.php"
+            "Filter.php"
         ]
     },
     "minimum-stability": "dev",

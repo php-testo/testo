@@ -152,7 +152,7 @@ Label tests with `#[Group]` (from the `testo/filter` plugin) to select or skip t
 It targets classes, methods, and functions, is repeatable, and is variadic.
 
 ```php
-use Testo\Group;
+use Testo\Filter\Group;
 
 #[Test]
 #[Group('integration')]      // inherited by every test of the class

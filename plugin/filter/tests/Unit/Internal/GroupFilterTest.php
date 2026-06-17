@@ -17,7 +17,7 @@ use Testo\Tokenizer\Reflection\TokenizedFile;
 use Tests\Filter\Unit\Fixture\GroupedTestClass;
 
 /**
- * Verifies the {@see \Testo\Group} filtering of {@see FilterInterceptor::locateTestCases()}.
+ * Verifies the {@see \Testo\Filter\Group} filtering of {@see FilterInterceptor::locateTestCases()}.
  *
  * Fixture (two cases in one file). Effective group set = class-level groups + method-level groups:
  *
