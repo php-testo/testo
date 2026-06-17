@@ -163,6 +163,8 @@ vendor/bin/testo --suite=Unit          # one suite
 vendor/bin/testo --suite=Unit --suite=Integration  # multiple
 vendor/bin/testo --path=tests/Unit/Foo # subdirectory of a suite
 vendor/bin/testo --filter='UserService'  # by name
+vendor/bin/testo --group=integration   # only the #[Group('integration')] tests
+vendor/bin/testo --group=!slow         # everything except the "slow" group
 vendor/bin/testo --type=test           # only #[Test], not benches/inline
 vendor/bin/testo --coverage            # force coverage on
 vendor/bin/testo --no-coverage         # force coverage off

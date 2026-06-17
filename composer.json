@@ -87,6 +87,7 @@
             "Tests\\Convention\\": "plugin/convention/tests/",
             "Tests\\Data\\": "plugin/data/tests/",
             "Tests\\Facade\\": "plugin/facade/tests/",
+            "Tests\\Filter\\": "plugin/filter/tests/",
             "Tests\\Lifecycle\\": "plugin/lifecycle/tests/",
             "Tests\\Repeat\\": "plugin/repeat/tests/",
             "Tests\\Retry\\": "plugin/retry/tests/",

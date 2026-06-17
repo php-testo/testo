@@ -23,11 +23,26 @@ final readonly class FilterPlugin implements PluginConfigurator
     {
         $container->get(InterceptorProvider::class)->addInterceptor(FilterInterceptor::class);
 
-        $container->bind(Filter::class, static fn(FilterInput $scope): Filter => new Filter(
-            suites: $scope->suite,
-            names: $scope->filter,
-            paths: $scope->path,
-            type: $scope->type,
-        ));
+        $container->bind(Filter::class, static function (FilterInput $scope): Filter {
+            $groups = $excludeGroups = [];
+            foreach ($scope->group as $group) {
+                if (!\str_starts_with($group, '!')) {
+                    $groups[] = $group;
+                    continue;
+                }
+
+                $name = \substr($group, 1);
+                $name === '' or $excludeGroups[] = $name;
+            }
+
+            return new Filter(
+                suites: $scope->suite,
+                names: $scope->filter,
+                paths: $scope->path,
+                type: $scope->type,
+                groups: $groups,
+                excludeGroups: $excludeGroups,
+            );
+        });
     }
 }

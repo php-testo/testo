@@ -21,8 +21,9 @@ use Testo\Output\Terminal\TerminalPlugin;
  *
  * Filter Logic:
  * - Multiple values of same filter type use OR logic (e.g., --filter=test1 --filter=test2)
- * - Different filter types use AND logic (e.g., --filter + --path + --suite)
- * - Final result: AND(OR(filters), OR(paths), OR(suites))
+ * - Different filter types use AND logic (e.g., --filter + --path + --suite + --group)
+ * - Final result: AND(OR(filters), OR(paths), OR(suites), OR(groups))
+ * - Groups marked with a leading "!" are excluded and take precedence over inclusion
  *
  * ```bash
  *  # Run all tests in default location
@@ -43,6 +44,15 @@ use Testo\Output\Terminal\TerminalPlugin;
  *
  *  # Filter by test suite name (OR logic)
  *  ./bin/testo run --suite=Unit --suite=Integration
+ *
+ *  # Run only tests in the given groups (OR logic)
+ *  ./bin/testo run --group=db --group=integration
+ *
+ *  # Exclude a group with the "!" prefix (runs everything except the "slow" group)
+ *  ./bin/testo run --group=!slow
+ *
+ *  # Combine groups with name filters (AND between types)
+ *  ./bin/testo run --group=db --filter=UserTest
  *
  *  # Combine filters with AND logic between types
  *  # Runs tests that match (UserTest::testCreate OR UserTest::testUpdate) AND (Critical suite)
@@ -91,6 +101,13 @@ final class Run extends Base
             null,
             InputOption::VALUE_OPTIONAL,
             'Filter test cases by type (e.g. test, test-inline, bench)',
+        );
+        $this->addOption(
+            'group',
+            null,
+            InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+            'Run only tests in these groups (OR logic). '
+            . 'Prefix a name with "!" to exclude it instead, e.g. --group=db --group=!slow.',
         );
         $this->addOption(
             'coverage',

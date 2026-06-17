@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Testo\Filter\Internal;
 
+use Testo\Common\Reflection;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
+use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\CaseDefinitions;
+use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Definition\TestDefinitions;
 use Testo\Filter;
 use Testo\Filter\DataPointer;
+use Testo\Group;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\CaseLocatorInterceptor;
 use Testo\Pipeline\Middleware\FileLocatorInterceptor;
@@ -48,8 +52,28 @@ use Testo\Tokenizer\Reflection\TokenizedFile;
 #[InterceptorOptions(order: InterceptorOptions::ORDER_FILTER, onConflict: ConflictPolicy::First)]
 final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInterceptor, TestRunInterceptor
 {
-    /** @var bool True if filtering is disabled (no filters provided) */
+    /** @var bool True if filtering is disabled entirely (no name and no group filters provided) */
     private readonly bool $skip;
+
+    /** @var bool True if no name/path filters were provided (group filters may still apply) */
+    private readonly bool $nameSkip;
+
+    /** @var bool True if no group filters were provided */
+    private readonly bool $groupSkip;
+
+    /**
+     * Group names to include. A test passes when its group set intersects this list (OR logic).
+     *
+     * @var list<non-empty-string>
+     */
+    private readonly array $groups;
+
+    /**
+     * Group names to exclude. A test is dropped when its group set intersects this list.
+     *
+     * @var list<non-empty-string>
+     */
+    private readonly array $excludeGroups;
 
     /**
      * Fully qualified names to filter by (without provider/dataset indices).
@@ -115,10 +139,14 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
             }
         }
 
-        $this->skip = $fqn === [] && $method === [] && $fragment === [];
+        $this->nameSkip = $fqn === [] && $method === [] && $fragment === [];
+        $this->groupSkip = $filter->groups === [] && $filter->excludeGroups === [];
+        $this->skip = $this->nameSkip && $this->groupSkip;
         $this->fqn = $fqn;
         $this->method = $method;
         $this->fragment = $fragment;
+        $this->groups = $filter->groups;
+        $this->excludeGroups = $filter->excludeGroups;
         $this->skip or $this->pointers = new \SplObjectStorage();
     }
 
@@ -136,8 +164,10 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     #[\Override]
     public function locateFile(TokenizedFile $file, callable $next): ?bool
     {
+        # Group filters require reflection (Stage 2); tokens carry no attributes,
+        # so when there are no name/path filters we cannot pre-filter files here.
         return match (true) {
-            $this->skip,
+            $this->nameSkip,
             $this->matchFile($file) => $next($file),
             default => false,
         };
@@ -146,10 +176,17 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     /**
      * Stage 2: Filter test cases and methods after reflection analysis.
      *
-     * Filters loaded test definitions based on class and method names:
-     * - If class name matches: includes entire case with all tests
-     * - If class name doesn't match: filters individual methods/functions
-     * - If no methods match: excludes entire case
+     * Filtering is the AND of two independent passes (a test survives only if it passes both):
+     *
+     * Name/path pass:
+     * - If class name matches: the whole case is eligible (all its tests).
+     * - Otherwise: only methods/functions whose name matches are eligible.
+     * - If no name filters are provided, every test is eligible.
+     *
+     * Group pass ({@see \Testo\Group}):
+     * - The group set of a test is the union of its class-level and method/function-level groups.
+     * - With include groups: a test passes only if its group set intersects them (OR logic).
+     * - With exclude groups: a test is dropped if its group set intersects them (takes precedence).
      *
      * @param FileDefinitions $file File with test case definitions
      * @param callable(FileDefinitions): CaseDefinitions $next Next interceptor in the chain
@@ -167,52 +204,130 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
 
         $result = [];
         foreach ($definitions->getCases() as $case) {
-            $methods = [];
-            # Filter by class name
-            if ($case->reflection !== null) {
-                $className = $case->reflection->getName();
-                # Match class name
-                foreach ([...$this->fqn, ...$this->fragment] as [$name, $_]) {
-                    if (self::has($name, $className)) {
-                        $result[] = $case;
-                        continue 2;
-                    }
-                }
-
-                # Match methods
-                foreach ($this->method as [$filterClass, $filterMethod, $pointer]) {
-                    # Skip if class name does not match
-                    if (!self::has($filterClass, $className)) {
-                        continue;
-                    }
-
-                    # Match method name
-                    foreach ($case->tests->getTests() as $name => $test) {
-                        if ($filterMethod === $test->reflection->getShortName()) {
-                            $methods[$name] = $test;
-                            $this->pointers[$test->reflection] = $pointer;
-                        }
-                    }
-                }
-
+            $tests = $this->matchTestsByName($case);
+            if ($tests === []) {
+                continue;
             }
 
-            # Filter by function name
-            foreach ($case->tests->getTests() as $name => $test) {
-                foreach ([...$this->fqn, ...$this->fragment] as [$f, $pointer]) {
-                    if (self::has($f, $test->reflection->getName())) {
-                        $methods[$name] = $test;
-                        $this->pointers[$test->reflection] = $pointer;
-                        continue 2;
-                    }
-                }
-            }
-
-            # We have matched methods
-            $methods === [] or $result[] = $case->with(tests: TestDefinitions::fromArray(...$methods));
+            $tests = $this->filterTestsByGroup($case, $tests);
+            $tests === [] or $result[] = $case->with(tests: TestDefinitions::fromArray(...$tests));
         }
 
         return CaseDefinitions::fromArray(...$result);
+    }
+
+    /**
+     * Name/path pass: select the tests of a case that match the configured name filters.
+     *
+     * Also records {@see DataPointer}s for matched tests so Stage 3 can inject them.
+     *
+     * @param CaseDefinition $case
+     *
+     * @return array<string, TestDefinition> Matched tests keyed by name
+     */
+    private function matchTestsByName(CaseDefinition $case): array
+    {
+        # No name/path filters: every test is eligible.
+        if ($this->nameSkip) {
+            return $case->tests->getTests();
+        }
+
+        $methods = [];
+
+        if ($case->reflection !== null) {
+            $className = $case->reflection->getName();
+
+            # Match class name: the whole case is eligible.
+            foreach ([...$this->fqn, ...$this->fragment] as [$name, $_]) {
+                if (self::has($name, $className)) {
+                    return $case->tests->getTests();
+                }
+            }
+
+            # Match methods by class::method.
+            foreach ($this->method as [$filterClass, $filterMethod, $pointer]) {
+                if (!self::has($filterClass, $className)) {
+                    continue;
+                }
+
+                foreach ($case->tests->getTests() as $name => $test) {
+                    if ($filterMethod === $test->reflection->getShortName()) {
+                        $methods[$name] = $test;
+                        $this->pointers[$test->reflection] = $pointer;
+                    }
+                }
+            }
+        }
+
+        # Match by function name (or FQN).
+        foreach ($case->tests->getTests() as $name => $test) {
+            foreach ([...$this->fqn, ...$this->fragment] as [$f, $pointer]) {
+                if (self::has($f, $test->reflection->getName())) {
+                    $methods[$name] = $test;
+                    $this->pointers[$test->reflection] = $pointer;
+                    continue 2;
+                }
+            }
+        }
+
+        return $methods;
+    }
+
+    /**
+     * Group pass: keep only tests whose group set satisfies the include/exclude filters.
+     *
+     * @param CaseDefinition $case
+     * @param array<string, TestDefinition> $tests
+     *
+     * @return array<string, TestDefinition> Surviving tests keyed by name
+     */
+    private function filterTestsByGroup(CaseDefinition $case, array $tests): array
+    {
+        if ($this->groupSkip) {
+            return $tests;
+        }
+
+        $caseGroups = $case->reflection === null ? [] : self::groupNamesOf($case->reflection);
+
+        $result = [];
+        foreach ($tests as $name => $test) {
+            $groups = \array_merge($caseGroups, self::groupNamesOf($test->reflection));
+
+            # Exclude takes precedence.
+            if ($this->excludeGroups !== [] && \array_intersect($groups, $this->excludeGroups) !== []) {
+                continue;
+            }
+
+            # Include filter: must intersect when provided.
+            if ($this->groups !== [] && \array_intersect($groups, $this->groups) === []) {
+                continue;
+            }
+
+            $result[$name] = $test;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Collect all group names declared on a class, method, or function via {@see \Testo\Group}.
+     *
+     * @return list<non-empty-string>
+     */
+    private static function groupNamesOf(\ReflectionClass|\ReflectionFunctionAbstract $reflection): array
+    {
+        $attributes = $reflection instanceof \ReflectionClass
+            ? Reflection::fetchClassAttributes($reflection, attributeClass: Group::class)
+            : Reflection::fetchFunctionAttributes($reflection, attributeClass: Group::class);
+
+        $names = [];
+        foreach ($attributes as $attribute) {
+            foreach ($attribute->newInstance()->names as $name) {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
     }
 
     /**

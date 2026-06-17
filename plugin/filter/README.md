@@ -25,7 +25,44 @@
 
 ## About
 
-Selects which tests run on a given invocation by name patterns, paths, suites, types, and dataset pointers. Powers Testo's `--filter`, `--path`, `--suite`, and `--type` CLI flags.
+Selects which tests run on a given invocation by name patterns, paths, suites, types, dataset pointers, and groups. Powers Testo's `--filter`, `--path`, `--suite`, `--type`, and `--group` CLI flags.
+
+## Groups
+
+Label tests with the `#[Group]` attribute and select them with `--group`:
+
+```php
+use Testo\Group;
+use Testo\Test;
+
+#[Test]
+#[Group('integration')]      // every test of this class inherits "integration"
+final class OrderTest
+{
+    #[Group('slow')]         // groups: integration, slow
+    public function importsLargeDataset(): void { /* ... */ }
+
+    public function createsOrder(): void { /* ... */ } // groups: integration
+}
+```
+
+The attribute targets classes, methods, and functions, is repeatable, and accepts several names
+at once (`#[Group('db', 'slow')]`). A test's group set is the union of its class-level and
+member-level groups.
+
+```bash
+# Run only tests in the "db" or "integration" group (OR logic)
+./vendor/bin/testo run --group=db --group=integration
+
+# Exclude a group with the "!" prefix (run everything except "slow")
+./vendor/bin/testo run --group=!slow
+
+# Combine with other filters (AND between filter types)
+./vendor/bin/testo run --group=db --filter=OrderTest
+```
+
+Exclusion (`!`) takes precedence over inclusion. Group filters combine with name/path/suite/type
+filters using AND logic.
 
 ## Install
 

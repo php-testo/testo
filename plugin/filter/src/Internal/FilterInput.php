@@ -37,4 +37,12 @@ final class FilterInput
      */
     #[InputOption('type')]
     public ?string $type = null;
+
+    /**
+     * Raw group filters. A leading `!` marks an exclusion; it is stripped and resolved downstream.
+     *
+     * @var non-empty-string[]
+     */
+    #[InputOption('group')]
+    public array $group = [];
 }
