@@ -18,7 +18,8 @@ namespace Testo\Filter;
  * Behavior depends on the target:
  *
  * On a class — every test of that case inherits the group. The group set of a test is the union
- * of its class-level and its own method/function-level groups.
+ * of all groups reachable from it: the method (and any overridden parent method it overrides),
+ * the test class, its parent classes, and traits.
  *
  * ```
  *  #[Test]
@@ -43,16 +44,15 @@ namespace Testo\Filter;
  *  }
  * ```
  *
- * The attribute is repeatable and variadic, so the following are equivalent:
+ * The attribute is variadic — pass several group names at once:
  *
  * ```
  *  #[Group('db', 'slow')]
- *  #[Group('db')] #[Group('slow')]
  * ```
  *
  * @api
  */
-#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD | \Attribute::TARGET_FUNCTION | \Attribute::IS_REPEATABLE)]
+#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD | \Attribute::TARGET_FUNCTION)]
 final readonly class Group
 {
     /**

@@ -149,7 +149,7 @@ Hooks may be either instance methods or `static` — Testo invokes them accordin
 ## Grouping tests
 
 Label tests with `#[Group]` (from the `testo/filter` plugin) to select or skip them by category.
-It targets classes, methods, and functions, is repeatable, and is variadic.
+It targets classes, methods, and functions and is variadic (pass several names at once).
 
 ```php
 use Testo\Filter\Group;
@@ -163,8 +163,9 @@ final class OrderTest
 }
 ```
 
-A test's group set is the union of its class-level and member-level groups. Select with `--group`
-(OR across values); prefix with `!` to exclude. Group filters AND with name/path/suite filters.
+A test's group set is the union of all groups reachable from it: its own method (and any overridden
+parent method), the test class, its parent classes, and traits. Select with `--group` (OR across
+values); prefix with `!` to exclude. Group filters AND with name/path/suite filters.
 
 ## Running
 

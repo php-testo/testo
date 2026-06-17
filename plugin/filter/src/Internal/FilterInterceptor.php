@@ -312,6 +312,9 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     /**
      * Collect all group names declared on a class, method, or function via {@see Group}.
      *
+     * More than one {@see Group} may be returned because parent classes, traits, and method
+     * prototypes are traversed — not because the attribute repeats on a single declaration.
+     *
      * @return list<non-empty-string>
      */
     private static function groupNamesOf(\ReflectionClass|\ReflectionFunctionAbstract $reflection): array

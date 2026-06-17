@@ -46,9 +46,9 @@ final class OrderTest
 }
 ```
 
-The attribute targets classes, methods, and functions, is repeatable, and accepts several names
-at once (`#[Group('db', 'slow')]`). A test's group set is the union of its class-level and
-member-level groups.
+The attribute targets classes, methods, and functions and accepts several names at once
+(`#[Group('db', 'slow')]`). A test's group set is the union of all groups reachable from it:
+its own method (and any overridden parent method), the test class, its parent classes, and traits.
 
 ```bash
 # Run only tests in the "db" or "integration" group (OR logic)
