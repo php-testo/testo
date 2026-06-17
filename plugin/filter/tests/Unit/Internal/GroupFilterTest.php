@@ -19,11 +19,23 @@ use Tests\Filter\Unit\Fixture\GroupedTestClass;
 /**
  * Verifies the {@see \Testo\Group} filtering of {@see FilterInterceptor::locateTestCases()}.
  *
- * Effective group sets of the fixture (class-level `integration` is inherited):
- * - dbTest:    integration, db
- * - slowTest:  integration, slow
- * - plainTest: integration
- * - multiTest: integration, db, fast
+ * Fixture (two cases in one file). Effective group set = class-level groups + method-level groups:
+ *
+ *   GroupedTestClass        (class group: `integration`)
+ *     - dbTest:    integration, db
+ *     - slowTest:  integration, slow
+ *     - plainTest: integration
+ *     - multiTest: integration, db, fast
+ *   OtherGroupedTestClass   (no class group)
+ *     - apiTest:   api
+ *     - ungrouped: (none)
+ *
+ * Filtering rules under test:
+ *   - include groups  → OR  (a test passes if it is in ANY requested group)
+ *   - exclude groups  → OR  (a test is dropped if it is in ANY excluded group)
+ *   - exclude wins    → exclude is checked first and short-circuits, beating include
+ *   - exclude-only    → everything not excluded runs, including tests with no groups
+ *   - vs name filter  → AND (group filter narrows the name-matched set)
  */
 #[Test]
 #[Covers(FilterInterceptor::class)]
@@ -31,6 +43,7 @@ final class GroupFilterTest
 {
     public function includeSingleGroupKeepsOnlyMatchingTests(): void
     {
+        # include `db` → only tests whose group set contains `db` survive: dbTest and multiTest.
         Assert::array($this->select(new Filter(groups: ['db'])))
             ->hasCount(2)
             ->contains('dbTest')
@@ -41,6 +54,8 @@ final class GroupFilterTest
 
     public function includeMultipleGroupsUsesOrLogic(): void
     {
+        # include `slow` OR `fast` → slowTest (slow) and multiTest (fast); a test needs to be
+        # in just ONE of the requested groups, not all of them.
         Assert::array($this->select(new Filter(groups: ['slow', 'fast'])))
             ->hasCount(2)
             ->contains('slowTest')
@@ -49,33 +64,41 @@ final class GroupFilterTest
             ->notContains('plainTest');
     }
 
+    /**
+     * A class-level group is inherited by every method of that class, but must not leak into
+     * other classes. `integration` lives only on GroupedTestClass, so exactly its four methods
+     * survive and the second case (apiTest/ungrouped) is untouched.
+     */
     public function classLevelGroupPropagatesToEveryTest(): void
     {
-        # `integration` is declared only on GroupedTestClass and must not leak into
-        # OtherGroupedTestClass (apiTest/ungrouped), so exactly its four methods survive.
         Assert::same(
             $this->select(new Filter(groups: ['integration'])),
             ['dbTest', 'multiTest', 'plainTest', 'slowTest'],
         );
     }
 
+    /**
+     * When only the second case matches a group filter, the first (non-matching) case is skipped
+     * and the interceptor keeps iterating instead of stopping. `api` lives only on the second case.
+     */
     public function groupMatchingOnlyTheSecondCaseStillSurvives(): void
     {
-        # The first case yields no match and is skipped; the interceptor must continue
-        # to the second case rather than stop. `api` lives only on OtherGroupedTestClass.
         Assert::same($this->select(new Filter(groups: ['api'])), ['apiTest']);
     }
 
+    /**
+     * Same as above but driven by a name filter: the first case produces no match and is skipped,
+     * yet the second case must still be reached and matched.
+     */
     public function nameMatchingOnlyTheSecondCaseStillSurvives(): void
     {
-        # The name filter matches nothing in the first case (empty name-match -> skipped),
-        # while the second case matches: the interceptor must keep iterating past the first.
         Assert::same($this->select(new Filter(names: ['apiTest'])), ['apiTest']);
     }
 
     public function excludeDropsMatchingTests(): void
     {
-        # `slow` exists only on GroupedTestClass::slowTest; every other test survives.
+        # exclude `slow` → drop tests in group `slow`. Only slowTest has it, so the other five
+        # (including the group-less `ungrouped`) survive.
         Assert::array($this->select(new Filter(excludeGroups: ['slow'])))
             ->hasCount(5)
             ->notContains('slowTest')
@@ -86,33 +109,82 @@ final class GroupFilterTest
             ->contains('ungrouped');
     }
 
+    public function multipleExcludeGroupsUseOrLogic(): void
+    {
+        # A test is dropped if it is in ANY of the excluded groups (`slow` OR `fast`).
+        # slowTest (slow) and multiTest (fast) both go; everything else survives.
+        Assert::array($this->select(new Filter(excludeGroups: ['slow', 'fast'])))
+            ->hasCount(4)
+            ->notContains('slowTest')
+            ->notContains('multiTest')
+            ->contains('dbTest')
+            ->contains('plainTest')
+            ->contains('apiTest')
+            ->contains('ungrouped');
+    }
+
+    /**
+     * Exclude beats include. With include `db` both dbTest and multiTest qualify, but exclude
+     * `fast` also matches multiTest — and a test in both sets is dropped. Only dbTest survives.
+     */
     public function excludeTakesPrecedenceOverInclude(): void
     {
-        # multiTest is in both `db` (include) and `fast` (exclude) -> excluded.
         Assert::array($this->select(new Filter(groups: ['db'], excludeGroups: ['fast'])))
             ->hasCount(1)
             ->contains('dbTest')
             ->notContains('multiTest');
     }
 
+    /**
+     * The strongest form of "exclude wins": the same group is both included and excluded.
+     * Exclude is checked first and short-circuits (include is never evaluated), so all `db`
+     * tests are dropped and the result is empty.
+     */
+    public function sameGroupInIncludeAndExcludeIsExcluded(): void
+    {
+        Assert::same($this->select(new Filter(groups: ['db'], excludeGroups: ['db'])), []);
+    }
+
+    /**
+     * With only an exclude filter and no include, every test that is not excluded runs —
+     * including tests that carry no groups at all (here: ungrouped).
+     */
+    public function ungroupedTestSurvivesExcludeOnlyFilter(): void
+    {
+        Assert::array($this->select(new Filter(excludeGroups: ['db'])))
+            ->contains('ungrouped')
+            ->contains('plainTest')
+            ->notContains('dbTest')
+            ->notContains('multiTest');
+    }
+
+    /**
+     * Name and group filters combine with AND: the name filter selects the whole GroupedTestClass
+     * case (4 tests), then the group filter narrows that set to `db` → dbTest and multiTest.
+     */
     public function groupAndNameFilterCombineWithAnd(): void
     {
-        # Name filter matches the whole class; group filter narrows it to `db`.
         Assert::same(
             $this->select(new Filter(names: ['GroupedTestClass'], groups: ['db'])),
             ['dbTest', 'multiTest'],
         );
     }
 
+    /**
+     * AND again: the name filter matches nothing, so even a satisfiable group filter cannot
+     * bring tests back — the intersection is empty.
+     */
     public function nameFilterWithoutGroupMatchIsEmpty(): void
     {
         Assert::same($this->select(new Filter(names: ['nonExistentMethod'], groups: ['db'])), []);
     }
 
+    /**
+     * A fully-qualified name written with a leading namespace separator must still match the
+     * whole case; the interceptor trims surrounding `\` before matching.
+     */
     public function leadingBackslashInFqnIsAccepted(): void
     {
-        # A fully-qualified name written with a leading namespace separator must still match
-        # the whole case (the interceptor trims surrounding `\` before matching).
         $fqn = '\\' . GroupedTestClass::class;
 
         Assert::same(
@@ -126,10 +198,12 @@ final class GroupFilterTest
         Assert::same($this->select(new Filter(groups: ['nonExistentGroup'])), []);
     }
 
+    /**
+     * When an exclude filter removes every test of a case, the case itself disappears from the
+     * result. `integration` covers all of GroupedTestClass, leaving only the second case.
+     */
     public function excludeRemovingAllTestsOfACaseDropsIt(): void
     {
-        # `integration` covers every method of GroupedTestClass, so the whole case is
-        # dropped, leaving only the second case's tests.
         Assert::same(
             $this->select(new Filter(excludeGroups: ['integration'])),
             ['apiTest', 'ungrouped'],
