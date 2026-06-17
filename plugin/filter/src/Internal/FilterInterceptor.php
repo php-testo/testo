@@ -204,12 +204,23 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
 
         $result = [];
         foreach ($definitions->getCases() as $case) {
+            # Resolve the case (class) groups once. Skipped entirely when no group filters are set.
+            $caseGroups = $this->groupSkip || $case->reflection === null
+                ? []
+                : self::groupNamesOf($case->reflection);
+
+            # Class-level group short-circuit, evaluated before any per-method work: case groups
+            # are inherited by every test, so a case excluded by group is dropped without name matching.
+            if ($this->excludeGroups !== [] && \array_intersect($caseGroups, $this->excludeGroups) !== []) {
+                continue;
+            }
+
             $tests = $this->matchTestsByName($case);
             if ($tests === []) {
                 continue;
             }
 
-            $tests = $this->filterTestsByGroup($case, $tests);
+            $tests = $this->filterTestsByGroup($caseGroups, $tests);
             $tests === [] or $result[] = $case->with(tests: TestDefinitions::fromArray(...$tests));
         }
 
@@ -276,30 +287,43 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     /**
      * Group pass: keep only tests whose group set satisfies the include/exclude filters.
      *
-     * @param CaseDefinition $case
+     * The case-level exclude short-circuit is handled earlier in {@see self::locateTestCases()};
+     * here we only resolve include at the class level and apply per-method exclude/include.
+     *
+     * @param list<non-empty-string> $caseGroups Groups inherited from the test case (class).
      * @param array<string, TestDefinition> $tests
      *
      * @return array<string, TestDefinition> Surviving tests keyed by name
      */
-    private function filterTestsByGroup(CaseDefinition $case, array $tests): array
+    private function filterTestsByGroup(array $caseGroups, array $tests): array
     {
         if ($this->groupSkip) {
             return $tests;
         }
 
-        $caseGroups = $case->reflection === null ? [] : self::groupNamesOf($case->reflection);
+        # If the class already satisfies the include filter, every test inherits that match.
+        $classIncluded = $this->groups === [] || \array_intersect($caseGroups, $this->groups) !== [];
+
+        # Class is included and nothing can be excluded per method → keep all tests as-is,
+        # without loading any method-level groups.
+        if ($classIncluded && $this->excludeGroups === []) {
+            return $tests;
+        }
 
         $result = [];
         foreach ($tests as $name => $test) {
-            $groups = \array_merge($caseGroups, self::groupNamesOf($test->reflection));
+            # Only the method's own groups are needed here: the case is already known not to be
+            # excluded (checked in locateTestCases) and not to match include (otherwise
+            # $classIncluded would be true), so merging $caseGroups in cannot change either test.
+            $groups = self::groupNamesOf($test->reflection);
 
             # Exclude takes precedence.
             if ($this->excludeGroups !== [] && \array_intersect($groups, $this->excludeGroups) !== []) {
                 continue;
             }
 
-            # Include filter: must intersect when provided.
-            if ($this->groups !== [] && \array_intersect($groups, $this->groups) === []) {
+            # Include filter: skip when the class already matched it.
+            if (!$classIncluded && \array_intersect($groups, $this->groups) === []) {
                 continue;
             }
 

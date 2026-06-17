@@ -146,6 +146,35 @@ final class GroupFilterTest
     }
 
     /**
+     * Class-level include allowed, method-level exclude denied. The class matches the include
+     * group (`integration`), so every test inherits the include match — yet a method carrying
+     * the excluded group (`slow`) is still dropped. Verifies the per-method exclude is applied
+     * even when the case as a whole is included.
+     */
+    public function classIncludedButMethodExcluded(): void
+    {
+        Assert::array($this->select(new Filter(groups: ['integration'], excludeGroups: ['slow'])))
+            ->hasCount(3)
+            ->notContains('slowTest')
+            ->contains('dbTest')
+            ->contains('plainTest')
+            ->contains('multiTest');
+    }
+
+    /**
+     * Class-level include allowed, exclude group absent everywhere. The class matches the include
+     * group (`integration`), and the excluded group is carried by neither the class nor any method,
+     * so the exclude filter removes nothing — every test of the case runs.
+     */
+    public function classIncludedWithExcludeGroupThatMatchesNothing(): void
+    {
+        Assert::same(
+            $this->select(new Filter(groups: ['integration'], excludeGroups: ['nonexistent'])),
+            ['dbTest', 'multiTest', 'plainTest', 'slowTest'],
+        );
+    }
+
+    /**
      * With only an exclude filter and no include, every test that is not excluded runs —
      * including tests that carry no groups at all (here: ungrouped).
      */
