@@ -55,7 +55,7 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     /** @var bool True if filtering is disabled entirely (no name and no group filters provided) */
     private readonly bool $skip;
 
-    /** @var bool True if no name/path filters were provided (group filters may still apply) */
+    /** @var bool True if no name filters were provided (group filters may still apply) */
     private readonly bool $nameSkip;
 
     /** @var bool True if no group filters were provided */
@@ -165,7 +165,7 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     public function locateFile(TokenizedFile $file, callable $next): ?bool
     {
         # Group filters require reflection (Stage 2); tokens carry no attributes,
-        # so when there are no name/path filters we cannot pre-filter files here.
+        # so when there are no name filters we cannot pre-filter files here.
         return match (true) {
             $this->nameSkip,
             $this->matchFile($file) => $next($file),
@@ -178,7 +178,7 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
      *
      * Filtering is the AND of two independent passes (a test survives only if it passes both):
      *
-     * Name/path pass:
+     * Name pass:
      * - If class name matches: the whole case is eligible (all its tests).
      * - Otherwise: only methods/functions whose name matches are eligible.
      * - If no name filters are provided, every test is eligible.
@@ -217,7 +217,7 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     }
 
     /**
-     * Name/path pass: select the tests of a case that match the configured name filters.
+     * Name pass: select the tests of a case that match the configured name filters.
      *
      * Also records {@see DataPointer}s for matched tests so Stage 3 can inject them.
      *
@@ -227,7 +227,7 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
      */
     private function matchTestsByName(CaseDefinition $case): array
     {
-        # No name/path filters: every test is eligible.
+        # No name filters: every test is eligible.
         if ($this->nameSkip) {
             return $case->tests->getTests();
         }

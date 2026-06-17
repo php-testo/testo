@@ -22,8 +22,8 @@ use Testo\Output\Terminal\TerminalPlugin;
  * Filter Logic:
  * - Multiple values of same filter type use OR logic (e.g., --filter=test1 --filter=test2)
  * - Different filter types use AND logic (e.g., --filter + --path + --suite + --group)
- * - Final result: AND(OR(filters), OR(paths), OR(suites), OR(groups))
- * - Groups marked with a leading "!" are excluded and take precedence over inclusion
+ * - Groups split into include (OR) and exclude (OR, marked with a leading "!"); exclusion wins
+ * - Final result: AND(OR(filters), OR(paths), OR(suites), OR(includeGroups), NOT OR(excludeGroups))
  *
  * ```bash
  *  # Run all tests in default location
