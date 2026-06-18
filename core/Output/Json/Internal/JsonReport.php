@@ -34,9 +34,13 @@ final class JsonReport
             'failures' => self::failures($result),
         ];
 
+        // JSON_INVALID_UTF8_SUBSTITUTE: failure messages, traces and captured output are raw strings
+        // from user code and may contain malformed UTF-8 (binary stdout, non-UTF-8 encodings). Without
+        // it JSON_THROW_ON_ERROR would abort the whole report; instead bad bytes become U+FFFD.
         return \json_encode(
             $payload,
-            \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR,
+            \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE
+            | \JSON_INVALID_UTF8_SUBSTITUTE | \JSON_THROW_ON_ERROR,
         );
     }
 

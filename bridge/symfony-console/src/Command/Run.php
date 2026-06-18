@@ -170,9 +170,17 @@ final class Run extends Base
         InputInterface  $input,
         OutputInterface $output,
     ): int {
+        // Exactly one renderer owns stdout — reject conflicting flags instead of silently picking one.
+        $teamcity = (bool) $input->getOption('teamcity');
+        $json = (bool) $input->getOption('json');
+        $teamcity && $json and throw new \InvalidArgumentException(
+            'Options --teamcity and --json are mutually exclusive: both render to stdout. Pick one, '
+            . 'or use --log-json=<path> to write JSON to a file alongside another renderer.',
+        );
+
         $renderer = match (true) {
-            (bool) $input->getOption('teamcity') => TeamcityPlugin::class,
-            (bool) $input->getOption('json') => JsonPlugin::class,
+            $teamcity => TeamcityPlugin::class,
+            $json => JsonPlugin::class,
             default => TerminalPlugin::class,
         };
         $this->container->get($renderer)->configure($this->container);

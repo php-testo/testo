@@ -47,15 +47,16 @@ final class JsonPlugin implements PluginConfigurator
     private readonly JsonReport $report;
 
     /**
-     * @param non-empty-string|null $outputPath When set, the report is written to this file and
-     *        the active stdout renderer is left untouched (`--log-json` / file mode). When null,
-     *        the report is written to {@see $stream} (`--json` / stdout mode).
+     * @param string|null $outputPath When set to a non-empty path, the report is written to that
+     *        file and the active stdout renderer is left untouched (`--log-json` / file mode). When
+     *        null or an empty string, the report is written to {@see $stream} (`--json` / stdout
+     *        mode) — empty is normalized to null, matching {@see \Testo\Output\JUnit\JUnitPlugin}.
      * @param resource|null $stream Stream for stdout mode; defaults to {@see \STDOUT}. Ignored
-     *        when $outputPath is set.
+     *        when a file path is set.
      */
     public function __construct(?string $outputPath = null, $stream = null)
     {
-        $this->path = $outputPath !== null ? Path::create($outputPath) : null;
+        $this->path = $outputPath !== null && $outputPath !== '' ? Path::create($outputPath) : null;
         $this->stream = $stream;
         $this->report = new JsonReport();
     }

@@ -118,6 +118,20 @@ final class JsonReportTest
         ]);
     }
 
+    public function malformedUtf8InMessagesIsSubstitutedNotThrown(): void
+    {
+        $messages = new MessageLog([new Message(0.0, 'stdout', Level::Info, "bad \x80\xFF byte")]);
+
+        $report = self::decode(self::run(
+            Status::Failed,
+            results: [self::test('failingTest', Status::Failed, new \RuntimeException("msg \xFF"), $messages)],
+        ));
+
+        Assert::same($report['status'], 'failed');
+        Assert::count($report['failures'], 1);
+        Assert::same($report['failures'][0]['output'][0]['channel'], 'stdout');
+    }
+
     public function freeFunctionTestUsesFunctionFqn(): void
     {
         $reflection = new \ReflectionFunction('strlen');

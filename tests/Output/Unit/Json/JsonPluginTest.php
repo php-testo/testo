@@ -59,6 +59,21 @@ final class JsonPluginTest
         }
     }
 
+    public function emptyOutputPathIsTreatedAsStdoutMode(): void
+    {
+        $stream = \fopen('php://memory', 'rb+');
+        \assert($stream !== false);
+
+        self::dispatch(new JsonPlugin('', $stream), self::failedRun());
+
+        \rewind($stream);
+        $written = (string) \stream_get_contents($stream);
+        \fclose($stream);
+
+        $report = self::decode($written);
+        Assert::same($report['status'], 'failed');
+    }
+
     private static function dispatch(JsonPlugin $plugin, RunResult $result): void
     {
         $dispatcher = new EventDispatcher();
