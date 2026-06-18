@@ -9,6 +9,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Testo\Output\Json\JsonPlugin;
 use Testo\Output\Teamcity\TeamcityPlugin;
 use Testo\Output\Terminal\TerminalPlugin;
 
@@ -78,6 +79,20 @@ final class Run extends Base
     {
         parent::configure();
         $this->addOption('teamcity', null, InputOption::VALUE_NONE);
+        $this->addOption(
+            'json',
+            null,
+            InputOption::VALUE_NONE,
+            'Render the run as a single minimalistic JSON object on stdout '
+            . '(run summary + failed tests). Intended for LLM agents and CI scripts.',
+        );
+        $this->addOption(
+            'log-json',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'Write the minimalistic JSON report (run summary + failed tests) to the given path. '
+            . 'Unlike --json this keeps the human-readable terminal output; mirrors --log-junit.',
+        );
         $this->addOption(
             'filter',
             null,
@@ -155,9 +170,17 @@ final class Run extends Base
         InputInterface  $input,
         OutputInterface $output,
     ): int {
-        $input->getOption('teamcity')
-            ? $this->container->get(TeamcityPlugin::class)->configure($this->container)
-            : $this->container->get(TerminalPlugin::class)->configure($this->container);
+        $renderer = match (true) {
+            (bool) $input->getOption('teamcity') => TeamcityPlugin::class,
+            (bool) $input->getOption('json') => JsonPlugin::class,
+            default => TerminalPlugin::class,
+        };
+        $this->container->get($renderer)->configure($this->container);
+
+        // --log-json writes the JSON report to a file alongside the stdout renderer above.
+        $logJson = $input->getOption('log-json');
+        \is_string($logJson) && $logJson !== ''
+            and (new JsonPlugin($logJson))->configure($this->container);
 
         $result = $this->application->run();
 

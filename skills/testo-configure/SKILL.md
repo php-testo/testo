@@ -172,6 +172,8 @@ vendor/bin/testo --coverage-clover=build/clover.xml        # write Clover report
 vendor/bin/testo --coverage-cobertura=build/cobertura.xml  # write Cobertura report
 vendor/bin/testo --coverage-xml=build/coverage-xml         # write coverage XML dir (Infection)
 vendor/bin/testo --teamcity            # TeamCity output (CI/IDE)
+vendor/bin/testo --json                # minimal JSON on stdout: run summary + failed tests (for LLM agents / CI scripts)
+vendor/bin/testo --log-json=build/report.json  # same JSON to a file, keeps the terminal output (like --log-junit)
 vendor/bin/testo --config=path/to/testo.php
 ```
 
