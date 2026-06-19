@@ -1,17 +1,17 @@
 {
-    ".": "0.10.23",
+    ".": "0.10.24",
     "plugin/repeat": "0.1.8",
     "plugin/convention": "0.1.3",
     "plugin/lifecycle": "0.1.4",
     "plugin/retry": "0.1.4",
-    "plugin/filter": "0.1.2",
+    "plugin/filter": "0.1.3",
     "plugin/test": "0.1.4",
-    "plugin/assert": "0.1.7",
+    "plugin/assert": "0.1.8",
     "plugin/data": "0.1.6",
     "plugin/inline": "0.1.5",
     "plugin/bench": "0.1.5",
     "plugin/codecov": "0.1.10",
     "plugin/facade": "0.1.1",
-    "bridge/symfony-console": "0.1.6",
+    "bridge/symfony-console": "0.1.7",
     "bridge/infection": "0.1.6"
 }

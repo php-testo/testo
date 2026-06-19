@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.7](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.6...bridge-symfony-console-0.1.7) (2026-06-19)
+
+
+### Features
+
+* **filter:** filtering with `#[Group]` attr and `--group` flag ([#227](https://github.com/php-testo/testo/issues/227)) ([624b9ab](https://github.com/php-testo/testo/commit/624b9ab877b5d4e0c24c2e594ac4da1890182df1))
+* **filter:** support CLI options/arguments/env in `TestingSuite` ([624b9ab](https://github.com/php-testo/testo/commit/624b9ab877b5d4e0c24c2e594ac4da1890182df1))
+* **output:** add JSON output plugin with `--json` and `--log-json` flags ([#228](https://github.com/php-testo/testo/issues/228)) ([abb91b3](https://github.com/php-testo/testo/commit/abb91b37a41ec1c10a28a8c0802a1c55411956a4))
+
 ## [0.1.6](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.5...bridge-symfony-console-0.1.6) (2026-06-07)
 
 

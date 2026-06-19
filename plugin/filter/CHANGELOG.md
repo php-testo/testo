@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/filter-0.1.2...filter-0.1.3) (2026-06-19)
+
+
+### Features
+
+* **filter:** filtering with `#[Group]` attr and `--group` flag ([#227](https://github.com/php-testo/testo/issues/227)) ([624b9ab](https://github.com/php-testo/testo/commit/624b9ab877b5d4e0c24c2e594ac4da1890182df1))
+* **filter:** support CLI options/arguments/env in `TestingSuite` ([624b9ab](https://github.com/php-testo/testo/commit/624b9ab877b5d4e0c24c2e594ac4da1890182df1))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/filter-0.1.1...filter-0.1.2) (2026-06-07)
 
 

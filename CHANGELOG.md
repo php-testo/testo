@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.10.24](https://github.com/php-testo/testo/compare/0.10.23...0.10.24) (2026-06-19)
+
+
+### Features
+
+* **assert:** add `notContains` assertion to iterable type ([c320fbf](https://github.com/php-testo/testo/commit/c320fbf1501911dcc0c079a68039531a730eee99))
+* **filter:** filtering with `#[Group]` attr and `--group` flag ([#227](https://github.com/php-testo/testo/issues/227)) ([624b9ab](https://github.com/php-testo/testo/commit/624b9ab877b5d4e0c24c2e594ac4da1890182df1))
+* **filter:** support CLI options/arguments/env in `TestingSuite` ([624b9ab](https://github.com/php-testo/testo/commit/624b9ab877b5d4e0c24c2e594ac4da1890182df1))
+* **output:** add JSON output plugin with `--json` and `--log-json` flags ([#228](https://github.com/php-testo/testo/issues/228)) ([abb91b3](https://github.com/php-testo/testo/commit/abb91b37a41ec1c10a28a8c0802a1c55411956a4))
+* **teamcity:** emit test description as TeamCity metainfo on testStarted ([75fee02](https://github.com/php-testo/testo/commit/75fee0229a1e76912ab19c3a90de5a499aa41e8b))
+
+
+### Documentation
+
+* **skills:** add `testo-mutation-testing` skill ([273ad95](https://github.com/php-testo/testo/commit/273ad95cbcad40a1221b707983488e464aaeb22b))
+* **skills:** clarify Group attribute namespace in migrate-from-phpunit skill ([02401cf](https://github.com/php-testo/testo/commit/02401cfc7e66e25c8e69dd4fbbcce80a773c8244))
+
+
+### Code Refactoring
+
+* **output:** coalesce consecutive same-channel output in JSON report ([bec606b](https://github.com/php-testo/testo/commit/bec606b9dec8ac3fd045704569a115b9d71f89d9))
+
 ## [0.10.23](https://github.com/php-testo/testo/compare/0.10.22...0.10.23) (2026-06-11)
 
 

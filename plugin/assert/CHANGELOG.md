@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/assert-0.1.7...assert-0.1.8) (2026-06-19)
+
+
+### Features
+
+* **assert:** add `notContains` assertion to iterable type ([c320fbf](https://github.com/php-testo/testo/commit/c320fbf1501911dcc0c079a68039531a730eee99))
+
 ## [0.1.7](https://github.com/php-testo/testo/compare/assert-0.1.6...assert-0.1.7) (2026-06-07)
 
 
