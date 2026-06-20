@@ -43,7 +43,7 @@ final class TokenizedArgument
 
         $result = [];
         foreach ($tokens as $token) {
-            if ($token[TokenizedFile::TOKEN_TYPE] === T_WHITESPACE) {
+            if ($token->is(T_WHITESPACE)) {
                 continue;
             }
 
@@ -51,31 +51,31 @@ final class TokenizedArgument
                 $definition = ['type' => self::EXPRESSION, 'value' => '', 'tokens' => []];
             }
 
-            if ($token[TokenizedFile::TOKEN_TYPE] === '(' || $token[TokenizedFile::TOKEN_TYPE] === '[') {
+            if ($token->text === '(' || $token->text === '[') {
                 ++$level;
-                $definition['value'] .= $token[TokenizedFile::TOKEN_CODE];
+                $definition['value'] .= $token->text;
                 continue;
             }
 
-            if ($token[TokenizedFile::TOKEN_TYPE] === ')' || $token[TokenizedFile::TOKEN_TYPE] === ']') {
+            if ($token->text === ')' || $token->text === ']') {
                 --$level;
-                $definition['value'] .= $token[TokenizedFile::TOKEN_CODE];
+                $definition['value'] .= $token->text;
                 continue;
             }
 
             if ($level) {
-                $definition['value'] .= $token[TokenizedFile::TOKEN_CODE];
+                $definition['value'] .= $token->text;
                 continue;
             }
 
-            if ($token[TokenizedFile::TOKEN_TYPE] === ',') {
+            if ($token->text === ',') {
                 $result[] = self::createArgument($definition);
                 $definition = null;
                 continue;
             }
 
             $definition['tokens'][] = $token;
-            $definition['value'] .= $token[TokenizedFile::TOKEN_CODE];
+            $definition['value'] .= $token->text;
         }
 
         //Last argument
@@ -127,7 +127,7 @@ final class TokenizedArgument
         $result = new self(self::EXPRESSION, $definition['value']);
 
         if (\count($definition['tokens']) == 1) {
-            $result->type = match ($definition['tokens'][0][0]) {
+            $result->type = match ($definition['tokens'][0]->id) {
                 T_VARIABLE => self::VARIABLE,
                 T_LNUMBER, T_DNUMBER => self::CONSTANT,
                 T_CONSTANT_ENCAPSED_STRING => self::STRING,

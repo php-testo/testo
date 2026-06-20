@@ -19,14 +19,6 @@ final class TokenizedFile
     public const NS_SEPARATOR = '\\';
 
     /**
-     * Constants for convenience.
-     */
-    public const TOKEN_TYPE = 0;
-
-    public const TOKEN_CODE = 1;
-    public const TOKEN_LINE = 2;
-
-    /**
      * Opening and closing token ids.
      */
     public const O_TOKEN = 0;
@@ -47,12 +39,16 @@ final class TokenizedFile
 
     /**
      * Get list of parsed tokens associated with given file.
+     *
+     * @var list<\PhpToken>
      */
     public readonly array $tokens;
 
     /**
      * Set of tokens required to detect classes, traits, interfaces and function declarations. We
      * don't need any other token for that.
+     *
+     * @var list<int|non-empty-string>
      */
     private static array $processTokens = [
         '{',
@@ -251,11 +247,11 @@ final class TokenizedFile
     {
         $hasIncludes = false;
         foreach ($this->tokens as $tokenID => $token) {
-            if (!\in_array($token[self::TOKEN_TYPE], self::$processTokens)) {
+            if (!$token->is(self::$processTokens)) {
                 continue;
             }
 
-            switch ($token[self::TOKEN_TYPE]) {
+            switch ($token->id) {
                 case T_NAMESPACE:
                     $this->registerNamespace($tokenID);
                     break;
@@ -293,7 +289,7 @@ final class TokenizedFile
                         continue 2;
                     }
 
-                    $this->registerDeclaration($tokenID, $token[self::TOKEN_TYPE]);
+                    $this->registerDeclaration($tokenID, $token->id);
                     break;
 
                 case T_INCLUDE:
@@ -315,20 +311,13 @@ final class TokenizedFile
     }
 
     /**
-     * Get all tokes for specific file.
+     * Get all tokens for specific file as PHP token objects.
+     *
+     * @return list<\PhpToken>
      */
     private static function fetchTokens(Path $filename): array
     {
-        $tokens = \token_get_all(\file_get_contents((string) $filename));
-
-        $line = 0;
-        foreach ($tokens as &$token) {
-            isset($token[self::TOKEN_LINE]) and $line = $token[self::TOKEN_LINE];
-            \is_array($token) or $token = [$token, $token, $line];
-            unset($token);
-        }
-
-        return $tokens;
+        return \PhpToken::tokenize(\file_get_contents((string) $filename));
     }
 
     /**
@@ -341,15 +330,15 @@ final class TokenizedFile
 
         do {
             $token = $this->tokens[$localID++];
-            if ($token[self::TOKEN_CODE] === '{') {
+            if ($token->text === '{') {
                 break;
             }
 
-            $namespace .= $token[self::TOKEN_CODE];
+            $namespace .= $token->text;
         } while (
             isset($this->tokens[$localID])
-            && $this->tokens[$localID][self::TOKEN_CODE] !== '{'
-            && $this->tokens[$localID][self::TOKEN_CODE] !== ';'
+            && $this->tokens[$localID]->text !== '{'
+            && $this->tokens[$localID]->text !== ';'
         );
 
         //Whitespaces
@@ -360,7 +349,7 @@ final class TokenizedFile
             $uses = $this->namespaces[$namespace];
         }
 
-        if ($this->tokens[$localID][self::TOKEN_CODE] === ';') {
+        if ($this->tokens[$localID]->text === ';') {
             $endingID = \count($this->tokens) - 1;
         } else {
             $endingID = $this->endingToken($tokenID);
@@ -382,16 +371,16 @@ final class TokenizedFile
 
         $class = '';
         $localAlias = null;
-        for ($localID = $tokenID + 1; $this->tokens[$localID][self::TOKEN_CODE] !== ';'; ++$localID) {
-            if ($this->tokens[$localID][self::TOKEN_TYPE] == T_AS) {
+        for ($localID = $tokenID + 1; $this->tokens[$localID]->text !== ';'; ++$localID) {
+            if ($this->tokens[$localID]->is(T_AS)) {
                 $localAlias = '';
                 continue;
             }
 
             if ($localAlias === null) {
-                $class .= $this->tokens[$localID][self::TOKEN_CODE];
+                $class .= $this->tokens[$localID]->text;
             } else {
-                $localAlias .= $this->tokens[$localID][self::TOKEN_CODE];
+                $localAlias .= $this->tokens[$localID]->text;
             }
         }
 
@@ -437,10 +426,10 @@ final class TokenizedFile
 
         // `use function Foo\bar;` carries a T_FUNCTION token too — it imports, it does not declare.
         $prevID = $tokenID - 1;
-        while ($prevID >= 0 && $this->tokens[$prevID][self::TOKEN_TYPE] === T_WHITESPACE) {
+        while ($prevID >= 0 && $this->tokens[$prevID]->is(T_WHITESPACE)) {
             --$prevID;
         }
-        if ($prevID >= 0 && $this->tokens[$prevID][self::TOKEN_TYPE] === T_USE) {
+        if ($prevID >= 0 && $this->tokens[$prevID]->is(T_USE)) {
             return;
         }
 
@@ -450,7 +439,7 @@ final class TokenizedFile
         // type hint lives *inside* the parens, so it can never be misread as the name. Keyword-like
         // method names (`list`, `print`, ...) are not T_STRING, so read by position, not by type.
         $parenID = $tokenID + 1;
-        while (isset($this->tokens[$parenID]) && $this->tokens[$parenID][self::TOKEN_CODE] !== '(') {
+        while (isset($this->tokens[$parenID]) && $this->tokens[$parenID]->text !== '(') {
             ++$parenID;
         }
 
@@ -459,17 +448,17 @@ final class TokenizedFile
         }
 
         $nameID = $parenID - 1;
-        while ($nameID > $tokenID && $this->tokens[$nameID][self::TOKEN_TYPE] === T_WHITESPACE) {
+        while ($nameID > $tokenID && $this->tokens[$nameID]->is(T_WHITESPACE)) {
             --$nameID;
         }
 
         $nameToken = $this->tokens[$nameID];
-        if ($nameToken[self::TOKEN_TYPE] === T_FUNCTION || $nameToken[self::TOKEN_CODE] === '&') {
+        if ($nameToken->is(T_FUNCTION) || $nameToken->text === '&') {
             // Anonymous function — nothing to declare.
             return;
         }
 
-        $name = $nameToken[self::TOKEN_CODE];
+        $name = $nameToken->text;
 
         // Function
         if ($class === null) {
@@ -495,11 +484,11 @@ final class TokenizedFile
     private function registerDeclaration(int $tokenID, int $tokenType): void
     {
         $localID = $tokenID + 1;
-        while ($this->tokens[$localID][self::TOKEN_TYPE] !== T_STRING) {
+        while (!$this->tokens[$localID]->is(T_STRING)) {
             ++$localID;
         }
 
-        $name = $this->tokens[$localID][self::TOKEN_CODE];
+        $name = $this->tokens[$localID]->text;
         if (!empty($namespace = $this->activeNamespace($tokenID))) {
             $name = $namespace . self::NS_SEPARATOR . $name;
         }
@@ -515,9 +504,9 @@ final class TokenizedFile
      */
     private function isClassNameConst(int $tokenID): bool
     {
-        return $this->tokens[$tokenID][self::TOKEN_TYPE] === T_CLASS
+        return $this->tokens[$tokenID]->is(T_CLASS)
             && isset($this->tokens[$tokenID - 1])
-            && $this->tokens[$tokenID - 1][self::TOKEN_TYPE] === T_PAAMAYIM_NEKUDOTAYIM;
+            && $this->tokens[$tokenID - 1]->is(T_PAAMAYIM_NEKUDOTAYIM);
     }
 
     /**
@@ -528,12 +517,12 @@ final class TokenizedFile
      */
     private function isAnonymousClass(int|string $tokenID): bool
     {
-        if ($this->tokens[$tokenID][self::TOKEN_TYPE] !== T_CLASS) {
+        if (!$this->tokens[$tokenID]->is(T_CLASS)) {
             return false;
         }
 
         $nextID = $tokenID + 1;
-        while (isset($this->tokens[$nextID]) && $this->tokens[$nextID][self::TOKEN_TYPE] === T_WHITESPACE) {
+        while (isset($this->tokens[$nextID]) && $this->tokens[$nextID]->is(T_WHITESPACE)) {
             ++$nextID;
         }
 
@@ -543,10 +532,10 @@ final class TokenizedFile
 
         $next = $this->tokens[$nextID];
 
-        return $next[self::TOKEN_CODE] === '{'
-            || $next[self::TOKEN_CODE] === '('
-            || $next[self::TOKEN_TYPE] === T_EXTENDS
-            || $next[self::TOKEN_TYPE] === T_IMPLEMENTS;
+        return $next->text === '{'
+            || $next->text === '('
+            || $next->is(T_EXTENDS)
+            || $next->is(T_IMPLEMENTS);
     }
 
     /**
@@ -554,10 +543,10 @@ final class TokenizedFile
      */
     private function isCorrectDeclaration(int|string $tokenID): bool
     {
-        return \in_array($this->tokens[$tokenID][self::TOKEN_TYPE], [T_CLASS, T_TRAIT, T_INTERFACE, T_ENUM], true)
+        return $this->tokens[$tokenID]->is([T_CLASS, T_TRAIT, T_INTERFACE, T_ENUM])
             && isset($this->tokens[$tokenID + 2])
-            && $this->tokens[$tokenID + 1][self::TOKEN_TYPE] === T_WHITESPACE
-            && $this->tokens[$tokenID + 2][self::TOKEN_TYPE] === T_STRING;
+            && $this->tokens[$tokenID + 1]->is(T_WHITESPACE)
+            && $this->tokens[$tokenID + 2]->is(T_STRING);
     }
 
     /**
@@ -565,7 +554,7 @@ final class TokenizedFile
      *
      * This is pretty old code, potentially to be improved using AST.
      *
-     * @param array<int, mixed> $tokens
+     * @param list<\PhpToken> $tokens
      */
     private function locateInvocations(array $tokens, int $invocationLevel = 0): void
     {
@@ -585,10 +574,8 @@ final class TokenizedFile
         //Tokens used to re-enable token detection
         $stopTokens = [T_STRING, T_WHITESPACE, T_DOUBLE_COLON, T_OBJECT_OPERATOR, T_NS_SEPARATOR];
         foreach ($tokens as $tokenID => $token) {
-            $tokenType = $token[self::TOKEN_TYPE];
-
             //We are not indexing function declarations or functions called from $objects.
-            if (\in_array($tokenType, [T_FUNCTION, T_OBJECT_OPERATOR, T_NEW])) {
+            if ($token->is([T_FUNCTION, T_OBJECT_OPERATOR, T_NEW])) {
                 if (
                     empty($argumentsTID)
                     && (
@@ -601,7 +588,7 @@ final class TokenizedFile
                     continue;
                 }
             } elseif ($ignore) {
-                if (!\in_array($tokenType, $stopTokens)) {
+                if (!$token->is($stopTokens)) {
                     //Returning to search
                     $ignore = false;
                 }
@@ -609,7 +596,7 @@ final class TokenizedFile
             }
 
             //We are inside function, and there is "(", indexing arguments.
-            if (!empty($invocationTID) && ($tokenType === '(' || $tokenType === '[')) {
+            if (!empty($invocationTID) && ($token->text === '(' || $token->text === '[')) {
                 if (empty($argumentsTID)) {
                     $argumentsTID = $tokenID;
                 }
@@ -624,7 +611,7 @@ final class TokenizedFile
             }
 
             //We are inside function arguments and ")" met.
-            if (!empty($invocationTID) && ($tokenType === ')' || $tokenType === ']')) {
+            if (!empty($invocationTID) && ($token->text === ')' || $token->text === ']')) {
                 --$level;
                 if ($level == -1) {
                     $invocationTID = false;
@@ -660,16 +647,16 @@ final class TokenizedFile
             }
 
             //Nothing valuable to remember, will be parsed later.
-            if (!empty($invocationTID) && \in_array($tokenType, $stopTokens)) {
+            if (!empty($invocationTID) && $token->is($stopTokens)) {
                 continue;
             }
 
             //Seems like we found function/method call
             if (
-                $tokenType == T_STRING
-                || $tokenType == T_STATIC
-                || $tokenType == T_NS_SEPARATOR
-                || ($tokenType == T_VARIABLE && $token[self::TOKEN_CODE] === '$this')
+                $token->is(T_STRING)
+                || $token->is(T_STATIC)
+                || $token->is(T_NS_SEPARATOR)
+                || ($token->is(T_VARIABLE) && $token->text === '$this')
             ) {
                 $invocationTID = $tokenID;
                 $level = 0;
@@ -791,13 +778,13 @@ final class TokenizedFile
         $entered = false;
         for ($localID = $tokenID; $localID < $this->countTokens; ++$localID) {
             $token = $this->tokens[$localID];
-            if ($token[self::TOKEN_CODE] === '{') {
+            if ($token->text === '{') {
                 ++$level;
                 $entered = true;
                 continue;
             }
 
-            if ($token[self::TOKEN_CODE] === '}') {
+            if ($token->text === '}') {
                 --$level;
             }
 
@@ -814,11 +801,7 @@ final class TokenizedFile
      */
     private function lineNumber(int $tokenID): int
     {
-        while (empty($this->tokens[$tokenID][self::TOKEN_LINE])) {
-            --$tokenID;
-        }
-
-        return $this->tokens[$tokenID][self::TOKEN_LINE];
+        return $this->tokens[$tokenID]->line;
     }
 
     /**
@@ -829,7 +812,7 @@ final class TokenizedFile
         $result = '';
         for ($tokenID = $startID; $tokenID <= $endID; ++$tokenID) {
             //Collecting function usage src
-            $result .= $this->tokens[$tokenID][self::TOKEN_CODE];
+            $result .= $this->tokens[$tokenID]->text;
         }
 
         return $result;
