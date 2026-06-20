@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.25](https://github.com/php-testo/testo/compare/0.10.24...0.10.25) (2026-06-20)
+
+
+### Bug Fixes
+
+* **tokenizer:** stop misregistering closures and anonymous-class methods ([d7f8ad9](https://github.com/php-testo/testo/commit/d7f8ad9a8bddeeb039753a785fd3b50eca1adff4))
+
+
+### Performance Improvements
+
+* **tokenizer:** tokenize with PhpToken instead of token_get_all ([#230](https://github.com/php-testo/testo/issues/230)) ([a2262ad](https://github.com/php-testo/testo/commit/a2262ad61c27e4d1bb985748be187c965a2baeae))
+
 ## [0.10.24](https://github.com/php-testo/testo/compare/0.10.23...0.10.24) (2026-06-19)
 
 
