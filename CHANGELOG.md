@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.26](https://github.com/php-testo/testo/compare/0.10.25...0.10.26) (2026-06-21)
+
+
+### Bug Fixes
+
+* **junit:** attribute inherited tests to the concrete class ([#231](https://github.com/php-testo/testo/issues/231)) ([fe81392](https://github.com/php-testo/testo/commit/fe8139215b98d018dfc3608af01867a8d6c79df5))
+
 ## [0.10.25](https://github.com/php-testo/testo/compare/0.10.24...0.10.25) (2026-06-20)
 
 
