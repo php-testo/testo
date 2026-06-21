@@ -257,13 +257,19 @@ final class JUnitWriter
     {
         $reflection = $info->testDefinition->reflection;
 
-        if ($reflection instanceof \ReflectionMethod) {
-            return $reflection->getDeclaringClass()->getName();
-        }
-
+        // Class-bound tests: use the concrete (runtime) case class, not the
+        // method's declaring class. For a `#[Test]` inherited from an abstract
+        // base, getDeclaringClass() names the base — but the enclosing
+        // <testsuite> is named after the concrete subclass (see JUnitPlugin),
+        // and Infection joins coverage to a test file by matching this classname
+        // against that suite name. Diverging the two breaks the lookup.
         $caseReflection = $info->caseInfo->definition->reflection;
         if ($caseReflection !== null) {
             return $caseReflection->getName();
+        }
+
+        if ($reflection instanceof \ReflectionMethod) {
+            return $reflection->getDeclaringClass()->getName();
         }
 
         // Free-function test: use the function's FQN, matching the per-function

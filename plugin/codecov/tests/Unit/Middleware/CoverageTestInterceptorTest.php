@@ -20,6 +20,7 @@ use Tests\Codecov\Stub\ChildOverridesWithCovers;
 use Tests\Codecov\Stub\ChildWithoutAttribute;
 use Tests\Codecov\Stub\ConflictingAttributes;
 use Tests\Codecov\Stub\CoveredCase;
+use Tests\Codecov\Stub\InheritedTestChild;
 use Tests\Codecov\Stub\SpyDriver;
 use Tests\Codecov\Stub\TargetClassA;
 use Tests\Codecov\Stub\UncoveredClass;
@@ -160,6 +161,33 @@ final class CoverageTestInterceptorTest
         // Filtered to TargetClassA only
         Assert::count($coverage->files, 1);
         Assert::true(isset($coverage->files[$fileA]));
+    }
+
+    public function inheritedMethodIsStampedWithConcreteClassNotDeclaringBase(): void
+    {
+        // `testInherited` is declared on the abstract InheritedTestBase but runs
+        // through the concrete child. The stamped test method id — which Infection
+        // matches against the JUnit `<testsuite name>` — must name the concrete
+        // class, otherwise the coverage `<covered by>` points at an abstract class
+        // that has no testsuite and the lookup fails.
+        $path = '/src/Subject.php';
+        $driver = new SpyDriver(new CoverageResult([
+            $path => new \Testo\Codecov\Result\FileCoverage($path, [
+                7 => new \Testo\Codecov\Result\LineCoverage(7, \Testo\Codecov\Result\LineStatus::Executed),
+            ]),
+        ]));
+        $interceptor = new CoverageTestInterceptor($driver);
+        $info = self::makeTestInfo(InheritedTestChild::class, 'testInherited');
+        $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
+
+        $result = $interceptor->runTest($info, $next);
+
+        $coverage = $result->getAttribute(CoverageResult::class);
+        Assert::instanceOf($coverage, CoverageResult::class);
+        Assert::same(
+            $coverage->files[$path]->lines[7]->testMethods,
+            [InheritedTestChild::class . '::testInherited'],
+        );
     }
 
     public function throwsOnConflictingCoversAndCoversNothing(): never

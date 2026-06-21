@@ -90,6 +90,13 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
      * - Class methods: `Tests\\FooTest::testBar`.
      * - Free functions: `Tests\\testFooBar` (FQN, no leading backslash).
      *
+     * For inherited tests the concrete (runtime) case class is used, NOT the
+     * declaring class: a `#[Test]` method declared on an abstract base and run
+     * through a subclass is attributed to the subclass. This keeps the coverage
+     * `<covered by="Concrete::method">` aligned with the JUnit `<testsuite
+     * name="Concrete">`, which Infection joins on by class name — `getDeclaringClass()`
+     * would name the abstract base, which has no testsuite, and the lookup would fail.
+     *
      * Data-set entries within data providers reuse the same identifier — Testo's
      * `--filter` selects by method, not by individual dataset, so per-dataset granularity
      * isn't useful for downstream consumers (e.g. Infection).
@@ -101,7 +108,9 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
         $reflection = $info->testDefinition->reflection;
 
         if ($reflection instanceof \ReflectionMethod) {
-            $name = $reflection->getDeclaringClass()->getName() . '::' . $reflection->getName();
+            $class = $info->caseInfo->definition->reflection;
+            $className = $class?->getName() ?? $reflection->getDeclaringClass()->getName();
+            $name = $className . '::' . $reflection->getName();
             return $name === '' ? null : $name;
         }
 

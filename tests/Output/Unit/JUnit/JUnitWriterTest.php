@@ -13,6 +13,7 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
 use Testo\Output\JUnit\Internal\JUnitWriter;
 use Testo\Test;
+use Tests\Output\Stub\JUnit\ConcreteSampleTest;
 use Tests\Output\Stub\JUnit\SampleTestClass;
 
 #[Test]
@@ -349,6 +350,22 @@ final class JUnitWriterTest
         );
     }
 
+    public function inheritedTestMethodUsesConcreteCaseClassAsClassname(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite(ConcreteSampleTest::class, '/abs/ConcreteSampleTest.php');
+        $writer->addTestResult(self::makeInheritedResult(Status::Passed));
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        // The <testsuite> is named after the concrete class; the <testcase>
+        // classname must match it so Infection's `//testsuite[@name="FQN"]`
+        // lookup — keyed on the coverage `<covered by>` class — resolves.
+        // getDeclaringClass() would name the abstract base and break the mapping.
+        Assert::same((string) $xml->testsuite->testcase['classname'], ConcreteSampleTest::class);
+    }
+
     public function writeCreatesParentDirectory(): void
     {
         // Arrange
@@ -455,6 +472,32 @@ final class JUnitWriterTest
             status: $status,
             failure: $failure,
             attributes: ['duration' => $durationMs],
+        );
+    }
+
+    private static function makeInheritedResult(Status $status): TestResult
+    {
+        // Method declared on the abstract base, run through the concrete child:
+        // ReflectionMethod::getDeclaringClass() resolves to AbstractSampleTest,
+        // while the case reflection is the concrete ConcreteSampleTest.
+        $reflection = new \ReflectionMethod(ConcreteSampleTest::class, 'inheritedTest');
+
+        $info = new TestInfo(
+            name: 'inheritedTest',
+            caseInfo: new CaseInfo(
+                definition: new CaseDefinition(
+                    name: ConcreteSampleTest::class,
+                    type: 'test',
+                    reflection: new \ReflectionClass(ConcreteSampleTest::class),
+                ),
+            ),
+            testDefinition: new TestDefinition($reflection),
+        );
+
+        return new TestResult(
+            info: $info,
+            status: $status,
+            attributes: ['duration' => 0],
         );
     }
 
