@@ -31,21 +31,21 @@ final class SpecHeaderTest
 
     public function stringNumberIsKept(): void
     {
-        $header = new SpecHeader(title: 'Tax', number: '5.1');
+        $header = new SpecHeader('5.1', 'Tax');
 
         Assert::same($header->number, '5.1');
     }
 
     public function intNumberIsCastToString(): void
     {
-        $header = new SpecHeader(title: 'Checkout', number: 5);
+        $header = new SpecHeader(5, 'Checkout');
 
         Assert::same($header->number, '5');
     }
 
     public function numberOnlyHeaderIsAllowed(): void
     {
-        $header = new SpecHeader(number: '5');
+        $header = new SpecHeader('5');
 
         Assert::null($header->title);
         Assert::same($header->number, '5');
@@ -77,6 +77,6 @@ final class SpecHeaderTest
         Expect::exception(\InvalidArgumentException::class)
             ->withMessage('Spec header number must not be empty when provided.');
 
-        new SpecHeader(title: 'Checkout', number: $number);
+        new SpecHeader($number, 'Checkout');
     }
 }

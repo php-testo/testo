@@ -6,5 +6,5 @@ namespace Tests\Spec\Unit\Fixture;
 
 use Testo\Spec\SpecHeader;
 
-#[SpecHeader(title: 'Auth', number: '2')]
+#[SpecHeader('2', 'Auth')]
 final class NumberedSectionLow {}

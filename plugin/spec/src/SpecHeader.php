@@ -7,7 +7,7 @@ namespace Testo\Spec;
 /**
  * A numbered heading for the generated specification document — the *structure* around a {@see \Testo\Spec}.
  *
- * - On a **class** it opens a section: `#[SpecHeader(number: '5', title: 'Checkout')]` renders as
+ * - On a **class** it opens a section: `#[SpecHeader('5', 'Checkout')]` renders as
  *   `# 5. Checkout`, and every {@see \Testo\Spec} method in that case becomes an item under it.
  * - On a **method/function** it overrides that item's heading and/or number.
  *

@@ -10,18 +10,18 @@ use Testo\Spec\SpecHeader;
 /**
  * Methods are declared out of number order to prove the interceptor reorders by spec number.
  */
-#[SpecHeader(number: '3')]
+#[SpecHeader('3')]
 final class OrderingCase
 {
     #[Spec(story: 's')]
-    #[SpecHeader(title: 'Third', number: '3.3')]
+    #[SpecHeader('3.3', 'Third')]
     public function third(): void {}
 
     #[Spec(story: 's')]
-    #[SpecHeader(title: 'First', number: '3.1')]
+    #[SpecHeader('3.1', 'First')]
     public function first(): void {}
 
     #[Spec(story: 's')]
-    #[SpecHeader(title: 'Second', number: '3.2')]
+    #[SpecHeader('3.2', 'Second')]
     public function second(): void {}
 }

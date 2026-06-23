@@ -13,7 +13,7 @@ use Testo\Test;
  * Stub with a class-level section header and method-level spec items: the first item auto-numbers
  * under the section, the second overrides only its title (still auto-numbered).
  */
-#[SpecHeader(title: 'Checkout', number: '5')]
+#[SpecHeader('5', 'Checkout')]
 final class SpecStub
 {
     #[Test]

@@ -11,11 +11,11 @@ use Testo\Spec\SpecHeader;
  * Fixture exercising class- and method-level {@see SpecHeader} reflection. Not a runnable test case
  * (no `#[Test]`): it only provides reflections for the interceptor unit test.
  */
-#[SpecHeader(title: 'Checkout', number: '5')]
+#[SpecHeader('5', 'Checkout')]
 final class HeaderedCase
 {
     #[Spec(story: 'Tax is included in the total.')]
-    #[SpecHeader(title: 'Tax in total', number: '5.1')]
+    #[SpecHeader('5.1', 'Tax in total')]
     public function withHeader(): void {}
 
     #[Spec(story: 'Coupon lowers the total.')]

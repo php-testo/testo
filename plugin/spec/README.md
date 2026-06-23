@@ -54,7 +54,7 @@ use Testo\Spec\SpecHeader;
 use Testo\Test;
 
 #[Test]
-#[SpecHeader(title: 'Checkout', number: '5')]   // class = numbered section
+#[SpecHeader('5', 'Checkout')]   // class = numbered section
 final class CheckoutTest
 {
     #[Spec(

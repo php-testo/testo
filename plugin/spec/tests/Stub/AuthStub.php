@@ -9,7 +9,7 @@ use Testo\Spec;
 use Testo\Spec\SpecHeader;
 use Testo\Test;
 
-#[SpecHeader(title: 'Authentication', number: '2')]
+#[SpecHeader('2', 'Authentication')]
 final class AuthStub
 {
     #[Test]

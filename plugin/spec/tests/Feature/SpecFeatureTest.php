@@ -23,7 +23,7 @@ use Tests\Spec\Stub\SpecStub;
 #[Covers(Spec::class)]
 #[Covers(SpecHeader::class)]
 #[Covers(SpecInterceptor::class)]
-#[SpecHeader(title: 'Attaching specs to tests', number: '1')]
+#[SpecHeader('1', 'Attaching specs to tests')]
 #[TestingSuite(path: __DIR__ . '/../Stub')]
 final class SpecFeatureTest
 {

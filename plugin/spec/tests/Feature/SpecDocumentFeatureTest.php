@@ -29,7 +29,7 @@ use Testo\Test;
 #[Covers(SpecCollector::class)]
 #[Covers(SpecSuiteOrderInterceptor::class)]
 #[Covers(SpecCaseOrderInterceptor::class)]
-#[SpecHeader(title: 'Generating the document', number: '2')]
+#[SpecHeader('2', 'Generating the document')]
 final class SpecDocumentFeatureTest
 {
     #[Spec(story: <<<'MD'

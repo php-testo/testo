@@ -6,5 +6,5 @@ namespace Tests\Spec\Unit\Fixture;
 
 use Testo\Spec\SpecHeader;
 
-#[SpecHeader(title: 'Reports', number: '10')]
+#[SpecHeader('10', 'Reports')]
 final class NumberedSectionHigh {}
