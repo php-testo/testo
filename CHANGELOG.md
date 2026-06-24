@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.28](https://github.com/php-testo/testo/compare/0.10.27...0.10.28) (2026-06-24)
+
+
+### Documentation
+
+* Add `testo-increase-coverage` skill ([9634fab](https://github.com/php-testo/testo/commit/9634fab9ab36c11d11ea61b3a83381d2fa493c53))
+
 ## [0.10.27](https://github.com/php-testo/testo/compare/0.10.26...0.10.27) (2026-06-24)
 
 
