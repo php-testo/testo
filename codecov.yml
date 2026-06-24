@@ -1,0 +1,71 @@
+coverage:
+  # Precision and color range for the badge/percentages
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    # Total project coverage + delta against the base commit.
+    project:
+      default:
+        target: auto          # compare against the base commit's coverage
+        threshold: 0.5%        # allowed drop before turning "red"
+        informational: true   # do not block merge, only report the delta
+    # Coverage of the lines changed in the PR itself (diff coverage).
+    patch:
+      default:
+        target: 70%
+        threshold: 0%
+        informational: false
+
+# Codecov PR comment — this is where you decide WHAT to show.
+comment:
+  layout: "condensed_header, diff, components, flags, files, footer"
+  behavior: default        # update the same comment in place
+  require_changes: false   # post even if coverage did not change
+  require_base: false
+  require_head: true
+  hide_project_coverage: false
+
+# Inline annotations for uncovered lines right in the "Files changed" tab.
+github_checks:
+  annotations: true
+
+# Per-module coverage delta breakdown (on top of a single report, no extra uploads).
+component_management:
+  default_behavior: "include"
+  individual_components:
+    - component_id: core_application
+      name: Application
+      paths: ["core/Application/**"]
+    - component_id: core_common
+      name: Common
+      paths: ["core/Common/**"]
+    - component_id: core_core
+      name: Core
+      paths: ["core/Core/**"]
+    - component_id: core_event
+      name: Event
+      paths: ["core/Event/**"]
+    - component_id: core_output
+      name: Output
+      paths: ["core/Output/**"]
+    - component_id: core_pipeline
+      name: Pipeline
+      paths: ["core/Pipeline/**"]
+    - component_id: core_testing
+      name: Testing
+      paths: ["core/Testing/**"]
+    - component_id: core_tokenizer
+      name: Tokenizer
+      paths: ["core/Tokenizer/**"]
+    - component_id: plugins
+      name: Plugins
+      paths: ["plugin/**"]
+
+# Exclude things that should not affect coverage from the calculation.
+ignore:
+  - "tests/**"
+  - "**/tests/**"
+  - "resources/**"
+  - "skills/**"
