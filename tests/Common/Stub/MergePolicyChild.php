@@ -15,4 +15,12 @@ final class MergePolicyChild extends MergePolicyBase
     public function methodWithAttrOnChildOnly(): void {}
 
     public function methodWithNoAttr(): void {}
+
+    /**
+     * Two repeatable attributes in a single (own) layer, used to exercise the
+     * "layer exceeds limit → array_slice" branches of fetchFunctionAttributes.
+     */
+    #[ReflectionClassAttribute('first')]
+    #[ReflectionClassAttribute('second')]
+    public function methodWithTwoOwnAttributes(): void {}
 }
