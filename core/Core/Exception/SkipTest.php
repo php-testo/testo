@@ -21,5 +21,7 @@ use Testo\Core\Value\Status;
  *
  * For external interruption signals (deadline, fail-fast, cooperative shutdown)
  * use {@see CancelTest} instead.
+ *
+ * @api Subclasses are recognized too: the runner maps any `instanceof SkipTest` throw to {@see Status::Skipped}.
  */
 class SkipTest extends \RuntimeException {}

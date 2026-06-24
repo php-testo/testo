@@ -9,6 +9,7 @@ use Testo\Core\Context\TestInfo;
 /**
  * Test related event.
  *
+ * @psalm-immutable
  * @api
  */
 abstract readonly class TestEvent

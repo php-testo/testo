@@ -77,13 +77,13 @@ final class Reflection
     /**
      * Fetch all attributes for a given class.
      *
-     * @template T
+     * @template T of object
      *
      * @param \ReflectionClass|class-string $class
      * @param bool $includeParents Whether to include attributes from parent classes.
      * @param bool $includeTraits Whether to include attributes from traits.
      * @param class-string<T>|null $attributeClass If provided, only attributes of this class will be returned.
-     * @param int $flags Flags to pass to {@see ReflectionClass::getAttributes()}.
+     * @param int $flags Flags to pass to {@see \ReflectionClass::getAttributes()}.
      * @param int<1, max> $limit Maximum number of attributes to return. If reached, the search will stop early.
      * @param self::MERGE_* $mergePolicy Controls how attributes from parent layers are combined.
      *        Layers without matching attributes are skipped.
@@ -152,7 +152,7 @@ final class Reflection
      * @param class-string $class
      * @param bool $includeParents Whether to include traits from parent classes.
      *
-     * @return non-empty-string[]
+     * @return trait-string[]
      */
     public static function fetchTraits(
         string $class,
@@ -161,13 +161,15 @@ final class Reflection
         $traits = [];
 
         do {
-            $traits = \array_merge(\class_uses($class), $traits);
+            $uses = \class_uses($class);
+            $uses === false or $traits = \array_merge($uses, $traits);
             $class = \get_parent_class($class);
         } while ($includeParents && $class !== false);
 
         //Traits from traits
         foreach (\array_flip($traits) as $trait) {
-            $traits = \array_merge(\class_uses($trait), $traits);
+            $uses = \class_uses($trait);
+            $uses === false or $traits = \array_merge($uses, $traits);
         }
 
         return \array_unique($traits);
@@ -179,7 +181,7 @@ final class Reflection
      * @param \ReflectionClass|class-string $class The class to inspect.
      * @param class-string $attributeClass The attribute class to search for.
      * @param bool $includePrototypes Whether to search for the attribute in method prototypes if not found on the method itself.
-     * @param ReflectionAttribute::* $flags Flags to pass to {@see ReflectionMethod::getAttributes()}.
+     * @param int $flags Flags to pass to {@see \ReflectionMethod::getAttributes()}.
      *
      * @return \ReflectionMethod[] An array of methods that have the specified attribute.
      */
@@ -223,7 +225,7 @@ final class Reflection
      * attributes from ParentClass will appear twice. This is intentional behavior that reflects the call stack
      * structure.
      *
-     * @template T
+     * @template T of object
      *
      * @param class-string<T>|null $attributeClass If provided, only attributes of this class will be returned.
      * @param bool $includePrototypes Whether to include attributes from method prototypes. Only applicable for methods
@@ -236,8 +238,10 @@ final class Reflection
      *        true.
      * @param int<1, max> $limit Maximum number of attributes to return. If reached, the search will stop early.
      *        Defaults to PHP_INT_MAX (no practical limit).
-     * @param ReflectionAttribute::* $flags Flags to pass to {@see ReflectionFunctionAbstract::getAttributes()}.
+     * @param int $flags Flags to pass to {@see \ReflectionFunctionAbstract::getAttributes()}.
      * @return list<\ReflectionAttribute<T>>
+     * @psalm-suppress MoreSpecificReturnType, LessSpecificReturnStatement The generic attribute type
+     *         cannot be tracked through the merged backtrace frames.
      */
     public static function getAttributesFromCallStack(
         ?string $attributeClass,
@@ -252,6 +256,7 @@ final class Reflection
         $backtrace = \debug_backtrace(\DEBUG_BACKTRACE_PROVIDE_OBJECT | \DEBUG_BACKTRACE_IGNORE_ARGS);
         foreach ($backtrace as $frame) {
             try {
+                /** @psalm-suppress ArgumentTypeCoercion Backtrace function names are runtime-resolved. */
                 $reflection = match (true) {
                     isset($frame['class'], $frame['function']) => new \ReflectionMethod(
                         $frame['class'],

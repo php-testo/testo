@@ -80,6 +80,7 @@ final class State implements Destroyable
         return new self($this->dispatcher, $this, $holdEvents);
     }
 
+    #[\Override]
     public function destroy(): void
     {
         $this->messages = [];

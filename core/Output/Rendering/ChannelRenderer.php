@@ -97,8 +97,9 @@ final class ChannelRenderer
     private static function formatTime(float $time): string
     {
         $seconds = (int) $time;
-        $millis = \min(999, (int) \round(($time - $seconds) * 1000));
+        $millis = \min(999, (int) \round(($time - (float) $seconds) * 1000.0));
 
+        /** @var non-empty-string */
         return \date('H:i:s', $seconds) . \sprintf('.%03d', $millis);
     }
 }

@@ -32,7 +32,7 @@ final readonly class SuiteProvider
         $filter = $this->container->get(Filter::class);
 
         # Filter by suite name
-        $filterNames = $filter?->suites ?? [];
+        $filterNames = $filter->suites;
         if ($filterNames !== [] && !\in_array($config->name, $filterNames, true)) {
             return null;
         }

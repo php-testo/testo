@@ -20,7 +20,7 @@ final readonly class TestingSuite
     public array $plugins;
 
     /**
-     * @param string|Path $path Stub directory or file path.
+     * @param non-empty-string|Path $path Stub directory or file path.
      * @param list<class-string<PluginConfigurator>|PluginConfigurator> $plugins Extra plugins to load
      *        for the testing suite, on top of the suite defaults. Useful to exercise a plugin's
      *        runtime behaviour end-to-end (e.g. output capturing).

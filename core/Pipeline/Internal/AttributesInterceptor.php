@@ -53,15 +53,19 @@ final readonly class AttributesInterceptor implements TestRunInterceptor, TestCa
             return $next($info);
         }
 
-        $attrs = \array_map(
-            static fn(\ReflectionAttribute $a): Interceptable => $a->newInstance(),
+        $attrs = \array_values(\array_map(
+            static function (\ReflectionAttribute $a): Interceptable {
+                /** @var Interceptable */
+                return $a->newInstance();
+            },
             $attrs,
-        );
+        ));
 
         # Merge and instantiate attributes
         $interceptors = $this->interceptorProvider->fromAttributes(TestRunInterceptor::class, ...$attrs);
         $info = $info->withAttributes(self::groupAttributes($attrs));
 
+        /** @var callable(TestInfo): TestResult $pipeline */
         $pipeline = $next instanceof Pipeline
             ? $next->combine(...$interceptors)
             : Pipeline::prepare($info->caseInfo->definition->type, ...$interceptors)->with(
@@ -90,7 +94,10 @@ final readonly class AttributesInterceptor implements TestRunInterceptor, TestCa
         }
 
         $attrs = \array_map(
-            static fn(\ReflectionAttribute $a): Interceptable => $a->newInstance(),
+            static function (\ReflectionAttribute $a): Interceptable {
+                /** @var Interceptable */
+                return $a->newInstance();
+            },
             $attrs,
         );
 
@@ -98,6 +105,7 @@ final readonly class AttributesInterceptor implements TestRunInterceptor, TestCa
         $interceptors = $this->interceptorProvider->fromAttributes(TestCaseRunInterceptor::class, ...$attrs);
         $info = $info->withAttributes(self::groupAttributes($attrs));
 
+        /** @var callable(CaseInfo): CaseResult $pipeline */
         $pipeline = $next instanceof Pipeline
             ? $next->combine(...$interceptors)
             : Pipeline::prepare($info->definition->type, ...$interceptors)->with(
@@ -111,8 +119,8 @@ final readonly class AttributesInterceptor implements TestRunInterceptor, TestCa
     /**
      * Converts array of attributes to associative array of attributed lists
      *
-     * @param list<Interceptable> $attrs
-     * @return Interceptable
+     * @param non-empty-list<Interceptable> $attrs
+     * @return non-empty-array<class-string<Interceptable>, non-empty-list<Interceptable>>
      */
     private static function groupAttributes(array $attrs): array
     {

@@ -16,6 +16,8 @@ use Testo\Pipeline\Internal\Sorter;
  *
  * @psalm-immutable
  * @api
+ *
+ * @psalm-suppress PropertyNotSetInConstructor $method and $last are set later via {@see self::with()}.
  */
 final class Pipeline
 {
@@ -39,6 +41,7 @@ final class Pipeline
         private readonly ?string $testType,
     ) {
         // Reset keys
+        /** @psalm-suppress ImpureMethodCall */
         $this->interceptors = Sorter::sortAndFilter($interceptors, $testType);
     }
 
@@ -54,10 +57,11 @@ final class Pipeline
      * @return self<TInt, TIn, TOut>
      *
      * @note Make sure that interceptors implement the same interface.
+     * @psalm-suppress InvalidTemplateParam, UndefinedDocblockClass, InvalidReturnType, InvalidReturnStatement
      */
     public static function prepare(\BackedEnum|string|null $testType, TInterceptor ...$interceptors): self
     {
-        return new self($interceptors, \is_object($testType) ? $testType->value : $testType);
+        return new self($interceptors, \is_object($testType) ? (string) $testType->value : $testType);
     }
 
     /**
@@ -76,6 +80,7 @@ final class Pipeline
         # Create a new pipeline with merged interceptors
         $new = clone $this;
         $new->current = 0;
+        /** @psalm-suppress ImpureMethodCall */
         $new->interceptors = Sorter::sortAndFilter($interceptors, $this->testType);
         return $new;
     }
@@ -84,6 +89,7 @@ final class Pipeline
      * @param non-empty-string $method Method name of the all interceptors.
      *
      * @return callable(object): TOutput
+     * @psalm-suppress InvalidReturnType, InvalidReturnStatement
      */
     public function with(callable $last, string $method): callable
     {
@@ -101,6 +107,7 @@ final class Pipeline
      * @param TInput $input Input value for the first interceptor.
      *
      * @return TOutput
+     * @psalm-suppress ImpureFunctionCall
      */
     public function __invoke(object $input): mixed
     {

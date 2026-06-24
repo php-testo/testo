@@ -9,6 +9,7 @@ use Testo\Core\Context\SuiteInfo;
 /**
  * Test suite related event.
  *
+ * @psalm-immutable
  * @api
  */
 abstract readonly class TestSuiteEvent

@@ -11,6 +11,7 @@
     findUnusedCode="false"
     ensureArrayStringOffsetsExist="true"
     addParamDefaultToDocblockType="true"
+    errorBaseline="psalm-baseline.xml"
 >
     <projectFiles>
         <directory name="core" />

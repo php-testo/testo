@@ -45,8 +45,8 @@ final readonly class TestRunner
                 function (TestInfo $info) use ($description): TestResult {
                     $this->eventDispatcher->dispatch(new TestStarting($info));
 
+                    $startTime = \microtime(true);
                     try {
-                        $startTime = \microtime(true);
                         $executionResult = ($info->caseInfo->handler)($info);
                         $duration = \microtime(true) - $startTime;
 
@@ -55,7 +55,7 @@ final readonly class TestRunner
                             status: Status::Passed,
                             result: $executionResult,
                             attributes: [
-                                'duration' => (int) \round($duration * 1000),
+                                'duration' => (int) \round($duration * 1000.0),
                                 'description' => $description,
                             ],
                             summary: new Summary(duration: $duration),
@@ -74,7 +74,7 @@ final readonly class TestRunner
                             status: $status,
                             failure: $throwable,
                             attributes: [
-                                'duration' => (int) \round($duration * 1000),
+                                'duration' => (int) \round($duration * 1000.0),
                                 'description' => $description,
                             ],
                             summary: new Summary(duration: $duration),

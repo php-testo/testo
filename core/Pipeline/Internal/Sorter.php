@@ -131,12 +131,16 @@ final class Sorter
     private static function normalizeTestTypeFilter(\BackedEnum|array|string $testType): array
     {
         if (!\is_array($testType)) {
-            return [\is_string($testType) ? $testType : $testType->value];
+            /** @var non-empty-string $value */
+            $value = \is_string($testType) ? $testType : (string) $testType->value;
+            return [$value];
         }
 
         $result = [];
         foreach ($testType as $type) {
-            $result[] = \is_string($type) ? $type : $type->value;
+            /** @var non-empty-string $value */
+            $value = \is_string($type) ? $type : (string) $type->value;
+            $result[] = $value;
         }
 
         return $result;

@@ -20,7 +20,7 @@ final readonly class MessageLog implements \IteratorAggregate, \Countable
     private array $messages;
 
     /**
-     * @param list<Message> $messages
+     * @param Message[] $messages Normalized to a list, preserving insertion order.
      */
     public function __construct(array $messages = [])
     {

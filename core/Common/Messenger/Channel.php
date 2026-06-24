@@ -53,6 +53,7 @@ final readonly class Channel implements LoggerInterface
      * @param Level|mixed $level A {@see Level} or a PSR-3 level string ({@see \Psr\Log\LogLevel});
      *        an unknown level falls back to {@see Level::Info}.
      * @param array<string, mixed> $context
+     * @psalm-suppress MoreSpecificImplementedParamType, ArgumentTypeCoercion
      */
     #[\Override]
     public function log($level, string|\Stringable $message, array $context = []): void

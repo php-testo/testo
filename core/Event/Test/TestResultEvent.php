@@ -10,6 +10,7 @@ use Testo\Core\Context\TestResult;
 /**
  * Test result related event.
  *
+ * @psalm-immutable
  * @api
  */
 abstract readonly class TestResultEvent extends TestEvent

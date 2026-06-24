@@ -79,6 +79,7 @@ final class StackTrace
     private static function resolveHasAssertMethod(string $key, string $class, string $function): bool
     {
         try {
+            /** @psalm-suppress ArgumentTypeCoercion */
             $method = new \ReflectionMethod($class, $function);
         } catch (\ReflectionException) {
             return false;

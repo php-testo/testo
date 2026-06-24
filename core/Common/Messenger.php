@@ -60,6 +60,7 @@ interface Messenger
      * {@see MessageReceived} event (the global firehose — fired once per write, regardless of scope).
      *
      * @param non-empty-string $channel
+     * @param non-empty-string $content
      * @param array<string, mixed> $context Structured context attached to the message.
      */
     public function log(string $channel, string $content, Level $level = Level::Info, array $context = []): void;

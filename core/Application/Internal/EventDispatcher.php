@@ -58,10 +58,12 @@ final class EventDispatcher implements
 
         # Cache hierarchy per event class
         static $hierarchy = [];
+        $parents = \class_parents($event);
+        $interfaces = \class_implements($event);
         $hierarchy[$eventName] ??= [
             $eventName,
-            ...\array_values(\class_parents($event)),
-            ...\array_values(\class_implements($event)),
+            ...($parents === false ? [] : \array_values($parents)),
+            ...($interfaces === false ? [] : \array_values($interfaces)),
         ];
 
         foreach ($hierarchy[$eventName] as $class) {
@@ -74,7 +76,7 @@ final class EventDispatcher implements
     }
 
     /**
-     * @template T
+     * @template T of object
      * @param T $event
      * @return T
      */

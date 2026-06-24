@@ -44,9 +44,9 @@ final readonly class TestDefinition
     #[TestInline(["/**\n * Email like foo@bar.com\n */"], 'Email like foo@bar.com')]
     private static function clearPhpDoc(string $doc): string
     {
-        $doc = \preg_replace('#^\s*/\*\*|\*/\s*$#', '', $doc);
-        $doc = \preg_replace('#^\s*+\*[ \x0B\t\f\r]?#m', '', $doc);
-        $doc = \preg_replace('#^[ \t]*@.*#ms', '', $doc);
+        $doc = \preg_replace('#^\s*/\*\*|\*/\s*$#', '', $doc) ?? $doc;
+        $doc = \preg_replace('#^\s*+\*[ \x0B\t\f\r]?#m', '', $doc) ?? $doc;
+        $doc = \preg_replace('#^[ \t]*@.*#ms', '', $doc) ?? $doc;
 
         return \trim($doc);
     }

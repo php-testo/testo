@@ -55,7 +55,7 @@ final readonly class PluginCollection implements \IteratorAggregate, \Countable
     }
 
     /**
-     * @return \ArrayIterator<int, \Testo\Common\PluginConfigurator>
+     * @return \ArrayIterator<int<0,max>, \Testo\Common\PluginConfigurator>
      */
     #[\Override]
     public function getIterator(): \ArrayIterator

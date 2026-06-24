@@ -37,6 +37,7 @@ final readonly class MessengerHub implements Messenger
     {
         // The active state records the message and announces it (or holds the event, in a holdEvents
         // fork, until commit); it also guards against avalanche recursion during dispatch.
+        /** @psalm-suppress ArgumentTypeCoercion */
         $this->state->state->record(new Message(\microtime(true), $channel, $level, $content, $context));
     }
 

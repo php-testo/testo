@@ -52,6 +52,7 @@ final readonly class CaseRunner
             );
 
         $this->eventDispatcher->dispatch(new TestCasePipelineStarting($info));
+        /** @var CaseResult $result */
         $result = $pipeline($info);
         $this->eventDispatcher->dispatch(new TestCasePipelineFinished($info, $result));
 

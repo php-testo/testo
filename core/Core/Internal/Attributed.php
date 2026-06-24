@@ -16,7 +16,7 @@ trait Attributed
 
     /**
      * @return array<non-empty-string, mixed> Attributes derived from the context.
-     * @psalm-pure
+     * @psalm-mutation-free
      */
     public function getAttributes(): array
     {
@@ -29,7 +29,7 @@ trait Attributed
      * @param non-empty-string|class-string<T> $name
      * @param D $default
      * @return ($name is class-string<T> ? T|D : mixed|D)
-     * @psalm-pure
+     * @psalm-mutation-free
      */
     public function getAttribute(string $name, mixed $default = null): mixed
     {

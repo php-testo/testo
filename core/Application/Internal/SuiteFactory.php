@@ -68,7 +68,7 @@ final readonly class SuiteFactory
          * @var callable(TokenizedFile): (null|bool) $pipeline
          */
         $pipeline = \Testo\Pipeline\Pipeline::prepare($filter->type, ...$interceptors)
-            ->with(static fn(TokenizedFile $file): ?bool => null, 'locateFile');
+            ->with(static fn(TokenizedFile $_): ?bool => null, 'locateFile');
 
         foreach ($locator->getIterator() as $fileReflection) {
             $match = $pipeline($fileReflection);

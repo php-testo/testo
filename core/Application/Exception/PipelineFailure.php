@@ -7,4 +7,4 @@ namespace Testo\Application\Exception;
 /**
  * Exception thrown when an exception occurs in the pipeline.
  */
-class PipelineFailure extends \RuntimeException {}
+final class PipelineFailure extends \RuntimeException {}

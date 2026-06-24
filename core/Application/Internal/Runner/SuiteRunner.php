@@ -55,6 +55,7 @@ final readonly class SuiteRunner
             );
 
         $this->eventDispatcher->dispatch(new TestSuitePipelineStarting($info));
+        /** @var SuiteResult $result */
         $result = $pipeline($info);
         $this->eventDispatcher->dispatch(new TestSuitePipelineFinished($info, $result));
 
@@ -65,8 +66,8 @@ final readonly class SuiteRunner
     {
         $this->eventDispatcher->dispatch(new TestSuiteStarting($suite));
 
-        # Apply suite name filter if exists
-        $suite->name === null or $filter = $filter->with(testSuites: [$suite->name]);
+        # Apply suite name filter
+        $filter = $filter->with(testSuites: [$suite->name]);
 
         // todo if random, run in random order?
 

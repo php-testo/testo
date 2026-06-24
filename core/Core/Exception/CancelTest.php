@@ -19,5 +19,7 @@ use Testo\Core\Value\Status;
  * Must escape the test method directly: only the test handler's try/catch maps
  * this exception to {@see Status::Cancelled}. Throws originating from interceptors
  * bubble out of the pipeline and are treated as a pipeline failure.
+ *
+ * @api Subclasses are recognized too: the runner maps any `instanceof CancelTest` throw to {@see Status::Cancelled}.
  */
 class CancelTest extends \RuntimeException {}

@@ -70,6 +70,7 @@ final readonly class Application
         # Bind reading provided config file
         $configFile === null or $container
             ->bind(ApplicationConfig::class, function () use ($configFile): ApplicationConfig {
+                /** @psalm-suppress UnresolvableInclude */
                 $cfg = include $configFile;
                 $cfg instanceof ApplicationConfig or throw new \InvalidArgumentException(
                     \sprintf(
@@ -154,7 +155,7 @@ final readonly class Application
     /**
      * Normalize an iterable of plugins into a resolved flat list.
      *
-     * @param iterable<PluginConfigurator> $plugins
+     * @param iterable<array-key, PluginConfigurator> $plugins
      * @param class-string<ApplicationPlugins|SuitePlugins> $facade
      * @return list<PluginConfigurator>
      */

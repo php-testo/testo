@@ -208,7 +208,6 @@ final class ConfigInflector implements Inflector
         }
 
         $xml = $value[0];
-        \assert($xml instanceof \SimpleXMLElement);
 
         // Instantiate
         $item = new $attribute->class();
@@ -231,8 +230,6 @@ final class ConfigInflector implements Inflector
         \is_array($value) or throw new \Exception(\sprintf('Invalid XPath `%s`', $attribute->path));
 
         foreach ($value as $xml) {
-            \assert($xml instanceof \SimpleXMLElement);
-
             // Instantiate
             $item = new $attribute->class();
 
