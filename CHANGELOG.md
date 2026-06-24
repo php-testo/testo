@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.27](https://github.com/php-testo/testo/compare/0.10.26...0.10.27) (2026-06-24)
+
+
+### Features
+
+* add sorting functionality for cases and tests using user-defined comparators ([6c95720](https://github.com/php-testo/testo/commit/6c957200a8df317e3c5b1af1e7bfb52167101969))
+
+
+### Bug Fixes
+
+* **filter:** match inherited tests when filtering by name ([e7c33f5](https://github.com/php-testo/testo/commit/e7c33f559585a7f073f662f686ae2c2e3bde5223))
+* **teamcity:** attribute inherited tests to the concrete class ([b03557e](https://github.com/php-testo/testo/commit/b03557efef92c74c3a892c25cb4166958b553b82))
+* **teamcity:** render previous throwable message in failure details ([e8688b3](https://github.com/php-testo/testo/commit/e8688b33e6c9e1953d9d8652879604b2091342dd))
+
 ## [0.10.26](https://github.com/php-testo/testo/compare/0.10.25...0.10.26) (2026-06-21)
 
 

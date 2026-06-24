@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/php-testo/testo/compare/filter-0.1.3...filter-0.1.4) (2026-06-24)
+
+
+### Bug Fixes
+
+* **filter:** match inherited tests when filtering by name ([e7c33f5](https://github.com/php-testo/testo/commit/e7c33f559585a7f073f662f686ae2c2e3bde5223))
+
 ## [0.1.3](https://github.com/php-testo/testo/compare/filter-0.1.2...filter-0.1.3) (2026-06-19)
 
 
