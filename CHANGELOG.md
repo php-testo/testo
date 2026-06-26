@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.29](https://github.com/php-testo/testo/compare/0.10.28...0.10.29) (2026-06-26)
+
+
+### Features
+
+* **assert:** Expose `#[ExpectNoAssertions]` attribute ([#116](https://github.com/php-testo/testo/issues/116)) ([d72d2ea](https://github.com/php-testo/testo/commit/d72d2ea5505199b8bb0d7e69c7a38ef97ed7dd13))
+
 ## [0.10.28](https://github.com/php-testo/testo/compare/0.10.27...0.10.28) (2026-06-24)
 
 
