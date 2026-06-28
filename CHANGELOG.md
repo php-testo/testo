@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.30](https://github.com/php-testo/testo/compare/0.10.29...0.10.30) (2026-06-28)
+
+
+### Documentation
+
+* Add `Vibe Index` badge ([6b10ec3](https://github.com/php-testo/testo/commit/6b10ec365defe6cb24cb34f72307d174213f09d5))
+
 ## [0.10.29](https://github.com/php-testo/testo/compare/0.10.28...0.10.29) (2026-06-26)
 
 
