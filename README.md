@@ -16,7 +16,7 @@
 [![Type Coverage](https://shepherd.dev/github/php-testo/testo/coverage.svg)](https://shepherd.dev/github/php-testo/testo)
 [![codecov](https://codecov.io/gh/php-testo/testo/branch/1.x/graph/badge.svg)](https://codecov.io/gh/php-testo/testo)
 [![Mutation testing badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Fphp-testo%2Ftesto%2F1.x)](https://dashboard.stryker-mutator.io/reports/github.com/php-testo/testo/1.x)
-![Vibe Index]()
+[![Vibe Index](https://img.shields.io/static/v1?label=Vibe+Index&message=0.0&color=27ae60&style=flat&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZiI%2BPHBhdGggZD0iTTkgNCBROSAxMyAxOCAxMyBROSAxMyA5IDIyIFE5IDEzIDAgMTMgUTkgMTMgOSA0IFoiLz48cGF0aCBkPSJNMTkgMSBRMTkgNiAyNCA2IFExOSA2IDE5IDExIFExOSA2IDE0IDYgUTE5IDYgMTkgMSBaIi8%2BPHBhdGggZD0iTTIwIDE0IFEyMCAxOCAyNCAxOCBRMjAgMTggMjAgMjIgUTIwIDE4IDE2IDE4IFEyMCAxOCAyMCAxNCBaIi8%2BPC9zdmc%2B)](https://github.com/roxblnfk/action-vibe-index)
 
 
 </div>
