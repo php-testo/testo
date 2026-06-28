@@ -27,37 +27,39 @@ final class PrefixSuffixDiffer implements Differ
         $b = \explode("\n", $actual);
         $n = \count($a);
         $m = \count($b);
+        $max = \min($n, $m);
 
-        $start = 0;
-        while ($start < $n && $start < $m && $a[$start] === $b[$start]) {
-            $start++;
+        // Lengths of the shared head and tail. Both counters start at 0, so every index derived from
+        // them stays non-negative by construction — no per-iteration assertion needed.
+        $prefix = 0;
+        while ($prefix < $max && $a[$prefix] === $b[$prefix]) {
+            ++$prefix;
         }
 
-        $endA = $n - 1;
-        $endB = $m - 1;
-        while ($endA >= $start && $endB >= $start) {
-            \assert($endA >= 0 && $endB >= 0);
-            if ($a[$endA] !== $b[$endB]) {
+        $suffix = 0;
+        while ($suffix < $max - $prefix) {
+            $ia = $n - 1 - $suffix;
+            $ib = $m - 1 - $suffix;
+            // The loop bound keeps $ia/$ib >= $prefix, so they never go negative; the explicit guard
+            // both states that invariant and lets static analysis prove the accesses are in range.
+            if ($ia < 0 || $ib < 0 || $a[$ia] !== $b[$ib]) {
                 break;
             }
-            $endA--;
-            $endB--;
+            ++$suffix;
         }
 
         $result = [];
-        for ($i = 0; $i < $start; $i++) {
-            $result[] = new DiffLine(DiffOp::Context, $a[$i]);
+        foreach (\array_slice($a, 0, $prefix) as $line) {
+            $result[] = new DiffLine(DiffOp::Context, $line);
         }
-
-        $midA = \array_slice($a, $start, $endA - $start + 1);
-        $midB = \array_slice($b, $start, $endB - $start + 1);
-        foreach ($this->middle($midA, $midB) as $line) {
+        foreach ($this->middle(
+            \array_slice($a, $prefix, $n - $prefix - $suffix),
+            \array_slice($b, $prefix, $m - $prefix - $suffix),
+        ) as $line) {
             $result[] = $line;
         }
-
-        for ($i = $endA + 1; $i < $n; $i++) {
-            \assert($i >= 0);
-            $result[] = new DiffLine(DiffOp::Context, $a[$i]);
+        foreach (\array_slice($a, $n - $suffix) as $line) {
+            $result[] = new DiffLine(DiffOp::Context, $line);
         }
 
         return $result;

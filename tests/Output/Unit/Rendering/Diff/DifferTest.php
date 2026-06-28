@@ -1,5 +1,6 @@
 <?php
 
+
 declare(strict_types=1);
 
 namespace Tests\Output\Unit\Rendering\Diff;
@@ -75,6 +76,26 @@ final class DifferTest
         Assert::same(self::editCount($diff), 2);
         Assert::same(self::reconstruct($diff, DiffOp::Add), $expected);
         Assert::same(self::reconstruct($diff, DiffOp::Remove), $actual);
+    }
+
+    /**
+     * LcsDiffer must not access undefined array keys during its DP table traversal.
+     * The base-row index must be 0, not 1; accessing key 0 on a table that starts at 1
+     * would emit PHP warnings for "Undefined array key 0" and "Trying to access array
+     * offset on null", which this test surfaces by promoting warnings to exceptions.
+     */
+    public function lcsEmitsNoWarnings(): void
+    {
+        $previous = \set_error_handler(
+            static fn(int $errno, string $errstr): never => throw new \ErrorException($errstr, $errno),
+            \E_WARNING | \E_NOTICE,
+        );
+        try {
+            $diff = (new LcsDiffer())->diff("a\nb\nc", "a\nX\nc");
+            Assert::count($diff, 4);
+        } finally {
+            \set_error_handler($previous);
+        }
     }
 
     public static function differs(): iterable
