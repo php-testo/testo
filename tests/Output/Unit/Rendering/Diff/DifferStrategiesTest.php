@@ -18,11 +18,16 @@ use Testo\Output\Rendering\Diff\PatienceDiffer;
 use Testo\Output\Rendering\Diff\PrefixSuffixDiffer;
 use Testo\Output\Rendering\Diff\RatcliffObershelpDiffer;
 use Testo\Test;
+use Tests\Output\Stub\Diff\RecordingDiffer;
 
 /**
- * Behavioural tests for the alternative {@see Differ} strategies. The minimal-edit guarantees and
- * the core invariants for {@see MyersDiffer}/{@see LcsDiffer} live in {@see DifferTest}; this file
- * covers the prefix/suffix decorator, patience and Hirschberg variants.
+ * Behavioural tests for the alternative {@see Differ} strategies — the prefix/suffix decorator,
+ * patience, Hirschberg and Ratcliff/Obershelp. The minimal-edit guarantees and the core invariants
+ * for {@see MyersDiffer}/{@see LcsDiffer} live in {@see DifferTest}.
+ *
+ * The reconstruction invariant alone is deliberately weak (a "delete everything, add everything"
+ * differ would satisfy it), so the quality-oriented strategies are additionally pinned with exact
+ * alignment snapshots and delegation spies, and the minimal ones with an edit-count parity check.
  */
 #[Test]
 #[Covers(PrefixSuffixDiffer::class)]
@@ -32,8 +37,8 @@ use Testo\Test;
 final class DifferStrategiesTest
 {
     /**
-     * Every strategy — including patience, which does not minimise edits — must still emit a valid
-     * edit script: dropping the other side's edits reconstructs each side verbatim.
+     * Every strategy — including patience and Ratcliff/Obershelp, which do not minimise edits — must
+     * still emit a valid edit script: dropping the other side's edits reconstructs each side verbatim.
      */
     #[DataCross(
         new DataProvider('strategies'),
@@ -48,9 +53,29 @@ final class DifferStrategiesTest
     }
 
     /**
+     * Reconstruction must also hold on a large input that exercises the recursive/stack-based paths
+     * (Hirschberg's divide-and-conquer, patience recursion, the Ratcliff/Obershelp stack) — not just
+     * the tiny hand-written scenarios above.
+     */
+    #[DataProvider('strategies')]
+    public function reconstructsLargeInput(Differ $differ): void
+    {
+        $base = \array_map(static fn(int $i): string => "line {$i}", \range(1, 300));
+        $expected = \implode("\n", $base);
+        $base[150] = 'line CHANGED';
+        \array_splice($base, 80, 0, ['inserted']);
+        $actual = \implode("\n", $base);
+
+        $diff = $differ->diff($expected, $actual);
+
+        Assert::same(self::reconstruct($diff, DiffOp::Add), $expected);
+        Assert::same(self::reconstruct($diff, DiffOp::Remove), $actual);
+    }
+
+    /**
      * The minimal strategies (memory-efficient LCS, and Myers behind the prefix/suffix decorator)
-     * compute a shortest edit script, so their edit count must equal plain Myers'. Patience is
-     * intentionally excluded — it optimises alignment, not edit count.
+     * compute a shortest edit script, so their edit count must equal plain Myers'. Patience and
+     * Ratcliff/Obershelp are intentionally excluded — they optimise alignment, not edit count.
      */
     #[DataCross(
         new DataProvider('minimalStrategies'),
@@ -64,31 +89,95 @@ final class DifferStrategiesTest
     }
 
     /**
-     * Patience anchors on lines that are unique on both sides. Here "x" repeats and cannot anchor,
-     * but "ANCHOR" is unique and pins the alignment, so it survives as a single context line instead
-     * of being torn into a remove/add pair the way a sliding minimal-edit diff might.
+     * Patience anchors on lines unique to both sides. "x" repeats and cannot anchor, but "ANCHOR" is
+     * unique and pins the alignment: it stays a single context line while the duplicated "x"s around
+     * it are paired as additions. The exact script is asserted so a regression in alignment is caught
+     * (reconstruction alone would not notice).
      */
-    public function patienceKeepsAUniqueCommonLineAsContext(): void
+    public function patienceProducesAnchoredAlignment(): void
     {
         $diff = (new PatienceDiffer())->diff("x\nANCHOR\nx", "x\nx\nANCHOR\nx\nx");
 
-        Assert::same(self::countOp($diff, DiffOp::Context, 'ANCHOR'), 1);
-        Assert::same(self::countOp($diff, DiffOp::Remove, 'ANCHOR'), 0);
+        Assert::same(self::render($diff), ['  x', '+ x', '  ANCHOR', '+ x', '  x']);
     }
 
     /**
-     * With no line unique to both sides patience has nothing to anchor on and defers to its fallback
-     * differ; trimming the shared prefix/suffix first leaves the edit count identical to plain Myers.
+     * Ratcliff/Obershelp anchors on the single longest matching block. On a reversal it keeps only
+     * the longest run ("a" here) as context and rewrites the rest, which is its defining behaviour.
      */
-    public function patienceFallsBackToMyersEditCountWithoutUniqueLines(): void
+    public function ratcliffAnchorsOnLongestBlock(): void
     {
-        $expected = "a\na\nb";
-        $actual = "a\nb\nb";
+        $diff = (new RatcliffObershelpDiffer())->diff("a\nb\nc", "c\nb\na");
 
-        $patience = (new PatienceDiffer(new MyersDiffer()))->diff($expected, $actual);
-        $myers = (new MyersDiffer())->diff($expected, $actual);
+        Assert::same(self::render($diff), ['+ c', '+ b', '  a', '- b', '- c']);
+    }
 
-        Assert::same(self::editCount($patience), self::editCount($myers));
+    /**
+     * With no line unique to both sides patience has nothing to anchor on and must defer to its
+     * fallback differ — verified directly via a recording spy, not merely inferred from the result.
+     */
+    public function patienceDelegatesToFallbackWithoutAnchor(): void
+    {
+        $spy = new RecordingDiffer(new MyersDiffer());
+
+        $diff = (new PatienceDiffer($spy))->diff("a\na\nb", "a\nb\nb");
+
+        Assert::count($spy->calls, 1);
+        Assert::same(self::reconstruct($diff, DiffOp::Add), "a\na\nb");
+        Assert::same(self::reconstruct($diff, DiffOp::Remove), "a\nb\nb");
+    }
+
+    /**
+     * The reverse: when every line already matches, the shared prefix/suffix trimming consumes the
+     * whole input and the fallback is never touched.
+     */
+    public function patienceSkipsFallbackForIdenticalInput(): void
+    {
+        $spy = new RecordingDiffer(new MyersDiffer());
+
+        (new PatienceDiffer($spy))->diff("a\nb\nc", "a\nb\nc");
+
+        Assert::count($spy->calls, 0);
+    }
+
+    /**
+     * The decorator must trim the shared head/tail itself and hand only the differing middle to its
+     * inner differ — confirmed by inspecting exactly what the spy received.
+     */
+    public function prefixSuffixPassesOnlyTheMiddleToItsInner(): void
+    {
+        $spy = new RecordingDiffer(new MyersDiffer());
+
+        $diff = (new PrefixSuffixDiffer($spy))->diff("head\nA\ntail", "head\nB\ntail");
+
+        Assert::count($spy->calls, 1);
+        Assert::same($spy->calls[0], ['A', 'B']);
+        Assert::same(self::reconstruct($diff, DiffOp::Add), "head\nA\ntail");
+        Assert::same(self::reconstruct($diff, DiffOp::Remove), "head\nB\ntail");
+    }
+
+    /**
+     * On large inputs Ratcliff/Obershelp's autojunk heuristic drops over-popular lines from the
+     * anchor index. With the heuristic on or off the result must stay a valid edit script — here a
+     * delimiter line repeats far above the threshold across 260 lines.
+     */
+    public function ratcliffStaysCorrectWithPopularLines(): void
+    {
+        $lines = [];
+        for ($i = 0; $i < 130; $i++) {
+            $lines[] = "item {$i}";
+            $lines[] = '---';
+        }
+        $expected = \implode("\n", $lines);
+        $lines[60] = 'item CHANGED';
+        $actual = \implode("\n", $lines);
+
+        foreach ([true, false] as $autoJunk) {
+            $diff = (new RatcliffObershelpDiffer($autoJunk))->diff($expected, $actual);
+
+            Assert::same(self::reconstruct($diff, DiffOp::Add), $expected);
+            Assert::same(self::reconstruct($diff, DiffOp::Remove), $actual);
+        }
     }
 
     /**
@@ -135,6 +224,7 @@ final class DifferStrategiesTest
         yield 'duplicate lines' => ["a\na\na", "a\na"];
         yield 'reorder' => ["a\nb\nc", "c\nb\na"];
         yield 'repeated delimiters' => ["{\na\n}\n{\nb\n}", "{\nb\n}\n{\na\n}"];
+        yield 'match only in left a-half boundary' => ["x\nz", "x"];
     }
 
     /**
@@ -154,6 +244,25 @@ final class DifferStrategiesTest
     }
 
     /**
+     * Render a diff as one prefixed string per line (`  ` context, `- ` remove, `+ ` add) for exact,
+     * readable alignment snapshots.
+     *
+     * @param list<DiffLine> $diff
+     * @return list<string>
+     */
+    private static function render(array $diff): array
+    {
+        return \array_map(
+            static fn(DiffLine $line): string => match ($line->op) {
+                DiffOp::Context => "  {$line->line}",
+                DiffOp::Remove => "- {$line->line}",
+                DiffOp::Add => "+ {$line->line}",
+            },
+            $diff,
+        );
+    }
+
+    /**
      * @param list<DiffLine> $diff
      * @return int<0, max>
      */
@@ -162,20 +271,6 @@ final class DifferStrategiesTest
         $count = 0;
         foreach ($diff as $line) {
             $line->op === DiffOp::Context or $count++;
-        }
-
-        return $count;
-    }
-
-    /**
-     * @param list<DiffLine> $diff
-     * @return int<0, max>
-     */
-    private static function countOp(array $diff, DiffOp $op, string $line): int
-    {
-        $count = 0;
-        foreach ($diff as $entry) {
-            ($entry->op === $op && $entry->line === $line) and $count++;
         }
 
         return $count;
