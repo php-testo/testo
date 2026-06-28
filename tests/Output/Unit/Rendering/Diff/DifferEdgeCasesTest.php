@@ -120,15 +120,15 @@ final class DifferEdgeCasesTest
         Assert::true(\count($removes) > 0 && \count($adds) > 0);
     }
 
-    // RatcliffObershelpDiffer - empty strings (explode("", "\n") yields [""], not [])
+    // RatcliffObershelpDiffer - empty strings (explode("\n", "") yields [""], not [])
     public function ratcliffObershelpDifferEmptyStrings(): void
     {
         $differ = new RatcliffObershelpDiffer();
         $diff = $differ->diff("", "");
 
-        // Both sides are [""], so they're identical - should be context
-        $contexts = \array_filter($diff, static fn($line) => $line->op === DiffOp::Context);
-        Assert::true(\count($contexts) >= 0);
+        // Both sides are [""], so they're identical - exactly one context line.
+        Assert::count($diff, 1);
+        Assert::same($diff[0]->op, DiffOp::Context);
     }
 
     // RatcliffObershelpDiffer - one empty string

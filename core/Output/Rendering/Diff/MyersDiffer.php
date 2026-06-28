@@ -8,10 +8,12 @@ namespace Testo\Output\Rendering\Diff;
  * Line diff based on Eugene W. Myers' greedy O(ND) algorithm (Myers 1986, "An O(ND) Difference
  * Algorithm and Its Variations").
  *
- * Runs in O((N + M) · D) time and O((N + M) · D) memory, where D is the edit distance — so for the
- * common case of large inputs with few differences it is dramatically faster and lighter than a
- * full O(N · M) LCS table (see {@see LcsDiffer}). The edit script is reconstructed by walking the
- * recorded traces backwards and reversing once, avoiding the quadratic `array_unshift` cascade.
+ * Runs in O((N + M) · D) time, where D is the edit distance, so for the common case of large inputs
+ * with few differences it is dramatically faster than a full O(N · M) LCS table (see {@see LcsDiffer}).
+ * It records the search front for every d to rebuild the script, so its extra memory is O(D²) — tiny
+ * when D is small, but note this is the greedy variant, not Myers' linear-space §4b refinement; for
+ * the memory axis use {@see HirschbergDiffer}. The script is reconstructed by walking the recorded
+ * traces backwards and reversing once, avoiding the quadratic `array_unshift` cascade.
  *
  * @internal
  */
