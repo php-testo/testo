@@ -10,6 +10,7 @@ use Testo\Output\Rendering\Diff\LcsDiffer;
 use Testo\Output\Rendering\Diff\MyersDiffer;
 use Testo\Output\Rendering\Diff\PatienceDiffer;
 use Testo\Output\Rendering\Diff\PrefixSuffixDiffer;
+use Testo\Output\Rendering\Diff\RatcliffObershelpDiffer;
 
 /**
  * Head-to-head comparison of the {@see \Testo\Output\Rendering\Diff\Differ} implementations.
@@ -33,6 +34,7 @@ final class DiffBench
             'hirschberg' => [self::class, 'hirschberg'],
             'patience' => [self::class, 'patience'],
             'prefix-suffix' => [self::class, 'prefixSuffix'],
+            'ratcliff' => [self::class, 'ratcliff'],
         ],
         arguments: [200, 8],
         warmup: 2,
@@ -72,6 +74,13 @@ final class DiffBench
         [$expected, $actual] = self::pair($lines, $changes);
 
         (new PrefixSuffixDiffer())->diff($expected, $actual);
+    }
+
+    public static function ratcliff(int $lines, int $changes): void
+    {
+        [$expected, $actual] = self::pair($lines, $changes);
+
+        (new RatcliffObershelpDiffer())->diff($expected, $actual);
     }
 
     /**

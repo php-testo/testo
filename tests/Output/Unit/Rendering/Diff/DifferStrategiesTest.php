@@ -16,6 +16,7 @@ use Testo\Output\Rendering\Diff\LcsDiffer;
 use Testo\Output\Rendering\Diff\MyersDiffer;
 use Testo\Output\Rendering\Diff\PatienceDiffer;
 use Testo\Output\Rendering\Diff\PrefixSuffixDiffer;
+use Testo\Output\Rendering\Diff\RatcliffObershelpDiffer;
 use Testo\Test;
 
 /**
@@ -27,6 +28,7 @@ use Testo\Test;
 #[Covers(PrefixSuffixDiffer::class)]
 #[Covers(PatienceDiffer::class)]
 #[Covers(HirschbergDiffer::class)]
+#[Covers(RatcliffObershelpDiffer::class)]
 final class DifferStrategiesTest
 {
     /**
@@ -110,6 +112,7 @@ final class DifferStrategiesTest
         yield 'hirschberg' => [new HirschbergDiffer()];
         yield 'prefix-suffix' => [new PrefixSuffixDiffer()];
         yield 'patience' => [new PatienceDiffer()];
+        yield 'ratcliff-obershelp' => [new RatcliffObershelpDiffer()];
     }
 
     public static function minimalStrategies(): iterable
