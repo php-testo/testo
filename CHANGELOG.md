@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.31](https://github.com/php-testo/testo/compare/0.10.30...0.10.31) (2026-06-28)
+
+
+### Documentation
+
+* Sort Vibe Index badge in README ([a448db1](https://github.com/php-testo/testo/commit/a448db189db67fb8c5f4386a60226296ce94bb1a))
+
 ## [0.10.30](https://github.com/php-testo/testo/compare/0.10.29...0.10.30) (2026-06-28)
 
 
