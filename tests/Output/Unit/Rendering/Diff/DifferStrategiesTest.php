@@ -157,6 +157,62 @@ final class DifferStrategiesTest
     }
 
     /**
+     * When the shared suffix runs all the way back to a-index 0 (here the whole of `a`, "x", is the
+     * shared tail of "y\nx"), the trimmed middle is one-sided — `midA = []`, `midB = ["y"]` — and the
+     * decorator emits it directly without ever consulting its inner differ. A guard that refuses to
+     * include index 0 in the suffix would leave a two-sided middle and delegate, so the spy must record
+     * zero calls.
+     */
+    public function prefixSuffixIncludesAIndexZeroInSharedSuffix(): void
+    {
+        $spy = new RecordingDiffer(new MyersDiffer());
+
+        $diff = (new PrefixSuffixDiffer($spy))->diff("x", "y\nx");
+
+        Assert::count($spy->calls, 0);
+        Assert::same(self::render($diff), ['+ y', '  x']);
+    }
+
+    /**
+     * Mirror of the a-index case for the b side: when the shared suffix runs all the way back to
+     * b-index 0 (here the whole of `b`, "x", is the shared tail of "y\nx"), the trimmed middle is
+     * one-sided — `midA = ["y"]`, `midB = []` — and the decorator emits it directly without ever
+     * consulting its inner differ. A guard that refuses to include b-index 0 in the suffix would
+     * leave a two-sided middle and delegate, so the spy must record zero calls.
+     */
+    public function prefixSuffixIncludesBIndexZeroInSharedSuffix(): void
+    {
+        $spy = new RecordingDiffer(new MyersDiffer());
+
+        $diff = (new PrefixSuffixDiffer($spy))->diff("y\nx", "x");
+
+        Assert::count($spy->calls, 0);
+        Assert::same(self::render($diff), ['- y', '  x']);
+    }
+
+    /**
+     * On fully identical input the prefix scan must stop exactly at the shared length and never probe
+     * one index past the end of either side. A bound that reads `$a[$max]`/`$b[$max]` would raise an
+     * "Undefined array key" warning (the slices happen to collapse to the same context lines, so only
+     * the warning betrays it). Promote any warning to an exception so the off-by-one is caught, and pin
+     * the exact emitted script: three context lines, nothing else.
+     */
+    public function prefixSuffixDoesNotReadPastTheSharedLength(): void
+    {
+        \set_error_handler(static function (int $severity, string $message): bool {
+            throw new \RuntimeException("Unexpected PHP warning: {$message}");
+        });
+
+        try {
+            $diff = (new PrefixSuffixDiffer())->diff("a\nb\nc", "a\nb\nc");
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same(self::render($diff), ['  a', '  b', '  c']);
+    }
+
+    /**
      * On large inputs Ratcliff/Obershelp's autojunk heuristic drops over-popular lines from the
      * anchor index. With the heuristic on or off the result must stay a valid edit script — here a
      * delimiter line repeats far above the threshold across 260 lines.

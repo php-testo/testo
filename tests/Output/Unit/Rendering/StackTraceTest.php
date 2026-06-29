@@ -133,6 +133,30 @@ final class StackTraceTest
     }
 
     /**
+     * The depth-limited scan must be strictly below {@see StackTrace::SEARCH_DEPTH}: an
+     * AssertMethod sitting exactly at the limit index (frame 3 of a 5-frame trace, limit
+     * being `min(5, 3) = 3`) is one frame too deep and must NOT be reached, so the trace
+     * is returned untouched. Reaching it would wrongly trim the trace down to that frame.
+     */
+    public function doesNotScanFrameAtDepthLimit(): void
+    {
+        // Arrange: frames 0-2 carry no AssertMethod; the AssertMethod sits at index 3 == limit
+        $trace = [
+            ['class' => MiddlewareStub::class, 'function' => 'run'],
+            ['class' => MiddlewareStub::class, 'function' => 'run'],
+            ['class' => MiddlewareStub::class, 'function' => 'run'],
+            ['class' => AssertMethodStub::class, 'function' => 'run'],
+            ['class' => MiddlewareStub::class, 'function' => 'run'],
+        ];
+
+        // Act
+        $result = StackTrace::cutStackTrace($trace);
+
+        // Assert: the AssertMethod at the limit index is out of scan range, nothing is cut
+        Assert::same($result, $trace);
+    }
+
+    /**
      * The boundary represents the test function frame: anything below it is application
      * code, anything above is runner internals. AssertMethod is only meaningful below
      * the boundary, so reaching the boundary must abort the search.
@@ -202,6 +226,91 @@ final class StackTraceTest
         // Assert: AssertMethod found despite being beyond SEARCH_DEPTH
         Assert::same($result[0]['class'], AssertMethodStub::class);
         Assert::same($result[0]['function'], 'run');
+    }
+
+    /**
+     * A frame with a null class or function (e.g. a top-level closure) must be skipped,
+     * not treated as a stop point. When such a frame sits before an AssertMethod within
+     * the scan range, the scan must continue past it and still find the AssertMethod to
+     * trim. Aborting the scan at the null frame would leave the trace untouched.
+     */
+    public function skipsNullFrameBeforeAssertMethod(): void
+    {
+        $trace = [
+            ['function' => 'someClosure'],
+            ['class' => AssertMethodStub::class, 'function' => 'run'],
+            ['class' => MiddlewareStub::class, 'function' => 'run'],
+        ];
+
+        $result = StackTrace::cutStackTrace($trace);
+
+        Assert::true(\count($result) < \count($trace));
+        Assert::same($result[0]['class'], AssertMethodStub::class);
+        Assert::same($result[0]['function'], 'run');
+    }
+
+    /**
+     * The per-frame lookup must consult the resolved cache *first* and only fall back to
+     * reflection on a miss (`cache[key] ?? resolve(...)`). Swapping the operands would
+     * always re-run reflection and ignore the cached verdict. Seeding the cache with a
+     * value that disagrees with reflection isolates the order: `MiddlewareStub::run`
+     * carries no AssertMethod (reflection -> false), but a cached `true` must win and
+     * trim the trace at that frame.
+     */
+    public function cacheVerdictTakesPriorityOverReflection(): void
+    {
+        $key = MiddlewareStub::class . '::run';
+        $cache = (new \ReflectionClass(StackTrace::class))->getProperty('cutTraceCache');
+        $original = $cache->getValue();
+        $cache->setValue(null, [$key => true]);
+
+        try {
+            $trace = [
+                ['class' => ThrowingStub::class, 'function' => 'fail'],
+                ['class' => MiddlewareStub::class, 'function' => 'run'],
+                ['class' => MiddlewareStub::class, 'function' => 'run'],
+            ];
+
+            $result = StackTrace::cutStackTrace($trace);
+
+            // Cached `true` wins over reflection's `false`: the frame is treated as an
+            // AssertMethod and everything below it (ThrowingStub::fail) is trimmed.
+            Assert::true(\count($result) < \count($trace));
+            Assert::same($result[0]['class'], MiddlewareStub::class);
+            Assert::same($result[0]['function'], 'run');
+        } finally {
+            $cache->setValue(null, $original);
+        }
+    }
+
+    /**
+     * When an AssertMethod cut point is found, every preceding frame that resolved
+     * `false` is written into the static cache as `false`, so subsequent scans skip the
+     * reflection lookup for them. A non-AssertMethod frame sitting *before* the cut point
+     * must therefore appear in the cache as `false` after the call.
+     */
+    public function cachesPrecedingUncachedFramesAsFalse(): void
+    {
+        $key = MiddlewareStub::class . '::run';
+        $cache = (new \ReflectionClass(StackTrace::class))->getProperty('cutTraceCache');
+        $original = $cache->getValue();
+        $cache->setValue(null, []);
+
+        try {
+            $trace = [
+                ['class' => MiddlewareStub::class, 'function' => 'run'],
+                ['class' => AssertMethodStub::class, 'function' => 'run'],
+            ];
+
+            StackTrace::cutStackTrace($trace);
+
+            // The MiddlewareStub frame preceding the AssertMethod cut point is cached false.
+            $stored = $cache->getValue();
+            Assert::true(\array_key_exists($key, $stored));
+            Assert::false($stored[$key]);
+        } finally {
+            $cache->setValue(null, $original);
+        }
     }
 
     /**
