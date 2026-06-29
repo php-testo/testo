@@ -86,7 +86,7 @@ final readonly class Filter
     /**
      * @param list<non-empty-string> $suites Test suite names to filter by
      * @param list<non-empty-string> $names Class, method, or function names to filter by
-     * @param Path $paths File or directory paths to filter by (supports glob patterns)
+     * @param list<Path|string> $paths File or directory paths to filter by (supports glob patterns)
      * @param list<non-empty-string> $type Test case types to include (OR logic)
      * @param list<non-empty-string> $notType Test case types to exclude (takes precedence)
      * @param list<non-empty-string> $groups Group names to include (OR logic)
@@ -115,7 +115,7 @@ final readonly class Filter
      *
      * @param list<non-empty-string>|null $testSuites New test suite names, or null to keep existing
      * @param list<non-empty-string>|null $names New names, or null to keep existing
-     * @param Path|null $paths New paths, or null to keep existing
+     * @param list<Path|string>|null $paths New paths, or null to keep existing
      * @param list<non-empty-string>|null $type New include types, or null to keep existing
      * @param list<non-empty-string>|null $notType New exclude types, or null to keep existing
      * @param list<non-empty-string>|null $groups New include groups, or null to keep existing
