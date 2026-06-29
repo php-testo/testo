@@ -118,7 +118,8 @@ final class TestoAdapter implements TestFrameworkAdapter
         # Drop empty entries Infection may pass (e.g. when --initial-tests-php-options is unset).
         $phpExtraArgs = \array_values(\array_filter($phpExtraArgs, static fn(string $arg): bool => $arg !== ''));
 
-        $cmd = [\PHP_BINARY, ...$phpExtraArgs, $this->testFrameworkExecutable, 'run', '--teamcity'];
+        # Benches are timing-based and irrelevant to mutation testing; exclude them.
+        $cmd = [\PHP_BINARY, ...$phpExtraArgs, $this->testFrameworkExecutable, 'run', '--type=!bench', '--teamcity'];
 
         if (!$skipCoverage) {
             $cmd[] = '--coverage';
@@ -161,6 +162,8 @@ final class TestoAdapter implements TestFrameworkAdapter
             'auto_prepend_file=' . $bootstrap,
             $this->testFrameworkExecutable,
             'run',
+            # Exclude benches; irrelevant to mutation testing.
+            '--type=!bench',
             '--json',
             '--no-coverage',
         ];
