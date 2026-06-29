@@ -1,0 +1,44 @@
+{
+    "name": "testo/spec",
+    "description": "Spec-driven plugin for the Testo testing framework: attach BDD/spec fragments to tests and generate living documentation.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "spec",
+        "bdd",
+        "documentation",
+        "test"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "testo/testo": "0.10.26 - 1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Spec\\": "src/"
+        },
+        "files": [
+            "Spec.php"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}

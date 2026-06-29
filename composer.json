@@ -60,6 +60,7 @@
         "spiral/code-style": "^2.2.2",
         "testo/bridge-infection": "^0.1.6",
         "testo/facade": "^0.1.1",
+        "testo/spec": "^0.1.0",
         "vimeo/psalm": "^7.0@dev"
     },
     "suggest": {
@@ -91,6 +92,7 @@
             "Tests\\Lifecycle\\": "plugin/lifecycle/tests/",
             "Tests\\Repeat\\": "plugin/repeat/tests/",
             "Tests\\Retry\\": "plugin/retry/tests/",
+            "Tests\\Spec\\": "plugin/spec/tests/",
             "Tests\\Test\\": "plugin/test/tests/"
         },
         "files": [
@@ -115,6 +117,7 @@
                     "testo/lifecycle": "0.1.x-dev",
                     "testo/repeat": "0.1.x-dev",
                     "testo/retry": "0.1.x-dev",
+                    "testo/spec": "0.1.x-dev",
                     "testo/test": "0.1.x-dev"
                 }
             }

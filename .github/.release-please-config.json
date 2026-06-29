@@ -35,6 +35,12 @@
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
+        "plugin/spec": {
+            "package-name": "testo/spec",
+            "component": "spec",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
         "plugin/filter": {
             "package-name": "testo/filter",
             "component": "filter",
