@@ -6,6 +6,8 @@ namespace Tests\Test\Unit\Internal;
 
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Core\Value\TestType;
+use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\CaseLocatorInterceptor;
 use Testo\Pipeline\Middleware\FileLocatorInterceptor;
 use Testo\Test;
@@ -207,5 +209,19 @@ final class TestoAttributesLocatorInterceptorTest
         $this->interceptor->locateTestCases($definition, static fn(FileDefinitions $f) => $f->cases);
 
         Assert::array($definition->cases->getCases())->hasCount(0);
+    }
+
+    /**
+     * The locator must declare its test type so the `--type` filter can select (`--type=test`) and
+     * exclude (`--type=!test`) plain tests. Without it the locator would be universal and leak past
+     * the type filter, since type filtering selects finders by their declared {@see TestType}.
+     */
+    public function declaresTestTypeForTypeFiltering(): void
+    {
+        $attributes = (new \ReflectionClass(TestoAttributesLocatorInterceptor::class))
+            ->getAttributes(InterceptorOptions::class);
+
+        Assert::array($attributes)->hasCount(1);
+        Assert::same($attributes[0]->newInstance()->testType, TestType::Test);
     }
 }

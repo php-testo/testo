@@ -7,6 +7,7 @@ namespace Testo\Test\Internal;
 use Testo\Common\Reflection;
 use Testo\Core\Definition\CaseDefinitions;
 use Testo\Core\Value\TestType;
+use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\CaseLocatorInterceptor;
 use Testo\Pipeline\Middleware\FileLocatorInterceptor;
 use Testo\Test;
@@ -19,6 +20,7 @@ use Testo\Tokenizer\Reflection\TokenizedFile;
  * @internal
  * @psalm-internal Testo\Test
  */
+#[InterceptorOptions(testType: TestType::Test)]
 final readonly class TestoAttributesLocatorInterceptor implements FileLocatorInterceptor, CaseLocatorInterceptor
 {
     #[\Override]

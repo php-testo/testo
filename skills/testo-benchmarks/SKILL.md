@@ -53,18 +53,16 @@ Key parameters:
 - `calls` — invocations per iteration (the inner loop). Increase until per-iteration time is well above timer resolution.
 - `iterations` — number of iterations (the outer loop). Drives the statistics (Mean/Median/RStDev).
 
-## Keeping benches out of the normal run
+## Selecting or excluding benches
 
-Benches are slow and noise-sensitive, so they shouldn't run on every `testo` invocation. Two ways:
-
-- **Dedicated suite (recommended).** Put benches in their own `SuiteConfig` with `BenchmarkPlugin` — the plugin is enabled per suite anyway. Run them on demand with `--suite=Bench`.
-- **Exclude by type from a mixed run:**
+Benches are slow and noise-sensitive, so they shouldn't run on every `testo` invocation. Filter by type:
 
 ```
 vendor/bin/testo --type=!bench   # everything except benches
+vendor/bin/testo --type=bench    # only benches
 ```
 
-`--type` is repeatable and `!`-prefixed values exclude (exclusion wins). Note that selecting *only* benches is best done via a dedicated suite rather than `--type=bench`: normal `#[Test]` discovery is not type-restricted, so an include-only type filter does not isolate benches.
+`--type` is repeatable and `!`-prefixed values exclude (exclusion wins). Putting benches in their own `SuiteConfig` (with `BenchmarkPlugin`, enabled per suite) and running `--suite=Bench` works too.
 
 ## Writing a clean benchmark
 
