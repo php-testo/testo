@@ -40,12 +40,9 @@ final class HirschbergDiffer implements Differ
         $n = $aHi - $aLo;
         $m = $bHi - $bLo;
 
-        if ($n === 0) {
-            for ($j = $bLo; $j < $bHi; $j++) {
-                $out[] = new DiffLine(DiffOp::Add, $b[$j]);
-            }
-            return;
-        }
+        // Only the b-range can collapse to empty here: the entry point passes a non-empty a-range
+        // (`explode()` yields at least one line) and the recursive split halves the a-range with
+        // intdiv, so $n is always >= 1, whereas a chosen split column can empty one side's b-range.
         if ($m === 0) {
             for ($i = $aLo; $i < $aHi; $i++) {
                 $out[] = new DiffLine(DiffOp::Remove, $a[$i]);
