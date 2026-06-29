@@ -11,6 +11,8 @@ use Testo\Core\Context\SuiteResult;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Output\Rendering\Color;
+use Testo\Output\Rendering\Diff\DiffOp;
+use Testo\Output\Rendering\Diff\MyersDiffer;
 
 /**
  * Formats terminal output messages with support for different output formats.
@@ -290,7 +292,7 @@ final class Formatter
      */
     public static function comparisonBlock(ComparisonFailure $failure): string
     {
-        $diff = self::computeLineDiff(
+        $diff = (new MyersDiffer())->diff(
             $failure->getExpectedAsString(),
             $failure->getActualAsString(),
         );
@@ -301,10 +303,10 @@ final class Formatter
         ];
 
         foreach ($diff as $entry) {
-            $lines[] = match ($entry['type']) {
-                'remove' => Style::error('- ' . $entry['line']),
-                'add' => Style::success('+ ' . $entry['line']),
-                'context' => '  ' . $entry['line'],
+            $lines[] = match ($entry->op) {
+                DiffOp::Remove => Style::error('- ' . $entry->line),
+                DiffOp::Add => Style::success('+ ' . $entry->line),
+                DiffOp::Context => '  ' . $entry->line,
             };
         }
 
@@ -340,56 +342,6 @@ final class Formatter
         $ms = $seconds * 1000;
 
         return \number_format($ms, $ms >= 1.0 ? 0 : 2) . 'ms';
-    }
-
-    /**
-     * Computes a line-by-line diff using LCS backtracking.
-     *
-     * @return list<array{type: 'context'|'remove'|'add', line: string}>
-     */
-    private static function computeLineDiff(string $expected, string $actual): array
-    {
-        $a = \explode("\n", $expected);
-        $b = \explode("\n", $actual);
-
-        $m = \count($a);
-        $n = \count($b);
-        $lcs = \array_fill(0, $m + 1, \array_fill(0, $n + 1, 0));
-
-        for ($i = 1; $i <= $m; $i++) {
-            for ($j = 1; $j <= $n; $j++) {
-                $lcs[$i][$j] = $a[$i - 1] === $b[$j - 1]
-                    ? $lcs[$i - 1][$j - 1] + 1
-                    : \max($lcs[$i - 1][$j], $lcs[$i][$j - 1]);
-            }
-        }
-
-        $diff = [];
-        $i = $m;
-        $j = $n;
-        while ($i > 0 && $j > 0) {
-            if ($a[$i - 1] === $b[$j - 1]) {
-                \array_unshift($diff, ['type' => 'context', 'line' => $a[$i - 1]]);
-                $i--;
-                $j--;
-            } elseif ($lcs[$i - 1][$j] >= $lcs[$i][$j - 1]) {
-                \array_unshift($diff, ['type' => 'remove', 'line' => $a[$i - 1]]);
-                $i--;
-            } else {
-                \array_unshift($diff, ['type' => 'add', 'line' => $b[$j - 1]]);
-                $j--;
-            }
-        }
-        while ($i > 0) {
-            \array_unshift($diff, ['type' => 'remove', 'line' => $a[$i - 1]]);
-            $i--;
-        }
-        while ($j > 0) {
-            \array_unshift($diff, ['type' => 'add', 'line' => $b[$j - 1]]);
-            $j--;
-        }
-
-        return $diff;
     }
 
     /**

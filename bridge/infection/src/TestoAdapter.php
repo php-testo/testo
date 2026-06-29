@@ -77,11 +77,27 @@ final class TestoAdapter implements TestFrameworkAdapter
     }
 
     /**
-     * Tests pass when the TeamCity stream contains no `testFailed` and no `buildProblem`.
+     * Decides whether a mutant's test run passed (mutant survived) from its captured stdout.
+     *
+     * Mutant runs are launched with `--json` (see {@see getMutantCommandLine()}), which collapses
+     * stdout to a single compact verdict object — far cheaper than the per-test TeamCity stream,
+     * whose volume could exhaust memory when Infection buffers a mutant's output. The JSON `status`
+     * is the authoritative signal here: tests pass only when it is `"passed"`.
+     *
+     * Falls back to the TeamCity marker scan when the output is not the JSON verdict object (e.g. the
+     * initial test run, which still uses `--teamcity`): tests pass when neither `testFailed` nor
+     * `buildProblem` is present. Note that Infection consults this method only for an exit-code-0 run
+     * (see {@see \Infection\Mutant\TestFrameworkMutantExecutionResultFactory}); a failing run exits
+     * non-zero and is classified as killed before this is reached.
      */
     #[\Override]
     public function testsPass(string $output): bool
     {
+        $decoded = \json_decode(\trim($output), true);
+        if (\is_array($decoded) && isset($decoded['status'])) {
+            return $decoded['status'] === 'passed';
+        }
+
         return !\str_contains($output, '##teamcity[testFailed')
             && !\str_contains($output, '##teamcity[buildProblem');
     }
@@ -134,13 +150,18 @@ final class TestoAdapter implements TestFrameworkAdapter
     ): array {
         $bootstrap = $this->writeMutantBootstrap($mutationHash, $mutationOriginalFilePath, $mutatedFilePath);
 
+        # `--json` collapses the run to one compact verdict object on stdout, instead of the
+        # per-test TeamCity stream. Infection buffers each mutant's output in memory (via
+        # symfony/process), so the smaller payload keeps peak memory bounded on segments whose
+        # mutants would otherwise emit a large failing diff or thousands of TeamCity markers.
+        # {@see testsPass()} reads the JSON `status` from this output.
         $cmd = [
             \PHP_BINARY,
             '-d',
             'auto_prepend_file=' . $bootstrap,
             $this->testFrameworkExecutable,
             'run',
-            '--teamcity',
+            '--json',
             '--no-coverage',
         ];
 
