@@ -13,6 +13,7 @@ use Testo\Core\Value\Status;
 use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner as TestingRunner;
+use Tests\Application\Stub\Runner\PipelineStartingRecorderPlugin;
 use Tests\Application\Stub\Runner\StatusFromException;
 
 /**
@@ -21,9 +22,21 @@ use Tests\Application\Stub\Runner\StatusFromException;
  */
 #[Test]
 #[Covers(TestRunner::class)]
-#[TestingSuite(path: __DIR__ . '/../../Stub/Runner')]
+#[TestingSuite(
+    path: __DIR__ . '/../../Stub/Runner',
+    plugins: [PipelineStartingRecorderPlugin::class],
+)]
 final class StatusFromExceptionTest
 {
+    public function pipelineStartingEventIsDispatchedForEachTest(): void
+    {
+        PipelineStartingRecorderPlugin::reset();
+
+        $result = TestingRunner::runTest([StatusFromException::class, 'throwsSkipTest']);
+
+        Assert::contains(PipelineStartingRecorderPlugin::$names, $result->info->name);
+    }
+
     public function skipTestMarksStatusSkipped(): void
     {
         $result = TestingRunner::runTest([StatusFromException::class, 'throwsSkipTest']);
