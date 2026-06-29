@@ -165,7 +165,8 @@ vendor/bin/testo --path=tests/Unit/Foo # subdirectory of a suite
 vendor/bin/testo --filter='UserService'  # by name
 vendor/bin/testo --group=integration   # only the #[Group('integration')] tests
 vendor/bin/testo --group=!slow         # everything except the "slow" group
-vendor/bin/testo --type=test           # only #[Test], not benches/inline
+vendor/bin/testo --type=test           # only #[Test], not benches/inline (OR across values)
+vendor/bin/testo --type=!bench         # everything except benches; prefix with `!` to exclude
 vendor/bin/testo --coverage            # force coverage on
 vendor/bin/testo --no-coverage         # force coverage off
 vendor/bin/testo --coverage-clover=build/clover.xml        # write Clover report (no testo.php needed)
