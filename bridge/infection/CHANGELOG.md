@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/php-testo/testo/compare/bridge-infection-0.1.6...bridge-infection-0.1.7) (2026-06-29)
+
+
+### Code Refactoring
+
+* **infection:** improve test pass determination using JSON output ([f72f291](https://github.com/php-testo/testo/commit/f72f291f2c24a7983fec315a239c27ad93b46f77))
+
 ## [0.1.6](https://github.com/php-testo/testo/compare/bridge-infection-0.1.5...bridge-infection-0.1.6) (2026-06-07)
 
 

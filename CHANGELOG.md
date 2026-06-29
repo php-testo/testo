@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.10.32](https://github.com/php-testo/testo/compare/0.10.31...0.10.32) (2026-06-29)
+
+
+### Bug Fixes
+
+* **pipeline:** correct ConflictPolicy::Error guard and runTestCase pipeline method ([b3da2f0](https://github.com/php-testo/testo/commit/b3da2f08a56eb6698ac63e55db811331bdeac80d))
+
+
+### Performance Improvements
+
+* **output:** Myers O(ND) line diff behind a Differ abstraction ([#244](https://github.com/php-testo/testo/issues/244)) ([bba9942](https://github.com/php-testo/testo/commit/bba9942ca48ce1af902400642b2f4613b9540f35))
+
+
+### Code Refactoring
+
+* **infection:** improve test pass determination using JSON output ([f72f291](https://github.com/php-testo/testo/commit/f72f291f2c24a7983fec315a239c27ad93b46f77))
+
 ## [0.10.31](https://github.com/php-testo/testo/compare/0.10.30...0.10.31) (2026-06-28)
 
 
