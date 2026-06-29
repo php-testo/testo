@@ -14,6 +14,7 @@ use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\TestCaseRunInterceptor;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
+use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
 
 /**
@@ -68,7 +69,10 @@ final readonly class AttributesInterceptor implements TestRunInterceptor, TestCa
         /** @var callable(TestInfo): TestResult $pipeline */
         $pipeline = $next instanceof Pipeline
             ? $next->combine(...$interceptors)
-            : Pipeline::prepare($info->caseInfo->definition->type, ...$interceptors)->with(
+            : Pipeline::prepare(
+                new PipeOptions(includeTypes: [$info->caseInfo->definition->type]),
+                ...$interceptors,
+            )->with(
                 $next,
                 /** @see TestRunInterceptor::runTest() */
                 'runTest',
@@ -108,7 +112,10 @@ final readonly class AttributesInterceptor implements TestRunInterceptor, TestCa
         /** @var callable(CaseInfo): CaseResult $pipeline */
         $pipeline = $next instanceof Pipeline
             ? $next->combine(...$interceptors)
-            : Pipeline::prepare($info->definition->type, ...$interceptors)->with(
+            : Pipeline::prepare(
+                new PipeOptions(includeTypes: [$info->definition->type]),
+                ...$interceptors,
+            )->with(
                 $next,
                 /** @see TestCaseRunInterceptor::runTestCase() */
                 'runTestCase',

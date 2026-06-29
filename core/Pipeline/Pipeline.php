@@ -38,11 +38,11 @@ final class Pipeline
      */
     private function __construct(
         array $interceptors,
-        private readonly ?string $testType,
+        private readonly PipeOptions $options,
     ) {
         // Reset keys
         /** @psalm-suppress ImpureMethodCall */
-        $this->interceptors = Sorter::sortAndFilter($interceptors, $testType);
+        $this->interceptors = Sorter::sortAndFilter($interceptors, $options);
     }
 
     /**
@@ -51,17 +51,17 @@ final class Pipeline
      * @template-covariant TInt of TInterceptor
      * @template TIn
      * @template-covariant TOut
-     * @param \BackedEnum|non-empty-string|null $testType Type of tests to filter interceptors by.
-     *        If null, all interceptors are included. {@see CaseDefinition::$type}
+     * @param PipeOptions $options Pipeline options, e.g. the test-type selection used to filter
+     *        interceptors. Empty options keep every interceptor. {@see CaseDefinition::$type}
      * @param TInterceptor ...$interceptors Instantiated interceptors.
      * @return self<TInt, TIn, TOut>
      *
      * @note Make sure that interceptors implement the same interface.
      * @psalm-suppress InvalidTemplateParam, UndefinedDocblockClass, InvalidReturnType, InvalidReturnStatement
      */
-    public static function prepare(\BackedEnum|string|null $testType, TInterceptor ...$interceptors): self
+    public static function prepare(PipeOptions $options, TInterceptor ...$interceptors): self
     {
-        return new self($interceptors, \is_object($testType) ? (string) $testType->value : $testType);
+        return new self($interceptors, $options);
     }
 
     /**
@@ -81,7 +81,7 @@ final class Pipeline
         $new = clone $this;
         $new->current = 0;
         /** @psalm-suppress ImpureMethodCall */
-        $new->interceptors = Sorter::sortAndFilter($interceptors, $this->testType);
+        $new->interceptors = Sorter::sortAndFilter($interceptors, $this->options);
         return $new;
     }
 

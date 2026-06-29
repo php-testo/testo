@@ -114,8 +114,9 @@ final class Run extends Base
         $this->addOption(
             'type',
             null,
-            InputOption::VALUE_OPTIONAL,
-            'Filter test cases by type (e.g. test, test-inline, bench)',
+            InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+            'Run only test cases of these types (OR logic), e.g. test, inline, bench. '
+            . 'Prefix a type with "!" to exclude it instead, e.g. --type=!bench.',
         );
         $this->addOption(
             'group',

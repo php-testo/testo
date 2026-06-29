@@ -21,6 +21,7 @@ use Testo\Event\TestSuite\TestSuiteStarting;
 use Testo\Filter;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\TestSuiteRunInterceptor;
+use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
 
 /**
@@ -48,7 +49,10 @@ final readonly class SuiteRunner
          * @var callable(SuiteInfo): SuiteResult $pipeline
          */
         $interceptors = $this->interceptorProvider->fromConfig(TestSuiteRunInterceptor::class);
-        $pipeline = Pipeline::prepare($filter->type, ...$interceptors)
+        $pipeline = Pipeline::prepare(
+            new PipeOptions(includeTypes: $filter->type, excludeTypes: $filter->notType),
+            ...$interceptors,
+        )
             ->with(
                 fn(SuiteInfo $info): SuiteResult => $this->run($info, $filter),
                 'runTestSuite',

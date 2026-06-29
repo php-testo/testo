@@ -33,10 +33,12 @@ final class FilterInput
     public array $suite = [];
 
     /**
-     * @var non-empty-string|null
+     * Raw type filters. A leading `!` marks an exclusion; it is stripped and resolved downstream.
+     *
+     * @var non-empty-string[]
      */
     #[InputOption('type')]
-    public ?string $type = null;
+    public array $type = [];
 
     /**
      * Raw group filters. A leading `!` marks an exclusion; it is stripped and resolved downstream.

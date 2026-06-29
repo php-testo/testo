@@ -8,6 +8,7 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Interceptor;
+use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
 use Testo\Test;
 
@@ -15,30 +16,30 @@ use Testo\Test;
 #[Covers(Pipeline::class)]
 final class PipelineTest
 {
-    public function prepareWithStringTestTypeKeepsMatchingInterceptor(): void
+    public function prepareWithIncludeTypeKeepsMatchingInterceptor(): void
     {
-        $pipeline = Pipeline::prepare('unit', new PipelineTagAInterceptor());
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']), new PipelineTagAInterceptor());
         $result = $pipeline->with(static fn(object $input): string => 'last', 'testMethod')(new \stdClass());
 
         Assert::same($result, 'A>last');
     }
 
-    public function prepareWithNullTestTypeKeepsAllInterceptors(): void
+    public function prepareWithEmptyFilterKeepsAllInterceptors(): void
     {
-        $pipeline = Pipeline::prepare(null, new PipelineUnitOnlyInterceptor());
+        $pipeline = Pipeline::prepare(new PipeOptions(), new PipelineUnitOnlyInterceptor());
         $result = $pipeline->with(static fn(object $input): string => 'last', 'testMethod')(new \stdClass());
 
         Assert::same($result, 'unit-only>last');
     }
 
-    public function prepareWithBackedEnumTestTypeConvertsToString(): void
+    public function prepareFiltersInterceptorByIncludeType(): void
     {
         $interceptor = new PipelineUnitOnlyInterceptor();
         $last = static fn(object $input): string => 'last';
 
-        $matching = Pipeline::prepare(PipelineTestTypeEnum::Unit, $interceptor)
+        $matching = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']), $interceptor)
             ->with($last, 'testMethod')(new \stdClass());
-        $nonMatching = Pipeline::prepare(PipelineTestTypeEnum::Integration, $interceptor)
+        $nonMatching = Pipeline::prepare(new PipeOptions(includeTypes: ['integration']), $interceptor)
             ->with($last, 'testMethod')(new \stdClass());
 
         Assert::same($matching, 'unit-only>last');
@@ -47,7 +48,7 @@ final class PipelineTest
 
     public function withProducesCallableThatThreadsTerminalResult(): void
     {
-        $pipeline = Pipeline::prepare('unit', new PipelineTagAInterceptor());
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']),new PipelineTagAInterceptor());
 
         $callable = $pipeline->with(static fn(object $input): string => 'terminal', 'testMethod');
         $result = $callable(new \stdClass());
@@ -57,7 +58,7 @@ final class PipelineTest
 
     public function invokeCallsLastCallableWhenNoInterceptors(): void
     {
-        $pipeline = Pipeline::prepare(null);
+        $pipeline = Pipeline::prepare(new PipeOptions());
 
         $result = $pipeline->with(static fn(object $input): string => 'last_result', 'testMethod')(new \stdClass());
 
@@ -66,7 +67,7 @@ final class PipelineTest
 
     public function invokeThreadsTerminalResultThroughInterceptor(): void
     {
-        $pipeline = Pipeline::prepare('unit', new PipelineTagAInterceptor());
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']),new PipelineTagAInterceptor());
 
         $result = $pipeline->with(static fn(object $input): string => 'last_result', 'testMethod')(new \stdClass());
 
@@ -75,7 +76,7 @@ final class PipelineTest
 
     public function invokeRunsDistinctInterceptorsInOrder(): void
     {
-        $pipeline = Pipeline::prepare('unit', new PipelineTagBInterceptor(), new PipelineTagAInterceptor());
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']),new PipelineTagBInterceptor(), new PipelineTagAInterceptor());
 
         $result = $pipeline->with(static fn(object $input): string => 'last', 'testMethod')(new \stdClass());
 
@@ -84,7 +85,7 @@ final class PipelineTest
 
     public function combineAddsDistinctInterceptorSoBothRun(): void
     {
-        $pipeline = Pipeline::prepare('unit', new PipelineTagAInterceptor());
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']),new PipelineTagAInterceptor());
 
         $combined = $pipeline->combine(new PipelineTagBInterceptor());
         $result = $combined->with(static fn(object $input): string => 'last', 'testMethod')(new \stdClass());
@@ -94,7 +95,7 @@ final class PipelineTest
 
     public function combineLeavesOriginalPipelineUntouched(): void
     {
-        $pipeline = Pipeline::prepare('unit', new PipelineTagAInterceptor());
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']),new PipelineTagAInterceptor());
         $last = static fn(object $input): string => 'last';
 
         $pipeline->combine(new PipelineTagBInterceptor());
@@ -106,7 +107,7 @@ final class PipelineTest
     public function combineKeepsOnlyUnconsumedInterceptorsThenAddsNew(): void
     {
         $capturer = new PipelineNextCapturingInterceptor();
-        $base = Pipeline::prepare('unit', $capturer, new PipelineTagBInterceptor());
+        $base = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']),$capturer, new PipelineTagBInterceptor());
 
         // Running the capturer advances the chain: it stores the $next pipeline (current = 1,
         // i.e. positioned at B) without consuming further interceptors itself.
@@ -123,7 +124,7 @@ final class PipelineTest
 
     public function withRetargetsTerminalHandlerAndMethod(): void
     {
-        $pipeline = Pipeline::prepare('unit', new PipelineTagAInterceptor());
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']),new PipelineTagAInterceptor());
 
         $first = $pipeline->with(static fn(object $input): string => 'one', 'testMethod')(new \stdClass());
         $second = $pipeline->with(static fn(object $input): string => 'two', 'testMethod')(new \stdClass());
@@ -131,12 +132,6 @@ final class PipelineTest
         Assert::same($first, 'A>one');
         Assert::same($second, 'A>two');
     }
-}
-
-enum PipelineTestTypeEnum: string
-{
-    case Unit = 'unit';
-    case Integration = 'integration';
 }
 
 #[InterceptorOptions(order: 100)]

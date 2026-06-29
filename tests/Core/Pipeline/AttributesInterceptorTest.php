@@ -19,6 +19,7 @@ use Testo\Pipeline\Internal\AttributesInterceptor;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
 use Testo\Pipeline\Middleware\TestCaseRunInterceptor;
+use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
 use Testo\Test;
 use Internal\Container\ObjectContainer;
@@ -266,7 +267,7 @@ final class AttributesInterceptorTest
         );
         $testInfo = new TestInfo('test', $caseInfo, $testDefinition);
 
-        $pipeline = Pipeline::prepare('unit')->with(
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']))->with(
             static fn(TestInfo $info): TestResult => new TestResult($info, Status::Passed),
             'runTest',
         );
@@ -286,7 +287,7 @@ final class AttributesInterceptorTest
         $caseInfo = $this->makeCaseInfo(new \ReflectionClass(TestWithCaseInterceptableAttribute::class));
 
         $terminal = new CaseResult([], Status::Passed);
-        $pipeline = Pipeline::prepare('unit')->with(
+        $pipeline = Pipeline::prepare(new PipeOptions(includeTypes: ['unit']))->with(
             static fn(CaseInfo $info): CaseResult => $terminal,
             'runTestCase',
         );

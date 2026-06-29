@@ -81,6 +81,46 @@ final class FilterPluginTest
         Assert::same($filter->excludeGroups, []);
     }
 
+    public function splitsTypeOptionIntoIncludeAndExclude(): void
+    {
+        $filter = $this->buildFilterFromType(['test', '!bench', 'inline']);
+
+        Assert::same($filter->type, ['test', 'inline']);
+        Assert::same($filter->notType, ['bench']);
+    }
+
+    public function plainTypesGoToInclude(): void
+    {
+        $filter = $this->buildFilterFromType(['test', 'inline']);
+
+        Assert::same($filter->type, ['test', 'inline']);
+        Assert::same($filter->notType, []);
+    }
+
+    public function exclamationOnlyTypesGoToExclude(): void
+    {
+        $filter = $this->buildFilterFromType(['!bench', '!profile']);
+
+        Assert::same($filter->type, []);
+        Assert::same($filter->notType, ['bench', 'profile']);
+    }
+
+    public function loneExclamationMarkInTypeIsIgnored(): void
+    {
+        $filter = $this->buildFilterFromType(['!']);
+
+        Assert::same($filter->type, []);
+        Assert::same($filter->notType, []);
+    }
+
+    public function emptyTypeOptionProducesEmptySets(): void
+    {
+        $filter = $this->buildFilterFromType([]);
+
+        Assert::same($filter->type, []);
+        Assert::same($filter->notType, []);
+    }
+
     /**
      * Configure the plugin against a container holding a prefilled {@see FilterInput}
      * and resolve the {@see Filter} it binds.
@@ -93,6 +133,25 @@ final class FilterPluginTest
 
         $input = new FilterInput();
         $input->group = $group;
+        $container->set($input, FilterInput::class);
+
+        (new FilterPlugin())->configure($container);
+
+        return $container->get(Filter::class);
+    }
+
+    /**
+     * Configure the plugin against a container holding a prefilled {@see FilterInput}
+     * and resolve the {@see Filter} it binds.
+     *
+     * @param list<non-empty-string> $type Raw `--type` values.
+     */
+    private function buildFilterFromType(array $type): Filter
+    {
+        $container = new ObjectContainer();
+
+        $input = new FilterInput();
+        $input->type = $type;
         $container->set($input, FilterInput::class);
 
         (new FilterPlugin())->configure($container);

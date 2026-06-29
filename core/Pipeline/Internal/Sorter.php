@@ -7,6 +7,7 @@ namespace Testo\Pipeline\Internal;
 use Testo\Common\Reflection;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Interceptor as TInterceptor;
+use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Policy\ConflictPolicy;
 
 /**
@@ -33,12 +34,15 @@ final class Sorter
      *
      * @return list<TInterceptor>
      */
-    public static function sortAndFilter(array $interceptors, ?string $type = null): array
+    public static function sortAndFilter(array $interceptors, PipeOptions $options = new PipeOptions()): array
     {
         # Local caches
         $conflicts = [];
         $orders = [];
         $filters = [];
+
+        # When no type filtering is requested every interceptor is kept; skip the per-class lookup.
+        $filterByType = $options->hasTypeFilter();
 
         /** @var array<int, array<class-string, TInterceptor>> $groups */
         $groups = [];
@@ -46,9 +50,9 @@ final class Sorter
             $class = $interceptor::class;
             $conflict = $conflicts[$class] ??= self::getConflictPolicy($interceptor);
             $order = $orders[$class] ??= self::getOrder($interceptor);
-            if ($type !== null) {
-                $filter = $filters[$class] ??= self::$filterCache[$class] ?? [];
-                if ($filter !== [] && !\in_array($type, $filter, true)) {
+            if ($filterByType) {
+                $declared = $filters[$class] ??= self::$filterCache[$class] ?? [];
+                if (!$options->acceptsTypes($declared)) {
                     continue;
                 }
             }

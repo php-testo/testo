@@ -9,6 +9,7 @@ use Testo\Codecov\Covers;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Interceptor;
 use Testo\Pipeline\Internal\Sorter;
+use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Policy\ConflictPolicy;
 use Testo\Test;
 
@@ -100,7 +101,7 @@ final class SorterTest
         $included = new FilterTestInterceptorUnit();
         $excluded = new FilterTestInterceptorFeature();
 
-        $result = Sorter::sortAndFilter([$included, $excluded], type: 'unit');
+        $result = Sorter::sortAndFilter([$included, $excluded], options: new PipeOptions(includeTypes: ['unit']));
 
         Assert::same(\count($result), 1);
         Assert::same($result[0], $included);
@@ -120,7 +121,7 @@ final class SorterTest
     {
         $interceptor = new FilterTestInterceptorFeature();
 
-        $result = Sorter::sortAndFilter([$interceptor], type: 'unit');
+        $result = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['unit']));
 
         Assert::same(\count($result), 0);
     }
@@ -129,9 +130,9 @@ final class SorterTest
     {
         $interceptor = new FilterTestInterceptorMultiType();
 
-        $result1 = Sorter::sortAndFilter([$interceptor], type: 'unit');
-        $result2 = Sorter::sortAndFilter([$interceptor], type: 'feature');
-        $result3 = Sorter::sortAndFilter([$interceptor], type: 'integration');
+        $result1 = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['unit']));
+        $result2 = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['feature']));
+        $result3 = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['integration']));
 
         Assert::same(\count($result1), 1);
         Assert::same(\count($result2), 1);
@@ -155,8 +156,8 @@ final class SorterTest
     {
         $interceptor = new FilterTestInterceptorBackedEnum();
 
-        $matched = Sorter::sortAndFilter([$interceptor], type: 'unit');
-        $excluded = Sorter::sortAndFilter([$interceptor], type: 'feature');
+        $matched = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['unit']));
+        $excluded = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['feature']));
 
         Assert::same(\count($matched), 1);
         Assert::same($matched[0], $interceptor);
@@ -167,9 +168,9 @@ final class SorterTest
     {
         $interceptor = new FilterTestInterceptorArrayOfEnums();
 
-        $unit = Sorter::sortAndFilter([$interceptor], type: 'unit');
-        $feature = Sorter::sortAndFilter([$interceptor], type: 'feature');
-        $integration = Sorter::sortAndFilter([$interceptor], type: 'integration');
+        $unit = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['unit']));
+        $feature = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['feature']));
+        $integration = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['integration']));
 
         Assert::same(\count($unit), 1);
         Assert::same($unit[0], $interceptor);
@@ -203,14 +204,59 @@ final class SorterTest
         Assert::same($result[2], $merge);
     }
 
-    public function nullTypeBypassesTestTypeFilter(): void
+    public function emptyFilterBypassesTestTypeFilter(): void
     {
         $interceptor = new FilterTestInterceptorFeature();
 
-        $result = Sorter::sortAndFilter([$interceptor], type: null);
+        $result = Sorter::sortAndFilter([$interceptor], options: new PipeOptions());
 
         Assert::same(\count($result), 1);
         Assert::same($result[0], $interceptor);
+    }
+
+    public function excludeDropsInterceptorOfExcludedType(): void
+    {
+        $unit = new FilterTestInterceptorUnit();
+        $feature = new FilterTestInterceptorFeature();
+
+        $result = Sorter::sortAndFilter([$unit, $feature], options: new PipeOptions(excludeTypes: ['feature']));
+
+        Assert::same(\count($result), 1);
+        Assert::same($result[0], $unit);
+    }
+
+    public function excludeKeepsUniversalInterceptor(): void
+    {
+        $universal = new NoAttributeTestInterceptor();
+        $feature = new FilterTestInterceptorFeature();
+
+        $result = Sorter::sortAndFilter([$universal, $feature], options: new PipeOptions(excludeTypes: ['feature']));
+
+        Assert::same(\count($result), 1);
+        Assert::same($result[0], $universal);
+    }
+
+    public function excludeKeepsMultiTypeInterceptorWhenAnotherTypeSurvives(): void
+    {
+        # Declares ['unit', 'feature']; excluding only 'feature' leaves 'unit' surviving.
+        $interceptor = new FilterTestInterceptorMultiType();
+
+        $result = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(excludeTypes: ['feature']));
+
+        Assert::same(\count($result), 1);
+        Assert::same($result[0], $interceptor);
+    }
+
+    public function excludeTakesPrecedenceOverInclude(): void
+    {
+        $feature = new FilterTestInterceptorFeature();
+
+        $result = Sorter::sortAndFilter(
+            [$feature],
+            options: new PipeOptions(includeTypes: ['feature'], excludeTypes: ['feature']),
+        );
+
+        Assert::same($result, []);
     }
 
     public function sortsLargeSetOfInterceptors(): void
@@ -233,7 +279,7 @@ final class SorterTest
     {
         $interceptor = new FilterTestInterceptorEmpty();
 
-        $result = Sorter::sortAndFilter([$interceptor], type: 'unit');
+        $result = Sorter::sortAndFilter([$interceptor], options: new PipeOptions(includeTypes: ['unit']));
 
         Assert::same(\count($result), 1);
         Assert::same($result[0], $interceptor);

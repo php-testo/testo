@@ -25,7 +25,8 @@ final class FilterTest
         Assert::same($filter->suites, []);
         Assert::same($filter->names, []);
         Assert::same($filter->paths, []);
-        Assert::null($filter->type);
+        Assert::same($filter->type, []);
+        Assert::same($filter->notType, []);
         Assert::same($filter->groups, []);
         Assert::same($filter->excludeGroups, []);
     }
@@ -35,14 +36,16 @@ final class FilterTest
         $filter = new Filter(
             suites: ['Unit', 'Integration'],
             names: ['UserTest::testLogin'],
-            type: 'test',
+            type: ['test'],
+            notType: ['bench'],
             groups: ['db'],
             excludeGroups: ['slow'],
         );
 
         Assert::same($filter->suites, ['Unit', 'Integration']);
         Assert::same($filter->names, ['UserTest::testLogin']);
-        Assert::same($filter->type, 'test');
+        Assert::same($filter->type, ['test']);
+        Assert::same($filter->notType, ['bench']);
         Assert::same($filter->groups, ['db']);
         Assert::same($filter->excludeGroups, ['slow']);
     }
@@ -71,7 +74,8 @@ final class FilterTest
         $filter = new Filter(
             suites: ['Unit'],
             names: ['x'],
-            type: 'bench',
+            type: ['bench'],
+            notType: ['inline'],
             groups: ['db'],
             excludeGroups: ['slow'],
         );
@@ -80,7 +84,8 @@ final class FilterTest
 
         Assert::same($copy->suites, ['Unit']);
         Assert::same($copy->names, ['x']);
-        Assert::same($copy->type, 'bench');
+        Assert::same($copy->type, ['bench']);
+        Assert::same($copy->notType, ['inline']);
         Assert::same($copy->groups, ['db']);
         Assert::same($copy->excludeGroups, ['slow']);
     }
@@ -102,17 +107,27 @@ final class FilterTest
 
     public function withNullTypeKeepsExistingType(): void
     {
-        Assert::same((new Filter(type: 'test'))->with(type: null)->type, 'test');
+        Assert::same((new Filter(type: ['test']))->with(type: null)->type, ['test']);
     }
 
-    public function withEmptyStringTypeResetsTypeToNull(): void
+    public function withEmptyArrayTypeResetsType(): void
     {
-        Assert::null((new Filter(type: 'test'))->with(type: '')->type);
+        Assert::same((new Filter(type: ['test']))->with(type: [])->type, []);
     }
 
     public function withNonEmptyTypeReplacesType(): void
     {
-        Assert::same((new Filter(type: 'test'))->with(type: 'bench')->type, 'bench');
+        Assert::same((new Filter(type: ['test']))->with(type: ['bench'])->type, ['bench']);
+    }
+
+    public function withNullNotTypeKeepsExistingNotType(): void
+    {
+        Assert::same((new Filter(notType: ['bench']))->with(notType: null)->notType, ['bench']);
+    }
+
+    public function withReplacesNotType(): void
+    {
+        Assert::same((new Filter(notType: ['bench']))->with(notType: ['inline'])->notType, ['inline']);
     }
 
     public function withReplacesPaths(): void

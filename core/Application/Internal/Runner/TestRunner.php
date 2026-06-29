@@ -18,6 +18,7 @@ use Testo\Event\Test\TestPipelineStarting;
 use Testo\Event\Test\TestStarting;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
+use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
 
 /**
@@ -41,7 +42,10 @@ final readonly class TestRunner
             $interceptors = $this->interceptorProvider->fromConfig(TestRunInterceptor::class);
 
             /** @var TestResult $result */
-            $result = Pipeline::prepare($info->caseInfo->definition->type, ...$interceptors)->with(
+            $result = Pipeline::prepare(
+                new PipeOptions(includeTypes: [$info->caseInfo->definition->type]),
+                ...$interceptors,
+            )->with(
                 function (TestInfo $info) use ($description): TestResult {
                     $this->eventDispatcher->dispatch(new TestStarting($info));
 

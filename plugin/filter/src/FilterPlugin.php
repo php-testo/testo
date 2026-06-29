@@ -24,25 +24,41 @@ final readonly class FilterPlugin implements PluginConfigurator
         $container->get(InterceptorProvider::class)->addInterceptor(FilterInterceptor::class);
 
         $container->bind(Filter::class, static function (FilterInput $scope): Filter {
-            $groups = $excludeGroups = [];
-            foreach ($scope->group as $group) {
-                if (!\str_starts_with($group, '!')) {
-                    $groups[] = $group;
-                    continue;
-                }
-
-                $name = \substr($group, 1);
-                $name === '' or $excludeGroups[] = $name;
-            }
+            [$types, $notTypes] = self::splitInclusionExclusion($scope->type);
+            [$groups, $excludeGroups] = self::splitInclusionExclusion($scope->group);
 
             return new Filter(
                 suites: $scope->suite,
                 names: $scope->filter,
                 paths: $scope->path,
-                type: $scope->type,
+                type: $types,
+                notType: $notTypes,
                 groups: $groups,
                 excludeGroups: $excludeGroups,
             );
         });
+    }
+
+    /**
+     * Split raw filter values into include and exclude sets by the leading `!` marker.
+     * A lone `!` (empty name after stripping) is ignored.
+     *
+     * @param non-empty-string[] $values
+     * @return array{list<non-empty-string>, list<non-empty-string>} Tuple of [include, exclude].
+     */
+    private static function splitInclusionExclusion(array $values): array
+    {
+        $include = $exclude = [];
+        foreach ($values as $value) {
+            if (!\str_starts_with($value, '!')) {
+                $include[] = $value;
+                continue;
+            }
+
+            $name = \substr($value, 1);
+            $name === '' or $exclude[] = $name;
+        }
+
+        return [$include, $exclude];
     }
 }
