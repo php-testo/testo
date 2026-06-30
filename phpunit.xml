@@ -13,6 +13,7 @@
          executionOrder="depends,defects"
          failOnRisky="false"
          failOnWarning="false"
+         failOnPhpunitWarning="false"
          displayDetailsOnTestsThatTriggerWarnings="true"
          colors="true">
     <testsuites>
@@ -33,9 +34,17 @@
             <exclude>tests/PhpUnit/*/*/*/Stub</exclude>
         </testsuite>
     </testsuites>
+    <!--
+        Coverage scope must list every directory whose classes the mirror's tests target via
+        #[CoversClass]; PHPUnit 13 raises a (failing) warning for a covered class outside it. The
+        tests cover core plus the plugins/bridges, so include their src too. Mutation scope stays
+        core-only — that is set separately in infection.phpunit.json.
+    -->
     <source>
         <include>
             <directory>core</directory>
+            <directory>plugin/*/src</directory>
+            <directory>bridge/*/src</directory>
         </include>
     </source>
 </phpunit>
