@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/bridge-infection-0.1.7...bridge-infection-0.1.8) (2026-06-29)
+
+
+### Features
+
+* **filter:** support test-type exclusion in `--type` ([#246](https://github.com/php-testo/testo/issues/246)) ([99b0c1e](https://github.com/php-testo/testo/commit/99b0c1e66c286be27bba870e3479e27eaa989626))
+
+
+### Bug Fixes
+
+* **filter:** declare test type on the #[Test] locator ([99b0c1e](https://github.com/php-testo/testo/commit/99b0c1e66c286be27bba870e3479e27eaa989626))
+* **infection:** never run benches under mutation testing ([99b0c1e](https://github.com/php-testo/testo/commit/99b0c1e66c286be27bba870e3479e27eaa989626))
+
+
+### Documentation
+
+* **skills:** document --type exclusion ([99b0c1e](https://github.com/php-testo/testo/commit/99b0c1e66c286be27bba870e3479e27eaa989626))
+
 ## [0.1.7](https://github.com/php-testo/testo/compare/bridge-infection-0.1.6...bridge-infection-0.1.7) (2026-06-29)
 
 

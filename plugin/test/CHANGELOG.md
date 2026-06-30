@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/test-0.1.4...test-0.1.5) (2026-06-29)
+
+
+### Features
+
+* **filter:** support test-type exclusion in `--type` ([#246](https://github.com/php-testo/testo/issues/246)) ([99b0c1e](https://github.com/php-testo/testo/commit/99b0c1e66c286be27bba870e3479e27eaa989626))
+
+
+### Bug Fixes
+
+* **filter:** declare test type on the #[Test] locator ([99b0c1e](https://github.com/php-testo/testo/commit/99b0c1e66c286be27bba870e3479e27eaa989626))
+* **infection:** never run benches under mutation testing ([99b0c1e](https://github.com/php-testo/testo/commit/99b0c1e66c286be27bba870e3479e27eaa989626))
+
+
+### Documentation
+
+* **skills:** document --type exclusion ([99b0c1e](https://github.com/php-testo/testo/commit/99b0c1e66c286be27bba870e3479e27eaa989626))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/test-0.1.3...test-0.1.4) (2026-06-07)
 
 
