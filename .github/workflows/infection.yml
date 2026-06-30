@@ -7,7 +7,11 @@ on:
       - 'plugin/**'
       - 'bridge/**'
       - 'tests/**'
+      - 'bin/**'
+      - 'tools/phpunit/composer.json'
       - 'infection.json'
+      - 'infection.phpunit.json'
+      - 'phpunit.xml'
       - 'testo.php'
       - 'composer.json'
       - 'composer.lock'
@@ -18,7 +22,11 @@ on:
       - 'plugin/**'
       - 'bridge/**'
       - 'tests/**'
+      - 'bin/**'
+      - 'tools/phpunit/composer.json'
       - 'infection.json'
+      - 'infection.phpunit.json'
+      - 'phpunit.xml'
       - 'testo.php'
       - 'composer.json'
       - 'composer.lock'
@@ -61,3 +69,48 @@ jobs:
         run: composer infect:ci
         env:
           STRYKER_DASHBOARD_API_KEY: ${{ github.event_name == 'push' && secrets.STRYKER_DASHBOARD_API_KEY || '' }}
+
+  # Second front: mutate core/ with PHPUnit as the runner. Testo is self-hosted, so a mutant on the
+  # run path can break test discovery itself and skew the `infection` job above; PHPUnit shares no
+  # code with the mutated engine, so a mutant can only be caught (or missed) by an assertion. The
+  # suite is the generated tests/PhpUnit mirror (see bridge/rector/README.md "Why Testo -> PHPUnit").
+  infection-phpunit:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ 8.2 ]
+        dependencies: [ highest ]
+
+    name: Infection (PHPUnit mirror) PHP${{ matrix.php }}
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve root package version
+        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: xdebug
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: ${{ matrix.dependencies }}
+
+      # PHPUnit is isolated via bamarni/composer-bin-plugin and not installed by the root install.
+      - name: Install isolated PHPUnit
+        run: composer bin phpunit install
+
+      # Copy the Testo suite, convert it to PHPUnit (Rector) and relocate it to tests/PhpUnit.
+      - name: Build the PHPUnit mirror
+        run: composer phpunit:build
+
+      - name: Run Infection on the PHPUnit mirror
+        run: composer infect:phpunit:ci

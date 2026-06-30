@@ -52,6 +52,7 @@
         "yiisoft/injector": "^1.2"
     },
     "require-dev": {
+        "bamarni/composer-bin-plugin": "^1.8",
         "buggregator/trap": "^1.10",
         "infection/infection": "dev-testo-bridge-82 as 0.32.6",
         "internal/dload": "^1.6",
@@ -81,6 +82,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "Tests\\PhpUnit\\": "tests/PhpUnit/",
             "Tests\\": "tests/",
             "Tests\\Assert\\": "plugin/assert/tests/",
             "Tests\\Bench\\": "plugin/bench/tests/",
@@ -140,6 +142,7 @@
     ],
     "config": {
         "allow-plugins": {
+            "bamarni/composer-bin-plugin": true,
             "infection/extension-installer": true,
             "llm/skills": true
         },
@@ -152,6 +155,11 @@
     "extra": {
         "skills": {
             "source": "skills"
+        },
+        "bamarni-bin": {
+            "bin-links": true,
+            "forward-command": false,
+            "target-directory": "tools"
         }
     },
     "scripts": {
@@ -167,6 +175,21 @@
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",
             "infection --ansi --configuration=infection.json --logger-github --threads=max --show-mutations=0 --min-msi=50"
+        ],
+        "phpunit:build": [
+            "@php bin/build-phpunit.php",
+            "rector process --config=bin/rector-phpunit-rename.php --no-diffs --no-progress-bar",
+            "@composer dump-autoload --quiet",
+            "rector process --config=bin/rector-phpunit-build.php --no-diffs --no-progress-bar"
+        ],
+        "phpunit": "phpunit",
+        "infect:phpunit": [
+            "@putenv XDEBUG_MODE=coverage",
+            "infection --configuration=infection.phpunit.json --threads=max --min-msi=0"
+        ],
+        "infect:phpunit:ci": [
+            "@putenv XDEBUG_MODE=coverage",
+            "infection --ansi --configuration=infection.phpunit.json --logger-github --threads=max --show-mutations=0 --min-msi=0"
         ],
         "psalm": "psalm",
         "psalm:baseline": "psalm --set-baseline=psalm-baseline.xml",

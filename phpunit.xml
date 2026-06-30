@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Drives the GENERATED PHPUnit mirror of Testo's own test suite (tests/PhpUnit/),
+    produced by `composer phpunit:build`. Its sole purpose is mutation testing of the
+    engine with a runner that shares no code with the mutated `core/` (see
+    bridge/rector/README.md "Why Testo -> PHPUnit"). Not the primary test runner —
+    `composer test` (Testo) is.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="tools/phpunit/vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         cacheDirectory="runtime/.phpunit.cache"
+         executionOrder="depends,defects"
+         failOnRisky="false"
+         failOnWarning="false"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         colors="true">
+    <testsuites>
+        <testsuite name="generated">
+            <directory>tests/PhpUnit</directory>
+            <!--
+                Testo Stub/Fixture classes are support data — test doubles and sample sources Testo's
+                own unit tests reflect on. Some are deliberately named like real test classes (*Test),
+                so PHPUnit must not collect them. Excluding a directory here only stops test
+                COLLECTION; the classes still autoload when a real test references them. The build
+                leaves them unconverted under Stub/ and Fixture/ dirs, so exclude those at any depth.
+            -->
+            <exclude>tests/PhpUnit/*/Fixture</exclude>
+            <exclude>tests/PhpUnit/*/*/Fixture</exclude>
+            <exclude>tests/PhpUnit/*/*/*/Fixture</exclude>
+            <exclude>tests/PhpUnit/*/Stub</exclude>
+            <exclude>tests/PhpUnit/*/*/Stub</exclude>
+            <exclude>tests/PhpUnit/*/*/*/Stub</exclude>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>core</directory>
+        </include>
+    </source>
+</phpunit>
