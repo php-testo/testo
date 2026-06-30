@@ -1,0 +1,49 @@
+{
+    "name": "testo/bridge-rector",
+    "description": "Rector rules to convert test suites between PEST, PHPUnit and Testo.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "rector",
+        "phpunit",
+        "pest",
+        "migration"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "rector/rector": "^2.0"
+    },
+    "require-dev": {
+        "testo/assert": "^0.1.9",
+        "testo/data": "^0.1.6",
+        "testo/testo": "1.x-dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Bridge\\Rector\\": "src/"
+        }
+    },
+    "suggest": {
+        "testo/testo": "To test your Rector rules inline with the bundled Testo\\Bridge\\Rector\\Testing harness."
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}

@@ -1,0 +1,8 @@
+# Rule test fixtures live next to the rules (so a rule "carries" its tests), but they are not
+# part of the published package — keep them out of `composer archive`.
+*.php.inc       export-ignore
+
+# Dev-only: suite wiring, this file, and any tooling are not shipped.
+# (The reusable Testing harness lives in src/ and ships with the package.)
+/tests          export-ignore
+/.gitattributes export-ignore
