@@ -10,23 +10,23 @@ use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 
 /**
- * INTENT: handle Pest's `uses(SomeTestCase::class, SomeTrait::class)` file
- * binding when restructuring into a Testo class.
+ * INTENT: handle Pest's `uses(SomeTestCase::class, SomeTrait::class)` file binding.
  *
- * @todo NOT IMPLEMENTED — depends on the host test class existing, which Rector
- *       cannot synthesize (see {@see TestFunctionToMethodRector}).
+ * @todo NOT IMPLEMENTED — no faithful target. {@see TestCallToFunctionRector} turns Pest's
+ *       file-level `test()`/`it()` calls into free FUNCTIONS, and a function has no base class,
+ *       no traits, and no `$this`.
  *
- * `uses(...)` binds a base TestCase and/or traits to every test in the FILE, and
- * is what gives Pest closures their `$this` (helpers, properties, shared setup).
- * Testo has no file-level binding: a class explicitly `extends` a base and `use`s
- * traits in its body. Translating `uses()` therefore means emitting `extends` /
- * `use` clauses on the generated class — which does not exist yet — and the
- * mapping is not even one-to-one (a Pest TestCase often carries Pest-specific
- * lifecycle plumbing that has no Testo analogue and must be reworked by hand).
+ * `uses(...)` binds a base TestCase and/or traits to every test in the FILE, and is what gives Pest
+ * closures their `$this` (helpers, properties, shared setup). A converted Testo function cannot host
+ * any of that: `extends`/`use` are class-only, and the bound `$this` simply has no analogue on a
+ * function. The mapping is also not one-to-one — a Pest TestCase often carries Pest-specific
+ * lifecycle plumbing with no Testo counterpart. So `uses()` is left untouched (visibly unconverted)
+ * and, because a closure that captures `$this`-shared state cannot become a function either,
+ * {@see TestCallToFunctionRector} deliberately bails on the tests that rely on it.
  *
- * MANUAL WORK: when creating the test class, add the appropriate `extends` for a
- * shared base (porting its helpers/lifecycle to Testo equivalents) and `use` the
- * relevant traits in the class body. Drop the `uses()` call entirely.
+ * MANUAL WORK: re-express the shared base/traits by hand — promote shared setup into
+ * `Testo\Lifecycle\*` hooks and shared state into a form the ported functions can read; port any
+ * trait helpers to plain functions. Drop the `uses()` call entirely.
  */
 final class UsesToTraitRector extends AbstractRector
 {

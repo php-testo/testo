@@ -1,92 +1,68 @@
-# Pest → Testo: mostly manual
+# Pest → Testo
 
-**Read this before expecting the `pest-to-testo` set to migrate a Pest suite.**
+Pest is a **functional DSL**: tests are file-level `test('…', fn)` / `it('…', fn)` calls with no
+enclosing class, assertions are `expect($v)->toX()`, setup is `beforeEach()` / `uses()`, and data
+comes from `->with([...])` / `dataset()`.
 
-Pest is a **functional DSL**: tests are file-level `test('…', fn)` / `it('…', fn)`
-calls with no enclosing class, assertions are `expect($v)->toX()`, setup is
-`beforeEach()` / `uses()`, and data comes from `->with([...])` / `dataset()`.
+Testo is **attribute** based, and — crucially — it discovers plain **file-level functions** as tests
+(a `#[\Testo\Test]` function, lifecycle hooks via `Testo\Lifecycle\*` on functions). That is the key
+that unlocks this direction: a Pest `test()`/`it()` closure maps onto a free function, so there is no
+need to fabricate a host class, namespace, PSR-4 location or `$this` binding. The old "Rector can't
+synthesize the enclosing class, so the whole direction is intractable" blocker is gone — we don't
+synthesize a class, we synthesize functions.
 
-Testo is **class + attribute** based: tests are `#[\Testo\Test]` methods on a
-class, assertions are `\Testo\Assert::*`, lifecycle is `Testo\Lifecycle\*`
-attributes, data is `Testo\Data\{DataProvider,DataSet}`.
+## What the set does (registered in `config/sets/pest-to-testo.php`)
 
-Rector transforms an existing AST **in place**. It does not synthesize new
-program structure. The central problem for this whole direction is that there is
-**no class to attach anything to**: Rector cannot reliably invent a class to wrap
-file-level `test()` calls with correct naming, namespace/PSR-4 location, `$this`
-binding, and lifecycle. So almost every Pest construct needs the test to already
-be a class method — which is exactly the transform Rector can't do.
+- **`TestCallToFunctionRector`** — the core restructuring rule. Converts each file-level
+  `test()` / `it()` call into a `#[\Testo\Test]` free function, and `beforeEach()` / `afterEach()` /
+  `beforeAll()` / `afterAll()` into functions carrying the matching
+  `Testo\Lifecycle\{BeforeTest,AfterTest,BeforeClass,AfterClass}` attribute. The description string
+  is kept verbatim as the function docblock (Testo reads it as the test description) and is the
+  source of a deterministic name — the declarator prefix (`test_` / `it_`) joined with the
+  snake_cased description (`it('adds numbers')` → `it_adds_numbers`); in-file collisions get a `_2`,
+  `_3`, … suffix. The whole fluent modifier chain is folded in the same pass (it only exists in the
+  unconverted form, so a later rule could never see it):
+    - `->group('a','b')`  → `#[\Testo\Filter\Group('a','b')]`
+    - `->covers(X::class)` → `#[\Testo\Codecov\Covers(X::class)]`
+    - `->throws(X::class[, 'msg'])` → prepended `\Testo\Expect::exception(X)[->withMessage('msg')]`, return type `never`
+    - `->skip(['reason'])` → prepended `throw new \Testo\Core\Exception\SkipTest('reason')`
+    - `->with([ <rows> ])` → one `#[\Testo\Data\DataSet([...])]` per row (inline array literal only)
+- **`ExpectToAssertRector`** — runs after the structural rule and maps each
+  `expect($value)->toX(...)` expectation inside the generated bodies to the matching actual-first
+  `\Testo\Assert::*` call. See its own docblock for the mapped matchers.
 
-The honest split:
+These two rules absorb what used to be a fistful of separate stubs (the test/lifecycle/throws/skip/
+group/dataset conversions): because every one of them operates on the same file-level call + fluent
+chain that only exists *before* restructuring, they cannot be independent post-passes — they are part
+of `TestCallToFunctionRector`'s single statement-level rewrite.
 
-## What actually works (registered in `config/sets/pest-to-testo.php`)
+## Left visibly unconverted (so it is never silently mistranslated)
 
-- **`ExpectToAssertRector`** — converts a single
-  `expect($value)->toX(...)` expectation into the matching actual-first
-  `\Testo\Assert::*` static call. Mapped matchers:
+`TestCallToFunctionRector` leaves the **entire** statement untouched when it cannot restructure it
+faithfully:
 
-  | Pest | Testo |
-  | --- | --- |
-  | `toBe($e)` | `\Testo\Assert::same($value, $e)` |
-  | `toEqual($e)` | `\Testo\Assert::equals($value, $e)` |
-  | `toBeTrue()` | `\Testo\Assert::true($value)` |
-  | `toBeFalse()` | `\Testo\Assert::false($value)` |
-  | `toBeNull()` | `\Testo\Assert::null($value)` |
-  | `toBeInstanceOf($c)` | `\Testo\Assert::instanceOf($value, $c)` |
-  | `toContain($x)` | `\Testo\Assert::contains($value, $x)` |
-  | `toHaveCount($n)` | `\Testo\Assert::count($value, $n)` |
+- a **non-string-literal description** (`test($name, fn)`) — no deterministic name can be derived;
+- a **closure that captures outer variables** via `use (...)` — they have no home on a function;
+- an **unknown / unsupported modifier** in the chain (`->only`, `->todo`, `->repeat`, `->depends`, a
+  conditional `->skip(fn () => …)`, a named-dataset `->with('emails')`, …).
 
-  This is local and reversible, so it is the one genuinely-tractable rule.
-  **Left untouched on purpose** (so they stay visibly unconverted instead of
-  silently mistranslated): chained expectations (`->toBe()->toBe()`), negated
-  expectations (`->not->toBe(...)`), and unmapped/custom matchers
-  (`toBeGreaterThan`, …).
+And two constructs remain documented stubs with **no faithful target**:
 
-## What is a stub (NOT registered — `refactor()` returns `null`)
+- **`UsesToTraitRector`** — `uses(BaseTestCase::class, SomeTrait::class)`. A converted function has no
+  base class, no traits and no `$this`, so there is nothing to attach `extends`/`use` to. Shared
+  state/lifecycle that Pest hung off `$this` must be re-expressed by hand. This is also why
+  `TestCallToFunctionRector` bails on closures that capture `$this`-shared state.
+- **`ArchTestRector`** — `arch()` tests. Testo has no architecture-assertion subsystem, so there is
+  no API to translate into. Keep them in Pest or use a dedicated architecture-rule tool.
 
-Each stub is a documented placeholder describing intent and the manual work
-required. None of them transform code.
+Not yet handled (candidates for a future pass, currently left as-is): `describe()` blocks (nested
+naming + a per-block lifecycle scope), `dataset()` definitions and named `->with('name')` references
+(need a `#[DataProvider]` source method), and `$this`-shared state across `beforeEach`/tests.
 
-- **`TestFunctionToMethodRector`** — `test()`/`it()` → `#[\Testo\Test]` method.
-  *Blocker:* functional→class restructuring; Rector cannot fabricate the host
-  class, derive a method name from a free-form description, rebind `$this`, or
-  hoist sibling file-level statements. **This is the core blocker for the whole
-  direction.**
-- **`LifecycleHookToMethodRector`** — `beforeEach`/`afterEach`/`beforeAll`/
-  `afterAll` → `Testo\Lifecycle\{BeforeTest,AfterTest,BeforeClass,AfterClass}`
-  methods. *Blocker:* no host class to attach methods to; no defined `$this`.
-- **`DatasetWithToDataProviderRector`** — `->with([...])` / `dataset()` →
-  `Testo\Data\{DataSet,DataProvider}`. *Blocker:* needs a method with a real
-  parameter list to bind rows onto; named datasets must move to a provider.
-- **`ThrowsToExpectExceptionRector`** — `->throws(X)` chained on `test()` →
-  `\Testo\Expect::exception(X)`. *Blocker:* the chain describes the whole test;
-  there is no method body to insert the expectation into.
-- **`SkipChainToSkipTestRector`** — `->skip()` →
-  `throw new \Testo\Core\Exception\SkipTest(...)`. *Blocker:* needs a method body
-  to throw from; conditional skips become `if`-guards.
-- **`GroupChainToGroupAttributeRector`** — `->group(...)` →
-  `#[\Testo\Filter\Group(...)]`. *Blocker:* no method/class declaration to
-  annotate.
-- **`UsesToTraitRector`** — `uses(...)` → class `extends`/`use`. *Blocker:* needs
-  the host class, and the mapping is not one-to-one (Pest TestCase plumbing has
-  no Testo analogue).
-- **`ArchTestRector`** — Pest `arch()` tests. **Not convertible at all:** Testo
-  has no architecture-assertion subsystem, so there is no target API. Documented
-  only.
+## What a user still does by hand
 
-## What a user must do by hand
-
-1. Create a Testo test class per Pest file (name, namespace, PSR-4 path).
-2. Move each `test()` / `it()` closure body into a method; annotate the method
-   (or the class) with `#[\Testo\Test]`.
-3. Convert assertions with `ExpectToAssertRector` (run the set), then fix any
-   chained / negated / unmapped expectations by hand.
-4. Move `beforeEach`/`afterEach`/`beforeAll`/`afterAll` bodies into methods with
-   the matching `Testo\Lifecycle\*` attribute; promote shared state to class
-   properties.
-5. Re-express datasets as `Testo\Data\DataSet` / `Testo\Data\DataProvider` with
-   matching method parameters.
-6. Replace `->throws()` with `\Testo\Expect::exception()`, `->skip()` with a
-   `SkipTest` throw, `->group()` with `#[\Testo\Filter\Group]`.
-7. Replace `uses()` with `extends` / `use` on the class (port helpers manually).
-8. Keep `arch()` tests in Pest or use a dedicated architecture-rule tool.
+1. Re-express any `uses()` base/traits and `$this`-shared state (promote setup into
+   `Testo\Lifecycle\*` hooks; port trait helpers to functions).
+2. Finish chained / negated / unmapped `expect()` matchers that `ExpectToAssertRector` left alone.
+3. Flatten `describe()` blocks and convert named datasets to `#[DataProvider]` providers.
+4. Keep `arch()` tests in Pest or move them to a dedicated tool.
