@@ -4,6 +4,7 @@
 - About Self-Tests read [tests/README.md](tests/README.md)
 - [AGENTS.md](AGENTS.md) is shipped to downstream users of the `testo/testo` package — keep it user-facing, not contributor-facing. This file (`CLAUDE.md`) is the contributor-facing entry point and is **not** included in `composer archive`.
 - The [`skills/`](skills/) directory ships AI-agent skills (`SKILL.md` files) that document Testo's public surface for coding agents. When you change behavior or add public API — new attributes, exceptions, statuses, configuration options, plugin hooks — check the matching skill(s) listed in [skills/README.md](skills/README.md) and update them in the same change. Skills are part of the public contract: if production code and skills disagree, downstream agents will write wrong code.
+- When you add a new user-facing feature (a public attribute, assertion, lifecycle hook, exception, etc.), check whether the [`testo/bridge-rector`](bridge/rector/) conversion rules need a counterpart — a feature users write in their tests almost always has a PHPUnit/Pest equivalent to convert to/from. If a faithful conversion exists, add the Rector rule (+ co-located `*.php.inc` fixtures) in the relevant direction set and update [`bridge/rector/FEATURE_PARITY.md`](bridge/rector/FEATURE_PARITY.md); if it genuinely can't be converted, record it as a documented stub + `TODO.md` entry rather than leaving it silently unhandled.
 
 ## Project Overview
 
