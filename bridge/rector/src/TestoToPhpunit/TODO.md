@@ -69,7 +69,9 @@ directory but are **not** registered in `config/sets/testo-to-phpunit.php`.
   are `(array $data, ?string $name = null)`), so arguments are preserved verbatim — only the attribute class
   changes.
 - **`TypedAssertChainRector`** (registered) — decomposes fluent typed assertions
-  (`Assert::string()->contains()`, `Assert::int()->between()`, `Assert::array()->hasKeys()`, …)
-  into separate `assert*` statements, expanding 1→N where needed. Matchers with no faithful
-  PHPUnit line (JSON path/structure, `isList`, `every`, `sameSizeAs`, custom) leave the whole
-  chain untouched rather than half-converting.
+  (`Assert::string()->contains()`, `Assert::int()->between()`, `Assert::array()->hasKeys()`,
+  `Assert::array()->isList()`→`assertIsList`, …) into separate `assert*` statements, expanding 1→N
+  where needed. A non-variable subject (e.g. `Assert::array($log->all())->isList()`) is hoisted into
+  a scope-safe `$value` local so it is evaluated once. Matchers with no faithful PHPUnit line (JSON
+  path/structure, `every`, `sameSizeAs`, custom) leave the whole chain untouched rather than
+  half-converting.

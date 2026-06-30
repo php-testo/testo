@@ -144,11 +144,34 @@ final class TestClassToTestCaseRector extends AbstractRector
     }
 
     /**
-     * Mirrors Testo's locator: a public, non-static method with a `void`/`never` return type.
+     * Lifecycle hooks must never be turned into tests: Testo's locator excludes them from the test
+     * set, and a method named setUp/tearDown carrying #[Test] would be run by PHPUnit both as a hook
+     * (by name) and as a test. Match the lifecycle attribute (Testo's, or its already-converted
+     * PHPUnit form) or a reserved PHPUnit lifecycle name.
+     *
+     * @var list<non-empty-string>
+     */
+    private const LIFECYCLE_ATTRIBUTES = [
+        'Testo\\Lifecycle\\BeforeTest',
+        'Testo\\Lifecycle\\AfterTest',
+        'Testo\\Lifecycle\\BeforeClass',
+        'Testo\\Lifecycle\\AfterClass',
+        'PHPUnit\\Framework\\Attributes\\Before',
+        'PHPUnit\\Framework\\Attributes\\After',
+        'PHPUnit\\Framework\\Attributes\\BeforeClass',
+        'PHPUnit\\Framework\\Attributes\\AfterClass',
+    ];
+
+    /** @var list<string> */
+    private const LIFECYCLE_NAMES = ['setup', 'teardown', 'setupbeforeclass', 'teardownafterclass'];
+
+    /**
+     * Mirrors Testo's locator: a public, non-static method with a `void`/`never` return type that is
+     * not a lifecycle hook.
      */
     private function isDiscoverableByClassLevelTest(ClassMethod $method): bool
     {
-        if (!$method->isPublic() || $method->isStatic()) {
+        if (!$method->isPublic() || $method->isStatic() || $this->isLifecycleMethod($method)) {
             return false;
         }
 
@@ -160,6 +183,25 @@ final class TestClassToTestCaseRector extends AbstractRector
         }
 
         return \in_array($returnType->toLowerString(), ['void', 'never'], true);
+    }
+
+    private function isLifecycleMethod(ClassMethod $method): bool
+    {
+        if (\in_array(\strtolower((string) $this->getName($method)), self::LIFECYCLE_NAMES, true)) {
+            return true;
+        }
+
+        foreach ($method->attrGroups as $attrGroup) {
+            foreach ($attrGroup->attrs as $attr) {
+                foreach (self::LIFECYCLE_ATTRIBUTES as $lifecycle) {
+                    if ($this->isName($attr->name, $lifecycle)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private function convertMethodLevelTestAttribute(ClassMethod $method): void

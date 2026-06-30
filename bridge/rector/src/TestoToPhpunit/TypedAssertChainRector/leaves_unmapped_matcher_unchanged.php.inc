@@ -1,3 +1,3 @@
 <?php
 
-\Testo\Assert::array($a)->isList();
+\Testo\Assert::array($a)->every('is_int');

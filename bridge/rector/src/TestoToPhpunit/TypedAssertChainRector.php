@@ -7,12 +7,15 @@ namespace Testo\Bridge\Rector\TestoToPhpunit;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\Assign;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\VariadicPlaceholder;
+use PHPStan\Analyser\Scope;
+use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -36,9 +39,18 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Because one statement becomes many, this rule matches the wrapping `Stmt\Expression` and
  * returns a `Node[]` (allowed by {@see \Rector\Contract\Rector\RectorInterface::refactor()}).
  *
+ * When the subject is not a plain variable (e.g. `Assert::array($log->all())->isList()`), it is
+ * hoisted into a local first so it is evaluated once instead of re-run per assertion:
+ *
+ *     $value = $log->all();
+ *     $this->assertIsArray($value);
+ *     $this->assertIsList($value);
+ *
+ * The local name (`value`, `value2`, ...) is chosen to not shadow a variable already in scope.
+ *
  * Conservative by design: if the head type or ANY matcher in the chain has no faithful PHPUnit
- * counterpart (JSON path/structure assertions, `isList()`, `every()`, `sameSizeAs()`, custom
- * matchers), the whole chain is left untouched rather than half-converted. Those remain a TODO.
+ * counterpart (JSON path/structure assertions, `every()`, `sameSizeAs()`, custom matchers), the
+ * whole chain is left untouched rather than half-converted. Those remain a TODO.
  */
 #[TestRectorFixtures('TypedAssertChainRector')]
 final class TypedAssertChainRector extends AbstractRector
@@ -115,13 +127,23 @@ final class TypedAssertChainRector extends AbstractRector
         if (!$headArg instanceof Arg) {
             return null;
         }
-        $value = $headArg->value;
 
-        $stmts = [$this->assertStmt($assertIs, [$this->arg($value)])];
+        # The subject is asserted in the head AND in every matcher. If it is anything other than a
+        # plain variable (a method call, property fetch, ...) hoisting it into a local avoids
+        # re-evaluating it — and re-running its side effects — once per emitted assertion.
+        $prefix = [];
+        $subject = $headArg->value;
+        if (!$subject instanceof Variable) {
+            $variable = new Variable($this->freeVariableName($node));
+            $prefix[] = new Expression(new Assign($variable, $subject));
+            $subject = $variable;
+        }
+
+        $stmts = [...$prefix, $this->assertStmt($assertIs, [$this->arg($subject)])];
 
         foreach (\array_reverse($links) as $link) {
             $matcher = $this->getName($link->name);
-            $mapped = $matcher === null ? null : $this->mapMatcher($type, $matcher, $link->args, $value);
+            $mapped = $matcher === null ? null : $this->mapMatcher($type, $matcher, $link->args, $subject);
             if ($mapped === null) {
                 # Any unmapped matcher aborts the whole conversion — never half-convert.
                 return null;
@@ -133,6 +155,23 @@ final class TypedAssertChainRector extends AbstractRector
         }
 
         return $stmts;
+    }
+
+    /**
+     * A `value`-based local name not already defined in the statement's scope (`value`, `value2`,
+     * `value3`, ...), so hoisting the subject never shadows an existing variable.
+     */
+    private function freeVariableName(Expression $node): string
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        $name = 'value';
+        $suffix = 1;
+        while ($scope instanceof Scope && $scope->hasVariableType($name)->yes()) {
+            $name = 'value' . (++$suffix);
+        }
+
+        return $name;
     }
 
     /**
@@ -167,6 +206,7 @@ final class TypedAssertChainRector extends AbstractRector
             $type === 'array' && $matcher === 'notContains' => $needleFirst('assertNotContains'),
             $type === 'array' && $matcher === 'hasCount' => $needleFirst('assertCount'),
             $type === 'array' && $matcher === 'notEmpty' => [$this->assertStmt('assertNotEmpty', [$this->arg($value)])],
+            $type === 'array' && $matcher === 'isList' => [$this->assertStmt('assertIsList', [$this->arg($value)])],
             $type === 'array' && $matcher === 'hasKeys' => $this->keys('assertArrayHasKey', $args, $value),
             $type === 'array' && $matcher === 'doesNotHaveKeys' => $this->keys('assertArrayNotHasKey', $args, $value),
 
