@@ -14,7 +14,6 @@ use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
-use PhpParser\NodeFinder;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -29,9 +28,11 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  *   - its class lives in a runtime/layout-bound namespace ({@see self::RUNTIME_NAMESPACES}) — the
  *     Tokenizer self-tests assert on names the `Tests\PhpUnit` relocation rewrites, the Facade
  *     tests need an active container;
- *   - its class drives the Testo engine via `Testo\Testing\` anywhere (e.g. `TestRunner` used
- *     directly or through a private helper) — then EVERY test method of the class is skipped;
  *   - it carries a composite data source ({@see self::COMPOSITE_DATA}) with no PHPUnit equivalent.
+ *
+ * Tests that drive the Testo engine via `Testo\Testing\` (e.g. `TestRunner`) are deliberately NOT
+ * skipped: PHPUnit — not the engine — discovers and runs them, so a mutation cannot break discovery
+ * to fake a pass, and these tests are exactly what gives the pipeline its mutation coverage.
  *
  * Skipping rewrites the body to a single `$this->markTestSkipped(...)`, drops the parameters and
  * removes any data-provider attributes — otherwise PHPUnit would invoke the method with the wrong
@@ -104,9 +105,9 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
     #[\Override]
     public function refactor(Node $node): ?Node
     {
-        // Class-wide reasons skip every test method (the whole case is runtime/layout-bound);
-        // otherwise each method is judged on its own (composite data source).
-        $classReason = $this->namespaceReason($this->getName($node)) ?? $this->runtimeReason($node);
+        // A layout-bound namespace skips every test method of the class; otherwise each method is
+        // judged on its own (composite data source).
+        $classReason = $this->namespaceReason($this->getName($node));
 
         $changed = false;
         foreach ($node->getMethods() as $method) {
@@ -123,7 +124,37 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
             $changed = true;
         }
 
+        // When the whole case is skipped, its lifecycle hooks still run before/after each (skipped)
+        // test. Empty them: their setup is meaningless once every test is skipped, and it may
+        // reference Testo runtime helpers or stub files absent from the mirror (e.g. a former
+        // constructor turned into a #[Before] hook that `require`s a stub).
+        if ($classReason !== null) {
+            foreach ($node->getMethods() as $method) {
+                // Leave a hook already turned into a skipped test (it carried #[Test]) — emptying it
+                // would drop the markTestSkipped and PHPUnit would report it risky, not skipped.
+                if ($this->isLifecycleHook($method) && !$this->isAlreadySkipped($method) && ($method->stmts ?? []) !== []) {
+                    $method->stmts = [];
+                    $changed = true;
+                }
+            }
+        }
+
         return $changed ? $node : null;
+    }
+
+    /** A lifecycle hook by reserved name or by PHPUnit lifecycle attribute. */
+    private function isLifecycleHook(ClassMethod $method): bool
+    {
+        if (\in_array(\strtolower((string) $this->getName($method)), ['setup', 'teardown', 'setupbeforeclass', 'teardownafterclass'], true)) {
+            return true;
+        }
+
+        return $this->hasAttribute($method, [
+            'PHPUnit\\Framework\\Attributes\\Before',
+            'PHPUnit\\Framework\\Attributes\\After',
+            'PHPUnit\\Framework\\Attributes\\BeforeClass',
+            'PHPUnit\\Framework\\Attributes\\AfterClass',
+        ]);
     }
 
     private function namespaceReason(?string $fqcn): ?string
@@ -138,6 +169,12 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
             }
         }
 
+        // Acceptance tests drive external processes (a console command, a `php script.php`) by path;
+        // those paths do not exist in the relocated tests/PhpUnit mirror, so they cannot run here.
+        if (\str_contains($fqcn, '\\Acceptance\\')) {
+            return 'is an acceptance test that runs an external process by a path absent from the mirror';
+        }
+
         return null;
     }
 
@@ -149,24 +186,6 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
         }
 
         return $this->hasAttribute($method, ['PHPUnit\\Framework\\Attributes\\Test', 'Testo\\Test']);
-    }
-
-    /**
-     * Class-wide reason: the class touches `Testo\Testing\` anywhere (a test body OR a private
-     * helper it calls), so the whole case drives the engine and every test method must be skipped.
-     */
-    private function runtimeReason(Class_ $class): ?string
-    {
-        $usesRuntime = (new NodeFinder())->findFirst(
-            [$class],
-            fn(Node $n): bool => $n instanceof Name
-                && ($name = $this->getName($n)) !== null
-                && \str_starts_with($name, 'Testo\\Testing\\'),
-        );
-
-        return $usesRuntime !== null
-            ? 'exercises the Testo runtime (Testo\\Testing\\) and has no PHPUnit equivalent'
-            : null;
     }
 
     private function methodReason(ClassMethod $method): ?string

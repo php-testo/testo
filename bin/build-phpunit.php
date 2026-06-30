@@ -10,11 +10,10 @@ declare(strict_types=1);
  *   2. copy every test *.php EXCEPT files under a Self/ directory, placing each file at the path
  *      its FUTURE `Tests\PhpUnit\...` namespace implies (derived from its current `Tests\...` one);
  *      the file content keeps its original `Tests\` namespace here
- *   3. for *Test.php files with no faithful PHPUnit form emit a skip-stub instead, so PHPUnit
- *      reports them skipped rather than erroring; support files of those same namespaces are dropped
- *   4. (done by the composer script afterwards) two Rector passes over the copy:
+ *   3. (done by the composer script afterwards) two Rector passes over the copy:
  *      bin/rector-phpunit-rename.php relocates `Tests\` -> `Tests\PhpUnit\` across the whole tree,
- *      then bin/rector-phpunit-build.php converts the *Test.php files to PHPUnit
+ *      then bin/rector-phpunit-build.php converts the *Test.php files to PHPUnit (including the
+ *      per-method skips for tests with no faithful PHPUnit form)
  *
  * Run via `composer phpunit:build`, not directly.
  */
@@ -34,7 +33,6 @@ rrmdir($dest);
 @\mkdir($dest, 0777, true);
 
 $copied = 0;
-$skipped = 0;
 $ignored = 0;
 
 foreach ($roots as $srcRoot) {
@@ -85,26 +83,16 @@ foreach ($roots as $srcRoot) {
 
         @\mkdir($targetDir, 0777, true);
 
-        // Only whole-file fatals that strike before any test method runs justify a file-level skip
-        // stub (a custom constructor or a name colliding with a `final` TestCase method break at
-        // class load/instantiation). Per-method reasons — Testo\Testing usage, composite data
-        // sources, runtime/layout-bound namespaces — are skipped method-by-method later by
-        // SkipUnconvertibleTestMethodRector, so each original test stays visible as its own skip.
-        $reason = $isTest ? notConvertibleReason($code) : null;
-
-        if ($reason !== null) {
-            \file_put_contents($targetFile, skipStub($namespace, $soleType ?? $file->getBasename('.php'), $reason));
-            ++$skipped;
-            continue;
-        }
-
         // Content keeps its `Tests\` namespace; the rename Rector pass relocates it afterwards.
+        // Everything convertible is handled by the Rector passes — a parameterless constructor
+        // becomes setUp(), a method colliding with a final TestCase method is renamed, and tests
+        // with no faithful PHPUnit form are skipped per method. No file-level skip stub is needed.
         \file_put_contents($targetFile, $code);
         ++$copied;
     }
 }
 
-echo "Copied: {$copied}, skip-stubbed: {$skipped}, ignored (Self/helpers): {$ignored}\n";
+echo "Copied: {$copied}, ignored (Self/helpers): {$ignored}\n";
 echo "Next: rector + composer dump-autoload (run by the composer script).\n";
 
 /** Extract the file's namespace (expected to start with `Tests`), or null when there is none. */
@@ -117,95 +105,23 @@ function extractNamespace(string $code): ?string
 
 /**
  * The name of the file's sole type declaration (class/interface/trait/enum), used as the PSR-4
- * filename. Returns null when the file declares zero or several types (multi-type fixtures keep
- * their original filename, since PSR-4 cannot place them anyway).
+ * filename. Returns null when the file declares zero or several types (so multi-type fixtures keep
+ * their original filename, since PSR-4 cannot place them anyway), OR when the file also declares
+ * free functions — such a file is loaded by path (`require`), not autoloaded, so renaming it would
+ * break the `require` (e.g. a stub of test functions that also defines one helper class).
  */
 function soleTypeName(string $code): ?string
 {
+    // A top-level `function` (column 0, unlike an indented method) means the file is require()d.
+    if (\preg_match('/^function\s+\w+\s*\(/m', $code) === 1) {
+        return null;
+    }
+
     return \preg_match_all(
         '/^(?:abstract\s+|final\s+|readonly\s+)*(?:class|interface|trait|enum)\s+([A-Za-z_]\w*)/m',
         $code,
         $m,
     ) === 1 ? $m[1][0] : null;
-}
-
-/**
- * Why a *Test.php cannot even be LOADED/instantiated as a PHPUnit TestCase, so the whole file must
- * become a skip stub (these fatals strike before any method runs — a per-method skip cannot help).
- * Returns the reason, or null. Per-method reasons (Testo\Testing usage, composite data sources,
- * runtime/layout-bound namespaces) are handled later by SkipUnconvertibleTestMethodRector.
- */
-function notConvertibleReason(string $code): ?string
-{
-    // PHPUnit owns TestCase's constructor (it injects the method name); a custom __construct leaves
-    // $methodName uninitialized and PHPUnit errors while building the test.
-    if (\preg_match('/\bfunction\s+__construct\s*\(/', $code) === 1) {
-        return 'declares a custom __construct() that conflicts with PHPUnit\\Framework\\TestCase';
-    }
-
-    // A method whose name matches a `final` method TestCase inherits (Assert has dozens of final
-    // static constraint factories: isIterable(), contains(), equalTo(), ...) is a hard fatal on load.
-    $finals = phpUnitFinalMethods();
-    if (\preg_match_all('/\bfunction\s+([A-Za-z_]\w*)\s*\(/', $code, $m) > 0) {
-        foreach ($m[1] as $method) {
-            if (isset($finals[\strtolower($method)])) {
-                return "declares a method {$method}() that collides with final PHPUnit\\Framework\\TestCase::{$method}()";
-            }
-        }
-    }
-
-    return null;
-}
-
-/**
- * Lowercased set (name => true) of every `final` method TestCase inherits, derived by reflection
- * from the isolated tools/phpunit install — so the denylist tracks the actual PHPUnit version.
- *
- * @return array<string, true>
- */
-function phpUnitFinalMethods(): array
-{
-    static $finals = null;
-
-    if ($finals !== null) {
-        return $finals;
-    }
-
-    require_once \str_replace('\\', '/', \dirname(__DIR__)) . '/tools/phpunit/vendor/autoload.php';
-
-    $finals = [];
-    foreach ((new \ReflectionClass(\PHPUnit\Framework\TestCase::class))->getMethods() as $method) {
-        if ($method->isFinal()) {
-            $finals[\strtolower($method->getName())] = true;
-        }
-    }
-
-    return $finals;
-}
-
-/** A self-contained PHPUnit test that records exactly one skipped test. */
-function skipStub(string $namespace, string $class, string $reason): string
-{
-    $reason = \addslashes("{$namespace}\\{$class} {$reason}.");
-
-    return <<<PHP
-        <?php
-
-        declare(strict_types=1);
-
-        namespace {$namespace};
-
-        use PHPUnit\\Framework\\TestCase;
-
-        final class {$class} extends TestCase
-        {
-            public function testNotConvertibleToPhpUnit(): void
-            {
-                \$this->markTestSkipped('{$reason}');
-            }
-        }
-
-        PHP;
 }
 
 function rrmdir(string $dir): void
