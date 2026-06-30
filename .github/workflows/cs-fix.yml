@@ -9,6 +9,7 @@ on:
       - 'tests/**'
       - 'testo.php'
       - '.php-cs-fixer.dist.php'
+      - 'tools/code-style/composer.json'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/cs-fix.yml'
@@ -50,6 +51,10 @@ jobs:
 
       - name: Install Composer dependencies
         uses: ramsey/composer-install@v3
+
+      # PHP-CS-Fixer (spiral/code-style) is isolated via bamarni/composer-bin-plugin.
+      - name: Install isolated code-style
+        run: composer bin code-style install
 
       - name: Run PHP-CS-Fixer
         run: composer cs:fix
