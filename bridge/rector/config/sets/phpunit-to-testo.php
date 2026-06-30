@@ -9,6 +9,7 @@ use Testo\Bridge\Rector\PhpunitToTesto\DataProviderAnnotationToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\DataProviderAttributeToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\DoesNotPerformAssertionsToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\ExpectExceptionToTestoRector;
+use Testo\Bridge\Rector\PhpunitToTesto\ExtendsTestCaseToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\GroupToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\LifecycleMethodToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MarkTestSkippedToTestoRector;
@@ -38,4 +39,7 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->rule(GroupToTestoRector::class);
 
     $rectorConfig->rule(DoesNotPerformAssertionsToTestoRector::class);
+
+    # Structural: detach from PHPUnit's TestCase base class and make discovery attribute-based.
+    $rectorConfig->rule(ExtendsTestCaseToTestoRector::class);
 };

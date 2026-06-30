@@ -5,22 +5,8 @@ are either impossible to convert automatically or too fragile to automate safely
 Stub rules (`refactor()` returns `null`, no `#[TestRectorFixtures]`, not registered)
 exist for each so the intent and blockers are discoverable in code.
 
-## Partial (registered, but incomplete)
-
-- **ExpectExceptionToTestoRector** — converts the bare `$this->expectException($c)`
-  to `\Testo\Expect::exception($c)`, but does NOT fold consecutive
-  `expectExceptionMessage()` / `expectExceptionCode()` calls into a fluent
-  `->withMessage()` / `->withCode()` chain. That requires cross-statement reasoning
-  (grouping sibling calls, ordering), which is fragile node-locally. Such calls are
-  left in place and must be merged manually.
-
 ## Stubbed (not registered)
 
-- **ExtendsTestCaseToTestoRector** — removing `extends PHPUnit\Framework\TestCase`
-  and marking the class with `#[\Testo\Test]`: test-discovery models differ (PHPUnit
-  `test`-prefix/`#[Test]` vs Testo `#[\Testo\Test]`); dropping the base class would
-  orphan every test method unless each is also attributed/renamed. Invasive and
-  order-sensitive against the other rules.
 - **MockToTestoRector** — `createMock`/`getMockBuilder`/`createStub`/`prophesize`:
   Testo ships no built-in mocking, so there is no target API. Replace manually with a
   third-party mocking library or hand-written fakes.
@@ -33,6 +19,24 @@ exist for each so the intent and blockers are discoverable in code.
 
 ## Implemented since the first cut
 
+- **ExtendsTestCaseToTestoRector** (registered) — removes a **direct** `extends
+  \PHPUnit\Framework\TestCase` and makes the class attribute-discoverable: each test method gains
+  `#[\Testo\Test]`. "Test method" mirrors PHPUnit discovery — a `#[\PHPUnit\Framework\Attributes\Test]`
+  attribute (renamed in place to `#[\Testo\Test]`), a `@test` docblock annotation (tag removed, attribute
+  added), or a `test`-prefixed method name (attribute added). Idempotent (skips a method already carrying
+  `#[\Testo\Test]`). **Residuals:** (1) only a class extending `TestCase` *directly* is converted — an
+  intermediate/custom base is left untouched (convert it at the base); (2) methods are NOT renamed —
+  Testo discovers by attribute, so keeping `testFoo()` is harmless, and prefix cleanup / call-site
+  rewriting is left manual.
+- **ExpectExceptionToTestoRector** (registered) — now folds the fluent chain, not just the bare
+  head. It operates at the statements level (matches the enclosing `StmtsAwareInterface` node and
+  rewrites its `->stmts`): after a `$this->expectException($c)` statement it absorbs the
+  uninterrupted run of immediately-following sibling `expectExceptionMessage($m)` /
+  `expectExceptionCode($n)` statements into `\Testo\Expect::exception($c)->withMessage($m)->withCode($n)`
+  and removes them. Conservative: the run stops at the first non-foldable statement (including
+  `expectExceptionMessageMatches`, whose regex has no `withMessage*` counterpart — see the stubbed
+  `ExpectExceptionMessageMatchesRector`), statements are never reordered or pulled across other code,
+  and a bare `expectExceptionMessage`/`Code` with no preceding `expectException` is left untouched.
 - **GroupToTestoRector** (registered) — collapses every PHPUnit group source on a node — the
   `@group` docblock annotation(s) **and** the repeatable single-name `#[Group]` attribute(s) — into
   one variadic `#[\Testo\Filter\Group('a', 'b', …)]` (Testo's `Group` is variadic but not
