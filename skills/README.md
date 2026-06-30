@@ -14,7 +14,7 @@ that an AI coding agent can load on demand.
 | [`testo-coverage`](testo-coverage/SKILL.md) | Configuring `CodecovPlugin`, reports, and `#[Covers]`. |
 | [`testo-increase-coverage`](testo-increase-coverage/SKILL.md) | Raising line coverage — collect coverage, rank the least-covered files into a work-list, and write tests for the gaps with subagents. |
 | [`testo-mutation-testing`](testo-mutation-testing/SKILL.md) | Running mutation testing with Infection — collecting surviving mutants efficiently and killing them. |
-| [`testo-migrate-from-phpunit`](testo-migrate-from-phpunit/SKILL.md) | Porting an existing PHPUnit suite to Testo. |
+| [`testo-migrate-from-phpunit`](testo-migrate-from-phpunit/SKILL.md) | Porting an existing PHPUnit (or Pest) suite to Testo — phased, with a Rector-assisted path (`testo/bridge-rector`) and an AI-agent rewrite path. |
 | [`testo-plugin-author`](testo-plugin-author/SKILL.md) | Authoring a Testo plugin (events, interceptors, container bindings). |
 | [`testo-configure`](testo-configure/SKILL.md) | Setting up or editing `testo.php` (suites, finder, plugins). |
 
