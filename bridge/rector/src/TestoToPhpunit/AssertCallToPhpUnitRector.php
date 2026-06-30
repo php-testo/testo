@@ -10,6 +10,9 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
+use PHPStan\Analyser\Scope;
+use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -24,6 +27,12 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - PHPUnit: $this->assertSame($expected, $actual[, $message])
  * Comparison assertions therefore swap the first two arguments; the trailing
  * `$message` keeps its position (it is last in both APIs).
+ *
+ * The call form follows the enclosing scope: `$this->assert*` inside instance methods (the common
+ * case), but `self::assert*` wherever `$this` is unavailable — a `static` helper, a static closure
+ * or a `public static` data provider. PHPUnit's assertions are static methods, so `self::` is valid
+ * everywhere; emitting `$this->` in a static scope would be a fatal "using $this outside object
+ * context".
  *
  * Methods with no faithful PHPUnit counterpart (fluent type assertions such as
  * `Assert::string()`/`int()`/`json()`, and `blank()`) are intentionally left
@@ -98,6 +107,19 @@ final class AssertCallToPhpUnitRector extends AbstractRector
             [$args[0], $args[1]] = [$args[1], $args[0]];
         }
 
-        return new MethodCall(new Variable('this'), new Identifier($phpunitMethod), $args);
+        return $this->isThisAvailable($node)
+            ? new MethodCall(new Variable('this'), new Identifier($phpunitMethod), $args)
+            : new StaticCall(new Name('self'), new Identifier($phpunitMethod), $args);
+    }
+
+    /**
+     * Whether `$this` is bound in the scope of $node — false inside a static method, a static
+     * closure or a free function, where the assertion must be emitted as `self::assert*`.
+     */
+    private function isThisAvailable(Node $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->hasVariableType('this')->yes();
     }
 }

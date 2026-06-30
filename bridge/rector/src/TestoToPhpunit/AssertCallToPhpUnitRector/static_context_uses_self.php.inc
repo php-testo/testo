@@ -2,7 +2,7 @@
 
 class SomeTest
 {
-    public function test()
+    public static function provide()
     {
         \Testo\Assert::same($result, 3);
     }
@@ -12,8 +12,8 @@ class SomeTest
 
 class SomeTest
 {
-    public function test()
+    public static function provide()
     {
-        $this->assertSame(3, $result);
+        self::assertSame(3, $result);
     }
 }

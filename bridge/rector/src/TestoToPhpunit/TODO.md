@@ -33,6 +33,12 @@ directory but are **not** registered in `config/sets/testo-to-phpunit.php`.
   (`expectExceptionMessageMatches`) takes a PCRE pattern, so forwarding a literal substring would
   change meaning; a chain using it (or any other unmapped modifier such as `fromMethod`/`withPrevious`)
   aborts the whole conversion and is left untouched for manual review.
+- **`ExpectExceptionAttributeToPhpUnitRector`** (registered) — converts the attribute form
+  `#[\Testo\Assert\ExpectException($class)]` into a `$this->expectException($class);` statement
+  prepended to the method body (PHPUnit dropped its `ExpectException` attribute, leaving only the
+  imperative call). Complements `ExpectExceptionToPhpUnitRector`, which handles the fluent
+  `\Testo\Expect::exception(...)` call form. An attribute on a bodyless (abstract) method is just
+  dropped.
 - **`ExpectNoAssertionsToPhpUnitRector`** (registered) — direct attribute rename
   `#[\Testo\Assert\ExpectNoAssertions]` → `#[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]`
   (the two are equivalent markers — the earlier "attribute → method call" stub was over-pessimistic).
