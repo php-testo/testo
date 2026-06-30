@@ -21,10 +21,7 @@ final class Finder implements \Countable, \IteratorAggregate
      */
     public function __construct(FinderConfig $config)
     {
-        # Testo discovers tests in PHP source files only. Restricting to `*.php` keeps the
-        # tokenizer from trying to reflect non-source files that happen to live under a scanned
-        # directory — e.g. `*.php.inc` Rector fixtures, which are deliberately not loadable PHP.
-        $this->finder = (new SymfonyFinder())->name('*.php');
+        $this->finder = new SymfonyFinder();
 
         # Include
         $iDirs = $files = [];

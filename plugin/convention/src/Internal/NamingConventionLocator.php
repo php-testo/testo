@@ -39,6 +39,10 @@ final readonly class NamingConventionLocator implements FileLocatorInterceptor, 
     #[\Override]
     public function locateFile(TokenizedFile $file, callable $next): ?bool
     {
+        if ($file->path->extension() !== 'php') {
+            return $next($file);
+        }
+
         return \str_ends_with($file->path->stem(), $this->caseSuffix) ? true : $next($file);
     }
 

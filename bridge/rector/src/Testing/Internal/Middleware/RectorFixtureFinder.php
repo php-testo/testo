@@ -30,6 +30,12 @@ final readonly class RectorFixtureFinder implements FileLocatorInterceptor, Case
     #[\Override]
     public function locateFile(TokenizedFile $file, callable $next): ?bool
     {
+        # Claim only the rule sources (`*.php`), never the co-located `*.php.inc` fixtures: those
+        # declare classes too, but are not loadable PHP and must not be included/reflected.
+        if ($file->path->extension() !== 'php') {
+            return $next($file);
+        }
+
         return $file->getClasses() !== [] ? true : $next($file);
     }
 

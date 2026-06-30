@@ -38,6 +38,10 @@ final readonly class InlineFinder implements FileLocatorInterceptor, CaseLocator
     #[\Override]
     public function locateFile(TokenizedFile $file, callable $next): ?bool
     {
+        if ($file->path->extension() !== 'php') {
+            return $next($file);
+        }
+
         return $file->getClasses() !== [] || $file->getFunctions() !== [] ? true : $next($file);
     }
 
