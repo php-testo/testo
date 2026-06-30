@@ -5,6 +5,7 @@ on:
     paths:
       - 'core/**'
       - 'psalm.xml'
+      - 'tools/psalm/composer.json'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/psalm.yml'
@@ -12,6 +13,7 @@ on:
     paths:
       - 'core/**'
       - 'psalm.xml'
+      - 'tools/psalm/composer.json'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/psalm.yml'
@@ -41,6 +43,10 @@ jobs:
         uses: ramsey/composer-install@v3
         with:
           dependency-versions: highest
+
+      # Psalm is isolated via bamarni/composer-bin-plugin and not installed by the root install.
+      - name: Install isolated Psalm
+        run: composer bin psalm install
 
       - name: Run Psalm
         run: composer psalm:ci

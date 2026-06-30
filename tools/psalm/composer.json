@@ -1,0 +1,7 @@
+{
+    "require": {
+        "vimeo/psalm": "^7.0@dev"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

@@ -62,8 +62,7 @@
         "spiral/code-style": "^2.2.2",
         "testo/bridge-infection": "^0.1.8",
         "testo/bridge-rector": "^0.1",
-        "testo/facade": "^0.1.1",
-        "vimeo/psalm": "^7.0@dev"
+        "testo/facade": "^0.1.1"
     },
     "suggest": {
         "testo/bridge-infection": "Provides integration with Infection PHP mutation testing framework.",
