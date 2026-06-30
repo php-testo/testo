@@ -12,10 +12,6 @@ use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Class_;
 use PHPStan\Reflection\ClassReflection;
-use PHPStan\Reflection\ReflectionProvider;
-use Rector\Configuration\Option;
-use Rector\Configuration\Parameter\SimpleParameterProvider;
-use Rector\NodeTypeResolver\Reflection\BetterReflection\SourceLocatorProvider\DynamicSourceLocatorProvider;
 use Rector\Rector\AbstractRector;
 use Rector\Reflection\ReflectionResolver;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -53,8 +49,6 @@ final class GroupInheritanceToPhpUnitRector extends AbstractRector
 
     public function __construct(
         private readonly ReflectionResolver $reflectionResolver,
-        private readonly ReflectionProvider $reflectionProvider,
-        private readonly DynamicSourceLocatorProvider $sourceLocatorProvider,
     ) {}
 
     public function getRuleDefinition(): RuleDefinition
@@ -105,7 +99,7 @@ final class GroupInheritanceToPhpUnitRector extends AbstractRector
             return null;
         }
 
-        $classReflection = $this->resolveLeafReflection($node);
+        $classReflection = $this->reflectionResolver->resolveClassReflection($node);
         if (!$classReflection instanceof ClassReflection || !$classReflection->isClass()) {
             return null;
         }
@@ -144,66 +138,6 @@ final class GroupInheritanceToPhpUnitRector extends AbstractRector
         }
 
         return $added ? $node : null;
-    }
-
-    /**
-     * Resolve the leaf class reflection, robustly across a single shared Rector container.
-     *
-     * We re-point the BetterReflection source locator at the file currently being processed before
-     * resolving by name. This is necessary because the locator caches an aggregate built from the
-     * first file it sees (it only rebuilds per file under PHPUnit), so when several files share one
-     * container — as the bridge's fixture harness does — a later file's classes would otherwise be
-     * invisible and ancestors would resolve to nothing.
-     *
-     * To keep a real multi-file Rector run correct, we restore the original `--source` paths on the
-     * locator afterwards, so the temporary re-point is invisible to the rules that run after us. We
-     * deliberately avoid the node's pre-computed scope here: reading it would resolve the class
-     * against the stale locator and poison BetterReflection's per-name cache for the rest of the run.
-     */
-    private function resolveLeafReflection(Class_ $node): ?ClassReflection
-    {
-        $name = $this->getName($node);
-        if ($name === null) {
-            return null;
-        }
-
-        $filePath = $this->file->getFilePath();
-        if ($filePath === '') {
-            # No file context (should not happen during a normal run); fall back to the scope.
-            $byScope = $this->reflectionResolver->resolveClassReflection($node);
-
-            return $byScope instanceof ClassReflection ? $byScope : null;
-        }
-
-        $this->sourceLocatorProvider->reset();
-        $this->sourceLocatorProvider->setFilePath($filePath);
-
-        try {
-            return $this->reflectionProvider->hasClass($name)
-                ? $this->reflectionProvider->getClass($name)
-                : null;
-        } finally {
-            $this->restoreSourceLocator($filePath);
-        }
-    }
-
-    /**
-     * Put the locator back to the run's configured `--source` paths, so re-pointing it at a single
-     * file does not strip cross-file reflection from the rules (or files) processed after this one.
-     */
-    private function restoreSourceLocator(string $currentFile): void
-    {
-        $source = SimpleParameterProvider::provideArrayParameter(Option::SOURCE);
-        if ($source === [$currentFile] || $source === []) {
-            # The run only ever targeted this file; nothing broader to restore.
-            return;
-        }
-
-        $this->sourceLocatorProvider->reset();
-        $files = \array_values(\array_filter($source, '\is_file'));
-        $directories = \array_values(\array_filter($source, '\is_dir'));
-        $files === [] || $this->sourceLocatorProvider->addFiles($files);
-        $directories === [] || $this->sourceLocatorProvider->addDirectories($directories);
     }
 
     /**

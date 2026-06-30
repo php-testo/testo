@@ -78,6 +78,13 @@ final class RectorRunner
 
         try {
             SimpleParameterProvider::setParameter(Option::SOURCE, [$inputFile]);
+
+            # This rule's Rector container is shared across all of its fixtures, but the source
+            # locator caches the aggregate built from the FIRST file it sees (Rector only rebuilds
+            # per file under PHPUnit). Reset it per fixture so reflection — and the node scope
+            # derived from it — sees THIS fixture's classes; otherwise reflection-based rules would
+            # have to compensate for the shared container themselves.
+            $this->sourceLocator->reset();
             $this->sourceLocator->setFilePath($inputFile);
             $configuration = $this->configurationFactory->createForTests([$inputFile]);
             $this->fileProcessor->processFiles([$inputFile], $configuration);
