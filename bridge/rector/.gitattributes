@@ -2,7 +2,8 @@
 # part of the published package — keep them out of `composer archive`.
 *.php.inc       export-ignore
 
-# Dev-only: suite wiring, this file, and any tooling are not shipped.
+# Dev-only: suite wiring, CI config, this file, and any tooling are not shipped.
 # (The reusable Testing harness lives in src/ and ships with the package.)
 /tests          export-ignore
+/.github        export-ignore
 /.gitattributes export-ignore

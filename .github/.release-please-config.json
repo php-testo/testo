@@ -94,6 +94,12 @@
             "component": "bridge-infection",
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/rector": {
+            "package-name": "testo/bridge-rector",
+            "component": "bridge-rector",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
         }
     },
     "bump-patch-for-minor-pre-major": true,

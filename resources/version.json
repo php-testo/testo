@@ -13,5 +13,6 @@
     "plugin/codecov": "0.1.11",
     "plugin/facade": "0.1.1",
     "bridge/symfony-console": "0.1.7",
-    "bridge/infection": "0.1.7"
+    "bridge/infection": "0.1.7",
+    "bridge/rector": "0.1.0"
 }
