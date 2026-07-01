@@ -1,5 +1,5 @@
 {
-    ".": "0.10.34",
+    ".": "0.10.35",
     "plugin/repeat": "0.1.8",
     "plugin/convention": "0.1.4",
     "plugin/lifecycle": "0.1.5",
@@ -14,5 +14,5 @@
     "plugin/facade": "0.1.1",
     "bridge/symfony-console": "0.1.8",
     "bridge/infection": "0.1.8",
-    "bridge/rector": "0.1.1"
+    "bridge/rector": "0.1.2"
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/php-testo/testo/compare/bridge-rector-0.1.1...bridge-rector-0.1.2) (2026-07-01)
+
+
+### Features
+
+* **bridge-rector:** merge adjacent same-head Assert chains (PHPUnit -&gt; Testo) ([c534e4e](https://github.com/php-testo/testo/commit/c534e4ee62327c685bc471af1b0ed775044c84cb))
+
 ## [0.1.1](https://github.com/php-testo/testo/compare/bridge-rector-0.1.0...bridge-rector-0.1.1) (2026-07-01)
 
 
