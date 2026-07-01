@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 $root = \str_replace('\\', '/', \dirname(__DIR__));
 $dest = $root . '/tests/PhpUnit';
+$coreTestsRoot = $root . '/tests';
 
 /** Source roots that hold Testo's own tests. */
 $roots = \array_merge(
@@ -59,6 +60,26 @@ foreach ($roots as $srcRoot) {
         }
 
         $code = \file_get_contents($path);
+
+        // Support data (Stub/ or Fixture/ directory) in the core `tests/` root: the tests that use it
+        // tokenize it — and often `require` it — by RELATIVE PATH, so it must be mirrored verbatim at
+        // the same relative location under $dest, with its original filename. The namespace-based
+        // placement below would misplace it: its namespace may be irregular (braced, repeated,
+        // sub-namespaced or global) or its filename may differ from its sole class, and soleTypeName()
+        // would rename it out from under the `require`/read. Copied as-is; the rename Rector pass still
+        // relocates any `Tests\` namespace it carries. Restricted to the core `tests/` root, whose
+        // layout already mirrors the `Tests\PhpUnit\` PSR-4 path (so autoloading a well-behaved stub
+        // still resolves); plugin/bridge roots, where source layout and namespace diverge, keep the
+        // namespace-based placement below.
+        if ($srcRoot === $coreTestsRoot && \preg_match('#/(?:Stub|Fixture)s?/#', $path) === 1) {
+            $relative = \ltrim(\substr($path, \strlen($srcRoot)), '/');
+            $targetFile = $dest . '/' . $relative;
+            @\mkdir(\dirname($targetFile), 0777, true);
+            \file_put_contents($targetFile, $code);
+            ++$copied;
+            continue;
+        }
+
         $namespace = extractNamespace($code);
 
         // Only namespaced PSR-4 classes are placeable; bare helper files (functions.php) are loaded

@@ -25,10 +25,14 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  * mixes convertible and non-convertible tests keeps the convertible ones live.
  *
  * A test method is skipped when:
- *   - its class lives in a runtime/layout-bound namespace ({@see self::RUNTIME_NAMESPACES}) — the
- *     Tokenizer self-tests assert on names the `Tests\PhpUnit` relocation rewrites, the Facade
+ *   - its class lives in a runtime-bound namespace ({@see self::RUNTIME_NAMESPACES}) — the Facade
  *     tests need an active container;
- *   - it carries a composite data source ({@see self::COMPOSITE_DATA}) with no PHPUnit equivalent.
+ *   - it carries a composite data source ({@see self::COMPOSITE_DATA}) with no PHPUnit equivalent;
+ *   - it is individually listed as unconvertible ({@see self::SKIP_METHODS}) — e.g. a Tokenizer test
+ *     whose stub reprint fully-qualifies an unqualified external call.
+ *
+ * The Tokenizer self-tests used to be skipped wholesale (they assert on tokenized names/source); they
+ * now run against their mirrored Stub data (see bin/build-phpunit.php), except the few in SKIP_METHODS.
  *
  * Tests that drive the Testo engine via `Testo\Testing\` (e.g. `TestRunner`) are deliberately NOT
  * skipped: PHPUnit — not the engine — discovers and runs them, so a mutation cannot break discovery
@@ -44,8 +48,22 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
 {
     /** @var array<string, string> namespace prefix => reason */
     private const RUNTIME_NAMESPACES = [
-        'Tests\\PhpUnit\\Tokenizer' => 'inspects tokenized source and asserts on names the Tests\\PhpUnit relocation rewrites',
         'Tests\\PhpUnit\\Facade' => 'depends on an active Testo\\Facade container, which only the FacadePlugin runtime provides',
+    ];
+
+    /**
+     * Individually unconvertible tests, keyed by `ShortClassName::method`. The Tokenizer self-tests
+     * run fine under PHPUnit once their Stub data is mirrored (see bin/build-phpunit.php) — except a
+     * few whose stub contains an UNQUALIFIED external call in a free function: relocating the stub
+     * reprints it and fully-qualifies that name (`SomeClass::x` → `\Tests\PhpUnit\…\SomeClass::x`),
+     * so the tokenized class/source no longer matches what the test asserts. That is a mirror
+     * reprint artifact, not a Testo behaviour, so those specific tests stay skipped.
+     *
+     * @var array<string, string>
+     */
+    private const SKIP_METHODS = [
+        'TokenizedFileTest::getInvocationsDetectsExternalStaticCall' => 'reads a free-function stub whose unqualified external call the mirror reprint fully-qualifies, changing the tokenized class name',
+        'TokenizedFileTest::getInvocationsSourceContainsFullCallExpression' => 'reads a free-function stub whose unqualified external call the mirror reprint fully-qualifies, changing the tokenized source',
     ];
 
     /** Composite data sources that have no PHPUnit equivalent. */
@@ -106,8 +124,9 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         // A layout-bound namespace skips every test method of the class; otherwise each method is
-        // judged on its own (composite data source).
-        $classReason = $this->namespaceReason($this->getName($node));
+        // judged on its own (composite data source, or an individually unconvertible test).
+        $fqcn = $this->getName($node);
+        $classReason = $this->namespaceReason($fqcn);
 
         $changed = false;
         foreach ($node->getMethods() as $method) {
@@ -115,7 +134,7 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
                 continue;
             }
 
-            $reason = $classReason ?? $this->methodReason($method);
+            $reason = $classReason ?? $this->methodReason($method, $fqcn);
             if ($reason === null) {
                 continue;
             }
@@ -188,11 +207,15 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
         return $this->hasAttribute($method, ['PHPUnit\\Framework\\Attributes\\Test', 'Testo\\Test']);
     }
 
-    private function methodReason(ClassMethod $method): ?string
+    private function methodReason(ClassMethod $method, ?string $fqcn): ?string
     {
-        return $this->hasAttribute($method, self::COMPOSITE_DATA)
-            ? 'uses a composite data source (Testo\\Data\\DataCross/DataZip/DataUnion) with no PHPUnit equivalent'
-            : null;
+        if ($this->hasAttribute($method, self::COMPOSITE_DATA)) {
+            return 'uses a composite data source (Testo\\Data\\DataCross/DataZip/DataUnion) with no PHPUnit equivalent';
+        }
+
+        $shortClass = $fqcn === null ? '' : \substr($fqcn, (int) \strrpos($fqcn, '\\') + 1);
+
+        return self::SKIP_METHODS[$shortClass . '::' . $this->getName($method)] ?? null;
     }
 
     private function skip(ClassMethod $method, string $reason): void
