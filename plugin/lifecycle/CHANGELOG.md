@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/lifecycle-0.1.4...lifecycle-0.1.5) (2026-07-01)
+
+
+### Features
+
+* **lifecycle:** support lifecycle hooks on top-level functions ([da29d6a](https://github.com/php-testo/testo/commit/da29d6a5af6bcbca28762b29a1744675b88345fc))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/lifecycle-0.1.3...lifecycle-0.1.4) (2026-06-07)
 
 

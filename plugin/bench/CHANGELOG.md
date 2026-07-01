@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/php-testo/testo/compare/bench-0.1.5...bench-0.1.6) (2026-07-01)
+
+
+### Features
+
+* add Rector bridge for Testo/PHPUnit/Pest test conversion ([#248](https://github.com/php-testo/testo/issues/248)) ([a1953b7](https://github.com/php-testo/testo/commit/a1953b7484d507e3697fef78e14c3adb6475041b))
+
 ## [0.1.5](https://github.com/php-testo/testo/compare/bench-0.1.4...bench-0.1.5) (2026-06-07)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/php-testo/testo/compare/assert-0.1.9...assert-0.1.10) (2026-07-01)
+
+
+### Code Refactoring
+
+* **assert:** disallow ExpectNoAssertions on a class ([3e156d7](https://github.com/php-testo/testo/commit/3e156d7025008ce33468f01ef2a1753abae18f6c))
+
 ## [0.1.9](https://github.com/php-testo/testo/compare/assert-0.1.8...assert-0.1.9) (2026-06-26)
 
 

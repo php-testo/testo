@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.10.34](https://github.com/php-testo/testo/compare/0.10.33...0.10.34) (2026-07-01)
+
+
+### Features
+
+* add Rector bridge for Testo/PHPUnit/Pest test conversion ([#248](https://github.com/php-testo/testo/issues/248)) ([a1953b7](https://github.com/php-testo/testo/commit/a1953b7484d507e3697fef78e14c3adb6475041b))
+* **lifecycle:** support lifecycle hooks on top-level functions ([da29d6a](https://github.com/php-testo/testo/commit/da29d6a5af6bcbca28762b29a1744675b88345fc))
+* mutation-test core/ with PHPUnit via a Rector-converted mirror ([#250](https://github.com/php-testo/testo/issues/250)) ([523eae7](https://github.com/php-testo/testo/commit/523eae740fb11046eed18f371b7189e469bb9188))
+
+
+### Bug Fixes
+
+* **skill:** fix description format for coverage skill ([1f5659f](https://github.com/php-testo/testo/commit/1f5659f2824b884e42e054584f8b1fc11b0968d9))
+
+
+### Code Refactoring
+
+* **assert:** disallow ExpectNoAssertions on a class ([3e156d7](https://github.com/php-testo/testo/commit/3e156d7025008ce33468f01ef2a1753abae18f6c))
+* **bridge-rector:** Log fixtures into messenger in testing tool ([523eae7](https://github.com/php-testo/testo/commit/523eae740fb11046eed18f371b7189e469bb9188))
+* **rector:** Log fixtures into messenger in testing tool ([8610abb](https://github.com/php-testo/testo/commit/8610abb03b9c54d7aa8b0c1fe0433481f9e412af))
+
 ## [0.10.33](https://github.com/php-testo/testo/compare/0.10.32...0.10.33) (2026-06-29)
 
 
