@@ -123,6 +123,12 @@ final class TypedAssertChainRector extends AbstractRector
             return null;
         }
 
+        # Only decompose inside a class: the emitted `$this->assert*` statements need a method scope.
+        # A chain in a free function or at namespace level is left untouched.
+        if (!$this->isInClassScope($node)) {
+            return null;
+        }
+
         $headArg = $cursor->args[0] ?? null;
         if (!$headArg instanceof Arg) {
             return null;
@@ -172,6 +178,17 @@ final class TypedAssertChainRector extends AbstractRector
         }
 
         return $name;
+    }
+
+    /**
+     * Whether $node sits inside a class. Outside one — a free function or namespace-level code — the
+     * emitted `$this->assert*` calls would have no valid target, so the chain is left unchanged.
+     */
+    private function isInClassScope(Expression $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->isInClass();
     }
 
     /**

@@ -10,6 +10,8 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Identifier;
+use PHPStan\Analyser\Scope;
+use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -29,6 +31,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Assertions with no faithful Testo counterpart (e.g. `assertThat` which relies on
  * PHPUnit constraint objects) are intentionally left untouched, so the surrounding
  * test stays visibly unconverted instead of being silently mistranslated.
+ *
+ * Only rewrites a call that lives inside a class (a test method or a `static` data provider) — the
+ * only place a PHPUnit assertion belongs. A matching call in a free function or at namespace level
+ * is left untouched.
  */
 #[TestRectorFixtures('AssertCallToTestoRector')]
 final class AssertCallToTestoRector extends AbstractRector
@@ -99,11 +105,28 @@ final class AssertCallToTestoRector extends AbstractRector
 
         [$testoMethod, $swap] = self::MAP[$method];
 
+        # Only convert inside a class: an assertion belongs to a test method (or a static data
+        # provider). A stray `$this->assert*` in a free function or at namespace level is left as-is.
+        if (!$this->isInClassScope($node)) {
+            return null;
+        }
+
         $args = $node->args;
         if ($swap && \count($args) >= 2 && $args[0] instanceof Arg && $args[1] instanceof Arg) {
             [$args[0], $args[1]] = [$args[1], $args[0]];
         }
 
         return new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier($testoMethod), $args);
+    }
+
+    /**
+     * Whether $node sits inside a class (test method, data provider, …). Assertions are only
+     * converted there; a call in a free function or at namespace level is left untouched.
+     */
+    private function isInClassScope(Node $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->isInClass();
     }
 }

@@ -1,7 +1,19 @@
 <?php
 
-self::markTestSkipped('x');
+class SomeTest
+{
+    public function test()
+    {
+        self::markTestSkipped('x');
+    }
+}
 -----
 <?php
 
-throw new \Testo\Core\Exception\SkipTest('x');
+class SomeTest
+{
+    public function test()
+    {
+        throw new \Testo\Core\Exception\SkipTest('x');
+    }
+}

@@ -1,9 +1,21 @@
 <?php
 
-\Testo\Assert::array($log->all())->isList();
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::array($log->all())->isList();
+    }
+}
 -----
 <?php
 
-$value = $log->all();
-$this->assertIsArray($value);
-$this->assertIsList($value);
+class SomeTest
+{
+    public function test()
+    {
+        $value = $log->all();
+        $this->assertIsArray($value);
+        $this->assertIsList($value);
+    }
+}

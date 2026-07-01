@@ -1,7 +1,19 @@
 <?php
 
-$this->assertSame($expected, $actual, 'values must match');
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertSame($expected, $actual, 'values must match');
+    }
+}
 -----
 <?php
 
-\Testo\Assert::same($actual, $expected, 'values must match');
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::same($actual, $expected, 'values must match');
+    }
+}

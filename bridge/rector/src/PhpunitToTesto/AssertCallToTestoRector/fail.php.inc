@@ -1,7 +1,19 @@
 <?php
 
-$this->fail('nope');
+class SomeTest
+{
+    public function test()
+    {
+        $this->fail('nope');
+    }
+}
 -----
 <?php
 
-\Testo\Assert::fail('nope');
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::fail('nope');
+    }
+}

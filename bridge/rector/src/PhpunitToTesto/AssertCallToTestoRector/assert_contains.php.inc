@@ -1,7 +1,19 @@
 <?php
 
-$this->assertContains($needle, $haystack);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertContains($needle, $haystack);
+    }
+}
 -----
 <?php
 
-\Testo\Assert::contains($haystack, $needle);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::contains($haystack, $needle);
+    }
+}

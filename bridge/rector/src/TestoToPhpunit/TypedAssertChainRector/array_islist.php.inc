@@ -1,8 +1,20 @@
 <?php
 
-\Testo\Assert::array($items)->isList();
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::array($items)->isList();
+    }
+}
 -----
 <?php
 
-$this->assertIsArray($items);
-$this->assertIsList($items);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertIsArray($items);
+        $this->assertIsList($items);
+    }
+}

@@ -28,11 +28,16 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Comparison assertions therefore swap the first two arguments; the trailing
  * `$message` keeps its position (it is last in both APIs).
  *
- * The call form follows the enclosing scope: `$this->assert*` inside instance methods (the common
- * case), but `self::assert*` wherever `$this` is unavailable — a `static` helper, a static closure
- * or a `public static` data provider. PHPUnit's assertions are static methods, so `self::` is valid
- * everywhere; emitting `$this->` in a static scope would be a fatal "using $this outside object
- * context".
+ * Only rewrites a call that lives inside a class (a test method or a `static` data provider) — the
+ * only place a PHPUnit assertion makes sense. A `Testo\Assert::*` call in a free function or at
+ * namespace level is left untouched: neither `$this->` nor `self::` would be valid there, so
+ * converting it would emit code that fatals.
+ *
+ * Inside a class the call form follows the enclosing scope: `$this->assert*` in instance methods (the
+ * common case), but `self::assert*` wherever `$this` is unavailable — a `static` helper, a static
+ * closure or a `public static` data provider. PHPUnit's assertions are static methods, so `self::`
+ * is valid in any class scope; emitting `$this->` in a static scope would be a fatal "using $this
+ * outside object context".
  *
  * Methods with no faithful PHPUnit counterpart (fluent type assertions such as
  * `Assert::string()`/`int()`/`json()`, and `blank()`) are intentionally left
@@ -102,6 +107,12 @@ final class AssertCallToPhpUnitRector extends AbstractRector
 
         [$phpunitMethod, $swap] = self::MAP[$method];
 
+        # Only convert inside a class: `$this->`/`self::` have no valid target in a free function or
+        # at namespace level, so such a call is left as-is rather than mistranslated into a fatal.
+        if (!$this->isInClassScope($node)) {
+            return null;
+        }
+
         $args = $node->args;
         if ($swap && \count($args) >= 2 && $args[0] instanceof Arg && $args[1] instanceof Arg) {
             [$args[0], $args[1]] = [$args[1], $args[0]];
@@ -121,5 +132,17 @@ final class AssertCallToPhpUnitRector extends AbstractRector
         $scope = $node->getAttribute(AttributeKey::SCOPE);
 
         return $scope instanceof Scope && $scope->hasVariableType('this')->yes();
+    }
+
+    /**
+     * Whether $node sits inside a class (test method, data provider, …). Outside a class — a free
+     * function or namespace-level code — there is no valid `$this->`/`self::` target, so the call is
+     * left unchanged instead of being converted into code that would fatal.
+     */
+    private function isInClassScope(Node $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->isInClass();
     }
 }

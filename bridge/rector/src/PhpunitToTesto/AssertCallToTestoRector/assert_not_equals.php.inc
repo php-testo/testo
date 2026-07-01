@@ -1,7 +1,19 @@
 <?php
 
-$this->assertNotEquals($expected, $value);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertNotEquals($expected, $value);
+    }
+}
 -----
 <?php
 
-\Testo\Assert::notEquals($value, $expected);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::notEquals($value, $expected);
+    }
+}

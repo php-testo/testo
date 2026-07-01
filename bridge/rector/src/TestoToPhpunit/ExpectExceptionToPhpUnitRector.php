@@ -12,6 +12,8 @@ use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Stmt\Expression;
+use PHPStan\Analyser\Scope;
+use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -99,6 +101,12 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
             return null;
         }
 
+        # Only convert inside a class: the emitted `$this->expect*` statements need a method scope.
+        # A chain in a free function or at namespace level is left untouched.
+        if (!$this->isInClassScope($node)) {
+            return null;
+        }
+
         $headArg = $cursor->args[0] ?? null;
         if (!$headArg instanceof Arg) {
             return null;
@@ -142,6 +150,17 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
             'withMessagePattern' => $this->expectStmt('expectExceptionMessageMatches', [$this->arg($first)]),
             default => null,
         };
+    }
+
+    /**
+     * Whether $node sits inside a class. Outside one — a free function or namespace-level code — the
+     * emitted `$this->expect*` calls would have no valid target, so the chain is left unchanged.
+     */
+    private function isInClassScope(Expression $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->isInClass();
     }
 
     /**

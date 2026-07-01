@@ -1,3 +1,9 @@
 <?php
 
-throw new \RuntimeException('boom');
+class SomeTest
+{
+    public function test()
+    {
+        throw new \RuntimeException('boom');
+    }
+}

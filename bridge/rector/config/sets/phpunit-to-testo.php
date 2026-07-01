@@ -12,6 +12,7 @@ use Testo\Bridge\Rector\PhpunitToTesto\ExpectExceptionToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\ExtendsTestCaseToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\GroupToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\LifecycleMethodToTestoRector;
+use Testo\Bridge\Rector\PhpunitToTesto\MarkTestIncompleteRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MarkTestSkippedToTestoRector;
 
 /**
@@ -26,6 +27,10 @@ use Testo\Bridge\Rector\PhpunitToTesto\MarkTestSkippedToTestoRector;
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->rule(AssertCallToTestoRector::class);
     $rectorConfig->rule(MarkTestSkippedToTestoRector::class);
+
+    # Incomplete has no exact Testo status; mapped to a Skipped throw with an "Incomplete:" reason
+    # prefix so the nuance survives (lossy — see MarkTestIncompleteRector / TODO.md).
+    $rectorConfig->rule(MarkTestIncompleteRector::class);
     $rectorConfig->rule(CoversClassToCoversRector::class);
     $rectorConfig->rule(LifecycleMethodToTestoRector::class);
     $rectorConfig->rule(ExpectExceptionToTestoRector::class);

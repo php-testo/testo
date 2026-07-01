@@ -1,7 +1,19 @@
 <?php
 
-$this->assertEquals($expected, $value);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertEquals($expected, $value);
+    }
+}
 -----
 <?php
 
-\Testo\Assert::equals($value, $expected);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::equals($value, $expected);
+    }
+}

@@ -1,3 +1,9 @@
 <?php
 
-\Testo\Expect::notLeaks($object);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Expect::notLeaks($object);
+    }
+}

@@ -1,7 +1,19 @@
 <?php
 
-self::expectException(\RuntimeException::class);
+class SomeTest
+{
+    public function test()
+    {
+        self::expectException(\RuntimeException::class);
+    }
+}
 -----
 <?php
 
-\Testo\Expect::exception(\RuntimeException::class);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Expect::exception(\RuntimeException::class);
+    }
+}

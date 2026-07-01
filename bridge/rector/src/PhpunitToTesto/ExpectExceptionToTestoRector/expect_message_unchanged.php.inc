@@ -1,3 +1,9 @@
 <?php
 
-$this->expectExceptionMessage('boom');
+class SomeTest
+{
+    public function test()
+    {
+        $this->expectExceptionMessage('boom');
+    }
+}

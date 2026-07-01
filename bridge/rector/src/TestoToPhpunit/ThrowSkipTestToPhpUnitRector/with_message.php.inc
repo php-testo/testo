@@ -1,7 +1,19 @@
 <?php
 
-throw new \Testo\Core\Exception\SkipTest('not applicable');
+class SomeTest
+{
+    public function test()
+    {
+        throw new \Testo\Core\Exception\SkipTest('not applicable');
+    }
+}
 -----
 <?php
 
-$this->markTestSkipped('not applicable');
+class SomeTest
+{
+    public function test()
+    {
+        $this->markTestSkipped('not applicable');
+    }
+}

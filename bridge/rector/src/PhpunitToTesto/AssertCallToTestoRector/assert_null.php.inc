@@ -1,7 +1,19 @@
 <?php
 
-$this->assertNull($value);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertNull($value);
+    }
+}
 -----
 <?php
 
-\Testo\Assert::null($value);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::null($value);
+    }
+}

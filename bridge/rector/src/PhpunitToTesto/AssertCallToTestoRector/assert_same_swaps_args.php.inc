@@ -1,7 +1,19 @@
 <?php
 
-$this->assertSame(3, $result);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertSame(3, $result);
+    }
+}
 -----
 <?php
 
-\Testo\Assert::same($result, 3);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::same($result, 3);
+    }
+}

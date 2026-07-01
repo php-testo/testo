@@ -1,8 +1,20 @@
 <?php
 
-\Testo\Expect::exception(\RuntimeException::class)->withMessagePattern('/boom/');
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Expect::exception(\RuntimeException::class)->withMessagePattern('/boom/');
+    }
+}
 -----
 <?php
 
-$this->expectException(\RuntimeException::class);
-$this->expectExceptionMessageMatches('/boom/');
+class SomeTest
+{
+    public function test()
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/boom/');
+    }
+}

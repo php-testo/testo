@@ -75,3 +75,10 @@ directory but are **not** registered in `config/sets/testo-to-phpunit.php`.
   a scope-safe `$value` local so it is evaluated once. Matchers with no faithful PHPUnit line (JSON
   path/structure, `every`, `sameSizeAs`, custom) leave the whole chain untouched rather than
   half-converting.
+
+All four imperative body rules — `AssertCallToPhpUnitRector`, `TypedAssertChainRector`,
+`ExpectExceptionToPhpUnitRector`, `ThrowSkipTestToPhpUnitRector` — now fire **only inside a class**
+(PHPStan `Scope::isInClass()`). Their output (`$this->…` / `self::…`) needs a method scope; a call or
+throw in a free function or at namespace level has no valid target, so it is left untouched instead
+of being converted into code that would fatal. Each rule carries an `outside_method_left_unchanged`
+fixture proving the no-op.

@@ -1,7 +1,19 @@
 <?php
 
-$this->assertCount(3, $items);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertCount(3, $items);
+    }
+}
 -----
 <?php
 
-\Testo\Assert::count($items, 3);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::count($items, 3);
+    }
+}

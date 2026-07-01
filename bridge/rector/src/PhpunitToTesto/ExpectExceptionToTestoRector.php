@@ -11,7 +11,9 @@ use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\Expression;
+use PHPStan\Analyser\Scope;
 use Rector\Contract\PhpParser\Node\StmtsAwareInterface;
+use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\PhpParser\Enum\NodeGroup;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -42,6 +44,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * `expectExceptionMessageMatches`, whose regex argument has no faithful `withMessage*` counterpart)
  * ends the run; statements are never reordered or pulled across other code. A bare
  * `expectExceptionMessage`/`Code` with no preceding `expectException` is left untouched.
+ *
+ * Only folds inside a class: the expectations belong to a test method, so a run in a free function
+ * or at namespace level is left untouched.
  */
 #[TestRectorFixtures('ExpectExceptionToTestoRector')]
 final class ExpectExceptionToTestoRector extends AbstractRector
@@ -82,6 +87,12 @@ final class ExpectExceptionToTestoRector extends AbstractRector
     {
         $stmts = $node->stmts;
         if ($stmts === null) {
+            return null;
+        }
+
+        # Only fold inside a class: exception expectations belong to a test method. A run of
+        # `$this->expect*` in a free function or at namespace level is left untouched.
+        if (!$this->isInClassScope($node)) {
             return null;
         }
 
@@ -181,5 +192,16 @@ final class ExpectExceptionToTestoRector extends AbstractRector
             $this->isName($expr->name, 'expectExceptionCode') => ['withCode', $expr->args],
             default => null,
         };
+    }
+
+    /**
+     * Whether the statements node sits inside a class. Exception expectations are only folded there;
+     * a run in a free function or at namespace level is left untouched.
+     */
+    private function isInClassScope(Node $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->isInClass();
     }
 }

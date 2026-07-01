@@ -1,7 +1,19 @@
 <?php
 
-static::assertTrue($flag);
+class SomeTest
+{
+    public function test()
+    {
+        static::assertTrue($flag);
+    }
+}
 -----
 <?php
 
-\Testo\Assert::true($flag);
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::true($flag);
+    }
+}

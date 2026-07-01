@@ -1,3 +1,9 @@
 <?php
 
-$this->assertThat($value, $constraint);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertThat($value, $constraint);
+    }
+}

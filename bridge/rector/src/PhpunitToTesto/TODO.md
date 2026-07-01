@@ -14,11 +14,18 @@ exist for each so the intent and blockers are discoverable in code.
   constraint objects (and composites/callbacks) with no Testo equivalent.
 - **ExpectExceptionMessageMatchesRector** — regex message matching; Testo's
   `withMessage()` does literal matching, not PCRE, so conversion would change meaning.
-- **MarkTestIncompleteRector** — Testo has no "incomplete" status (only Skipped via
-  `SkipTest`); mapping it onto skip would lose the distinction.
 
 ## Implemented since the first cut
 
+- **MarkTestIncompleteRector** (registered) — Testo has no dedicated "incomplete" status, so
+  `$this->markTestIncomplete($m)` (also `self::`/`static::`) maps to the nearest one: a
+  `throw new \Testo\Core\Exception\SkipTest(...)` (Skipped). Both statuses neither pass nor fail and
+  halt the test at the call site, so runtime behaviour coincides. **Lossy by design:** the "unfinished
+  test" nuance PHPUnit draws between Incomplete and Skipped is preserved only as an `Incomplete: `
+  prefix on the reason — a literal message folds into `'Incomplete: <msg>'`, a non-literal message
+  becomes `'Incomplete: ' . $expr` (evaluated once), and a bare `markTestIncomplete()` yields
+  `'Incomplete'`. The prefix keeps the distinction visible and re-detectable by a future reverse rule
+  rather than vanishing silently.
 - **ExtendsTestCaseToTestoRector** (registered) — removes a **direct** `extends
   \PHPUnit\Framework\TestCase` and makes the class attribute-discoverable: each test method gains
   `#[\Testo\Test]`. "Test method" mirrors PHPUnit discovery — a `#[\PHPUnit\Framework\Attributes\Test]`
@@ -51,3 +58,11 @@ exist for each so the intent and blockers are discoverable in code.
 - **DoesNotPerformAssertionsToTestoRector** (registered) — direct attribute rename
   `#[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]` → `#[\Testo\Assert\ExpectNoAssertions]`
   (equivalent "no assertions expected" markers).
+
+The imperative body rules — `AssertCallToTestoRector`, `ExpectExceptionToTestoRector`,
+`MarkTestSkippedToTestoRector`, `MarkTestIncompleteRector` — fire **only inside a class** (PHPStan
+`Scope::isInClass()`), mirroring the Testo → PHPUnit direction. Assertions, skips and exception
+expectations belong to a test method (or a static data provider); a matching call in a free function
+or at namespace level is left untouched. Each rule carries an `outside_method_left_unchanged` fixture
+proving the no-op. (Unlike the reverse direction the outputs — static `\Testo\Assert::*`/`\Testo\Expect::*`
+calls and `throw` — are valid anywhere, so this is a scoping/consistency choice, not a fatal-avoidance one.)

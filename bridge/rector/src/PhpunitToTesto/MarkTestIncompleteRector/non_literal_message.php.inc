@@ -4,7 +4,7 @@ class SomeTest
 {
     public function test()
     {
-        $this->assertNotNull($value);
+        $this->markTestIncomplete($reason);
     }
 }
 -----
@@ -14,6 +14,6 @@ class SomeTest
 {
     public function test()
     {
-        \Testo\Assert::notNull($value);
+        throw new \Testo\Core\Exception\SkipTest('Incomplete: ' . $reason);
     }
 }

@@ -1,9 +1,21 @@
 <?php
 
-\Testo\Assert::string($s)->contains('foo')->notContains('bar');
+class SomeTest
+{
+    public function test()
+    {
+        \Testo\Assert::string($s)->contains('foo')->notContains('bar');
+    }
+}
 -----
 <?php
 
-$this->assertIsString($s);
-$this->assertStringContainsString('foo', $s);
-$this->assertStringNotContainsString('bar', $s);
+class SomeTest
+{
+    public function test()
+    {
+        $this->assertIsString($s);
+        $this->assertStringContainsString('foo', $s);
+        $this->assertStringNotContainsString('bar', $s);
+    }
+}

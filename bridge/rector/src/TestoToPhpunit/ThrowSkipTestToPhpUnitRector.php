@@ -10,6 +10,8 @@ use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\Throw_;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
+use PHPStan\Analyser\Scope;
+use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -28,6 +30,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * The optional message argument is forwarded; a message-less skip becomes a
  * bare `$this->markTestSkipped()` call. Throws of any other class are left
  * untouched.
+ *
+ * Only rewrites a throw that lives inside a class: `$this->markTestSkipped()` needs a method scope,
+ * so a `throw new SkipTest(...)` in a free function or at namespace level is left as-is.
  */
 #[TestRectorFixtures('ThrowSkipTestToPhpUnitRector')]
 final class ThrowSkipTestToPhpUnitRector extends AbstractRector
@@ -71,10 +76,27 @@ final class ThrowSkipTestToPhpUnitRector extends AbstractRector
             return null;
         }
 
+        # Only convert inside a class: `$this->markTestSkipped()` has no valid target in a free
+        # function or at namespace level, so such a throw is left unchanged.
+        if (!$this->isInClassScope($node)) {
+            return null;
+        }
+
         return new MethodCall(
             new Variable('this'),
             new Identifier('markTestSkipped'),
             $thrown->args,
         );
+    }
+
+    /**
+     * Whether $node sits inside a class. Outside one — a free function or namespace-level code — the
+     * emitted `$this->markTestSkipped()` call would have no valid target, so the throw is left as-is.
+     */
+    private function isInClassScope(Node $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->isInClass();
     }
 }

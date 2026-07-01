@@ -10,6 +10,8 @@ use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Throw_;
 use PhpParser\Node\Name\FullyQualified;
+use PHPStan\Analyser\Scope;
+use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -23,8 +25,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * subclasses) to the Skipped status. The message argument is preserved as the
  * exception message.
  *
- * `markTestIncomplete` is intentionally NOT converted: Testo has no "incomplete"
- * status. See TODO.md / MarkTestIncompleteRector.
+ * `markTestIncomplete` is handled separately by {@see MarkTestIncompleteRector} —
+ * Testo has no "incomplete" status, so it maps to a Skipped throw carrying an
+ * "Incomplete:" reason prefix (a documented lossy conversion).
  */
 #[TestRectorFixtures('MarkTestSkippedToTestoRector')]
 final class MarkTestSkippedToTestoRector extends AbstractRector
@@ -70,10 +73,27 @@ final class MarkTestSkippedToTestoRector extends AbstractRector
             return null;
         }
 
+        # Only convert inside a class: a skip belongs to a test method. A stray call in a free
+        # function or at namespace level is left untouched.
+        if (!$this->isInClassScope($node)) {
+            return null;
+        }
+
         # Replace the call expression with a `throw new SkipTest(...)` expression; the enclosing
         # statement keeps wrapping it, yielding `throw new \Testo\Core\Exception\SkipTest(...);`.
         return new Throw_(
             new New_(new FullyQualified('Testo\\Core\\Exception\\SkipTest'), $node->args),
         );
+    }
+
+    /**
+     * Whether $node sits inside a class. A skip is only converted there; a call in a free function
+     * or at namespace level is left untouched.
+     */
+    private function isInClassScope(Node $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->isInClass();
     }
 }
