@@ -27,9 +27,9 @@
         "rector/rector": "^2.0"
     },
     "require-dev": {
-        "testo/assert": "^0.1.9",
+        "testo/assert": "^0.1.10",
         "testo/data": "^0.1.6",
-        "testo/testo": "1.x-dev"
+        "testo/testo": "0.10.34 - 1"
     },
     "autoload": {
         "psr-4": {
