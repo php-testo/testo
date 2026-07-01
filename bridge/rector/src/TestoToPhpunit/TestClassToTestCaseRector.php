@@ -11,6 +11,7 @@ use PhpParser\Node\Identifier;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Modifiers;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -29,7 +30,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *     `#[\PHPUnit\Framework\Attributes\Test]` attribute. Static methods and methods returning
  *     anything else (data providers/helpers) are skipped, exactly as Testo's locator skips them.
  *   - Method-level `#[\Testo\Test]` — each is renamed in place to
- *     `#[\PHPUnit\Framework\Attributes\Test]`.
+ *     `#[\PHPUnit\Framework\Attributes\Test]`. A `static` test method is also made an instance
+ *     method (Testo invokes tests statically or on an instance; PHPUnit only ever calls them on an
+ *     instance and flags a `static` test), which is behaviour-preserving since a static body has no
+ *     `$this`.
  *
  * Residual: methods are NOT renamed (no `test` prefix is added — PHPUnit discovers the
  * `#[Test]`-attributed methods regardless of name).
@@ -206,10 +210,23 @@ final class TestClassToTestCaseRector extends AbstractRector
 
     private function convertMethodLevelTestAttribute(ClassMethod $method): void
     {
+        $converted = false;
         foreach ($method->attrGroups as $attrGroup) {
             foreach ($attrGroup->attrs as $attr) {
-                $this->isName($attr->name, 'Testo\\Test') and $attr->name = new FullyQualified('PHPUnit\\Framework\\Attributes\\Test');
+                if ($this->isName($attr->name, 'Testo\\Test')) {
+                    $attr->name = new FullyQualified('PHPUnit\\Framework\\Attributes\\Test');
+                    $converted = true;
+                }
             }
+        }
+
+        # A Testo test method may be declared `static` (Testo invokes it with no instance). PHPUnit
+        # instantiates the case and calls the test on that instance, and flags a `static` #[Test]
+        # method as unsupported. Drop `static` so it runs idiomatically — a static method body cannot
+        # use `$this`, so making it an instance method never changes behaviour. Data providers keep
+        # their `static` (PHPUnit requires it): they carry no #[Test], so are never touched here.
+        if ($converted && $method->isStatic()) {
+            $method->flags &= ~Modifiers::STATIC;
         }
     }
 

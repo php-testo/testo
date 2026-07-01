@@ -19,7 +19,10 @@ directory but are **not** registered in `config/sets/testo-to-phpunit.php`.
   `#[\PHPUnit\Framework\Attributes\Test]` is added to every public, non-static method with a `void`/`never`
   return type — exactly the set Testo's locator treats as tests from a class-level marker, so static and
   `iterable`-returning providers/helpers are skipped. A method-level `#[\Testo\Test]` is renamed in place to
-  the PHPUnit attribute. Idempotent at method level. **Residuals:** (1) only a class that extends *nothing*
+  the PHPUnit attribute; if that method is `static` it is also made an instance method (Testo invokes tests
+  with or without an instance, but PHPUnit only ever calls them on one and flags a `static` `#[Test]` — a
+  static body has no `$this`, so dropping `static` is behaviour-preserving; data providers keep `static` as
+  they carry no `#[Test]`). Idempotent at method level. **Residuals:** (1) only a class that extends *nothing*
   is converted — adding `extends TestCase` to a class with an existing base would be a single-inheritance
   clash, so it is left untouched; (2) methods are NOT renamed (no `test` prefix is added — PHPUnit discovers
   the `#[Test]`-attributed method regardless of name).
