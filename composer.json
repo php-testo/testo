@@ -59,11 +59,13 @@
         "roxblnfk/unpoly": "1.8.2",
         "rector/rector": "^2.5.2",
         "testo/bridge-infection": "^0.1.8",
+        "testo/bridge-mockery": "^0.1.0",
         "testo/bridge-rector": "^0.1.2",
         "testo/facade": "^0.1.1"
     },
     "suggest": {
         "testo/bridge-infection": "Provides integration with Infection PHP mutation testing framework.",
+        "testo/bridge-mockery": "Provides automatic Mockery teardown (Mockery::close()) after every test.",
         "llm/skills": "Ship Testo's bundled AI-agent skills into your project's skills directory automatically."
     },
     "minimum-stability": "dev",
@@ -83,6 +85,7 @@
             "Tests\\": "tests/",
             "Tests\\Assert\\": "plugin/assert/tests/",
             "Tests\\Bench\\": "plugin/bench/tests/",
+            "Tests\\Bridge\\Mockery\\": "bridge/mockery/tests/",
             "Tests\\Bridge\\SymfonyConsole\\": "bridge/symfony-console/tests/",
             "Tests\\Codecov\\": "plugin/codecov/tests/",
             "Tests\\Convention\\": "plugin/convention/tests/",
@@ -127,6 +130,7 @@
                 "symlink": true,
                 "versions": {
                     "testo/bridge-infection": "0.1.x-dev",
+                    "testo/bridge-mockery": "0.1.x-dev",
                     "testo/bridge-rector": "0.1.x-dev",
                     "testo/bridge-symfony-console": "0.1.x-dev"
                 }

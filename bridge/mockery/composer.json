@@ -1,0 +1,41 @@
+{
+    "name": "testo/bridge-mockery",
+    "description": "Mockery bridge for the Testo testing framework.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "mockery",
+        "mock",
+        "testing"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "mockery/mockery": "^1.6",
+        "testo/testo": "0.10.33 - 1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Bridge\\Mockery\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}
