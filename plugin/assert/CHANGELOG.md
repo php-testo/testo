@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/php-testo/testo/compare/assert-0.1.10...assert-0.1.11) (2026-07-03)
+
+
+### Features
+
+* **bridge-mockery:** add Mockery bridge (testo/bridge-mockery) ([#254](https://github.com/php-testo/testo/issues/254)) ([6f4596e](https://github.com/php-testo/testo/commit/6f4596ebe3120decfbb1e851e78ea06480917fde))
+
 ## [0.1.10](https://github.com/php-testo/testo/compare/assert-0.1.9...assert-0.1.10) (2026-07-01)
 
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.10.36](https://github.com/php-testo/testo/compare/0.10.35...0.10.36) (2026-07-03)
+
+
+### Features
+
+* **bridge-mockery:** add Mockery bridge (testo/bridge-mockery) ([#254](https://github.com/php-testo/testo/issues/254)) ([6f4596e](https://github.com/php-testo/testo/commit/6f4596ebe3120decfbb1e851e78ea06480917fde))
+* **core:** fail an empty run instead of reporting success ([18d801d](https://github.com/php-testo/testo/commit/18d801dff7a96ba07fab282a483e4bfc8129eec6))
+* **terminal:** show a data provider's description once at the batch node ([#255](https://github.com/php-testo/testo/issues/255)) ([2274e6a](https://github.com/php-testo/testo/commit/2274e6a5c1026f3164a7c101386a64806194203c))
+* **terminal:** surface a single test's full channel output ([c75b9a5](https://github.com/php-testo/testo/commit/c75b9a5d41e2f353b461520455883c951ffd512b))
+
 ## [0.10.35](https://github.com/php-testo/testo/compare/0.10.34...0.10.35) (2026-07-01)
 
 
