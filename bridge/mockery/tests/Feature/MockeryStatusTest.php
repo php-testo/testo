@@ -14,6 +14,7 @@ use Testo\Core\Value\Status;
 use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner;
+use Tests\Bridge\Mockery\Stub\MockeryResetScenarios;
 use Tests\Bridge\Mockery\Stub\MockeryScenarios;
 
 /**
@@ -56,6 +57,18 @@ final class MockeryStatusTest
     {
         $result = TestRunner::runTest([MockeryScenarios::class, 'mockAndAssertMixed']);
         Assert::same($result->status, Status::Passed);
+    }
+
+    public function stateIsResetAfterAFailingTest(): void
+    {
+        // leavesUnmetExpectation fails on close(); seesCleanContainer runs right after it and would
+        // fail too if that close() had not cleared the container. Both being reported as expected
+        // proves the reset happens on the failure path, not only when a test passes.
+        $failed = TestRunner::runTest([MockeryResetScenarios::class, 'leavesUnmetExpectation']);
+        Assert::same($failed->status, Status::Failed);
+
+        $next = TestRunner::runTest([MockeryResetScenarios::class, 'seesCleanContainer']);
+        Assert::same($next->status, Status::Passed);
     }
 
     /**
