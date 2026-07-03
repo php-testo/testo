@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.37](https://github.com/php-testo/testo/compare/0.10.36...0.10.37) (2026-07-03)
+
+
+### Bug Fixes
+
+* **runner:** fail the run when a test is aborted by a pipeline error ([#257](https://github.com/php-testo/testo/issues/257)) ([719e10a](https://github.com/php-testo/testo/commit/719e10ab832b6adde5eae249120ab867b5a5e1b7))
+* **terminal:** write the stderr channel to the real STDERR stream ([1519834](https://github.com/php-testo/testo/commit/151983433aeae40fb2fdafe50012595b1330a336))
+
+
+### Documentation
+
+* **skills:** update mocking guidance and bridge integration for Testo ([6163ecd](https://github.com/php-testo/testo/commit/6163ecdd23e96ac53c8659f1f0f0963aaedf10e4))
+
 ## [0.10.36](https://github.com/php-testo/testo/compare/0.10.35...0.10.36) (2026-07-03)
 
 
