@@ -12,4 +12,9 @@ final class SampleTestClass
     public function passingTest(): void {}
 
     public function failingTest(): void {}
+
+    /**
+     * Sample description line.
+     */
+    public function describedTest(): void {}
 }

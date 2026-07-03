@@ -325,6 +325,27 @@ final class Formatter
     }
 
     /**
+     * Formats a description block indented under an item at the given nesting level. Returns an empty
+     * string when there is no description. Used both for plain test runs and for the DataProvider
+     * batch node, so the description shows once at the root of the dataset tree instead of repeating
+     * under every dataset.
+     */
+    public static function description(string $description, int $indentLevel, OutputFormat $format): string
+    {
+        if ($description === '' || $format === OutputFormat::Dots) {
+            return '';
+        }
+
+        $baseIndent = $format === OutputFormat::Verbose ? self::INDENT_VERBOSE : self::INDENT_COMPACT;
+        $descriptionPadding = $baseIndent . \str_repeat(self::INDENT_STEP, $indentLevel) . self::INDENT_STEP;
+        $descriptionStr = Style::dim(
+            \str_replace("\n", "\n{$descriptionPadding}", $description),
+        );
+
+        return "{$descriptionPadding}{$descriptionStr}\n";
+    }
+
+    /**
      * Renders one row of a summary block: a dim, fixed-width label followed by its (already styled)
      * value. An empty label produces a continuation row aligned under the value column, so the parts
      * stay aligned regardless of {@see self::STAT_LABEL_WIDTH}.
@@ -369,14 +390,7 @@ final class Formatter
             : '';
 
         $result = "{$indent}{$symbol} {$item->name}{$durationStr}\n";
-
-        if ($item->description !== '') {
-            $descriptionPadding = "{$indent}  ";
-            $descriptionStr = Style::dim(
-                \str_replace("\n", "\n{$descriptionPadding}", $item->description),
-            );
-            $result .= "{$descriptionPadding}{$descriptionStr}\n";
-        }
+        $result .= self::description($item->description, $item->indentLevel, $format);
 
         return $result;
     }

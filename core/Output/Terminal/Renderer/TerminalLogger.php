@@ -123,6 +123,14 @@ final class TerminalLogger
         $indent = $this->format === OutputFormat::Verbose ? '     ' : '   ';
         $symbol = Style::dim(Symbol::DataProvider->value);
         $this->write("{$indent}{$symbol} {$info->name}\n");
+
+        // The description belongs to the test, not to each dataset — print it once here, at the root
+        // of the dataset tree, so it is not repeated under every dataset (see handle*Test).
+        $this->write(Formatter::description(
+            (string) $info->testDefinition->getDescription(),
+            0,
+            $this->format,
+        ));
     }
 
     /**
@@ -326,7 +334,7 @@ final class TerminalLogger
             status: $result->status,
             duration: $duration,
             indentLevel: $this->currentIndentLevel,
-            description: (string) $result->getAttribute('description'),
+            description: $this->resultDescription($result),
         );
 
         $this->write(Formatter::formatRun($item, $this->format));
@@ -353,12 +361,22 @@ final class TerminalLogger
             status: $result->status,
             duration: $duration,
             indentLevel: $this->currentIndentLevel,
-            description: (string) $result->getAttribute('description'),
+            description: $this->resultDescription($result),
         );
 
         $this->write(Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
         $this->currentTestName = null;
+    }
+
+    /**
+     * The description to show under a test run. Inside a DataProvider batch it is already printed once
+     * at the batch node ({@see batchStartedFromInfo}), so it is suppressed here to avoid repeating the
+     * same description under every dataset.
+     */
+    private function resultDescription(TestResult $result): string
+    {
+        return $this->currentIndentLevel > 0 ? '' : (string) $result->getAttribute('description');
     }
 
     /**

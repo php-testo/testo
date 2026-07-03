@@ -99,6 +99,35 @@ final class TerminalLoggerTest
         Assert::string($output)->contains('single dataset output');
     }
 
+    public function dataProviderDescriptionIsPrintedOnceAtTheBatchNode(): void
+    {
+        // A DataProvider test's description belongs to the method, not to each dataset — the datasets
+        // carry the same 'description' attribute the runner copies onto every result. It must appear
+        // once under the batch node and never repeat under the individual datasets.
+        $description = 'Sample description line.';
+        $first = self::test('describedTest', Status::Passed, attributes: ['description' => $description]);
+        $second = self::test('describedTest', Status::Passed, attributes: ['description' => $description]);
+
+        $output = self::renderBatch($first->info, [
+            'Dataset #0 [0]' => $first,
+            'Dataset #1 [1]' => $second,
+        ]);
+
+        Assert::same(\substr_count($output, $description), 1);
+    }
+
+    public function regularTestStillPrintsItsDescription(): void
+    {
+        // A test without a DataProvider has no batch node, so its description must still print under
+        // the test itself.
+        $description = 'Sample description line.';
+        $test = self::test('describedTest', Status::Passed, attributes: ['description' => $description]);
+
+        $output = self::render(self::run([$test], Status::Passed), handled: [$test]);
+
+        Assert::string($output)->contains($description);
+    }
+
     protected function setUp(): void
     {
         // Strip ANSI styling so assertions match raw text regardless of TTY config.
@@ -141,6 +170,35 @@ final class TerminalLoggerTest
     }
 
     /**
+     * Drives the logger through a DataProvider batch the way {@see \Testo\Output\Terminal\TerminalPlugin}
+     * does — a batch node followed by each dataset keyed by its display name — and returns what was
+     * written.
+     *
+     * @param array<non-empty-string, TestResult> $datasets Dataset display name => result, in order.
+     */
+    private static function renderBatch(TestInfo $info, array $datasets): string
+    {
+        $stream = \fopen('php://memory', 'rb+');
+        \assert($stream !== false);
+
+        try {
+            $logger = new TerminalLogger(OutputFormat::Compact, Verbosity::Normal, $stream);
+            $logger->batchStartedFromInfo($info);
+            foreach ($datasets as $name => $result) {
+                $logger->testStartedFromInfo($info, $name);
+                $logger->handleTestResult($result, 0);
+            }
+            $logger->batchFinishedFromInfo($info);
+            \rewind($stream);
+            $output = \stream_get_contents($stream);
+        } finally {
+            \fclose($stream);
+        }
+
+        return $output === false ? '' : $output;
+    }
+
+    /**
      * Wraps the given test results in a single suite/case.
      *
      * @param list<TestResult> $results
@@ -154,11 +212,15 @@ final class TerminalLoggerTest
         return new RunResult([$suite], $status, 0.0, $summary);
     }
 
+    /**
+     * @param array<non-empty-string, mixed> $attributes
+     */
     private static function test(
         string $method,
         Status $status,
         ?\Throwable $failure = null,
         ?MessageLog $messages = null,
+        array $attributes = [],
     ): TestResult {
         $info = new TestInfo(
             name: $method,
@@ -176,6 +238,7 @@ final class TerminalLoggerTest
             info: $info,
             status: $status,
             failure: $failure,
+            attributes: $attributes,
             messages: $messages ?? new MessageLog(),
         );
     }
