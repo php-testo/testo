@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/php-testo/testo/compare/bridge-rector-0.1.2...bridge-rector-0.2.0) (2026-07-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* **bridge-rector:** harden fixture path resolution and flatten config
+
+### Features
+
+* **bridge-rector:** add TestoRectorSetList for typed set references ([8b48967](https://github.com/php-testo/testo/commit/8b48967076cdc617992bb0c417adcddc0a2d84dc))
+
+
+### Code Refactoring
+
+* **bridge-rector:** harden fixture path resolution and flatten config ([d20176d](https://github.com/php-testo/testo/commit/d20176d3a3a86e0a05350d3aa4bc70b252839762))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/bridge-rector-0.1.1...bridge-rector-0.1.2) (2026-07-01)
 
 

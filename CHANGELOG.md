@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.38](https://github.com/php-testo/testo/compare/0.10.37...0.10.38) (2026-07-03)
+
+
+### Features
+
+* **bridge-rector:** add TestoRectorSetList for typed set references ([8b48967](https://github.com/php-testo/testo/commit/8b48967076cdc617992bb0c417adcddc0a2d84dc))
+
 ## [0.10.37](https://github.com/php-testo/testo/compare/0.10.36...0.10.37) (2026-07-03)
 
 
