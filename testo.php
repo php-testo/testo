@@ -38,14 +38,14 @@ return new ApplicationConfig(
             ),
         ],
         # If running in CI, skip the sandbox
-        // \filter_var(\getenv('TESTO_CI'), FILTER_VALIDATE_BOOLEAN) ? [] : [
-        //     new SuiteConfig(
-        //         name: 'sandbox',
-        //         location: new FinderConfig(
-        //             include: ['tests/Sandbox'],
-        //         ),
-        //     ),
-        // ],
+        \filter_var(\getenv('TESTO_CI'), FILTER_VALIDATE_BOOLEAN) ? [] : [
+            new SuiteConfig(
+                name: 'sandbox',
+                location: new FinderConfig(
+                    include: ['tests/Sandbox'],
+                ),
+            ),
+        ],
         require 'bridge/mockery/tests/suites.php',
         require 'bridge/rector/tests/suites.php',
         require 'bridge/symfony-console/tests/suites.php',
