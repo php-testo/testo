@@ -37,7 +37,7 @@
         "psr/log": "^2.0 || ^3.0",
         "symfony/console": "^6.4 || ^7 || ^8.0",
         "symfony/finder": "^6.4 || ^7 || ^8.0",
-        "testo/assert": "^0.1.10",
+        "testo/assert": "^0.1.11",
         "testo/bench": "^0.1.6",
         "testo/bridge-symfony-console": "^0.1.8",
         "testo/codecov": "^0.1.11",
@@ -59,7 +59,7 @@
         "roxblnfk/unpoly": "1.8.2",
         "rector/rector": "^2.5.2",
         "testo/bridge-infection": "^0.1.8",
-        "testo/bridge-mockery": "^0.1.0",
+        "testo/bridge-mockery": "^0.1.1",
         "testo/bridge-rector": "^0.1.2",
         "testo/facade": "^0.1.1"
     },
