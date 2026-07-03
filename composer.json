@@ -65,7 +65,7 @@
     },
     "suggest": {
         "testo/bridge-infection": "Provides integration with Infection PHP mutation testing framework.",
-        "testo/bridge-mockery": "Provides automatic Mockery teardown (Mockery::close()) after every test.",
+        "testo/bridge-mockery": "Provides integration with the Mockery mocking framework.",
         "llm/skills": "Ship Testo's bundled AI-agent skills into your project's skills directory automatically."
     },
     "minimum-stability": "dev",

@@ -11,6 +11,7 @@ return new ApplicationConfig(
     src: new FinderConfig(
         ['core', 'plugin', 'bridge'],
         [
+            'bridge/mockery/tests',
             'bridge/rector/tests',
             'bridge/symfony-console/tests',
             'plugin/assert/tests',
@@ -45,6 +46,7 @@ return new ApplicationConfig(
         //         ),
         //     ),
         // ],
+        require 'bridge/mockery/tests/suites.php',
         require 'bridge/rector/tests/suites.php',
         require 'bridge/symfony-console/tests/suites.php',
         require 'plugin/assert/tests/suites.php',

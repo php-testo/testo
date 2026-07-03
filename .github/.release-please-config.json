@@ -95,6 +95,12 @@
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
+        "bridge/mockery": {
+            "package-name": "testo/bridge-mockery",
+            "component": "bridge-mockery",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
         "bridge/rector": {
             "package-name": "testo/bridge-rector",
             "component": "bridge-rector",
