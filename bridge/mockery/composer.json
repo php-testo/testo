@@ -26,9 +26,19 @@
         "mockery/mockery": "^1.6",
         "testo/testo": "0.10.33 - 1"
     },
+    "require-dev": {
+        "testo/assert": "^0.1.10",
+        "testo/codecov": "^0.1.11",
+        "testo/test": "^0.1.6"
+    },
     "autoload": {
         "psr-4": {
             "Testo\\Bridge\\Mockery\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\Bridge\\Mockery\\": "tests/"
         }
     },
     "minimum-stability": "dev",

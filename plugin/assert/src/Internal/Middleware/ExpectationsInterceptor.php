@@ -20,7 +20,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  *
  * @note Must be placed right before the test execution.
  */
-#[InterceptorOptions(order: 10_000, onConflict: ConflictPolicy::First)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_ASSERTIONS + 2000, onConflict: ConflictPolicy::First)]
 final readonly class ExpectationsInterceptor implements TestRunInterceptor
 {
     /**
