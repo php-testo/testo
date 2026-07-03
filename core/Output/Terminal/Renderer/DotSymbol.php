@@ -14,4 +14,5 @@ enum DotSymbol: string
     case Skipped = '-';
     case Risky = 'R';
     case Error = 'E';
+    case Aborted = 'A';
 }

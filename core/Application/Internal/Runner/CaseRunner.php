@@ -75,7 +75,12 @@ final readonly class CaseRunner
                 );
 
                 $result = $this->testRunner->runTest($testInfo);
-                $result->status->isFailure() and $status = Status::Failed;
+                # A test aborted by a critical interceptor failure has an unknown verdict — treat it as
+                # a case failure so it propagates up to the suite/run status and the process exit code
+                # (every reporter already renders an abort as a failure). Deliberately broader than
+                # Status::isFailure(), which must keep Aborted out so retry/repeat don't retry an abort.
+                ($result->status->isFailure() || $result->status === Status::Aborted)
+                    and $status = Status::Failed;
 
                 $results[] = $result;
             } catch (\Throwable $throwable) {
