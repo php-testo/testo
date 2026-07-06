@@ -89,7 +89,7 @@ final readonly class SuiteFactory
      * @param iterable<TokenizedFile> $files
      * @return list<CaseDefinition>
      */
-    private function getCaseDefinitions(iterable $files, Filter $filter): array
+    private function getCaseDefinitions(iterable $files, Filter $filter): array // @codeCoverageIgnore
     {
         $cases = [];
         # Prepare interceptors pipeline

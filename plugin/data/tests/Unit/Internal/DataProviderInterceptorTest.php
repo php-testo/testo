@@ -7,6 +7,7 @@ namespace Tests\Data\Unit\Internal;
 use Internal\Path;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Assert;
+use Testo\Assert\ExpectException;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\Identity\SuiteIdentity;
@@ -83,6 +84,22 @@ final class DataProviderInterceptorTest
         // instanceProvider() returns [[10], [20]] — 2 data sets
         Assert::same($callCount, 2);
         Assert::same($result->status, Status::Passed);
+    }
+
+    #[ExpectException(\LogicException::class)]
+    public function throwsWhenNonStaticProviderUsedWithoutClassInstance(): void
+    {
+        $dispatcher = self::createDispatcher();
+        $interceptor = new DataProviderInterceptor($dispatcher);
+
+        // CaseInfo with no instance — the null coalescing throw should fire.
+        $reflection = new \ReflectionMethod(NonStaticProviderTarget::class, 'target');
+        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test');
+        $caseInfo = new CaseInfo(definition: $caseDefinition, instance: null);
+        $testDefinition = new TestDefinition(reflection: $reflection);
+        $info = new TestInfo(name: 'target', caseInfo: $caseInfo, testDefinition: $testDefinition);
+
+        $interceptor->runTest($info, static fn(TestInfo $i): TestResult => new TestResult(info: $i, status: Status::Passed));
     }
 
     private static function createDispatcher(): EventDispatcherInterface

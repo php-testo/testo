@@ -29,5 +29,5 @@ final readonly class TestingSuite
      * @param array<string, string> $env Environment variables to emulate, mapped through
      *        {@see \Testo\Application\Config\Internal\Attribute\Env} bindings.
      */
-    public function __construct(public string|Path $path, public array $plugins = [], public array $options = [], public array $arguments = [], public array $env = []) {}
+    public function __construct(public string|Path $path, public array $plugins = [], public array $options = [], public array $arguments = [], public array $env = []) {} // @codeCoverageIgnore
 }

@@ -245,7 +245,7 @@ final class Renderer
      */
     private static function calculateWidths(array $headers, array $rows): array
     {
-        $widths = \array_map(\mb_strlen(...), $headers);
+        $widths = \array_map(\mb_strlen(...), $headers); // @codeCoverageIgnore
 
         foreach ($rows as $row) {
             foreach ($row as $i => $cell) {

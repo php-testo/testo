@@ -10,6 +10,7 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
+use Testo\Event\Message\MessageReceived;
 use Testo\Test;
 
 #[Test]
@@ -142,6 +143,39 @@ final class StateTest
         $fork->commit();
 
         Assert::same($this->contents($root), ['early', 'late']);
+    }
+
+    public function heldEventsFromNestedHoldForkAreReleasedByOuterCommit(): void
+    {
+        /** @var list<string> $dispatched */
+        $dispatched = [];
+        $dispatcher = new class($dispatched) implements EventDispatcherInterface {
+            /** @param list<string> $dispatched */
+            public function __construct(private array &$dispatched) {}
+
+            #[\Override]
+            public function dispatch(object $event): object
+            {
+                if ($event instanceof MessageReceived) {
+                    $this->dispatched[] = $event->message->content;
+                }
+                return $event;
+            }
+        };
+
+        $root = new State($dispatcher);
+        $parent = $root->fork(holdEvents: true);
+        $child = $parent->fork(holdEvents: true);
+
+        // Record out-of-order by time so the usort in absorbEvents makes a visible difference.
+        $child->record(self::message(2.0, 'late'));
+        $child->record(self::message(1.0, 'early'));
+
+        $child->commit();
+        Assert::same($dispatched, []);               // still held by parent
+
+        $parent->commit();
+        Assert::same($dispatched, ['early', 'late']); // released in time order
     }
 
     public function destroyClearsBuffer(): void

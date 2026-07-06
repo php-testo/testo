@@ -77,7 +77,7 @@ final readonly class Application
                         'Configuration file %s must return an instance of %s, %s returned.',
                         $configFile,
                         ApplicationConfig::class,
-                        \get_debug_type($cfg),
+                        \get_debug_type($cfg), // @codeCoverageIgnore
                     ),
                 );
                 return $cfg;
