@@ -21,6 +21,9 @@ use Testo\Testing\Internal\ExpectInterceptor;
 
 #[Test]
 #[Covers(ExpectInterceptor::class)]
+#[Covers(ExpectTestStatus::class)]
+#[Covers(ExpectAssertionsCount::class)]
+#[Covers(ExpectTestResultAttribute::class)]
 final class ExpectInterceptorTest
 {
     public function passesThroughWhenNoExpectAttributesPresent(): void
