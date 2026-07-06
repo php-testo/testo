@@ -59,8 +59,6 @@ final class Style
 
     /**
      * Makes text dim (less visible).
-     *
-     * @param non-empty-string $text
      */
     public static function dim(string $text): string
     {
