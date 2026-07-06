@@ -20,6 +20,12 @@ return RectorConfig::configure()
         '*/Fixture/*',
         // Removing unused public-method parameters breaks implementing classes and callers.
         RemoveUnusedPublicMethodParameterRector::class,
+        // RepeatInterceptor uses a closure with use (&$symbols) for batched symbol flushing;
+        // Rector's deadCode rules incorrectly remove the body as "unused".
+        __DIR__ . '/plugin/repeat/src/Internal/RepeatInterceptor.php',
+        // DeferredGenerator uses `return $result; yield;` to create a finished generator —
+        // a valid PHP trick that Rector converts to an invalid arrow function.
+        __DIR__ . '/plugin/data/src/Internal/DeferredGenerator.php',
     ])
     ->withPhpSets(php84: true)
     ->withPreparedSets(

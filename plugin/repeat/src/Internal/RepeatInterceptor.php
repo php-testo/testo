@@ -58,7 +58,13 @@ final readonly class RepeatInterceptor implements TestRunInterceptor
         # the run line survives the (mostly dropped) per-run forks without a message+dispatch per run.
         $symbols = '';
         $lastFlush = \microtime(true);
-        $flush = function (bool $eol): void {
+        $flush = function (bool $eol) use (&$symbols): void {
+            if ($symbols === '') {
+                return;
+            }
+
+            $this->messenger->log(self::CHANNEL, $eol ? "$symbols\n" : $symbols, Level::Info);
+            $symbols = '';
         };
 
         do {
