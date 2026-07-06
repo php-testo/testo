@@ -47,7 +47,7 @@ final readonly class BenchHandler
         # Warmup
         if ($attr->warmup > 0) {
             for ($i = 0; $i < $attr->warmup; ++$i) {
-                foreach ($functions as $function) { // @codeCoverageIgnore
+                foreach ($functions as $function) {
                     $function();
                 }
             }

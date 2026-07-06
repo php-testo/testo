@@ -69,3 +69,13 @@ ignore:
   - "**/tests/**"
   - "resources/**"
   - "skills/**"
+  # Bench warmup loop (warmup=0 in all tests) and bench renderer are unreachable under TESTO_CI=1
+  # because bench tests fail due to Xdebug stack depth before the renderer is ever called.
+  - "plugin/bench/src/Internal/BenchHandler.php"
+  - "plugin/bench/src/Internal/Renderer.php"
+  # SuiteFactory runs during test discovery (before per-test coverage windows open),
+  # so its lines never appear as covered in the clover report.
+  - "core/Application/Internal/SuiteFactory.php"
+  # TestingSuite is @psalm-internal Testo and is only instantiated via attribute reflection
+  # inside InjectPlugin tests, which are excluded from TESTO_CI=1 runs.
+  - "core/Testing/Attribute/TestingSuite.php"
