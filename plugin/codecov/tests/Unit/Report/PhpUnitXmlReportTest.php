@@ -230,6 +230,28 @@ final class PhpUnitXmlReportTest
 
     // --- Stale-file guard tests (issue #125) ---
 
+    public function sentinelIsWrittenInsideOutputDir(): void
+    {
+        $dir = self::tmpDir();
+        try {
+            $result = (new CoverageResult([
+                '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
+                    10 => new LineCoverage(10, LineStatus::Executed, ['Tests\\FooTest::testA']),
+                ]),
+            ]))->withSourceRoot('/project');
+
+            (new PhpUnitXmlReport($dir))->generate($result);
+
+            // Sentinel must be a child of outputDir, not a sibling alongside it.
+            Assert::true(\file_exists($dir . '/.testo-coverage'));
+            Assert::false(\is_file($dir . '.testo-coverage'));
+        } finally {
+            self::cleanup($dir);
+            // Clean up the alongside-dir sentinel if the mutant wrote it.
+            \is_file($dir . '.testo-coverage') and \unlink($dir . '.testo-coverage');
+        }
+    }
+
     public function reRunSameSourceSetProducesNoStaleFiles(): void
     {
         $dir = self::tmpDir();

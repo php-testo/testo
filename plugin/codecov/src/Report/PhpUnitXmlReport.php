@@ -103,12 +103,13 @@ final readonly class PhpUnitXmlReport implements CoverageReport
 
     private function sweepStaleXml(): void
     {
+        // LEAVES_ONLY (default) yields only files, never directories.
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($this->outputDir, \RecursiveDirectoryIterator::SKIP_DOTS),
         );
         foreach ($iterator as $file) {
             \assert($file instanceof \SplFileInfo);
-            if ($file->isFile() && $file->getExtension() === 'xml') {
+            if ($file->getExtension() === 'xml') {
                 \unlink($file->getPathname());
             }
         }
