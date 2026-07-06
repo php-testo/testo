@@ -8,6 +8,7 @@ use Internal\Container\Container;
 use Testo\Common\PluginConfigurator;
 use Testo\Pipeline\InterceptorCollector;
 use Testo\Testing\Attribute\Inject;
+use Testo\Testing\Internal\ExpectInterceptor;
 use Testo\Testing\Internal\InjectInterceptor;
 
 /**
@@ -27,5 +28,6 @@ final readonly class InjectPlugin implements PluginConfigurator
         # Registered as a class-string so the collector resolves it through the
         # container and autowires the {@see Container} dependency.
         $container->get(InterceptorCollector::class)->addInterceptor(InjectInterceptor::class);
+        $container->get(InterceptorCollector::class)->addInterceptor(new ExpectInterceptor());
     }
 }
