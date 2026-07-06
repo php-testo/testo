@@ -228,6 +228,92 @@ final class PhpUnitXmlReportTest
         }
     }
 
+    // --- Stale-file guard tests (issue #125) ---
+
+    public function reRunSameSourceSetProducesNoStaleFiles(): void
+    {
+        $dir = self::tmpDir();
+        try {
+            $result = (new CoverageResult([
+                '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
+                    10 => new LineCoverage(10, LineStatus::Executed, ['Tests\\FooTest::testA']),
+                ]),
+            ]))->withSourceRoot('/project');
+
+            $report = new PhpUnitXmlReport($dir);
+            $report->generate($result);
+            $report->generate($result);
+
+            // Exactly one per-file XML plus index.xml; no duplicates or leftovers.
+            $xmlFiles = \glob($dir . '/src/*.xml') ?: [];
+            Assert::count($xmlFiles, 1);
+            Assert::true(\file_exists($dir . '/index.xml'));
+            Assert::same(\count(\glob($dir . '/*.xml') ?: []), 1); // index only in root
+        } finally {
+            self::cleanup($dir);
+        }
+    }
+
+    public function reRunAfterFileRemovedCleansStaleXml(): void
+    {
+        $dir = self::tmpDir();
+        try {
+            $resultWithTwo = (new CoverageResult([
+                '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
+                    10 => new LineCoverage(10, LineStatus::Executed, ['Tests\\FooTest::testA']),
+                ]),
+                '/project/src/Bar.php' => new FileCoverage('/project/src/Bar.php', [
+                    10 => new LineCoverage(10, LineStatus::Executed, ['Tests\\BarTest::testA']),
+                ]),
+            ]))->withSourceRoot('/project');
+
+            $resultWithOne = (new CoverageResult([
+                '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
+                    10 => new LineCoverage(10, LineStatus::Executed, ['Tests\\FooTest::testA']),
+                ]),
+            ]))->withSourceRoot('/project');
+
+            $report = new PhpUnitXmlReport($dir);
+            $report->generate($resultWithTwo);
+
+            Assert::true(\file_exists($dir . '/src/Foo.php.xml'));
+            Assert::true(\file_exists($dir . '/src/Bar.php.xml'));
+
+            $report->generate($resultWithOne);
+
+            // Bar.php was "deleted" — its stale XML must be gone.
+            Assert::true(\file_exists($dir . '/src/Foo.php.xml'));
+            Assert::false(\file_exists($dir . '/src/Bar.php.xml'));
+        } finally {
+            self::cleanup($dir);
+        }
+    }
+
+    public function firstRunOnNonEmptyDirectoryWithoutSentinelLeavesExistingFilesAlone(): void
+    {
+        $dir = self::tmpDir();
+        try {
+            // Pre-populate with a non-coverage XML that must survive untouched.
+            $foreignXml = $dir . '/some-other-report.xml';
+            \file_put_contents($foreignXml, '<report/>');
+
+            $result = (new CoverageResult([
+                '/project/src/Foo.php' => new FileCoverage('/project/src/Foo.php', [
+                    10 => new LineCoverage(10, LineStatus::Executed, ['Tests\\FooTest::testA']),
+                ]),
+            ]))->withSourceRoot('/project');
+
+            (new PhpUnitXmlReport($dir))->generate($result);
+
+            // No sentinel on first run → sweep never ran → foreign file untouched.
+            Assert::true(\file_exists($foreignXml));
+            Assert::true(\file_exists($dir . '/index.xml'));
+            Assert::true(\file_exists($dir . '/src/Foo.php.xml'));
+        } finally {
+            self::cleanup($dir);
+        }
+    }
+
     private static function tmpDir(): string
     {
         $dir = \dirname(__DIR__, 2) . '/runtime/testo_phpunit_xml_' . \uniqid();

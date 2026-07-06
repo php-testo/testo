@@ -29,11 +29,25 @@ use Testo\Codecov\Result\LineStatus;
  *
  * Distinct from JUnit XML (test-results format, see {@see \Testo\Output\JUnit\JUnitPlugin}).
  *
+ * ## Stale-file guard
+ *
+ * On the first successful run a sentinel file `.testo-coverage` is created
+ * inside `<outputDir>`. On every subsequent run, the sentinel's presence
+ * signals that the directory belongs to this reporter; all `*.xml` files are
+ * removed before the new set is written. This prevents stale entries — for
+ * source files that were renamed or deleted between runs — from accumulating
+ * inside the output directory.
+ *
+ * If `<outputDir>` does not contain the sentinel (e.g. it is pointed at a
+ * pre-existing directory unrelated to coverage), no sweeping takes place,
+ * protecting against accidental data loss.
+ *
  * @api
  */
 final readonly class PhpUnitXmlReport implements CoverageReport
 {
     private const XMLNS = 'https://schema.phpunit.de/coverage/1.0';
+    private const SENTINEL = '.testo-coverage';
 
     public function __construct(
         /** @var non-empty-string Output directory for the report. Created if missing. */
@@ -46,6 +60,14 @@ final readonly class PhpUnitXmlReport implements CoverageReport
         $sourceRoot = (string) Path::create($result->sourceRoot ?? (string) \getcwd());
 
         \is_dir($this->outputDir) or \mkdir($this->outputDir, 0o755, true);
+
+        // Stale-file guard: sentinel presence means this directory is ours.
+        // Sweep leftover *.xml files before writing the new set so that
+        // deleted or renamed source files don't persist across runs.
+        $sentinelPath = $this->outputDir . '/' . self::SENTINEL;
+        if (\file_exists($sentinelPath)) {
+            $this->sweepStaleXml();
+        }
 
         $entries = [];
         $totalStmts = 0;
@@ -74,6 +96,21 @@ final readonly class PhpUnitXmlReport implements CoverageReport
 
         foreach ($entries as $entry) {
             $this->writeFile($entry);
+        }
+
+        \file_put_contents($sentinelPath, '');
+    }
+
+    private function sweepStaleXml(): void
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($this->outputDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+        );
+        foreach ($iterator as $file) {
+            \assert($file instanceof \SplFileInfo);
+            if ($file->isFile() && $file->getExtension() === 'xml') {
+                \unlink($file->getPathname());
+            }
         }
     }
 
