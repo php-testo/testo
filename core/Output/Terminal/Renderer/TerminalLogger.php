@@ -498,7 +498,6 @@ final class TerminalLogger
             $item = new FormattedItem(
                 name: "Run #{$runNumber}",
                 status: $runResult->status,
-                duration: null,
                 indentLevel: 1,
                 description: (string) $runKey,
             );

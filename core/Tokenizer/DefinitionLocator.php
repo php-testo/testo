@@ -162,38 +162,4 @@ final class DefinitionLocator
             \spl_autoload_unregister($includer);
         }
     }
-
-    /**
-     * Safely get function reflection, function loading errors will be blocked and reflection will be
-     * excluded from analysis.
-     *
-     * @throws LocatorException
-     */
-    private static function functionReflection(string $function): \ReflectionFunction
-    {
-        $loader = static function (string $class): void {
-            if ($class === LocatorException::class) {
-                return;
-            }
-
-            throw new LocatorException(\sprintf("Class '%s' can not be loaded", $class));
-        };
-
-        //To suspend class dependency exception
-        \spl_autoload_register($loader);
-
-        try {
-            //In some cases reflection can throw an exception if function is invalid or can not be loaded,
-            //we are going to handle such exception and convert it to soft exception
-            return new \ReflectionFunction($function);
-        } catch (\Throwable $e) {
-            if ($e instanceof LocatorException && $e->getPrevious() !== null) {
-                $e = $e->getPrevious();
-            }
-
-            throw new LocatorException($e->getMessage(), (int) $e->getCode(), $e);
-        } finally {
-            \spl_autoload_unregister($loader);
-        }
-    }
 }

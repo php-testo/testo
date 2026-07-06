@@ -12,7 +12,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * @api
  */
 #[\Attribute(\Attribute::TARGET_CLASS)]
-final class InterceptorOptions
+final readonly class InterceptorOptions
 {
     /**
      * Handles {@see Interceptable} attributes
@@ -67,13 +67,13 @@ final class InterceptorOptions
          * Lower priority interceptors are applied first in the interceptor chain.
          * Higher priority interceptors are closer to the test function in the interceptor chain.
          */
-        public readonly int $order = self::ORDER_DEFAULT,
-        public readonly ConflictPolicy $onConflict = ConflictPolicy::First,
+        public int $order = self::ORDER_DEFAULT,
+        public ConflictPolicy $onConflict = ConflictPolicy::First,
 
         /**
          * @var list<non-empty-string|\BackedEnum>|non-empty-string|\BackedEnum Type(s) of tests to which
          *      the interceptor should be applied. If empty, the interceptor is applied to all tests.
          */
-        public readonly \BackedEnum|array|string $testType = [],
+        public \BackedEnum|array|string $testType = [],
     ) {}
 }

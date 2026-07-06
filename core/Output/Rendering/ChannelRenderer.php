@@ -106,7 +106,6 @@ final class ChannelRenderer
         $seconds = (int) $time;
         $millis = \min(999, (int) \round(($time - (float) $seconds) * 1000.0));
 
-        /** @var non-empty-string */
         return \date('H:i:s', $seconds) . \sprintf('.%03d', $millis);
     }
 }

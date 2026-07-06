@@ -45,7 +45,7 @@ final readonly class ApplicationConfig
 
         # Validate suite configs
         $suites === [] and throw new \InvalidArgumentException('At least one test suite must be defined.');
-        \array_walk($suites, static fn(mixed $suite) => $suite instanceof SuiteConfig
+        \array_walk($suites, static fn(mixed $suite): bool => $suite instanceof SuiteConfig
             or throw new \InvalidArgumentException(
                 'Each suite must be an instance of SuiteConfig.',
             ));

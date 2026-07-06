@@ -23,7 +23,7 @@ namespace Testo\Pipeline\Attribute;
  * @api
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
-final class FallbackInterceptor
+final readonly class FallbackInterceptor
 {
     public function __construct(
         /**
@@ -31,6 +31,6 @@ final class FallbackInterceptor
          *
          * @var class-string<\Testo\Pipeline\Interceptor>
          */
-        public readonly string $class,
+        public string $class,
     ) {}
 }

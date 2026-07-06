@@ -117,7 +117,7 @@ final readonly class BenchHandler
         int $calls,
     ): IterationSet {
         $cases = [];
-        foreach ($functions as $k => $function) {
+        foreach ($functions as $function) {
             $cases[] = self::runCase($function, $calls);
         }
 

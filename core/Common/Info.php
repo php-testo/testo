@@ -45,7 +45,6 @@ final class Info
             return $cache = self::VERSION;
         }
 
-        /** @var mixed $version */
         $version = \json_decode($fileContent, true)['.'] ?? null;
 
         return $cache = \is_string($version) && $version !== ''

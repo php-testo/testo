@@ -54,7 +54,6 @@ final class Pipeline
      * @param PipeOptions $options Pipeline options, e.g. the test-type selection used to filter
      *        interceptors. Empty options keep every interceptor. {@see CaseDefinition::$type}
      * @param TInterceptor ...$interceptors Instantiated interceptors.
-     * @return self<TInt, TIn, TOut>
      *
      * @note Make sure that interceptors implement the same interface.
      * @psalm-suppress InvalidTemplateParam, UndefinedDocblockClass, InvalidReturnType, InvalidReturnStatement
@@ -70,7 +69,6 @@ final class Pipeline
      * All the remaining interceptors will be sorted and combined into a new single interceptor.
      *
      * @param TInterceptor ...$interceptors Instantiated interceptors.
-     * @return self<TInterceptor, TInput, TOutput>
      */
     public function combine(TInterceptor ...$interceptors): self
     {

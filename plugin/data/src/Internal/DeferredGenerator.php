@@ -149,10 +149,7 @@ final class DeferredGenerator implements \Iterator
             }
 
             /** @psalm-suppress all */
-            $this->generator = (static function (mixed $result): \Generator {
-                return $result;
-                yield;
-            })($result);
+            $this->generator = (static fn(mixed $result): \Generator => $result)($result);
             $this->finished = true;
         } catch (\Throwable $e) {
             $this->generator = self::getDummyGenerator();

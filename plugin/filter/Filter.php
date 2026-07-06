@@ -18,25 +18,6 @@ use Testo\Core\Value\TestType;
 final readonly class Filter
 {
     /**
-     * Test suite names to filter by.
-     *
-     * @var list<non-empty-string>
-     */
-    public array $suites;
-
-    /**
-     * Class, method, or function names to filter by.
-     *
-     * Supports formats:
-     * - Method: ClassName::methodName or Namespace\ClassName::methodName
-     * - FQN: Namespace\ClassName or Namespace\functionName
-     * - Fragment: methodName, functionName, or ShortClassName
-     *
-     * @var list<non-empty-string>
-     */
-    public array $names;
-
-    /**
      * Absolute file or directory paths to filter by.
      *
      * Supports glob patterns: *, ?, [abc]
@@ -44,44 +25,6 @@ final readonly class Filter
      * @var list<Path>
      */
     public array $paths;
-
-    /**
-     * Test case types to include, e.g. 'test', 'inline', 'bench', etc. A case passes when its type
-     * is in this list (OR logic). An empty list means no type inclusion filter is applied.
-     * @see TestType
-     *
-     * @var list<non-empty-string>
-     */
-    public array $type;
-
-    /**
-     * Test case types to exclude. A case is dropped when its type is in this list.
-     * Exclusion takes precedence over inclusion.
-     * @see TestType
-     *
-     * @var list<non-empty-string>
-     */
-    public array $notType;
-
-    /**
-     * Group names to include. A test passes when its group set intersects this list (OR logic).
-     * An empty list means no group inclusion filter is applied.
-     *
-     * @see \Testo\Filter\Group
-     *
-     * @var list<non-empty-string>
-     */
-    public array $groups;
-
-    /**
-     * Group names to exclude. A test is dropped when its group set intersects this list.
-     * Exclusion takes precedence over inclusion.
-     *
-     * @see \Testo\Filter\Group
-     *
-     * @var list<non-empty-string>
-     */
-    public array $excludeGroups;
 
     /**
      * @param list<non-empty-string> $suites Test suite names to filter by
@@ -93,21 +36,48 @@ final readonly class Filter
      * @param list<non-empty-string> $excludeGroups Group names to exclude (takes precedence)
      */
     public function __construct(
-        array $suites = [],
-        array $names = [],
+        /**
+         * Test suite names to filter by.
+         */
+        public array $suites = [],
+        /**
+         * Class, method, or function names to filter by.
+         *
+         * Supports formats:
+         * - Method: ClassName::methodName or Namespace\ClassName::methodName
+         * - FQN: Namespace\ClassName or Namespace\functionName
+         * - Fragment: methodName, functionName, or ShortClassName
+         */
+        public array $names = [],
         array $paths = [],
-        array $type = [],
-        array $notType = [],
-        array $groups = [],
-        array $excludeGroups = [],
+        /**
+         * Test case types to include, e.g. 'test', 'inline', 'bench', etc. A case passes when its type
+         * is in this list (OR logic). An empty list means no type inclusion filter is applied.
+         * @see TestType
+         */
+        public array $type = [],
+        /**
+         * Test case types to exclude. A case is dropped when its type is in this list.
+         * Exclusion takes precedence over inclusion.
+         * @see TestType
+         */
+        public array $notType = [],
+        /**
+         * Group names to include. A test passes when its group set intersects this list (OR logic).
+         * An empty list means no group inclusion filter is applied.
+         *
+         * @see \Testo\Filter\Group
+         */
+        public array $groups = [],
+        /**
+         * Group names to exclude. A test is dropped when its group set intersects this list.
+         * Exclusion takes precedence over inclusion.
+         *
+         * @see \Testo\Filter\Group
+         */
+        public array $excludeGroups = [],
     ) {
-        $this->suites = $suites;
-        $this->names = $names;
         $this->paths = \array_map(static fn(string|Path $p): Path => Path::create($p)->absolute(), $paths);
-        $this->type = $type;
-        $this->notType = $notType;
-        $this->groups = $groups;
-        $this->excludeGroups = $excludeGroups;
     }
 
     /**

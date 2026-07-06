@@ -21,10 +21,10 @@ namespace Testo\Output\Rendering\Diff;
  *
  * @internal
  */
-final class RatcliffObershelpDiffer implements Differ
+final readonly class RatcliffObershelpDiffer implements Differ
 {
     public function __construct(
-        private readonly bool $autoJunk = true,
+        private bool $autoJunk = true,
     ) {}
 
     #[\Override]
