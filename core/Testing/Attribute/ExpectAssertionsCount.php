@@ -19,6 +19,8 @@ namespace Testo\Testing\Attribute;
 #[\Attribute(\Attribute::TARGET_METHOD | \Attribute::TARGET_FUNCTION)]
 final readonly class ExpectAssertionsCount
 {
-    /** @param int<0, max> $count Expected number of assertions. */
+    /**
+     * @param int<0, max> $count Expected number of assertions.
+     */
     public function __construct(public int $count) {}
 }

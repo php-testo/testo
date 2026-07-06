@@ -19,6 +19,8 @@ namespace Testo\Testing\Attribute;
 #[\Attribute(\Attribute::TARGET_METHOD | \Attribute::TARGET_FUNCTION | \Attribute::IS_REPEATABLE)]
 final readonly class ExpectTestResultAttribute
 {
-    /** @param non-empty-string $name Attribute key to look up, typically a class-string. */
+    /**
+     * @param non-empty-string $name Attribute key to look up, typically a class-string.
+     */
     public function __construct(public string $name) {}
 }
