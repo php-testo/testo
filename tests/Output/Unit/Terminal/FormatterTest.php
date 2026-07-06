@@ -7,7 +7,11 @@ namespace Tests\Output\Unit\Terminal;
 use Testo\Assert;
 use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Core\Value\Status;
+use Testo\Core\Value\Summary;
+use Testo\Output\Terminal\Renderer\FormattedItem;
 use Testo\Output\Terminal\Renderer\Formatter;
+use Testo\Output\Terminal\Renderer\OutputFormat;
+use Testo\Output\Terminal\Renderer\Style;
 use Testo\Test;
 
 #[Test]
@@ -100,6 +104,50 @@ final class FormatterTest
     public function emptyBannerReadsNoTests(): void
     {
         Assert::string(Formatter::emptyBanner())->contains('NO TESTS');
+    }
+
+    public function summaryContainsStatusBreakdown(): void
+    {
+        $summary = new Summary(
+            counts: [Status::Passed->name => 2, Status::Failed->name => 1],
+            metrics: ['assertions' => 5],
+            duration: 0.5,
+        );
+
+        $output = Formatter::summary($summary, 1.0);
+
+        Assert::string($output)->contains('Summary');
+        Assert::string($output)->contains('2 passed');
+        Assert::string($output)->contains('1 failed');
+    }
+
+    public function formatRunInCompactModeShowsItemName(): void
+    {
+        $item = new FormattedItem(name: 'myTest', status: Status::Passed);
+
+        $output = Formatter::formatRun($item, OutputFormat::Compact);
+
+        Assert::string($output)->contains('myTest');
+    }
+
+    public function formatRunInDotsModeReturnsPassedDot(): void
+    {
+        $item = new FormattedItem(name: 'myTest', status: Status::Passed);
+
+        $dot = Formatter::formatRun($item, OutputFormat::Dots);
+
+        Assert::same($dot, '.');
+    }
+
+    protected function setUp(): void
+    {
+        // Strip ANSI styling so assertions match raw text regardless of TTY config.
+        Style::setColorsEnabled(false);
+    }
+
+    protected function tearDown(): void
+    {
+        Style::setColorsEnabled(true);
     }
 
     /**

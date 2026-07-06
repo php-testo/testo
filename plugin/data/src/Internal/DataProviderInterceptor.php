@@ -223,7 +223,11 @@ final readonly class DataProviderInterceptor implements TestRunInterceptor
                 $m = $class->getMethod($provider);
                 $provider = match (true) {
                     $m->isStatic() => $m->getClosure(),
-                    default => static fn(): \Closure => $m->getClosure($info->caseInfo->instance->getInstance()),
+                    default => $m->getClosure(
+                        ($info->caseInfo->instance ?? throw new \LogicException(
+                            "Cannot use non-static DataProvider '{$provider}': test has no class instance.",
+                        ))->getInstance()
+                    ),
                 };
             }
 
