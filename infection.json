@@ -19,6 +19,7 @@
         }
     },
     "mutators": {
+        "@default": true,
         "global-ignoreSourceCodeByRegex": [
             "#\\[TestInline"
         ]
