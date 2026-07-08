@@ -38,6 +38,8 @@ final readonly class Filter
     public function __construct(
         /**
          * Test suite names to filter by.
+         *
+         * @var list<non-empty-string>
          */
         public array $suites = [],
         /**
@@ -47,6 +49,8 @@ final readonly class Filter
          * - Method: ClassName::methodName or Namespace\ClassName::methodName
          * - FQN: Namespace\ClassName or Namespace\functionName
          * - Fragment: methodName, functionName, or ShortClassName
+         *
+         * @var list<non-empty-string>
          */
         public array $names = [],
         array $paths = [],
