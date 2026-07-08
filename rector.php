@@ -27,7 +27,7 @@ return RectorConfig::configure()
         // a valid PHP trick that Rector converts to an invalid arrow function.
         __DIR__ . '/plugin/data/src/Internal/DeferredGenerator.php',
     ])
-    ->withPhpSets(php84: true)
+    ->withPhpSets(php82: true)
     ->withPreparedSets(
         deadCode: true,
         typeDeclarations: true,
