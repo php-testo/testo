@@ -99,6 +99,12 @@ final class ChannelRenderer
     /**
      * Formats a {@see \microtime()} timestamp as `HH:MM:SS.mmm` wall-clock time
      * in the current PHP timezone.
+     *
+     * The input is a float returned by {@see \microtime(true)}, so it represents an
+     * epoch timestamp with fractional seconds. We construct a timezone-aware
+     * {@see \DateTimeImmutable} from that epoch using `U.u` and then format it
+     * in the configured PHP timezone. This makes the header show local wall-clock
+     * time rather than UTC-based time derived by modulo arithmetic.
      */
     private static function formatTime(float $time): string
     {
