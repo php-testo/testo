@@ -88,6 +88,7 @@
             "Tests\\Bridge\\Mockery\\": "bridge/mockery/tests/",
             "Tests\\Bridge\\Rector\\": "bridge/rector/tests/",
             "Tests\\Bridge\\SymfonyConsole\\": "bridge/symfony-console/tests/",
+            "Tests\\Bridge\\Vcr\\": "bridge/vcr/tests/",
             "Tests\\Codecov\\": "plugin/codecov/tests/",
             "Tests\\Convention\\": "plugin/convention/tests/",
             "Tests\\Data\\": "plugin/data/tests/",
@@ -133,7 +134,8 @@
                     "testo/bridge-infection": "0.1.x-dev",
                     "testo/bridge-mockery": "0.1.x-dev",
                     "testo/bridge-rector": "0.2.x-dev",
-                    "testo/bridge-symfony-console": "0.1.x-dev"
+                    "testo/bridge-symfony-console": "0.1.x-dev",
+                    "testo/bridge-vcr": "0.1.x-dev"
                 }
             }
         }

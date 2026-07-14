@@ -106,6 +106,12 @@
             "component": "bridge-rector",
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/vcr": {
+            "package-name": "testo/bridge-vcr",
+            "component": "bridge-vcr",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
         }
     },
     "bump-patch-for-minor-pre-major": true,
