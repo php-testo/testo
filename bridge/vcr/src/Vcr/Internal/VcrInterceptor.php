@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Bridge\Vcr\Internal;
 
+use Testo\Bridge\Vcr\Matcher;
 use Testo\Bridge\VCR;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
@@ -14,15 +15,23 @@ use VCR\VCR as PhpVcr;
 
 /**
  * Inserts the cassette named by a test's (or its case's) {@see VCR} attribute for the duration of the
- * test, then ejects it. Tests without the attribute pass straight through.
+ * test, applying that test's record mode and request matchers, then ejects it. Tests without the
+ * attribute pass straight through.
  *
- * Runs innermost so the cassette is active as close as possible to the test body.
+ * Ordering ({@see InterceptorOptions::ORDER_CLOSE_TO_TEST}) places this *inside* the retry and repeat
+ * interceptors (which sit at low orders, far from the test) and *outside* the lifecycle hooks (which
+ * run innermost). So each retry / repeat attempt re-enters here and gets a fresh cassette, and HTTP
+ * made from `#[BeforeTest]` / `#[AfterTest]` hooks is covered too.
  *
- * NOTE (concurrency): PHP-VCR is process-global static state — one active cassette per process, plus
- * a global library-hook install. Under Testo's fiber-based concurrency, sibling tests would clobber
- * each other's cassette. The starter implementation does not yet isolate this; the intended approach
- * (drive the test inside its own fiber so its VCR window never leaks across a suspension, à la the
- * Mockery bridge's container guard) is described in SPEC.md and tracked as a TODO.
+ * NOTE (concurrency): PHP-VCR is process-global static state — one active cassette per process, one
+ * global hook install, and a global mode/matcher configuration. Under Testo's fiber-based concurrency
+ * this bridge does NOT yet isolate that: while a cassette is active, a *concurrently scheduled* test's
+ * HTTP (even an untagged one) is intercepted against it, and a second `#[VCR]` test would clash. The
+ * canonical guard used elsewhere (see {@see \Testo\Assert\Internal\Middleware\AssertCollectorInterceptor})
+ * swaps thread-local state on every `Fiber::suspend`/`resume`, but VCR's per-test state is a
+ * disk-backed cassette whose playback position would reset on re-insert — so the swap is subtler here.
+ * The intended fix (exclusive scheduling of VCR tests, or a validated suspend/resume guard) is tracked
+ * in SPEC.md §5.
  *
  * @internal
  * @psalm-internal Testo\Bridge\Vcr
@@ -40,6 +49,12 @@ final readonly class VcrInterceptor implements TestRunInterceptor
         if ($cassette === null) {
             return $next($info);
         }
+
+        $configuration = PhpVcr::configure();
+        $cassette->mode === null or $configuration->setMode($cassette->mode->value);
+        $cassette->match === [] or $configuration->enableRequestMatchers(
+            \array_map(static fn(Matcher $m): string => $m->value, $cassette->match),
+        );
 
         PhpVcr::turnOn();
         PhpVcr::insertCassette($cassette->name);
