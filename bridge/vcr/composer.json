@@ -1,0 +1,53 @@
+{
+    "name": "testo/bridge-vcr",
+    "description": "PHP-VCR bridge for the Testo testing framework.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "vcr",
+        "http",
+        "record",
+        "replay",
+        "testing"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "php-vcr/php-vcr": "^1.6",
+        "testo/testo": "0.10.36 - 1"
+    },
+    "require-dev": {
+        "testo/assert": "^0.1.11",
+        "testo/codecov": "^0.1.11",
+        "testo/test": "^0.1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Bridge\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\Bridge\\Vcr\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}
