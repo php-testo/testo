@@ -13,20 +13,26 @@ use Testo\Bridge\Vcr\RecordMode;
  * touches the network again.
  *
  * ```php
- * use Testo\Bridge\VCR;
- * use Testo\Bridge\Vcr\Matcher;
- * use Testo\Bridge\Vcr\RecordMode;
+ *  use Testo\Bridge\VCR;
+ *  use Testo\Bridge\Vcr\Matcher;
+ *  use Testo\Bridge\Vcr\RecordMode;
  *
- * #[VCR('github-user', mode: RecordMode::None, match: [Matcher::Method, Matcher::Url, Matcher::Body])]
- * public function testFetchesUser(): void
- * {
- *     $json = \file_get_contents('https://api.github.com/users/roxblnfk');
- *     // ...
- * }
+ *  #[VCR('github-user', mode: RecordMode::None, match: [Matcher::Method, Matcher::Url, Matcher::Body])]
+ *  public function testFetchesUser(): void
+ *  {
+ *      $json = \file_get_contents('https://api.github.com/users/roxblnfk');
+ *      // ...
+ *  }
  * ```
  *
  * Placed on a class, it becomes the default for every test in that case; a method-level attribute
  * overrides it.
+ *
+ * **A VCR-tagged test runs as an exclusive, synchronous block.** PHP-VCR is process-global (one active
+ * cassette for the whole process), so while the cassette is inserted the test does not yield to the
+ * fiber scheduler and no other test may run concurrently — the window is driven to completion and
+ * locked. Consequently a `#[VCR]` test must be synchronous: awaiting real async work inside it is
+ * unsupported, and two `#[VCR]` tests can never overlap.
  *
  * Requires {@see \Testo\Bridge\Vcr\VcrPlugin} to be registered in the suite.
  *
