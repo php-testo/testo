@@ -25,7 +25,23 @@
 
 ## About
 
-[PHP-VCR](https://github.com/php-vcr/php-vcr) integration for Testo. Register `VcrPlugin` and mark any test with `#[VCR('cassette')]`: its HTTP interactions are recorded to a cassette on the first run and replayed from it afterwards, so the test stays fast, deterministic, and offline.
+[PHP-VCR](https://github.com/php-vcr/php-vcr) integration for Testo. Mark any test with `#[VCR('cassette')]`: its HTTP interactions are recorded to a cassette on the first run and replayed from it afterwards, so the test stays fast, deterministic, and offline. The attribute is self-wiring — no plugin registration required.
+
+```php
+use Testo\Attribute\Test;
+use Testo\Bridge\VCR;
+use Testo\Bridge\Vcr\RecordMode;
+
+#[Test]
+#[VCR('github-user', mode: RecordMode::None)]
+public function fetches_a_user(): void
+{
+    $json = \file_get_contents('https://api.github.com/users/roxblnfk');
+    // asserts...
+}
+```
+
+Register `VcrPlugin` only to point php-vcr at a non-default cassette directory:
 
 ```php
 // testo.php
@@ -34,22 +50,9 @@ use Testo\Application\Config\SuiteConfig;
 use Testo\Bridge\Vcr\VcrPlugin;
 
 return new ApplicationConfig(
-    plugins: [new VcrPlugin()],
+    plugins: [new VcrPlugin(cassettePath: __DIR__ . '/tests/fixtures')],
     suites:  [new SuiteConfig(name: 'Feature', location: ['tests/Feature'])],
 );
-```
-
-```php
-use Testo\Attribute\Test;
-use Testo\Bridge\VCR;
-
-#[Test]
-#[VCR('github-user')]
-public function fetches_a_user(): void
-{
-    $json = \file_get_contents('https://api.github.com/users/roxblnfk');
-    // asserts...
-}
 ```
 
 ## Install
