@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\Plugin\SuitePlugins;
 use Testo\Application\Config\SuiteConfig;
-use Testo\Bridge\Vcr\VcrPlugin;
+use Testo\Bridge\VCR\VcrPlugin;
 
 return [
     new SuiteConfig(

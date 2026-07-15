@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Testo\Bridge;
 
-use Testo\Bridge\Vcr\Internal\VcrInterceptor;
-use Testo\Bridge\Vcr\Matcher;
-use Testo\Bridge\Vcr\RecordMode;
+use Testo\Bridge\VCR\Internal\VcrInterceptor;
+use Testo\Bridge\VCR\Matcher;
+use Testo\Bridge\VCR\RecordMode;
 use Testo\Pipeline\Attribute\FallbackInterceptor;
 use Testo\Pipeline\Attribute\Interceptable;
 
@@ -17,8 +17,8 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * ```php
  *  use Testo\Bridge\VCR;
- *  use Testo\Bridge\Vcr\Matcher;
- *  use Testo\Bridge\Vcr\RecordMode;
+ *  use Testo\Bridge\VCR\Matcher;
+ *  use Testo\Bridge\VCR\RecordMode;
  *
  *  #[VCR('github-user', mode: RecordMode::None, match: [Matcher::Method, Matcher::Url, Matcher::Body])]
  *  public function testFetchesUser(): void
@@ -39,7 +39,7 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * The attribute is self-wiring: it is {@see Interceptable}, so {@see VcrInterceptor} is inserted into
  * the pipeline (at its own order) only for tests that carry it — no plugin registration needed.
- * Register {@see \Testo\Bridge\Vcr\VcrPlugin} only to point php-vcr at a non-default cassette path.
+ * Register {@see \Testo\Bridge\VCR\VcrPlugin} only to point php-vcr at a non-default cassette path.
  *
  * @api
  */

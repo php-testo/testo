@@ -30,7 +30,7 @@
 ```php
 use Testo\Attribute\Test;
 use Testo\Bridge\VCR;
-use Testo\Bridge\Vcr\RecordMode;
+use Testo\Bridge\VCR\RecordMode;
 
 #[Test]
 #[VCR('github-user', mode: RecordMode::None)]
@@ -47,7 +47,7 @@ Register `VcrPlugin` only to point php-vcr at a non-default cassette directory:
 // testo.php
 use Testo\Application\Config\ApplicationConfig;
 use Testo\Application\Config\SuiteConfig;
-use Testo\Bridge\Vcr\VcrPlugin;
+use Testo\Bridge\VCR\VcrPlugin;
 
 return new ApplicationConfig(
     plugins: [new VcrPlugin(cassettePath: __DIR__ . '/tests/fixtures')],

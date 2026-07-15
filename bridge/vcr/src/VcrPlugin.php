@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Vcr;
+namespace Testo\Bridge\VCR;
 
 use Internal\Container\Container;
 use Testo\Common\PluginConfigurator;

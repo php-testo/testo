@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Vcr;
+namespace Testo\Bridge\VCR;
 
 /**
  * How PHP-VCR treats the cassette while a {@see \Testo\Bridge\VCR}-tagged test runs.

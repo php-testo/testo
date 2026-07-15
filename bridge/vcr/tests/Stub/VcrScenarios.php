@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Tests\Bridge\Vcr\Stub;
+namespace Tests\Bridge\VCR\Stub;
 
 use Testo\Assert;
-use Testo\Bridge\Vcr\RecordMode;
+use Testo\Bridge\VCR\RecordMode;
 use Testo\Bridge\VCR;
 use Testo\Test;
 

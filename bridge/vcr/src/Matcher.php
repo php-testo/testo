@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Vcr;
+namespace Testo\Bridge\VCR;
 
 /**
  * A request attribute that must line up between a recorded interaction and an outgoing request for

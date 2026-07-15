@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Tests\Bridge\Vcr\Feature;
+namespace Tests\Bridge\VCR\Feature;
 
 use Testo\Assert;
-use Testo\Bridge\Vcr\Internal\VcrInterceptor;
-use Testo\Bridge\Vcr\VcrPlugin;
+use Testo\Bridge\VCR\Internal\VcrInterceptor;
+use Testo\Bridge\VCR\VcrPlugin;
 use Testo\Bridge\VCR;
 use Testo\Codecov\Covers;
 use Testo\Core\Value\Status;
 use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner;
-use Tests\Bridge\Vcr\Stub\VcrScenarios;
+use Tests\Bridge\VCR\Stub\VcrScenarios;
 
 /**
  * How the VCR bridge maps onto Testo's test statuses. Each case runs a stub scenario through

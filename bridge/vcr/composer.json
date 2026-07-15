@@ -35,12 +35,15 @@
     },
     "autoload": {
         "psr-4": {
-            "Testo\\Bridge\\": "src/"
-        }
+            "Testo\\Bridge\\VCR\\": "src/"
+        },
+        "files": [
+            "VCR.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\Bridge\\Vcr\\": "tests/"
+            "Tests\\Bridge\\VCR\\": "tests/"
         }
     },
     "minimum-stability": "dev",

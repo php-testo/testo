@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Vcr\Internal;
+namespace Testo\Bridge\VCR\Internal;
 
-use Testo\Bridge\Vcr\Matcher;
 use Testo\Bridge\VCR;
+use Testo\Bridge\VCR\Matcher;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Pipeline\Attribute\InterceptorOptions;
@@ -38,7 +38,7 @@ use VCR\VCR as PhpVcr;
  * the invariant and fails loudly if a `#[VCR]` window is entered while another is already open.
  *
  * @internal
- * @psalm-internal Testo\Bridge\Vcr
+ * @psalm-internal Testo\Bridge\VCR
  */
 #[InterceptorOptions(
     order: InterceptorOptions::ORDER_CLOSE_TO_TEST,
