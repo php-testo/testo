@@ -31,4 +31,14 @@ final class ClassLevelCassetteTest
     {
         Assert::same(\file_get_contents('https://api.example.test/hello'), '{"message":"hello from cassette"}');
     }
+
+    /**
+     * A method-level {@see VCR} overrides the class-level default (ConflictPolicy::Last), so this
+     * replays `other.yml` rather than the class's `hello.yml`.
+     */
+    #[VCR('other.yml', mode: RecordMode::None)]
+    public function methodLevelOverridesClassDefault(): void
+    {
+        Assert::same(\file_get_contents('https://api.example.test/other'), '{"message":"override"}');
+    }
 }

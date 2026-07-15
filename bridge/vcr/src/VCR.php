@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Testo\Bridge;
 
+use Testo\Bridge\Vcr\Internal\VcrInterceptor;
 use Testo\Bridge\Vcr\Matcher;
 use Testo\Bridge\Vcr\RecordMode;
+use Testo\Pipeline\Attribute\FallbackInterceptor;
+use Testo\Pipeline\Attribute\Interceptable;
 
 /**
  * Marks a test (or a whole test case) as replayed through PHP-VCR: HTTP interactions made during the
@@ -34,12 +37,15 @@ use Testo\Bridge\Vcr\RecordMode;
  * locked. Consequently a `#[VCR]` test must be synchronous: awaiting real async work inside it is
  * unsupported, and two `#[VCR]` tests can never overlap.
  *
- * Requires {@see \Testo\Bridge\Vcr\VcrPlugin} to be registered in the suite.
+ * The attribute is self-wiring: it is {@see Interceptable}, so {@see VcrInterceptor} is inserted into
+ * the pipeline (at its own order) only for tests that carry it — no plugin registration needed.
+ * Register {@see \Testo\Bridge\Vcr\VcrPlugin} only to point php-vcr at a non-default cassette path.
  *
  * @api
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
-final readonly class VCR
+#[FallbackInterceptor(VcrInterceptor::class)]
+final readonly class VCR implements Interceptable
 {
     /**
      * Request attributes that must match for a recording to be replayed.

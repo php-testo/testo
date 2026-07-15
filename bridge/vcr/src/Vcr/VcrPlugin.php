@@ -5,16 +5,14 @@ declare(strict_types=1);
 namespace Testo\Bridge\Vcr;
 
 use Internal\Container\Container;
-use Testo\Bridge\Vcr\Internal\VcrInterceptor;
 use Testo\Common\PluginConfigurator;
-use Testo\Pipeline\InterceptorCollector;
 use VCR\VCR as PhpVcr;
 
 /**
- * Plugin that drives PHP-VCR for tests annotated with {@see \Testo\Bridge\VCR}.
+ * Optional plugin for the PHP-VCR bridge.
  *
- * Register it in your {@see \Testo\Application\Config\ApplicationConfig} `$plugins` list (or on a
- * single {@see \Testo\Application\Config\SuiteConfig}):
+ * The {@see \Testo\Bridge\VCR} attribute is self-wiring (it is `Interceptable`), so `#[VCR]` tests work
+ * without any plugin. Register this plugin only to point php-vcr at a non-default cassette directory:
  *
  * ```php
  * // testo.php
@@ -23,9 +21,6 @@ use VCR\VCR as PhpVcr;
  *     suites:  [new SuiteConfig(name: 'Feature', location: ['tests/Feature'])],
  * );
  * ```
- *
- * Once registered, every test carrying `#[VCR('cassette')]` runs with the named cassette inserted:
- * HTTP interactions are recorded on the first run and replayed on subsequent runs.
  *
  * @api
  */
@@ -44,6 +39,5 @@ final readonly class VcrPlugin implements PluginConfigurator
     public function configure(Container $container): void
     {
         $this->cassettePath === null or PhpVcr::configure()->setCassettePath($this->cassettePath);
-        $container->get(InterceptorCollector::class)->addInterceptor(new VcrInterceptor());
     }
 }
