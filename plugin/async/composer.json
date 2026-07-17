@@ -1,0 +1,47 @@
+{
+    "name": "testo/async",
+    "description": "Fiber/coroutine execution plugin for the Testo testing framework, powered by Revolt.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "async",
+        "fiber",
+        "coroutine",
+        "revolt",
+        "concurrency"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "revolt/event-loop": "^1.0",
+        "testo/testo": "0.10.20 - 1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Async\\": "src/"
+        },
+        "files": [
+            "Async.php",
+            "Concurrent.php"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}
