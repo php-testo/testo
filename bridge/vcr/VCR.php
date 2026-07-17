@@ -55,7 +55,8 @@ final readonly class VCR implements Interceptable
     public array $match;
 
     /**
-     * @param string $name Cassette name — the interaction store PHP-VCR reads from and records to.
+     * @param non-empty-string $name Cassette name — the interaction store PHP-VCR reads from and
+     *        records to. Required.
      * @param RecordMode|null $mode Record mode for this test; `null` inherits php-vcr's global default
      *        ({@see RecordMode::NewEpisodes}).
      * @param list<Matcher> $match Request matchers for this test; an empty list inherits php-vcr's
