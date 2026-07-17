@@ -13,22 +13,19 @@ namespace Testo\Async;
 enum Strategy
 {
     /**
-     * Run each test to completion before starting the next, all within one shared loop run.
+     * Run each test to completion before starting the next (Testo's default order) — a pass-through.
      */
     case Sequential;
 
     /**
-     * Give each runnable test one step per round at its cooperative suspension points.
-     *
-     * @todo Not yet implemented; requires a cooperative reschedule primitive.
+     * Interleave the case's tests: one step per ready test each round, in order, switching at
+     * {@see \Testo\Async\Coroutine::reschedule()} points.
      */
     case RoundRobin;
 
     /**
-     * Resume a random runnable test at each cooperative suspension point, to shake out
-     * order-dependent races.
-     *
-     * @todo Not yet implemented; requires a cooperative reschedule primitive.
+     * Interleave the case's tests by stepping a random ready test each round, to shake out
+     * order-dependent races. Non-seeded for now, so runs are not reproducible.
      */
     case Random;
 }

@@ -32,10 +32,6 @@ use Testo\Pipeline\Policy\ConflictPolicy;
 #[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST, onConflict: ConflictPolicy::Last)]
 final readonly class AsyncRunInterceptor implements TestRunInterceptor
 {
-    public function __construct(
-        private Async $options,
-    ) {}
-
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {

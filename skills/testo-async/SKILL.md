@@ -11,8 +11,8 @@ Fetch `https://php-testo.github.io/llms.txt` for the current attribute namespace
 
 | Attribute | Level | Purpose |
 |---|---|---|
-| `#[Async]` | method / class | Run the test as its own isolated coroutine on the event loop. |
-| `#[Concurrent(Strategy)]` | class | Case-level scheduling entry point. **v1: `Strategy::Sequential` only, as a pass-through.** |
+| `#[Async]` | method / class | Run the test as its own isolated coroutine on the Revolt event loop (for real async I/O). |
+| `#[Concurrent(Strategy)]` | class | Schedule the case's tests: `Sequential` (default order), or `RoundRobin` / `Random` cooperative interleaving. |
 
 ## `#[Async]` — the one you almost always want
 
@@ -41,21 +41,27 @@ public function fetchesConcurrently(): void
 
 ```php
 use Testo\Concurrent;
+use Testo\Async\Coroutine;
 use Testo\Async\Strategy;
 
 #[Test]
-#[Concurrent(Strategy::Sequential)]
-final class ClientTest { /* ... */ }
+#[Concurrent(Strategy::RoundRobin)]
+final class RaceTest
+{
+    public function writer(): void { self::$shared[] = 1; Coroutine::reschedule(); self::$shared[] = 2; }
+    public function reader(): void { Coroutine::reschedule(); Assert::count(self::$shared, 1); }
+}
 ```
 
-- `Strategy` enum (`Testo\Async\Strategy`): `Sequential`, `RoundRobin`, `Random`.
-- **v1 reality**: only `Sequential` is implemented, and it is a **pass-through** (tests run one after another — Testo's default order). A method-level `#[Async]` inside a `#[Concurrent]` case still gets its own coroutine and wins locally.
-- `RoundRobin` / `Random` throw a `LogicException` ("not implemented yet") rather than silently degrading — do not use them yet.
+- `Strategy` enum (`Testo\Async\Strategy`): `Sequential` (default order, pass-through), `RoundRobin` (one step per ready test each round), `Random` (a random ready test each round — non-seeded, not reproducible yet).
+- `RoundRobin` / `Random` interleave the case's tests on **plain fibers**, switching only at `Coroutine::reschedule()` points. Put `reschedule()` where a context switch should be allowed. Per-test assertion state stays isolated across the interleave.
+- Interleaving is for shaking out order-dependent races in cooperative code — **not** for real async I/O.
 
 ## Pitfalls
 
 - **`#[Async]` is required to await.** A test that calls `Future::await()` / `EventLoop::getSuspension()->suspend()` without `#[Async]` will still run on the main fiber and may deadlock or terminate the loop without resuming. Add `#[Async]`.
-- **Do not `await` inside a `#[Concurrent]` case (without `#[Async]` on the method) yet.** v1 sequential is a pass-through; a real shared-loop run is blocked on making Testo's fiber-aware scoped-state guards (assertion collector, messenger scope) Revolt-compatible. Await through a per-method `#[Async]` instead.
+- **Interleaving is cooperative and Revolt-free.** Under `#[Concurrent(RoundRobin|Random)]` do NOT await real async work and do NOT put `#[Async]` on the methods — the scheduler runs plain fibers and switches only at `reschedule()`. For real async I/O use `#[Async]` (with `Strategy::Sequential`, or no `#[Concurrent]` at all). A shared Revolt-loop run for a whole case is still blocked on making Testo's fiber-aware guards Revolt-compatible.
+- **`reschedule()` is a no-op outside interleaving.** Safe to call in any test; it only yields under `#[Concurrent(RoundRobin|Random)]`.
 - **One coroutine per executed instance.** `#[Async]` sits closest to the test, so `#[Retry]`/`#[Repeat]`/data-provider wrap it — each attempt / dataset gets a fresh loop drive.
 - **Leaked watchers are a smell.** A `repeat()`/timer/stream watcher left enabled when the test returns lives on the process-global loop; cancel what you register.
 - Revolt is the reactor only — futures, channels, HTTP clients live in **amphp** on top of it. Pull in the amphp package you need as a dev dependency.
