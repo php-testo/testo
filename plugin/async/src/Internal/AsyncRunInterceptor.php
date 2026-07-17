@@ -17,17 +17,19 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  *
  * The test body is launched as a microtask (its own loop fiber) and the current fiber blocks on a
  * {@see \Revolt\EventLoop\Suspension} until it completes, so the test may await real async work while
- * staying, from the outside, an ordinary blocking call. The very same code works standalone (the main
- * fiber's `suspend()` runs the loop) and under a {@see \Testo\Concurrent} case run (a nested fiber's
- * `suspend()` yields to the already-running loop) — distinct fibers get distinct suspensions.
+ * staying, from the outside, an ordinary blocking call.
  *
- * Sits at {@see InterceptorOptions::ORDER_DEFAULT}, i.e. outside the assertion collector, so scoped
- * state guards run inside the loop fiber and stay correct across suspensions.
+ * Sits at {@see InterceptorOptions::ORDER_CLOSE_TO_TEST}, i.e. **inside** the fiber-aware scoped-state
+ * guards (assertion collector, messenger output scope). Those guards must stay on their synchronous
+ * path (they run on the main fiber, `\Fiber::getCurrent() === null`) — if they were inside this loop
+ * drive they would wrap the test in a nested plain `\Fiber` and re-suspend to their own parent,
+ * which is incompatible with Revolt's driver resuming that same fiber (fiber deadlock). Keeping this
+ * interceptor closest to the test lets the Revolt-managed test fiber suspend straight to the driver.
  *
  * @internal
  * @psalm-internal Testo\Async
  */
-#[InterceptorOptions(order: InterceptorOptions::ORDER_DEFAULT, onConflict: ConflictPolicy::Last)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST, onConflict: ConflictPolicy::Last)]
 final readonly class AsyncRunInterceptor implements TestRunInterceptor
 {
     public function __construct(

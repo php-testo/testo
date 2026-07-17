@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Testo\Async\Internal;
 
-use Revolt\EventLoop;
 use Testo\Async\Strategy;
 use Testo\Concurrent;
 use Testo\Core\Context\CaseInfo;
@@ -14,12 +13,18 @@ use Testo\Pipeline\Middleware\TestCaseRunInterceptor;
 use Testo\Pipeline\Policy\ConflictPolicy;
 
 /**
- * Runs a whole {@see Concurrent} test case within one shared Revolt event-loop run.
+ * Wires a {@see Concurrent} test case to a scheduling {@see Strategy}.
  *
- * v1 implements {@see Strategy::Sequential}: the case's normal sequential run is wrapped in a single
- * loop drive, so every test shares one loop lifetime and may await while still executing one after
- * another. Interleaving strategies (RoundRobin/Random) need a cooperative scheduler that replaces the
- * sequential run and re-emits the case events — not yet implemented, so requesting one fails loudly.
+ * v1 implements {@see Strategy::Sequential} as a pass-through: the case runs one test after another
+ * (Testo's default order), and any test individually marked {@see \Testo\Async} still gets its own
+ * coroutine via {@see AsyncRunInterceptor}. A single shared loop run for the whole case is deliberately
+ * NOT taken yet: it would place the case inside one loop fiber, forcing Testo's fiber-aware scoped
+ * state guards (assertion collector, messenger scope) onto their nested-fiber path, which deadlocks
+ * against Revolt resuming those same fibers. Making the guards Revolt-compatible is the prerequisite
+ * for the shared-loop interleaving strategies.
+ *
+ * Interleaving strategies (RoundRobin/Random) need that cooperative scheduler and are not implemented,
+ * so requesting one fails loudly rather than silently degrading to sequential.
  *
  * @internal
  * @psalm-internal Testo\Async
@@ -34,21 +39,12 @@ final readonly class ConcurrentRunInterceptor implements TestCaseRunInterceptor
     #[\Override]
     public function runTestCase(CaseInfo $info, callable $next): CaseResult
     {
-        $this->options->strategy === Strategy::Sequential or throw new \LogicException(
-            \sprintf('Concurrent strategy "%s" is not implemented yet.', $this->options->strategy->name),
-        );
+        $this->options->strategy === Strategy::Sequential
+            or throw new \LogicException(\sprintf(
+                'Concurrent strategy "%s" is not implemented yet.',
+                $this->options->strategy->name,
+            ));
 
-        $suspension = EventLoop::getSuspension();
-
-        EventLoop::queue(static function () use ($suspension, $next, $info): void {
-            try {
-                $suspension->resume($next($info));
-            } catch (\Throwable $e) {
-                $suspension->throw($e);
-            }
-        });
-
-        /** @var CaseResult */
-        return $suspension->suspend();
+        return $next($info);
     }
 }

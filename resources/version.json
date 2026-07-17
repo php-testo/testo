@@ -12,6 +12,7 @@
     "plugin/bench": "0.1.6",
     "plugin/codecov": "0.1.11",
     "plugin/facade": "0.1.1",
+    "plugin/async": "0.0.0",
     "bridge/symfony-console": "0.1.8",
     "bridge/infection": "0.1.8",
     "bridge/mockery": "0.1.1",

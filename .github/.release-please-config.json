@@ -83,6 +83,12 @@
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
+        "plugin/async": {
+            "package-name": "testo/async",
+            "component": "async",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
         "bridge/symfony-console": {
             "package-name": "testo/bridge-symfony-console",
             "component": "bridge-symfony-console",
