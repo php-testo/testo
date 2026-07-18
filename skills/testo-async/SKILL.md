@@ -17,6 +17,7 @@ Fetch `https://php-testo.github.io/llms.txt` for the current attribute namespace
 ## `#[Async]` — the one you almost always want
 
 ```php
+use Testo\Assert;
 use Testo\Async;
 use Testo\Test;
 use Revolt\EventLoop;
@@ -40,6 +41,7 @@ public function fetchesConcurrently(): void
 ## `#[Concurrent]` — case-level scheduling
 
 ```php
+use Testo\Assert;
 use Testo\Concurrent;
 use Testo\Async\Coroutine;
 use Testo\Async\Strategy;

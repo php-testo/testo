@@ -24,9 +24,9 @@ use Testo\Pipeline\Attribute\Interceptable;
  * ```
  *
  * **The window is isolated.** The test's fiber is driven to completion on its own loop run and no
- * other test overlaps it. This holds even under a class-level {@see Concurrent}: an `#[Async]` test is
- * pulled out of the shared interleaving and runs as its own solo, self-contained coroutine. From the
- * outside `#[Async]` stays an ordinary blocking call — nothing suspends past it.
+ * other test overlaps it. From the outside `#[Async]` stays an ordinary blocking call — nothing
+ * suspends past it. Do not combine `#[Async]` with a non-sequential {@see Concurrent} on the same
+ * case: that scheduler interleaves plain fibers and does not drive the Revolt loop.
  *
  * Placed on a class it becomes the default for every test method; a method-level attribute overrides
  * it.

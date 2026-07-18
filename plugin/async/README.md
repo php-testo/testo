@@ -27,8 +27,8 @@
 
 Runs tests as fibers/coroutines on the process-global [Revolt](https://revolt.run) event loop, so a test may suspend on plain fibers *and* await real async work (timers, streams, amphp libraries) without blocking the process.
 
-- `#[Async]` — run a single test as its own isolated coroutine.
-- `#[Concurrent]` — run all tests of a case within one shared event-loop run, per a scheduling strategy.
+- `#[Async]` — run a single test as its own isolated coroutine on the Revolt event loop (for real async I/O).
+- `#[Concurrent]` — schedule a case's tests: sequential (default) or cooperative `RoundRobin` / `Random` interleaving on plain fibers, to shake out order-dependent races.
 
 ## Install
 
