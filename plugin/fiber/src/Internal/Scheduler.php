@@ -10,9 +10,9 @@ use Testo\Fiber\Schedule;
  * Cooperative fiber scheduler for {@see \Testo\Fiber\RunInFiber}.
  *
  * Drives a set of test fibers to completion on **plain fibers** (no event loop), switching between
- * them only at {@see \Testo\Fiber\Coroutine::reschedule()} / `\Fiber::suspend()` points. This uses
- * Testo's fiber-aware guard protocol (each guard re-suspends to its parent and swaps scoped state
- * around the switch), so per-test assertion/messenger state stays isolated across an interleave.
+ * them only where the running fiber calls `\Fiber::suspend()`. This uses Testo's fiber-aware guard
+ * protocol (each guard re-suspends to its parent and swaps scoped state around the switch), so
+ * per-test assertion/messenger state stays isolated across an interleave.
  *
  * @internal
  * @psalm-internal Testo\Fiber
@@ -22,7 +22,8 @@ final class Scheduler
     private static int $depth = 0;
 
     /**
-     * Whether a scheduler is currently driving (so `reschedule()` should actually yield).
+     * Whether a scheduler is currently driving (used by the interceptor to avoid re-wrapping a test
+     * that is already being scheduled).
      */
     public static function active(): bool
     {

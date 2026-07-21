@@ -6,7 +6,6 @@ namespace Tests\Fiber\Self;
 
 use Testo\Assert;
 use Testo\Codecov\Covers;
-use Testo\Fiber\Coroutine;
 use Testo\Fiber\Internal\RunInFiberInterceptor;
 use Testo\Fiber\Internal\Scheduler;
 use Testo\Fiber\RunInFiber;
@@ -15,7 +14,7 @@ use Testo\Test;
 
 /**
  * Self-test: `#[RunInFiber(Schedule::RoundRobin)]` interleaves the case's tests end-to-end through the
- * real pipeline, switching at {@see Coroutine::reschedule()} points. The shared log proves the second
+ * real pipeline, switching wherever a test calls `\Fiber::suspend()`. The shared log proves the second
  * test takes a step between the first test's two steps, and each test's own assertions stay isolated.
  */
 #[Test]
@@ -31,7 +30,7 @@ final class InterleaveTest
     public function first(): void
     {
         self::$log[] = 'first.1';
-        Coroutine::reschedule();
+        \Fiber::suspend();
         self::$log[] = 'first.2';
 
         # Round-robin: after the yield, "second" has had its first step in between.
@@ -41,7 +40,7 @@ final class InterleaveTest
     public function second(): void
     {
         self::$log[] = 'second.1';
-        Coroutine::reschedule();
+        \Fiber::suspend();
         self::$log[] = 'second.2';
 
         Assert::same(self::$log, ['first.1', 'second.1', 'first.2', 'second.2']);

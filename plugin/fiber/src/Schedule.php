@@ -19,8 +19,8 @@ enum Schedule
     case Solo;
 
     /**
-     * Interleave the case's tests: one step per ready test each round, in order, switching at
-     * {@see Coroutine::reschedule()} points.
+     * Interleave the case's tests: one step per ready test each round, in order, switching wherever a
+     * test's fiber calls `\Fiber::suspend()`.
      */
     case RoundRobin;
 

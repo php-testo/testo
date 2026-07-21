@@ -25,7 +25,7 @@
 
 ## About
 
-Runs tests as plain PHP fibers driven by Testo's own cooperative scheduler, so a test may suspend (`\Fiber::suspend()`, `Coroutine::reschedule()`) and be resumed, and a case's tests may be interleaved to shake out order-dependent races.
+Runs tests as plain PHP fibers driven by Testo's own cooperative scheduler, so a test (or the code it exercises) may suspend with `\Fiber::suspend()` and be resumed, and a case's tests may be interleaved to shake out order-dependent races.
 
 - `#[RunInFiber]` — run a test (method) or a whole case (class) inside fibers, scheduled by `Schedule::Solo` (default), `RoundRobin` or `Random`.
 

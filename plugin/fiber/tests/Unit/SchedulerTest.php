@@ -6,17 +6,16 @@ namespace Tests\Fiber\Unit;
 
 use Testo\Assert;
 use Testo\Codecov\Covers;
-use Testo\Fiber\Coroutine;
 use Testo\Fiber\Internal\Scheduler;
 use Testo\Fiber\Schedule;
 use Testo\Test;
 
 /**
- * Unit checks for the cooperative fiber scheduler driving `#[RunInFiber]`.
+ * Unit checks for the cooperative fiber scheduler driving `#[RunInFiber]`. Test fibers hand control
+ * back to the scheduler by calling `\Fiber::suspend()`.
  */
 #[Test]
 #[Covers(Scheduler::class)]
-#[Covers(Coroutine::class)]
 final class SchedulerTest
 {
     public function soloRunsEachFiberToCompletionInOrder(): void
@@ -25,7 +24,7 @@ final class SchedulerTest
         $make = function (string $id) use (&$log): \Fiber {
             return new \Fiber(function () use ($id, &$log): void {
                 $log[] = "$id.1";
-                Coroutine::reschedule();
+                \Fiber::suspend();
                 $log[] = "$id.2";
             });
         };
@@ -33,17 +32,17 @@ final class SchedulerTest
         $errors = Scheduler::run([$make('a'), $make('b')], Schedule::Solo);
 
         Assert::same($errors, []);
-        # No interleaving: 'a' finishes before 'b' starts, reschedule() just resumes the same fiber.
+        # No interleaving: 'a' finishes before 'b' starts, the suspend just resumes the same fiber.
         Assert::same($log, ['a.1', 'a.2', 'b.1', 'b.2']);
     }
 
-    public function roundRobinInterleavesAtReschedulePoints(): void
+    public function roundRobinInterleavesAtSuspendPoints(): void
     {
         $log = [];
         $make = function (string $id) use (&$log): \Fiber {
             return new \Fiber(function () use ($id, &$log): void {
                 $log[] = "$id.1";
-                Coroutine::reschedule();
+                \Fiber::suspend();
                 $log[] = "$id.2";
             });
         };
@@ -59,7 +58,7 @@ final class SchedulerTest
         $done = [];
         $make = function (string $id) use (&$done): \Fiber {
             return new \Fiber(function () use ($id, &$done): void {
-                Coroutine::reschedule();
+                \Fiber::suspend();
                 $done[] = $id;
             });
         };
@@ -82,18 +81,9 @@ final class SchedulerTest
         Assert::instanceOf($errors[1], \RuntimeException::class);
     }
 
-    public function rescheduleIsInactiveOutsideTheScheduler(): void
+    public function activeIsFalseOutsideARun(): void
     {
-        # Outside Scheduler::run there is no active scheduler, so reschedule() must be a no-op even
-        # inside a fiber (it must not suspend and strand the caller).
-        $fiber = new \Fiber(static function (): string {
-            Coroutine::reschedule();
-            return 'done';
-        });
-        $fiber->start();
-
+        # Scheduler::active() gates the interceptor's pass-through; it must be false when nothing runs.
         Assert::false(Scheduler::active());
-        Assert::true($fiber->isTerminated());
-        Assert::same($fiber->getReturn(), 'done');
     }
 }
