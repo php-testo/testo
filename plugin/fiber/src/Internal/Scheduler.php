@@ -2,28 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Testo\Async\Internal;
+namespace Testo\Fiber\Internal;
 
-use Testo\Async\Strategy;
+use Testo\Fiber\Schedule;
 
 /**
- * Cooperative fiber scheduler for interleaving strategies of {@see \Testo\Async\Concurrent}.
+ * Cooperative fiber scheduler for {@see \Testo\Fiber\RunInFiber}.
  *
- * Drives a set of test fibers to completion on **plain fibers** (no Revolt), switching between them
- * only at {@see \Testo\Async\Coroutine::reschedule()} points. This deliberately uses Testo's existing
- * fiber-aware guard protocol (each guard re-suspends to its parent and swaps scoped state around the
- * switch), so per-test assertion/messenger state stays isolated across the interleave — and it avoids
- * the Revolt driver-ownership conflict that blocks a shared event-loop run.
+ * Drives a set of test fibers to completion on **plain fibers** (no event loop), switching between
+ * them only at {@see \Testo\Fiber\Coroutine::reschedule()} / `\Fiber::suspend()` points. This uses
+ * Testo's fiber-aware guard protocol (each guard re-suspends to its parent and swaps scoped state
+ * around the switch), so per-test assertion/messenger state stays isolated across an interleave.
  *
  * @internal
- * @psalm-internal Testo\Async
+ * @psalm-internal Testo\Fiber
  */
 final class Scheduler
 {
     private static int $depth = 0;
 
     /**
-     * Whether a cooperative scheduler is currently driving (so `reschedule()` should actually yield).
+     * Whether a scheduler is currently driving (so `reschedule()` should actually yield).
      */
     public static function active(): bool
     {
@@ -31,23 +30,36 @@ final class Scheduler
     }
 
     /**
-     * Drive the given test fibers to completion under a cooperative {@see Strategy}.
+     * Drive the given test fibers to completion under a {@see Schedule}.
      *
+     * - `OneByOne`: run each fiber to completion (resuming its own suspends) before the next.
      * - `RoundRobin`: one step per ready fiber each round, in order.
      * - `Random`: one step of a random ready fiber each round.
      *
      * @param list<\Fiber> $fibers
      * @return array<int, \Throwable> Throwables thrown by fibers, keyed by fiber index (others done).
      */
-    public static function run(array $fibers, Strategy $strategy): array
+    public static function run(array $fibers, Schedule $schedule): array
     {
         ++self::$depth;
         $errors = [];
         try {
+            if ($schedule === Schedule::OneByOne) {
+                foreach (\array_keys($fibers) as $i) {
+                    // Drive this fiber to completion (resuming its own cooperative suspends) before
+                    // moving on — no other fiber overlaps it.
+                    while (!$fibers[$i]->isTerminated()) {
+                        self::step($fibers, $i, $errors);
+                    }
+                }
+
+                return $errors;
+            }
+
             $ready = \array_keys($fibers);
             while ($ready !== []) {
                 // RoundRobin steps every ready fiber this round; Random steps one random ready fiber.
-                $round = $strategy === Strategy::Random ? [$ready[\random_int(0, \count($ready) - 1)]] : $ready;
+                $round = $schedule === Schedule::Random ? [$ready[\random_int(0, \count($ready) - 1)]] : $ready;
                 foreach ($round as $i) {
                     self::step($fibers, $i, $errors);
                 }

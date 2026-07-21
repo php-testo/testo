@@ -1,15 +1,14 @@
 {
-    "name": "testo/async",
-    "description": "Fiber/coroutine execution plugin for the Testo testing framework, powered by Revolt.",
+    "name": "testo/fiber",
+    "description": "Fiber/coroutine execution plugin for the Testo testing framework: run tests as cooperatively-scheduled plain fibers.",
     "license": "BSD-3-Clause",
     "type": "library",
     "keywords": [
         "testo",
-        "async",
         "fiber",
         "coroutine",
-        "revolt",
-        "concurrency"
+        "concurrency",
+        "scheduler"
     ],
     "authors": [
         {
@@ -25,12 +24,11 @@
     ],
     "require": {
         "php": ">=8.2",
-        "revolt/event-loop": "^1.0",
         "testo/testo": "0.10.20 - 1"
     },
     "autoload": {
         "psr-4": {
-            "Testo\\Async\\": "src/"
+            "Testo\\Fiber\\": "src/"
         }
     },
     "minimum-stability": "dev",

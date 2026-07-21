@@ -2,24 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Testo\Async;
+namespace Testo\Fiber;
 
 /**
- * Scheduling strategy for a {@see Concurrent} test case — the order in which the case's tests
- * are resumed at cooperative suspension points.
+ * How the tests of a {@see RunInFiber} case are scheduled on Testo's cooperative fiber scheduler —
+ * i.e. in what order the test fibers get their turn.
  *
  * @api
  */
-enum Strategy
+enum Schedule
 {
     /**
-     * Run each test to completion before starting the next (Testo's default order) — a pass-through.
+     * Each test runs in its own fiber, driven to completion before the next one starts. No
+     * interleaving — the default.
      */
-    case Sequential;
+    case OneByOne;
 
     /**
      * Interleave the case's tests: one step per ready test each round, in order, switching at
-     * {@see \Testo\Async\Coroutine::reschedule()} points.
+     * {@see Coroutine::reschedule()} points.
      */
     case RoundRobin;
 

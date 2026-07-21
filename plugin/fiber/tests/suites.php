@@ -6,23 +6,23 @@ use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 
 /**
- * Test suites for the Async component.
+ * Test suites for the Fiber component.
  */
 return [
     new SuiteConfig(
-        name: 'Async/Unit',
+        name: 'Fiber/Unit',
         location: new FinderConfig(
             include: [__DIR__ . '/Unit'],
         ),
     ),
     new SuiteConfig(
-        name: 'Async/Feature',
+        name: 'Fiber/Feature',
         location: new FinderConfig(
             include: [__DIR__ . '/Feature'],
         ),
     ),
     new SuiteConfig(
-        name: 'Async/Self',
+        name: 'Fiber/Self',
         location: new FinderConfig(
             include: [__DIR__ . '/Self'],
         ),

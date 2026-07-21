@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Testo\Async\Internal;
+namespace Testo\Fiber\Internal;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Internal\Runner\TestRunner;
-use Testo\Async\Concurrent;
-use Testo\Async\Strategy;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\TestInfo;
@@ -16,47 +14,66 @@ use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
+use Testo\Fiber\RunInFiber;
+use Testo\Fiber\Schedule;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\TestCaseRunInterceptor;
+use Testo\Pipeline\Middleware\TestRunInterceptor;
 use Testo\Pipeline\Policy\ConflictPolicy;
 
 /**
- * Runs a {@see Concurrent} test case under a scheduling {@see Strategy}.
+ * Runs {@see RunInFiber} tests on Testo's cooperative fiber {@see Scheduler}.
  *
- * - `Sequential` is a pass-through — the case runs in Testo's default order via `$next`.
- * - `RoundRobin` / `Random` replace the sequential case loop with a cooperative {@see Scheduler}: each
- *   test runs in its own fiber and the scheduler interleaves them at
- *   {@see \Testo\Async\Coroutine::reschedule()} points. This runs on plain fibers (no Revolt), so tests
- *   interleave to shake out order-dependent races; awaiting real async work inside an interleaved test
- *   is unsupported — use `#[RunInCoroutine]` for that.
+ * Two levels, one attribute:
+ * - {@see runTestCase()} (class-level) replaces the case's test loop with the scheduler: one fiber per
+ *   test running the full per-test pipeline, driven per {@see Schedule} (`OneByOne` to completion, or
+ *   `RoundRobin` / `Random` interleaved). It re-emits the TestCase events and aggregates the
+ *   {@see CaseResult} like `CaseRunner::run`.
+ * - {@see runTest()} (method-level) wraps a single test in its own fiber. When the case interceptor is
+ *   already scheduling (a class-level `#[RunInFiber]`), it is a pass-through to avoid double-wrapping.
  *
- * Sits at {@see InterceptorOptions::ORDER_CLOSE_TO_TEST}, i.e. the innermost case interceptor (just
- * outside `CaseRunner::run`), so the lifecycle/DI case interceptors still wrap the whole case while the
- * interleaving strategies replace only the test loop (re-emitting the case events themselves).
+ * Sits at {@see InterceptorOptions::ORDER_CLOSE_TO_TEST} — the innermost interceptor, so lifecycle/DI
+ * still wrap the whole case while only the test loop / test body moves onto a fiber.
  *
  * @internal
- * @psalm-internal Testo\Async
+ * @psalm-internal Testo\Fiber
  */
 #[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST, onConflict: ConflictPolicy::Last)]
-final readonly class ConcurrentRunInterceptor implements TestCaseRunInterceptor
+final readonly class RunInFiberInterceptor implements TestRunInterceptor, TestCaseRunInterceptor
 {
     public function __construct(
-        private Concurrent $options,
+        private RunInFiber $options,
         private TestRunner $testRunner,
         private EventDispatcherInterface $eventDispatcher,
     ) {}
 
     #[\Override]
-    public function runTestCase(CaseInfo $info, callable $next): CaseResult
+    public function runTest(TestInfo $info, callable $next): TestResult
     {
-        // Sequential is Testo's default order — nothing to schedule, run the case as-is.
-        if ($this->options->strategy === Strategy::Sequential) {
+        // Under a class-level #[RunInFiber] the case interceptor already runs this test inside a
+        // scheduled fiber — don't wrap it again.
+        if (Scheduler::active()) {
             return $next($info);
         }
 
+        // Method-level #[RunInFiber] (no class scheduling): run this one test in its own fiber.
+        $fiber = new \Fiber(static fn(): TestResult => $next($info));
+        $errors = Scheduler::run([$fiber], Schedule::OneByOne);
+
+        if (\array_key_exists(0, $errors)) {
+            throw $errors[0];
+        }
+
+        /** @var TestResult */
+        return $fiber->getReturn();
+    }
+
+    #[\Override]
+    public function runTestCase(CaseInfo $info, callable $next): CaseResult
+    {
         $this->eventDispatcher->dispatch(new TestCaseStarting($info));
 
-        // One fiber per test, each running the full per-test pipeline; the scheduler interleaves them.
+        // One fiber per test, each running the full per-test pipeline; the scheduler drives them.
         $infos = [];
         $fibers = [];
         foreach ($info->definition->tests->getTests() as $name => $testDefinition) {
@@ -65,7 +82,7 @@ final readonly class ConcurrentRunInterceptor implements TestCaseRunInterceptor
             $fibers[] = new \Fiber(fn(): TestResult => $this->testRunner->runTest($testInfo));
         }
 
-        $errors = Scheduler::run($fibers, $this->options->strategy);
+        $errors = Scheduler::run($fibers, $this->options->schedule);
 
         $results = [];
         $status = Status::Passed;

@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Tests\Async\Self;
+namespace Tests\Fiber\Self;
 
 use Testo\Assert;
-use Testo\Async\Concurrent;
-use Testo\Async\Coroutine;
-use Testo\Async\Internal\ConcurrentRunInterceptor;
-use Testo\Async\Internal\Scheduler;
-use Testo\Async\Strategy;
 use Testo\Codecov\Covers;
+use Testo\Fiber\Coroutine;
+use Testo\Fiber\Internal\RunInFiberInterceptor;
+use Testo\Fiber\Internal\Scheduler;
+use Testo\Fiber\RunInFiber;
+use Testo\Fiber\Schedule;
 use Testo\Test;
 
 /**
- * Self-test: `#[Concurrent(RoundRobin)]` interleaves the case's tests end-to-end through the real
- * pipeline, switching at {@see Coroutine::reschedule()} points. The shared log proves the second test
- * takes a step between the first test's two steps, and each test's own assertions stay isolated.
+ * Self-test: `#[RunInFiber(Schedule::RoundRobin)]` interleaves the case's tests end-to-end through the
+ * real pipeline, switching at {@see Coroutine::reschedule()} points. The shared log proves the second
+ * test takes a step between the first test's two steps, and each test's own assertions stay isolated.
  */
 #[Test]
-#[Concurrent(Strategy::RoundRobin)]
-#[Covers(Concurrent::class)]
-#[Covers(ConcurrentRunInterceptor::class)]
+#[RunInFiber(Schedule::RoundRobin)]
+#[Covers(RunInFiber::class)]
+#[Covers(RunInFiberInterceptor::class)]
 #[Covers(Scheduler::class)]
-final class ConcurrentInterleaveTest
+final class InterleaveTest
 {
     /** @var list<string> */
     private static array $log = [];

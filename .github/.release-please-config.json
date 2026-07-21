@@ -83,9 +83,9 @@
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
-        "plugin/async": {
-            "package-name": "testo/async",
-            "component": "async",
+        "plugin/fiber": {
+            "package-name": "testo/fiber",
+            "component": "fiber",
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
