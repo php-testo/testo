@@ -1,0 +1,36 @@
+{
+    "name": "testo/bridge-revolt",
+    "description": "Revolt event-loop bridge for the Testo testing framework: run tests on the real event loop for async I/O.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "revolt",
+        "event-loop",
+        "async",
+        "amphp"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "revolt/event-loop": "^1.0",
+        "testo/testo": "0.10.20 - 1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Bridge\\Revolt\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}

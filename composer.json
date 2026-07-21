@@ -62,6 +62,7 @@
         "testo/bridge-infection": "^0.1.8",
         "testo/bridge-mockery": "^0.1.1",
         "testo/bridge-rector": "^0.2.0",
+        "testo/bridge-revolt": "^0.1",
         "testo/facade": "^0.1.1"
     },
     "suggest": {
@@ -89,6 +90,7 @@
             "Tests\\Bench\\": "plugin/bench/tests/",
             "Tests\\Bridge\\Mockery\\": "bridge/mockery/tests/",
             "Tests\\Bridge\\Rector\\": "bridge/rector/tests/",
+            "Tests\\Bridge\\Revolt\\": "bridge/revolt/tests/",
             "Tests\\Bridge\\SymfonyConsole\\": "bridge/symfony-console/tests/",
             "Tests\\Codecov\\": "plugin/codecov/tests/",
             "Tests\\Convention\\": "plugin/convention/tests/",
@@ -136,6 +138,7 @@
                     "testo/bridge-infection": "0.1.x-dev",
                     "testo/bridge-mockery": "0.1.x-dev",
                     "testo/bridge-rector": "0.2.x-dev",
+                    "testo/bridge-revolt": "0.1.x-dev",
                     "testo/bridge-symfony-console": "0.1.x-dev"
                 }
             }

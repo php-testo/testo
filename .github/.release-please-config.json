@@ -112,6 +112,12 @@
             "component": "bridge-rector",
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/revolt": {
+            "package-name": "testo/bridge-revolt",
+            "component": "bridge-revolt",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
         }
     },
     "bump-patch-for-minor-pre-major": true,

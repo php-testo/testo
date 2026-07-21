@@ -16,5 +16,6 @@
     "bridge/symfony-console": "0.1.8",
     "bridge/infection": "0.1.8",
     "bridge/mockery": "0.1.1",
-    "bridge/rector": "0.2.0"
+    "bridge/rector": "0.2.0",
+    "bridge/revolt": "0.0.0"
 }
