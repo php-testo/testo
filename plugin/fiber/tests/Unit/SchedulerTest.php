@@ -19,7 +19,7 @@ use Testo\Test;
 #[Covers(Coroutine::class)]
 final class SchedulerTest
 {
-    public function oneByOneRunsEachFiberToCompletionInOrder(): void
+    public function soloRunsEachFiberToCompletionInOrder(): void
     {
         $log = [];
         $make = function (string $id) use (&$log): \Fiber {
@@ -30,7 +30,7 @@ final class SchedulerTest
             });
         };
 
-        $errors = Scheduler::run([$make('a'), $make('b')], Schedule::OneByOne);
+        $errors = Scheduler::run([$make('a'), $make('b')], Schedule::Solo);
 
         Assert::same($errors, []);
         # No interleaving: 'a' finishes before 'b' starts, reschedule() just resumes the same fiber.

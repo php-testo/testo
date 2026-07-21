@@ -13,15 +13,15 @@ use Testo\Fiber\Schedule;
 use Testo\Test;
 
 /**
- * Self-test: `#[RunInFiber(Schedule::OneByOne)]` runs each test in its own fiber, one after another —
- * no interleaving. Each test executes inside a fiber, and `reschedule()` does not hand control to
+ * Self-test: `#[RunInFiber(Schedule::Solo)]` runs each test alone in its own fiber, one after another
+ * — no interleaving. Each test executes inside a fiber, and `reschedule()` does not hand control to
  * another test (the current one is driven to completion first).
  */
 #[Test]
-#[RunInFiber(Schedule::OneByOne)]
+#[RunInFiber(Schedule::Solo)]
 #[Covers(RunInFiber::class)]
 #[Covers(RunInFiberInterceptor::class)]
-final class OneByOneTest
+final class SoloTest
 {
     /** @var list<string> */
     private static array $log = [];
@@ -31,7 +31,7 @@ final class OneByOneTest
         Assert::notNull(\Fiber::getCurrent());
 
         self::$log[] = 'first.1';
-        Coroutine::reschedule(); // active but non-interleaving under OneByOne: resumes this same fiber
+        Coroutine::reschedule(); // active but non-interleaving under Solo: resumes this same fiber
         self::$log[] = 'first.2';
     }
 
@@ -39,7 +39,7 @@ final class OneByOneTest
     {
         Assert::notNull(\Fiber::getCurrent());
 
-        # OneByOne: "first" ran to completion before "second" started, despite the reschedule().
+        # Solo: "first" ran to completion before "second" started, despite the reschedule().
         Assert::same(self::$log, ['first.1', 'first.2']);
     }
 }

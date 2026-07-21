@@ -26,7 +26,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  *
  * Two levels, one attribute:
  * - {@see runTestCase()} (class-level) replaces the case's test loop with the scheduler: one fiber per
- *   test running the full per-test pipeline, driven per {@see Schedule} (`OneByOne` to completion, or
+ *   test running the full per-test pipeline, driven per {@see Schedule} (`Solo` to completion, or
  *   `RoundRobin` / `Random` interleaved). It re-emits the TestCase events and aggregates the
  *   {@see CaseResult} like `CaseRunner::run`.
  * - {@see runTest()} (method-level) wraps a single test in its own fiber. When the case interceptor is
@@ -58,7 +58,7 @@ final readonly class RunInFiberInterceptor implements TestRunInterceptor, TestCa
 
         // Method-level #[RunInFiber] (no class scheduling): run this one test in its own fiber.
         $fiber = new \Fiber(static fn(): TestResult => $next($info));
-        $errors = Scheduler::run([$fiber], Schedule::OneByOne);
+        $errors = Scheduler::run([$fiber], Schedule::Solo);
 
         if (\array_key_exists(0, $errors)) {
             throw $errors[0];

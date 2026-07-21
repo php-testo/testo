@@ -32,7 +32,7 @@ final class Scheduler
     /**
      * Drive the given test fibers to completion under a {@see Schedule}.
      *
-     * - `OneByOne`: run each fiber to completion (resuming its own suspends) before the next.
+     * - `Solo`: run each fiber to completion (resuming its own suspends) before the next.
      * - `RoundRobin`: one step per ready fiber each round, in order.
      * - `Random`: one step of a random ready fiber each round.
      *
@@ -44,7 +44,7 @@ final class Scheduler
         ++self::$depth;
         $errors = [];
         try {
-            if ($schedule === Schedule::OneByOne) {
+            if ($schedule === Schedule::Solo) {
                 foreach (\array_keys($fibers) as $i) {
                     // Drive this fiber to completion (resuming its own cooperative suspends) before
                     // moving on — no other fiber overlaps it.

@@ -12,7 +12,7 @@ Fetch `https://php-testo.github.io/llms.txt` for the current attribute namespace
 | Attribute | Level | Purpose |
 |---|---|---|
 | `#[RunInFiber]` | method | Run this test in its own fiber (so cooperative `\Fiber::suspend()` / `Coroutine::reschedule()` works). |
-| `#[RunInFiber(Schedule)]` | class | Schedule the case's tests: `OneByOne` (default), `RoundRobin` / `Random` cooperative interleaving. |
+| `#[RunInFiber(Schedule)]` | class | Schedule the case's tests: `Solo` (default), `RoundRobin` / `Random` cooperative interleaving. |
 
 Everything lives in the `Testo\Fiber\` namespace (`Testo\Fiber\RunInFiber`, `Testo\Fiber\Schedule`, `Testo\Fiber\Coroutine`).
 
@@ -36,7 +36,7 @@ public function drivesAFiber(): void
 ```
 
 - On a **method** it wraps just that test in a fiber. On a **class** it wraps every test of the case, scheduled by the `Schedule`.
-- Constructor (verified against `plugin/fiber/src/RunInFiber.php`): `Schedule $schedule = Schedule::OneByOne` (positional; class-level only — ignored on a single method).
+- Constructor (verified against `plugin/fiber/src/RunInFiber.php`): `Schedule $schedule = Schedule::Solo` (positional; class-level only — ignored on a single method).
 
 ## `#[RunInFiber(Schedule)]` — case-level interleaving
 
@@ -56,7 +56,7 @@ final class RaceTest
 }
 ```
 
-- `Schedule` enum (`Testo\Fiber\Schedule`): `OneByOne` (each test in its own fiber, to completion, no interleave — default), `RoundRobin` (one step per ready test each round), `Random` (a random ready test each round — non-seeded, not reproducible yet).
+- `Schedule` enum (`Testo\Fiber\Schedule`): `Solo` (each test in its own fiber, to completion, no interleave — default), `RoundRobin` (one step per ready test each round), `Random` (a random ready test each round — non-seeded, not reproducible yet).
 - `RoundRobin` / `Random` interleave the case's tests on plain fibers, switching only at `Coroutine::reschedule()` points. Put `reschedule()` where a context switch should be allowed. Per-test assertion state stays isolated across the interleave.
 
 ## Pitfalls

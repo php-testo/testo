@@ -28,7 +28,7 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * Levels:
  * - on a **method** — that test runs in its own fiber (the {@see Schedule} is irrelevant for one test);
- * - on a **class** — every test of the case is scheduled per {@see Schedule}: `OneByOne` (each test in
+ * - on a **class** — every test of the case is scheduled per {@see Schedule}: `Solo` (each test in
  *   its own fiber, one after another — the default), or `RoundRobin` / `Random` cooperative interleaving.
  *
  * Switching is **cooperative** and happens only at `\Fiber::suspend()` / `Coroutine::reschedule()`
@@ -50,6 +50,6 @@ final readonly class RunInFiber implements Interceptable
      *        single method).
      */
     public function __construct(
-        public Schedule $schedule = Schedule::OneByOne,
+        public Schedule $schedule = Schedule::Solo,
     ) {}
 }

@@ -27,7 +27,7 @@
 
 Runs tests as plain PHP fibers driven by Testo's own cooperative scheduler, so a test may suspend (`\Fiber::suspend()`, `Coroutine::reschedule()`) and be resumed, and a case's tests may be interleaved to shake out order-dependent races.
 
-- `#[RunInFiber]` — run a test (method) or a whole case (class) inside fibers, scheduled by `Schedule::OneByOne` (default), `RoundRobin` or `Random`.
+- `#[RunInFiber]` — run a test (method) or a whole case (class) inside fibers, scheduled by `Schedule::Solo` (default), `RoundRobin` or `Random`.
 
 Switching is cooperative and happens only at suspension points — there is no event loop and no preemption. This is for fiber-based/cooperative code and race hunting, **not** for real async I/O: awaiting a timer, socket or `Future` needs the Revolt event loop — use the `testo/bridge-revolt` `#[RunInRevolt]` attribute for that.
 

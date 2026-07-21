@@ -13,10 +13,10 @@ namespace Testo\Fiber;
 enum Schedule
 {
     /**
-     * Each test runs in its own fiber, driven to completion before the next one starts. No
-     * interleaving — the default.
+     * Each test runs alone in its own fiber, driven to completion before the next one starts — no
+     * other test interleaves it. The default.
      */
-    case OneByOne;
+    case Solo;
 
     /**
      * Interleave the case's tests: one step per ready test each round, in order, switching at

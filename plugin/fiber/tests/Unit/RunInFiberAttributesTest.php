@@ -19,9 +19,9 @@ use Testo\Test;
 #[Covers(Schedule::class)]
 final class RunInFiberAttributesTest
 {
-    public function defaultsToOneByOne(): void
+    public function defaultsToSolo(): void
     {
-        Assert::same((new RunInFiber())->schedule, Schedule::OneByOne);
+        Assert::same((new RunInFiber())->schedule, Schedule::Solo);
     }
 
     public function keepsGivenSchedule(): void
