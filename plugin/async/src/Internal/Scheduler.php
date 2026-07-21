@@ -7,7 +7,7 @@ namespace Testo\Async\Internal;
 use Testo\Async\Strategy;
 
 /**
- * Cooperative fiber scheduler for interleaving strategies of {@see \Testo\Concurrent}.
+ * Cooperative fiber scheduler for interleaving strategies of {@see \Testo\Async\Concurrent}.
  *
  * Drives a set of test fibers to completion on **plain fibers** (no Revolt), switching between them
  * only at {@see \Testo\Async\Coroutine::reschedule()} points. This deliberately uses Testo's existing

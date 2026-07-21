@@ -31,11 +31,7 @@
     "autoload": {
         "psr-4": {
             "Testo\\Async\\": "src/"
-        },
-        "files": [
-            "Async.php",
-            "Concurrent.php"
-        ]
+        }
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

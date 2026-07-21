@@ -6,8 +6,8 @@ namespace Testo\Async\Internal;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Internal\Runner\TestRunner;
+use Testo\Async\Concurrent;
 use Testo\Async\Strategy;
-use Testo\Concurrent;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\TestInfo;
@@ -28,7 +28,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  *   test runs in its own fiber and the scheduler interleaves them at
  *   {@see \Testo\Async\Coroutine::reschedule()} points. This runs on plain fibers (no Revolt), so tests
  *   interleave to shake out order-dependent races; awaiting real async work inside an interleaved test
- *   is unsupported — use `#[Async]` for that.
+ *   is unsupported — use `#[RunInCoroutine]` for that.
  *
  * Sits at {@see InterceptorOptions::ORDER_CLOSE_TO_TEST}, i.e. the innermost case interceptor (just
  * outside `CaseRunner::run`), so the lifecycle/DI case interceptors still wrap the whole case while the

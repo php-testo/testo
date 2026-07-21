@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Tests\Async\Self;
 
 use Testo\Assert;
+use Testo\Async\Concurrent;
 use Testo\Async\Coroutine;
 use Testo\Async\Internal\ConcurrentRunInterceptor;
 use Testo\Async\Internal\Scheduler;
 use Testo\Async\Strategy;
 use Testo\Codecov\Covers;
-use Testo\Concurrent;
 use Testo\Test;
 
 /**

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Async\Stub;
 
 use Testo\Assert;
-use Testo\Async;
+use Testo\Async\RunInCoroutine;
 use Testo\Test;
 
 /**
@@ -15,13 +15,13 @@ use Testo\Test;
 #[Test]
 final class AsyncScenarios
 {
-    #[Async]
+    #[RunInCoroutine]
     public function asyncRunsOnLoop(): void
     {
         Assert::notNull(\Fiber::getCurrent());
     }
 
-    #[Async]
+    #[RunInCoroutine]
     public function failureInsideCoroutinePropagates(): void
     {
         Assert::same(1, 2);

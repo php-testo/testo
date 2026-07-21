@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Testo\Async\Internal;
 
 use Revolt\EventLoop;
-use Testo\Async;
+use Testo\Async\RunInCoroutine;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Pipeline\Attribute\InterceptorOptions;
@@ -13,7 +13,7 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
 use Testo\Pipeline\Policy\ConflictPolicy;
 
 /**
- * Drives a single {@see Async} test as a coroutine on the Revolt event loop.
+ * Drives a single {@see RunInCoroutine} test as a coroutine on the Revolt event loop.
  *
  * The test body is launched as a microtask (its own loop fiber) and the current fiber blocks on a
  * {@see \Revolt\EventLoop\Suspension} until it completes, so the test may await real async work while
@@ -30,7 +30,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * @psalm-internal Testo\Async
  */
 #[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST, onConflict: ConflictPolicy::Last)]
-final readonly class AsyncRunInterceptor implements TestRunInterceptor
+final readonly class RunInCoroutineInterceptor implements TestRunInterceptor
 {
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult

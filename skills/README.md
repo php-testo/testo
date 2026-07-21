@@ -9,7 +9,7 @@ that an AI coding agent can load on demand.
 | [`testo-write-tests`](testo-write-tests/SKILL.md) | Writing or modifying a normal test class — covers `#[Test]`, `Assert`, `Expect`, lifecycle hooks. |
 | [`testo-data-driven`](testo-data-driven/SKILL.md) | Parameterizing a test — `#[DataSet]`, `#[DataProvider]`, `#[DataZip]`, `#[DataCross]`. |
 | [`testo-flaky-tests`](testo-flaky-tests/SKILL.md) | Stabilizing flaky tests with `#[Retry]` or stress-testing with `#[Repeat]`. |
-| [`testo-async`](testo-async/SKILL.md) | Running tests as fibers/coroutines on the Revolt event loop with `#[Async]` / `#[Concurrent]` — awaiting amphp or Revolt async work in a test. |
+| [`testo-async`](testo-async/SKILL.md) | Running tests as fibers/coroutines on the Revolt event loop with `#[RunInCoroutine]` / `#[Concurrent]` — awaiting amphp or Revolt async work in a test. |
 | [`testo-inline-tests`](testo-inline-tests/SKILL.md) | Attaching `#[TestInline]` examples directly to production methods. |
 | [`testo-benchmarks`](testo-benchmarks/SKILL.md) | Writing or tuning `#[Bench]` benchmarks. |
 | [`testo-coverage`](testo-coverage/SKILL.md) | Configuring `CodecovPlugin`, reports, and `#[Covers]`. |

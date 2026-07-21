@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Testo;
+namespace Testo\Async;
 
 use Testo\Async\Internal\ConcurrentRunInterceptor;
-use Testo\Async\Strategy;
 use Testo\Pipeline\Attribute\FallbackInterceptor;
 use Testo\Pipeline\Attribute\Interceptable;
 
@@ -13,7 +12,7 @@ use Testo\Pipeline\Attribute\Interceptable;
  * Schedules all tests of a test case according to a {@see Strategy}.
  *
  * ```php
- *  use Testo\Concurrent;
+ *  use Testo\Async\Concurrent;
  *  use Testo\Async\Coroutine;
  *  use Testo\Async\Strategy;
  *
@@ -31,8 +30,8 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * The interleaving runs on plain fibers (not Revolt), so switching is **cooperative** — only
  * `reschedule()` points can hand control to another test. Awaiting real async work (Revolt/amphp)
- * inside an interleaved test is unsupported; use {@see Async} for that. A per-method `#[Async]` under a
- * non-sequential `#[Concurrent]` is likewise unsupported.
+ * inside an interleaved test is unsupported; use {@see RunInCoroutine} for that. A per-method
+ * `#[RunInCoroutine]` under a non-sequential `#[Concurrent]` is likewise unsupported.
  *
  * The attribute is self-wiring: it is {@see Interceptable}, so {@see ConcurrentRunInterceptor} wraps
  * the case run only for cases that carry it — no plugin registration needed.

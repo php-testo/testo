@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Async\Feature;
 
 use Testo\Assert;
-use Testo\Async;
-use Testo\Async\Internal\AsyncRunInterceptor;
+use Testo\Async\Internal\RunInCoroutineInterceptor;
+use Testo\Async\RunInCoroutine;
 use Testo\Codecov\Covers;
 use Testo\Core\Value\Status;
 use Testo\Test;
@@ -19,8 +19,8 @@ use Tests\Async\Stub\AsyncScenarios;
  * {@see TestRunner} and asserts the resulting {@see Status}.
  */
 #[Test]
-#[Covers(Async::class)]
-#[Covers(AsyncRunInterceptor::class)]
+#[Covers(RunInCoroutine::class)]
+#[Covers(RunInCoroutineInterceptor::class)]
 #[TestingSuite(path: __DIR__ . '/../Stub')]
 final class AsyncStatusTest
 {

@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Tests\Async\Self;
 
 use Testo\Assert;
-use Testo\Async;
+use Testo\Async\Concurrent;
 use Testo\Async\Internal\ConcurrentRunInterceptor;
+use Testo\Async\RunInCoroutine;
 use Testo\Async\Strategy;
 use Testo\Codecov\Covers;
-use Testo\Concurrent;
 use Testo\Test;
 
 /**
  * Self-test: `#[Concurrent(Sequential)]` runs the case's tests one after another (v1 pass-through), and
- * a method-level `#[Async]` still composes — it gets its own coroutine and runs inside a fiber.
+ * a method-level `#[RunInCoroutine]` still composes — it gets its own coroutine and runs inside a fiber.
  */
 #[Test]
 #[Concurrent(Strategy::Sequential)]
@@ -28,7 +28,7 @@ final class ConcurrentSequentialTest
         Assert::null(\Fiber::getCurrent());
     }
 
-    #[Async]
+    #[RunInCoroutine]
     public function asyncMethodComposesWithConcurrent(): void
     {
         Assert::notNull(\Fiber::getCurrent());

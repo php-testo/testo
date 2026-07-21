@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Testo\Async;
 
 /**
- * Scheduling strategy for a {@see \Testo\Concurrent} test case — the order in which the case's tests
+ * Scheduling strategy for a {@see Concurrent} test case — the order in which the case's tests
  * are resumed at cooperative suspension points.
  *
  * @api
