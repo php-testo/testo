@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Testo\Fiber\Internal;
+
+use Testo\Core\Context\TestResult;
+use Testo\Fiber\Schedule;
+
+/**
+ * Drives a case's test handlers on Testo's cooperative fiber {@see Scheduler}.
+ *
+ * An invokable runner — set on {@see \Testo\Core\Context\CaseInfo::$batchRunner} by
+ * {@see RunInFiberInterceptor::runTestCase()}. Wraps each handler in its own `\Fiber` and drives the
+ * whole set per the case {@see Schedule} (`Solo` to completion, or `RoundRobin` / `Random` interleaved).
+ * Each handler runs its test's pipeline synchronously inside the fiber, so Testo's fiber-aware guards
+ * cooperate and per-test state stays isolated across an interleave.
+ *
+ * @internal
+ * @psalm-internal Testo\Fiber
+ */
+final readonly class FiberTestBatchRunner
+{
+    public function __construct(
+        private Schedule $schedule,
+    ) {}
+
+    /**
+     * @param list<callable(): TestResult> $handlers
+     * @return list<TestResult>
+     */
+    public function __invoke(array $handlers): array
+    {
+        // One fiber per handler; the scheduler drives the whole set at once.
+        $fibers = \array_map(static fn(callable $handler): \Fiber => new \Fiber($handler), $handlers);
+
+        $errors = Scheduler::run($fibers, $this->schedule);
+
+        // Handlers never throw (a pipeline failure is captured as an Aborted result), so an error here is
+        // unexpected; surface the first one rather than returning a half-built list.
+        $errors === [] or throw \reset($errors);
+
+        return \array_map(
+            /** @var TestResult */
+            static fn(\Fiber $fiber): TestResult => $fiber->getReturn(),
+            $fibers,
+        );
+    }
+}
