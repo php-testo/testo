@@ -27,11 +27,26 @@
 
 Runs a test on the process-global [Revolt](https://revolt.run) event loop, so the test body may `await` real async work (timers, streams, `Future::await()`, amphp libraries) and resume without blocking the process.
 
-- `#[RunInRevolt]` — run a single test on the Revolt event loop for real async I/O.
+- `#[RunInRevolt]` — run a test on the Revolt event loop for real async I/O. Applied to a class, it drives every test in the case.
 
 Suspension must go through a Revolt `Suspension` bound to a watcher (I/O, timer) — a bare `\Fiber::suspend()` has no resumer on the loop (that is the plain-fiber `#[RunInFiber]` from `testo/fiber`, a different concern).
 
-**Current limitation:** only a single test runs on the loop at a time. Interleaving several guarded tests on one shared loop is blocked until Testo's fiber-aware scoped-state guards move to fiber-local storage.
+### Strategy
+
+`#[RunInRevolt]` takes a `Strategy` that chooses when the loop is entered:
+
+- `Strategy::PerTest` (default) — each test is placed on the loop individually, from *inside* Testo's fiber-aware scoped-state guards. Works today.
+- `Strategy::PerCase` — the whole case is driven on one loop run via `CaseInfo`'s batch runner. This puts the guards inside a loop fiber, which they cannot yet cooperate with, so it **currently deadlocks**; it becomes usable once the guards move to fiber-local storage.
+
+```php
+use Testo\Bridge\Revolt\RunInRevolt;
+use Testo\Bridge\Revolt\Strategy;
+
+#[RunInRevolt(Strategy::PerTest)]
+final class TimersTest { /* ... */ }
+```
+
+**Current limitation:** a case's tests run on the loop one at a time, each to completion. Interleaving several guarded tests on one shared loop (`Strategy::PerCase`) is blocked until Testo's fiber-aware scoped-state guards move to fiber-local storage.
 
 ## Install
 

@@ -30,12 +30,22 @@ use Testo\Pipeline\Attribute\Interceptable;
  * the fiber), here the **Revolt loop** owns the fiber, so suspension must go through a Revolt
  * `Suspension` bound to a watcher (I/O, timer) — a bare `\Fiber::suspend()` has no resumer on the loop.
  *
- * **Current limitation:** only a *single* test runs on the loop at a time (guards stay on their
- * synchronous main-fiber path). Interleaving several guarded tests on one shared loop is blocked until
- * Testo's fiber-aware scoped-state guards move to fiber-local storage.
+ * The {@see Strategy} chooses when the loop is entered — {@see Strategy::PerTest} (default, one test on
+ * the loop at a time, inner to the guards) or {@see Strategy::PerCase} (the whole case on one loop run,
+ * which needs fiber-local guards and currently deadlocks).
+ *
+ * **Current limitation:** a case's tests run on the loop one at a time, each to completion (guards stay
+ * on their synchronous main-fiber path). Interleaving several guarded tests on one shared loop
+ * ({@see Strategy::PerCase}) is blocked until Testo's fiber-aware scoped-state guards move to
+ * fiber-local storage.
  *
  * @api
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
 #[FallbackInterceptor(RunInRevoltInterceptor::class)]
-final readonly class RunInRevolt implements Interceptable {}
+final readonly class RunInRevolt implements Interceptable
+{
+    public function __construct(
+        public Strategy $strategy = Strategy::PerTest,
+    ) {}
+}
