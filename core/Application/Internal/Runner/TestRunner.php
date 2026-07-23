@@ -22,6 +22,18 @@ use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
 
 /**
+ * Runs a single test's pipeline and produces its {@see TestResult}.
+ *
+ * This is the unit of work {@see CaseRunner} drives: it either runs each test's `run()` directly
+ * (default, sequential) or wraps a `run()` call per test into a handler and hands the whole set to a
+ * case-provided runner ({@see \Testo\Core\Context\CaseInfo::$batchRunner}, e.g. testo/fiber's fiber
+ * scheduler). Executing
+ * the pipeline is orthogonal to how the batch is scheduled.
+ *
+ * Never throws — a test exception maps to a {@see Status::Skipped}/{@see Status::Cancelled}/
+ * {@see Status::Error} result, and a failure of the interceptor pipeline itself is captured as
+ * {@see Status::Aborted}.
+ *
  * @internal
  * @psalm-internal Testo\Application
  */

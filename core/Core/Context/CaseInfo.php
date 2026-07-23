@@ -31,12 +31,15 @@ final readonly class CaseInfo
      * @param ?CaseInstance $instance Test Case class instance if class is defined, null otherwise.
      * @param array<non-empty-string, mixed> $attributes
      * @param callable(TestInfo): mixed $handler Invoker for the test method.
+     * @param ?\Closure(list<callable(): TestResult>): list<TestResult> $batchRunner Runner that drives
+     *        this case's tests (given the per-test handlers); null uses the default sequential run.
      */
     public function __construct(
         public CaseDefinition $definition,
         public ?CaseInstance $instance = null,
         public array $attributes = [],
         callable $handler = new DefaultTestHandler(),
+        public ?\Closure $batchRunner = null,
     ) {
         $this->name = $definition->getName();
         $this->handler = $handler(...);
@@ -50,6 +53,7 @@ final readonly class CaseInfo
             instance: $this->instance,
             attributes: $this->attributes,
             handler: $handler ?? $this->handler,
+            batchRunner: $this->batchRunner,
         );
     }
 
@@ -60,5 +64,16 @@ final readonly class CaseInfo
     {
         /** @see self::$instance */
         return $this->cloneWith('instance', $instance);
+    }
+
+    /**
+     * Sets the runner that drives this case's tests (e.g. a fiber scheduler). Null keeps the default.
+     *
+     * @param ?callable(list<callable(): TestResult>): list<TestResult> $batchRunner
+     */
+    public function withBatchRunner(?callable $batchRunner): self
+    {
+        /** @see self::$batchRunner */
+        return $this->cloneWith('batchRunner', $batchRunner === null ? null : $batchRunner(...));
     }
 }

@@ -72,8 +72,8 @@ final class ObjectContainer implements Container
             }
 
             // Wrap scope into fiber
-            $fiber = new \Fiber(static fn() => $scope($this));
-            $value = $fiber->start();
+            $fiber = new \Fiber(static fn(ObjectContainer $c) => $scope($c));
+            $value = $fiber->start($this);
             while (!$fiber->isTerminated()) {
                 $this->state = $oldState;
                 try {
