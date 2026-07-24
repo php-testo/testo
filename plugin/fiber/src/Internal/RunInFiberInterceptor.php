@@ -25,13 +25,17 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * - {@see runTest()} (method-level) wraps a single test in its own fiber. When the case is already
  *   scheduling (a class-level `#[RunInFiber]`), it is a pass-through to avoid double-wrapping.
  *
- * Sits at {@see InterceptorOptions::ORDER_CLOSE_TO_TEST} — the innermost interceptor, so lifecycle/DI
- * still wrap the whole case while only the test loop / test body moves onto a fiber.
+ * Sits **outer** to the fiber-aware scoped-state guards (order just outside {@see
+ * InterceptorOptions::ORDER_DATA_PROVIDER}): the method-level fiber wraps the whole per-test pipeline —
+ * assertion collector, messenger scope, the test body — so the guards run *inside* the fiber. They hold
+ * their state per fiber (see {@see \Testo\Common\FiberLocal}), so each test reads its own scoped state
+ * even while several interleave; a data-driven/retried test runs all its datasets/attempts in its single
+ * fiber (data provider stays inner to the wrap).
  *
  * @internal
  * @psalm-internal Testo\Fiber
  */
-#[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST, onConflict: ConflictPolicy::Last)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_DATA_PROVIDER - 1, onConflict: ConflictPolicy::Last)]
 final readonly class RunInFiberInterceptor implements TestCaseRunInterceptor, TestRunInterceptor
 {
     public function __construct(
