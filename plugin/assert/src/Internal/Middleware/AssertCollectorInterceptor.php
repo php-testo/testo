@@ -38,45 +38,21 @@ final readonly class AssertCollectorInterceptor implements TestRunInterceptor
     public function runTest(TestInfo $info, callable $next): TestResult
     {
         $state = new TestState();
-        try {
-            $previous = StaticState::swap($state);
 
-            if (\Fiber::getCurrent() === null) {
-                # No Fiber, run the test directly
-                $result = $next($info);
-            } else {
-                # Create a Fiber scope to run the test
-                $fiber = new \Fiber(static fn(): TestResult => $next($info));
+        // The collector is installed for the current fiber only, so concurrent tests keep separate
+        // histories. StaticState::scope() restores the previous collector on exit — including across a
+        // real event-loop suspension inside $next, where the loop resumes this exact fiber directly.
+        $result = StaticState::scope($state, static fn(): TestResult => $next($info));
 
-                $value = $fiber->start();
-                while (!$fiber->isTerminated()) {
-                    StaticState::swap($previous);
-                    try {
-                        $resume = \Fiber::suspend($value);
-                    } catch (\Throwable $e) {
-                        $previous = StaticState::swap($state);
-                        $value = $fiber->throw($e);
-                        continue;
-                    }
+        // Emit after $next returns: the tree is only final here (composite records are appended empty and
+        // filled in afterwards, so streaming per assertion would serialize half-built structures).
+        $this->messenger->log(
+            AssertPlugin::CHANNEL_HISTORY,
+            HistoryRenderer::render($state->history),
+        );
 
-                    $previous = StaticState::swap($state);
-                    $value = $fiber->resume($resume);
-                }
-
-                /** @var TestResult $result */
-                $result = $fiber->getReturn();
-            }
-
-            $this->messenger->log(
-                AssertPlugin::CHANNEL_HISTORY,
-                HistoryRenderer::render($state->history),
-            );
-
-            return $result
-                ->withAttribute(TestState::class, $state)
-                ->withSummary($result->summary->withAddedMetric('assertions', \count($state->history)));
-        } finally {
-            StaticState::swap($previous);
-        }
+        return $result
+            ->withAttribute(TestState::class, $state)
+            ->withSummary($result->summary->withAddedMetric('assertions', \count($state->history)));
     }
 }

@@ -15,26 +15,34 @@ use Testo\Assert\State\Assertion\AssertionSuccess;
 use Testo\Assert\State\Record;
 use Testo\Assert\State\Test\Fail;
 use Testo\Assert\TestState;
+use Testo\Common\FiberLocal;
 
 /**
  * Holds the current assertion collector.
+ *
+ * The active collector lives in a {@see FiberLocal} so each test fiber sees its own {@see TestState}:
+ * while tests interleave on one event loop, {@see Assert}'s reads and writes stay isolated per fiber
+ * without swapping a process-global slot at every suspension boundary.
  *
  * @internal
  * @psalm-internal Testo\Assert
  */
 final class StaticState
 {
-    public static ?TestState $state = null;
+    /** @var FiberLocal<?TestState>|null */
+    private static ?FiberLocal $active = null;
 
     /**
-     * Swap the current collector with the given one.
+     * Install $state as the current collector for the current fiber, run $run, then restore the previous
+     * collector. Replaces the former swap()/child-fiber trampoline.
      *
-     * @return TestState|null The previous collector.
+     * @template R
+     * @param \Closure(): R $run
+     * @return R
      */
-    public static function swap(?TestState $collector): ?TestState
+    public static function scope(?TestState $state, \Closure $run): mixed
     {
-        [self::$state, $collector] = [$collector, self::$state];
-        return $collector;
+        return self::store()->scope($state, $run);
     }
 
     /**
@@ -42,7 +50,7 @@ final class StaticState
      */
     public static function current(): ?TestState
     {
-        return self::$state;
+        return self::store()->get();
     }
 
     /**
@@ -53,7 +61,8 @@ final class StaticState
     public static function typeSuccess(string $type, mixed $actual, string $message = ''): AssertionComposite
     {
         $result = new AssertionComposite(Support::stringify($actual), "is $type", $message);
-        self::$state === null or self::$state->history[] = $result;
+        $state = self::current();
+        $state === null or $state->history[] = $result;
         return $result;
     }
 
@@ -71,7 +80,8 @@ final class StaticState
             reason: "got " . Support::stringify($actual),
             details: '',
         );
-        self::$state === null or self::$state->history[] = $result;
+        $state = self::current();
+        $state === null or $state->history[] = $result;
         throw $result;
     }
 
@@ -82,7 +92,8 @@ final class StaticState
      */
     public static function success(mixed $value, string $assertion, string $context = ''): void
     {
-        self::$state === null or self::$state->history[] = new AssertionSuccess(
+        $state = self::current();
+        $state === null or $state->history[] = new AssertionSuccess(
             value: Support::stringify($value),
             assertion: $assertion,
             context: $context,
@@ -98,7 +109,8 @@ final class StaticState
      */
     public static function fail(Record&\Throwable $failure): never
     {
-        self::$state === null or self::$state->history[] = $failure;
+        $state = self::current();
+        $state === null or $state->history[] = $failure;
         throw $failure;
     }
 
@@ -118,17 +130,17 @@ final class StaticState
         string|\Throwable $classOrObject,
         bool $same = false,
     ): ExpectExceptionHandler {
-        self::$state === null and throw new StateNotFound();
+        $state = self::current() ?? throw new StateNotFound();
 
-        return self::$state->expectations[] = $same
+        return $state->expectations[] = $same
             ? ExpectExceptionHandler::createSame($classOrObject)
             : ExpectExceptionHandler::createEquals($classOrObject);
     }
 
     public static function expectFail(Fail $exception): void
     {
-        self::$state === null and throw new StateNotFound();
-        self::$state->expectations[] = new ExpectedFail($exception);
+        $state = self::current() ?? throw new StateNotFound();
+        $state->expectations[] = new ExpectedFail($exception);
     }
 
     /**
@@ -140,9 +152,17 @@ final class StaticState
      */
     public static function trackObjectsLeak(bool $notLeaks, object ...$objects): Leaks|NotLeaks
     {
-        self::$state === null and throw new StateNotFound();
-        return self::$state->expectations[] = $notLeaks
+        $state = self::current() ?? throw new StateNotFound();
+        return $state->expectations[] = $notLeaks
             ? new NotLeaks(...$objects)
             : new Leaks(...$objects);
+    }
+
+    /**
+     * @return FiberLocal<?TestState>
+     */
+    private static function store(): FiberLocal
+    {
+        return self::$active ??= new FiberLocal(null);
     }
 }
