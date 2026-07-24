@@ -8,6 +8,7 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Common\Messenger;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\TestIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -31,7 +32,7 @@ final class OutputInterceptorTest
         $testResult = new TestResult($testInfo, Status::Passed);
 
         $received = null;
-        $result = $interceptor->runTest($testInfo, function(TestInfo $info) use (&$received, $testResult): TestResult {
+        $result = $interceptor->runTest($testInfo, static function (TestInfo $info) use (&$received, $testResult): TestResult {
             $received = $info;
             return $testResult;
         });
@@ -47,7 +48,7 @@ final class OutputInterceptorTest
         $interceptor = new OutputInterceptor($messenger);
         $testResult = new TestResult($testInfo, Status::Passed);
 
-        $result = $interceptor->runTest($testInfo, fn() => $testResult);
+        $result = $interceptor->runTest($testInfo, static fn() => $testResult);
 
         Assert::same($result, $testResult);
         Assert::true($result->messages->isEmpty());
@@ -60,7 +61,7 @@ final class OutputInterceptorTest
         $interceptor = new OutputInterceptor($messenger);
         $testResult = new TestResult($testInfo, Status::Passed);
 
-        $result = $interceptor->runTest($testInfo, function() use ($messenger, $testResult): TestResult {
+        $result = $interceptor->runTest($testInfo, static function () use ($messenger, $testResult): TestResult {
             $messenger->recordMessage(new Message(
                 time: \microtime(true),
                 channel: 'stdout',
@@ -86,7 +87,7 @@ final class OutputInterceptorTest
         $interceptor = new OutputInterceptor($messenger);
         $testResult = new TestResult($testInfo, Status::Passed);
 
-        $result = $interceptor->runTest($testInfo, function() use ($messenger, $testResult): TestResult {
+        $result = $interceptor->runTest($testInfo, static function () use ($messenger, $testResult): TestResult {
             $messenger->recordMessage(new Message(
                 time: \microtime(true),
                 channel: 'stdout',
@@ -107,7 +108,7 @@ final class OutputInterceptorTest
         $interceptor = new OutputInterceptor($messenger);
         $testResult = new TestResult($testInfo, Status::Failed, failure: new \Exception('Test failed'));
 
-        $result = $interceptor->runTest($testInfo, function() use ($messenger, $testResult): TestResult {
+        $result = $interceptor->runTest($testInfo, static function () use ($messenger, $testResult): TestResult {
             $messenger->recordMessage(new Message(
                 time: \microtime(true),
                 channel: 'stdout',
@@ -167,7 +168,7 @@ final class TestMessenger implements Messenger
      * empty child buffer for the duration of the callback so {@see getMessages()} inside observes
      * only what was written within the scope, then restores the parent and discards the child.
      */
-    public function scope(\Closure $scope): mixed
+    public function scope(\Closure $scope, ?TestIdentity $identity = null): mixed
     {
         $parent = $this->messages;
         $this->messages = [];

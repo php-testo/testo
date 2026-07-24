@@ -6,6 +6,7 @@ namespace Testo\Application\Internal\Messenger;
 
 use Internal\Destroy\Destroyable;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Testo\Core\Context\TestIdentity;
 use Testo\Core\Log\Message;
 use Testo\Event\Message\MessageReceived;
 
@@ -44,6 +45,7 @@ final class State implements Destroyable
         private readonly EventDispatcherInterface $dispatcher,
         private readonly ?self $parent = null,
         private readonly bool $holdEvents = false,
+        private readonly ?TestIdentity $identity = null,
     ) {}
 
     /**
@@ -77,7 +79,8 @@ final class State implements Destroyable
 
     public function fork(bool $holdEvents = false): self
     {
-        return new self($this->dispatcher, $this, $holdEvents);
+        # A fork belongs to the same test as its parent, so it inherits the parent's identity.
+        return new self($this->dispatcher, $this, $holdEvents, $this->identity);
     }
 
     #[\Override]
@@ -114,7 +117,7 @@ final class State implements Destroyable
     {
         $this->suspended = true;
         try {
-            $this->dispatcher->dispatch(new MessageReceived($message));
+            $this->dispatcher->dispatch(new MessageReceived($message, $this->identity));
         } finally {
             $this->suspended = false;
         }
