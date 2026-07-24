@@ -18,6 +18,8 @@ use Revolt\EventLoop;
  */
 final class Loop
 {
+    private function __construct() {}
+
     /**
      * Run $body as a single coroutine on the Revolt loop; return its value (or rethrow).
      *
@@ -54,6 +56,4 @@ final class Loop
         EventLoop::queue(static fn() => $suspension->resume());
         $suspension->suspend();
     }
-
-    private function __construct() {}
 }

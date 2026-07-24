@@ -8,7 +8,6 @@ use Internal\Container\ObjectContainer;
 use Internal\Container\Tests\Testo\Loop;
 use Internal\Container\Tests\Unit\Stub\ContainerScopeService;
 use Revolt\EventLoop;
-use stdClass;
 use Testo\Assert;
 use Testo\Bridge\Revolt\RunInRevolt;
 use Testo\Codecov\Covers;
@@ -29,7 +28,7 @@ final class ScopesRevoltTest
     public function loopRunsBodyInsideAFiberAndReturnsItsValue(): void
     {
         $insideFiber = false;
-        $value = Loop::run(function () use (&$insideFiber): string {
+        $value = Loop::run(static function () use (&$insideFiber): string {
             $insideFiber = \Fiber::getCurrent() !== null;
             return 'done';
         });
