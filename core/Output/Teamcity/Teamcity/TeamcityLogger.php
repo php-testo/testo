@@ -12,6 +12,7 @@ use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\SuiteInfo;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Context\TestIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Log\Message;
@@ -43,6 +44,17 @@ final class TeamcityLogger
     public function __construct($output = null)
     {
         $this->output = $output ?? \STDOUT;
+    }
+
+    /**
+     * TeamCity `flowId` for a test: distinct concurrent tests get distinct flows, so their interleaved
+     * `testStarted`/output/`testFinished` messages stay grouped instead of overlapping on one stream.
+     *
+     * @return non-empty-string
+     */
+    public static function flowId(TestIdentity $identity): string
+    {
+        return (string) $identity->id;
     }
 
     /**
@@ -125,7 +137,12 @@ final class TeamcityLogger
      */
     public function batchStartedFromInfo(TestInfo $info): void
     {
-        $this->publish(Formatter::suiteStarted($info->name, $info->testDefinition->reflection, $info->caseInfo->definition->reflection));
+        $this->publish(Formatter::suiteStarted(
+            $info->name,
+            $info->testDefinition->reflection,
+            $info->caseInfo->definition->reflection,
+            self::flowId($info->identity),
+        ));
     }
 
     /**
@@ -133,7 +150,7 @@ final class TeamcityLogger
      */
     public function batchFinishedFromInfo(TestInfo $info): void
     {
-        $this->publish(Formatter::suiteFinished($info->name));
+        $this->publish(Formatter::suiteFinished($info->name, self::flowId($info->identity)));
     }
 
     /**
@@ -217,6 +234,7 @@ final class TeamcityLogger
             $locationSuffix,
             $description,
             $info->caseInfo->definition->reflection,
+            self::flowId($info->identity),
         ));
     }
 
@@ -227,7 +245,7 @@ final class TeamcityLogger
      */
     public function testFinishedFromInfo(TestInfo $info, ?int $duration = null): void
     {
-        $this->publish(Formatter::testFinished($info->name, $duration));
+        $this->publish(Formatter::testFinished($info->name, $duration, self::flowId($info->identity)));
     }
 
     /**
@@ -252,6 +270,7 @@ final class TeamcityLogger
                 type: $isComparison ? 'comparisonFailure' : null,
                 expected: $isComparison ? $failure->getExpectedAsString() : null,
                 actual: $isComparison ? $failure->getActualAsString() : null,
+                flowId: self::flowId($result->info->identity),
             ),
         );
     }
@@ -276,8 +295,10 @@ final class TeamcityLogger
      * `testFinished` to nest correctly.
      *
      * @param non-empty-string $name Test name the message belongs to.
+     * @param non-empty-string|null $flowId Flow of the test the message belongs to, so interleaved
+     *        output stays grouped with the right test.
      */
-    public function logMessage(string $name, Message $message): void
+    public function logMessage(string $name, Message $message, ?string $flowId = null): void
     {
         if ($message->content === '') {
             return;
@@ -291,8 +312,8 @@ final class TeamcityLogger
         ];
 
         $this->publish($message->channel === self::CHANNEL_STDERR
-            ? Formatter::testStdErr($name, $message->content, $attributes)
-            : Formatter::testStdOut($name, $message->content, $attributes));
+            ? Formatter::testStdErr($name, $message->content, $attributes, $flowId)
+            : Formatter::testStdOut($name, $message->content, $attributes, $flowId));
     }
 
     /**
@@ -383,7 +404,7 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
 
-        $this->publish(Formatter::testFinished($name, $duration));
+        $this->publish(Formatter::testFinished($name, $duration, self::flowId($result->info->identity)));
     }
 
     /**
@@ -394,8 +415,9 @@ final class TeamcityLogger
     private function handleSkippedTest(TestResult $result, ?int $duration, ?string $overrideName = null): void
     {
         $name = $overrideName ?? $result->info->name;
-        $this->publish(Formatter::testIgnored($name));
-        $this->publish(Formatter::testFinished($name, $duration));
+        $flowId = self::flowId($result->info->identity);
+        $this->publish(Formatter::testIgnored($name, flowId: $flowId));
+        $this->publish(Formatter::testFinished($name, $duration, $flowId));
     }
 
     /**
@@ -406,8 +428,9 @@ final class TeamcityLogger
     private function handleCancelledTest(TestResult $result, ?int $duration, ?string $overrideName = null): void
     {
         $name = $overrideName ?? $result->info->name;
-        $this->publish(Formatter::testIgnored($name, 'Test cancelled'));
-        $this->publish(Formatter::testFinished($name, $duration));
+        $flowId = self::flowId($result->info->identity);
+        $this->publish(Formatter::testIgnored($name, 'Test cancelled', $flowId));
+        $this->publish(Formatter::testFinished($name, $duration, $flowId));
     }
 
     /**
@@ -426,6 +449,7 @@ final class TeamcityLogger
             : '';
 
         $isComparison = $failure instanceof ComparisonFailure;
+        $flowId = self::flowId($result->info->identity);
 
         $this->publish(
             Formatter::testFailed(
@@ -435,9 +459,10 @@ final class TeamcityLogger
                 type: $isComparison ? 'comparisonFailure' : null,
                 expected: $isComparison ? $failure->getExpectedAsString() : null,
                 actual: $isComparison ? $failure->getActualAsString() : null,
+                flowId: $flowId,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration));
+        $this->publish(Formatter::testFinished($name, $duration, $flowId));
     }
 
     /**
@@ -452,15 +477,17 @@ final class TeamcityLogger
         $details = $result->failure !== null
             ? self::formatThrowable($result->failure, $result->info->testDefinition->reflection)
             : '';
+        $flowId = self::flowId($result->info->identity);
 
         $this->publish(
             Formatter::testFailed(
                 $name,
                 'Test aborted',
                 $details,
+                flowId: $flowId,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration));
+        $this->publish(Formatter::testFinished($name, $duration, $flowId));
     }
 
     /**
@@ -471,14 +498,16 @@ final class TeamcityLogger
     private function handleRiskyTest(TestResult $result, ?int $duration, ?string $overrideName = null): void
     {
         $name = $overrideName ?? $result->info->name;
+        $flowId = self::flowId($result->info->identity);
 
         $this->publish(
             Formatter::testStdOut(
                 $name,
                 "\nWarning: This test has been marked as risky",
+                flowId: $flowId,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration));
+        $this->publish(Formatter::testFinished($name, $duration, $flowId));
     }
 
     /**
