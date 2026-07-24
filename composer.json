@@ -85,6 +85,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "Internal\\Container\\Tests\\": "internal/container/tests/",
             "Internal\\Fiber\\Tests\\": "internal/fiber/tests/",
             "Tests\\PhpUnit\\": "tests/PhpUnit/",
             "Tests\\": "tests/",
