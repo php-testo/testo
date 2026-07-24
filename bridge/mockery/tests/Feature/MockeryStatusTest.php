@@ -14,6 +14,7 @@ use Testo\Core\Value\Status;
 use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner;
+use Tests\Bridge\Mockery\Stub\MockeryConcurrencyScenarios;
 use Tests\Bridge\Mockery\Stub\MockeryResetScenarios;
 use Tests\Bridge\Mockery\Stub\MockeryScenarios;
 
@@ -69,6 +70,19 @@ final class MockeryStatusTest
 
         $next = TestRunner::runTest([MockeryResetScenarios::class, 'seesCleanContainer']);
         Assert::same($next->status, Status::Passed);
+    }
+
+    public function interleavedMockeryTestsAreRejected(): void
+    {
+        // Under Schedule::RoundRobin the two scenario tests interleave: the first parks mid-mock, so the
+        // second starts while the global container is still the first's. That second test must abort with
+        // a MockeryConcurrencyException rather than silently clobbering the first's mocks; the first,
+        // running one at a time from its own point of view, still passes.
+        $second = TestRunner::runTest([MockeryConcurrencyScenarios::class, 'secondMockAcrossSuspend']);
+        Assert::same($second->status, Status::Aborted);
+
+        $first = TestRunner::runTest([MockeryConcurrencyScenarios::class, 'firstMockAcrossSuspend']);
+        Assert::same($first->status, Status::Passed);
     }
 
     /**
