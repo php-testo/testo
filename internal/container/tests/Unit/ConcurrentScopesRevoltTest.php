@@ -17,10 +17,11 @@ use Testo\Test;
 /**
  * Container `scope()` isolation under **concurrent** tests on a real Revolt loop.
  *
- * `#[RunInRevolt(Strategy::PerCase)]` launches both tests at once; they share one {@see ObjectContainer},
- * each enters its own scope, sets a tag, awaits a real timer, and must still read its own scoped instance
- * once the loop resumes it — proving per-fiber container state holds while the other test is genuinely
- * interleaving at its await point.
+ * `#[RunInRevolt(Strategy::PerCase)]` launches all three tests at once; they share one {@see ObjectContainer},
+ * each enters its own scope, sets a distinct tag, then awaits a real timer **repeatedly** — re-reading its
+ * scoped instance after every await. The tag must hold across all of them while the other two tests are
+ * genuinely interleaving at their own await points, proving per-fiber container state survives real
+ * event-loop scheduling.
  */
 #[Test]
 #[RunInRevolt(Strategy::PerCase)]
@@ -35,29 +36,37 @@ final class ConcurrentScopesRevoltTest
         self::$container = new ObjectContainer();
     }
 
-    public function firstScopeKeepsItsStateAcrossAConcurrentAwait(): void
+    public function firstScopeKeepsItsStateAcrossConcurrentAwaits(): void
     {
-        self::$container->scope(static function (ObjectContainer $scoped): void {
-            $scoped->get(ContainerScopeService::class)->tag = 1;
-
-            $suspension = EventLoop::getSuspension();
-            EventLoop::delay(0.001, static fn() => $suspension->resume());
-            $suspension->suspend();
-
-            Assert::same($scoped->get(ContainerScopeService::class)->tag, 1);
-        });
+        self::scopeHoldsTagAcrossAwaits(1);
     }
 
-    public function secondScopeKeepsItsStateAcrossAConcurrentAwait(): void
+    public function secondScopeKeepsItsStateAcrossConcurrentAwaits(): void
     {
-        self::$container->scope(static function (ObjectContainer $scoped): void {
-            $scoped->get(ContainerScopeService::class)->tag = 2;
+        self::scopeHoldsTagAcrossAwaits(2);
+    }
 
-            $suspension = EventLoop::getSuspension();
-            EventLoop::delay(0.001, static fn() => $suspension->resume());
-            $suspension->suspend();
+    public function thirdScopeKeepsItsStateAcrossConcurrentAwaits(): void
+    {
+        self::scopeHoldsTagAcrossAwaits(3);
+    }
 
-            Assert::same($scoped->get(ContainerScopeService::class)->tag, 2);
+    /**
+     * Enter a scope, tag its {@see ContainerScopeService}, then await a real timer three times, asserting
+     * after each await that the scoped instance still carries this test's own tag.
+     */
+    private static function scopeHoldsTagAcrossAwaits(int $tag): void
+    {
+        self::$container->scope(static function (ObjectContainer $scoped) use ($tag): void {
+            $scoped->get(ContainerScopeService::class)->tag = $tag;
+
+            for ($i = 0; $i < 3; $i++) {
+                $suspension = EventLoop::getSuspension();
+                EventLoop::delay(0.001, static fn() => $suspension->resume());
+                $suspension->suspend();
+
+                Assert::same($scoped->get(ContainerScopeService::class)->tag, $tag);
+            }
         });
     }
 }
