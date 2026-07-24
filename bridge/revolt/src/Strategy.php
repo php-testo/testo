@@ -20,12 +20,14 @@ enum Strategy
 
     /**
      * Enter the loop **per case**: the whole case is driven on the loop through
-     * {@see \Testo\Core\Context\CaseInfo::$batchRunner}, so every test in the case shares one loop run.
+     * {@see \Testo\Core\Context\CaseInfo::$batchRunner}, which launches every test as its own coroutine
+     * **at once** so they run concurrently, interleaving at their await points.
      *
-     * This lets a future scheduler interleave the case's tests on the shared loop, but it puts the
-     * per-test pipeline — including the fiber-aware guards — inside a loop fiber, which the guards
-     * cannot yet cooperate with (they hand-drive their own fiber and deadlock the Revolt driver).
-     * **Currently deadlocks**; usable once the guards move to fiber-local storage.
+     * This puts the per-test pipeline — including the fiber-aware guards — inside a loop fiber, which
+     * the guards cannot yet cooperate with (they hand-drive their own fiber and deadlock the Revolt
+     * driver, and concurrent tests clash the shared assertion state). So with the current guards
+     * **PerCase deadlocks / fails**; it becomes correct once the guards move to fiber-local storage
+     * (a change made on the main branch, not on this bridge).
      */
     case PerCase;
 }
