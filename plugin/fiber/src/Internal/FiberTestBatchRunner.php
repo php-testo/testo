@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Fiber\Internal;
 
 use Testo\Core\Context\TestResult;
+use Testo\Fiber\Exception\CompositeException;
 use Testo\Fiber\Schedule;
 
 /**
@@ -37,8 +38,8 @@ final readonly class FiberTestBatchRunner
         $errors = Scheduler::run($fibers, $this->schedule);
 
         // Handlers never throw (a pipeline failure is captured as an Aborted result), so an error here is
-        // unexpected; surface the first one rather than returning a half-built list.
-        $errors === [] or throw \reset($errors);
+        // unexpected; surface all of them together rather than dropping every failure but the first.
+        $errors === [] or throw new CompositeException($errors);
 
         return \array_map(
             /** @var TestResult */
