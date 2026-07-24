@@ -9,6 +9,7 @@ use Internal\Fiber\FiberLocal;
 use Testo\Application\Internal\Messenger\State;
 use Testo\Common\Messenger;
 use Testo\Common\Messenger\Channel;
+use Testo\Core\Context\TestIdentity;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
@@ -52,9 +53,11 @@ final readonly class MessengerHub implements Messenger
     }
 
     #[\Override]
-    public function scope(\Closure $scope): mixed
+    public function scope(\Closure $scope, ?TestIdentity $identity = null): mixed
     {
-        $new = new State($this->eventDispatcher);
+        // A test scope carries the test's identity, so every MessageReceived dispatched from within it
+        // is stamped with that test — the seam that keeps interleaving tests' output attributable.
+        $new = new State($this->eventDispatcher, identity: $identity);
         return $this->current->scope($new, fn(): mixed => $scope($this), $new->destroy(...));
     }
 

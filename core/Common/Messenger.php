@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Common;
 
+use Testo\Core\Context\TestIdentity;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
@@ -80,11 +81,16 @@ interface Messenger
      * inside the closure observes only what was written within it. Fiber-aware: the parent state
      * is restored across suspension points.
      *
+     * When an `$identity` is given, every {@see MessageReceived} dispatched from within the scope is
+     * stamped with it, so a consumer can attribute the message to that test even while other tests
+     * interleave their output on the same stream.
+     *
      * @template T
      * @param \Closure(self): T $scope
+     * @param TestIdentity|null $identity Test this scope's messages belong to, if any.
      * @return T
      */
-    public function scope(\Closure $scope): mixed;
+    public function scope(\Closure $scope, ?TestIdentity $identity = null): mixed;
 
     /**
      * Run the given closure within a fork: a mergeable child branch of the active scope.
