@@ -48,6 +48,7 @@ return new ApplicationConfig(
                 ),
             ),
         ],
+        require 'internal/fiber/tests/suites.php',
         require 'bridge/mockery/tests/suites.php',
         require 'bridge/rector/tests/suites.php',
         require 'bridge/revolt/tests/suites.php',

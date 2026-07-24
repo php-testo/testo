@@ -75,14 +75,17 @@
     "autoload": {
         "psr-4": {
             "Testo\\": "core/",
-            "Internal\\Container\\": "internal/container/src"
+            "Internal\\Container\\": "internal/container/src",
+            "Internal\\Fiber\\": "internal/fiber/src"
         }
     },
     "replace": {
-        "internal/container": "*"
+        "internal/container": "*",
+        "internal/fiber": "*"
     },
     "autoload-dev": {
         "psr-4": {
+            "Internal\\Fiber\\Tests\\": "internal/fiber/tests/",
             "Tests\\PhpUnit\\": "tests/PhpUnit/",
             "Tests\\": "tests/",
             "Tests\\Assert\\": "plugin/assert/tests/",

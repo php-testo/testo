@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Testo\Application\Internal;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Internal\Fiber\FiberLocal;
 use Testo\Application\Internal\Messenger\State;
-use Testo\Common\FiberLocal;
 use Testo\Common\Messenger;
 use Testo\Common\Messenger\Channel;
 use Testo\Core\Log\Level;
@@ -55,11 +55,7 @@ final readonly class MessengerHub implements Messenger
     public function scope(\Closure $scope): mixed
     {
         $new = new State($this->eventDispatcher);
-        try {
-            return $this->current->scope($new, fn(): mixed => $scope($this));
-        } finally {
-            $new->destroy();
-        }
+        return $this->current->scope($new, fn(): mixed => $scope($this), $new->destroy(...));
     }
 
     #[\Override]

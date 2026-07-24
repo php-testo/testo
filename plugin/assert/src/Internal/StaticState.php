@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Assert\Internal;
 
+use Internal\Fiber\FiberLocal;
 use Testo\Assert\Exception\StateNotFound;
 use Testo\Assert\Internal\Expectation\ExpectedFail;
 use Testo\Assert\Internal\Expectation\ExpectExceptionHandler;
@@ -15,7 +16,6 @@ use Testo\Assert\State\Assertion\AssertionSuccess;
 use Testo\Assert\State\Record;
 use Testo\Assert\State\Test\Fail;
 use Testo\Assert\TestState;
-use Testo\Common\FiberLocal;
 
 /**
  * Holds the current assertion collector.

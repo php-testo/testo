@@ -34,7 +34,7 @@ use Testo\Pipeline\Attribute\Interceptable;
  * the loop at a time, each run to completion) or {@see Strategy::PerCase} (launches the whole case's tests
  * concurrently on one loop run, interleaving at their await points). Either way the whole per-test
  * pipeline runs inside the loop fiber; Testo's scoped-state guards hold their state per fiber (see
- * {@see \Testo\Common\FiberLocal}), so concurrent tests stay isolated.
+ * {@see \Internal\Fiber\FiberLocal}), so concurrent tests stay isolated.
  *
  * @api
  */

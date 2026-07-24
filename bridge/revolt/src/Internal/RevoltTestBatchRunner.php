@@ -17,7 +17,7 @@ use Testo\Core\Context\TestResult;
  * fiber blocks on a {@see \Revolt\EventLoop\Suspension} until all of them finish.
  *
  * This runs the whole per-test pipeline — including Testo's scoped-state guards — inside a loop fiber.
- * The guards hold their state per fiber (see {@see \Testo\Common\FiberLocal}), so concurrent tests keep
+ * The guards hold their state per fiber (see {@see \Internal\Fiber\FiberLocal}), so concurrent tests keep
  * separate assertion/messenger state across the interleave. See {@see Strategy::PerCase}.
  *
  * @internal

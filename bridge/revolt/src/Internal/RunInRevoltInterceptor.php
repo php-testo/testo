@@ -32,7 +32,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * Sits **outer** to the fiber-aware scoped-state guards (order just outside {@see
  * InterceptorOptions::ORDER_DATA_PROVIDER}): the loop dispatch wraps the guards, so the whole per-test
  * pipeline — assertion collector, messenger scope, the test body — runs *inside* the loop fiber. The
- * guards hold their state per fiber (see {@see \Testo\Common\FiberLocal}), so each test reads its own
+ * guards hold their state per fiber (see {@see \Internal\Fiber\FiberLocal}), so each test reads its own
  * scoped state even while several tests interleave on one loop; a data-driven/retried test runs all its
  * datasets/attempts inside its single fiber (data provider stays inner to the dispatch).
  *

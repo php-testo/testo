@@ -24,7 +24,7 @@ enum Strategy
      * **at once** so they run concurrently, interleaving at their await points.
      *
      * The per-test pipeline — including Testo's fiber-aware scoped-state guards — runs inside a loop fiber.
-     * The guards hold their state per fiber (see {@see \Testo\Common\FiberLocal}), so each test reads its
+     * The guards hold their state per fiber (see {@see \Internal\Fiber\FiberLocal}), so each test reads its
      * own assertion/messenger state even while several tests interleave on one loop.
      */
     case PerCase;

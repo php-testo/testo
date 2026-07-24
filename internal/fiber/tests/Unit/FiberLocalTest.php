@@ -2,29 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Tests\Common\Unit;
+namespace Internal\Fiber\Tests\Unit;
 
+use Internal\Fiber\FiberLocal;
 use Testo\Assert;
 use Testo\Codecov\Covers;
-use Testo\Common\FiberLocal;
 use Testo\Test;
 
 #[Test]
 #[Covers(FiberLocal::class)]
 final class FiberLocalTest
 {
-    public function mainSlotDefaultsThenSetsAndScopes(): void
+    public function mainSlotDefaultsThenScopes(): void
     {
         $local = new FiberLocal('default');
 
         Assert::same($local->get(), 'default');
 
-        $local->set('explicit');
-        Assert::same($local->get(), 'explicit');
-
         $inside = $local->scope('scoped', static fn(): string => $local->get());
         Assert::same($inside, 'scoped');
-        Assert::same($local->get(), 'explicit');
+        Assert::same($local->get(), 'default');
     }
 
     public function nestedScopeRestoresOuterValue(): void
@@ -41,33 +38,6 @@ final class FiberLocalTest
         });
 
         Assert::same($seen, ['outer', 'inner', 'outer']);
-        Assert::same($local->get(), 'base');
-    }
-
-    public function independentFibersHaveSeparateSlots(): void
-    {
-        $local = new FiberLocal('base');
-        $a = null;
-        $b = null;
-
-        $fiberA = new \Fiber(static function () use ($local, &$a): void {
-            $local->set('A');
-            \Fiber::suspend();
-            $a = $local->get();
-        });
-        $fiberB = new \Fiber(static function () use ($local, &$b): void {
-            $local->set('B');
-            \Fiber::suspend();
-            $b = $local->get();
-        });
-
-        $fiberA->start();
-        $fiberB->start();
-        $fiberA->resume();
-        $fiberB->resume();
-
-        Assert::same($a, 'A');
-        Assert::same($b, 'B');
         Assert::same($local->get(), 'base');
     }
 
@@ -119,11 +89,54 @@ final class FiberLocalTest
         Assert::same($local->get(), 'base');
     }
 
-    public function finishedFiberSlotIsReleasedByGc(): void
+    public function scopeRunsDestroyOnceAfterRestore(): void
+    {
+        $local = new FiberLocal('base');
+        $seenDuringDestroy = 'unset';
+        $calls = 0;
+
+        $local->scope(
+            'scoped',
+            static fn(): int => 1,
+            static function () use ($local, &$seenDuringDestroy, &$calls): void {
+                ++$calls;
+                $seenDuringDestroy = $local->get();
+            },
+        );
+
+        Assert::same($calls, 1);
+        Assert::same($seenDuringDestroy, 'base');
+    }
+
+    public function scopeRunsDestroyOnException(): void
+    {
+        $local = new FiberLocal('base');
+        $destroyed = false;
+
+        try {
+            $local->scope(
+                'scoped',
+                static function (): never {
+                    throw new \RuntimeException('boom');
+                },
+                static function () use (&$destroyed): void {
+                    $destroyed = true;
+                },
+            );
+        } catch (\RuntimeException) {
+        }
+
+        Assert::true($destroyed);
+    }
+
+    public function abandonedFiberSlotIsReleasedByGc(): void
     {
         $local = new FiberLocal('base');
 
-        $fiber = new \Fiber(static fn() => $local->set('leaky'));
+        // Park a fiber inside scope() so its restoring finally never runs — the slot lingers in the map.
+        $fiber = new \Fiber(static function () use ($local): void {
+            $local->scope('leaky', static fn() => \Fiber::suspend());
+        });
         $fiber->start();
 
         /** @var \WeakMap<\Fiber, mixed> $byFiber */
