@@ -12,6 +12,8 @@ use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
+use Testo\Core\Log\Level;
+use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
 use Testo\Output\Teamcity\Teamcity\TeamcityLogger;
 use Testo\Test;
@@ -122,6 +124,53 @@ final class TeamcityLoggerTest
 
         Assert::string($output)->contains('##teamcity[buildProblem');
         Assert::string($output)->contains("description='No tests were executed'");
+    }
+
+    public function testStartedFromInfoStampsFlowIdFromIdentity(): void
+    {
+        $info = self::makeInfo('passingTest');
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($info));
+
+        Assert::string($output)->contains("flowId='{$info->identity->id}'");
+    }
+
+    public function handleSingleTestResultStampsFlowIdFromIdentity(): void
+    {
+        $result = self::makeFailedResult(new \RuntimeException('boom'));
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        // Both the failure and the finish message carry the test's flow, so a consumer keeps them together.
+        Assert::same(\substr_count($output, "flowId='{$result->info->identity->id}'"), 2);
+    }
+
+    public function logMessageStampsTheGivenFlowId(): void
+    {
+        $message = new Message(time: 0.0, channel: 'stdout', level: Level::Info, content: 'streamed line');
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->logMessage('someTest', $message, '4242'),
+        );
+
+        Assert::string($output)->contains("flowId='4242'");
+        Assert::string($output)->contains('streamed line');
+    }
+
+    public function distinctTestsGetDistinctFlowIds(): void
+    {
+        $first = self::makeInfo('passingTest');
+        $second = self::makeInfo('passingTest');
+
+        // Two separate runs of the same method are distinct in-flight tests — their flows must differ so
+        // that, when interleaved, a consumer never merges their messages.
+        Assert::notSame($first->identity->id, $second->identity->id);
+
+        $a = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($first));
+        $b = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($second));
+
+        Assert::string($a)->contains("flowId='{$first->identity->id}'");
+        Assert::string($b)->contains("flowId='{$second->identity->id}'");
     }
 
     /**

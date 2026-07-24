@@ -27,9 +27,11 @@ final class Formatter
      * @param \ReflectionClass<object>|null $caseReflection Concrete (runtime) case class, used to
      *        attribute a method-backed suite (a DataProvider batch) to the subclass rather than the
      *        method's declaring class. Ignored when `$reflection` is a class.
+     * @param non-empty-string|null $flowId Flow this suite belongs to; groups its messages apart from
+     *        other flows running concurrently on the same stream.
      * @return non-empty-string
      */
-    public static function suiteStarted(string $name, null|\ReflectionClass|\ReflectionFunctionAbstract $reflection = null, ?\ReflectionClass $caseReflection = null): string
+    public static function suiteStarted(string $name, null|\ReflectionClass|\ReflectionFunctionAbstract $reflection = null, ?\ReflectionClass $caseReflection = null, ?string $flowId = null): string
     {
         $attributes = ['name' => $name];
 
@@ -40,6 +42,8 @@ final class Formatter
             $locationHint !== null and $attributes['locationHint'] = $locationHint;
         }
 
+        $flowId !== null and $attributes['flowId'] = $flowId;
+
         return self::formatMessage('testSuiteStarted', $attributes);
     }
 
@@ -47,11 +51,16 @@ final class Formatter
      * Formats a test suite finished message.
      *
      * @param non-empty-string $name Suite name
+     * @param non-empty-string|null $flowId Flow this suite belongs to.
      * @return non-empty-string
      */
-    public static function suiteFinished(string $name): string
+    public static function suiteFinished(string $name, ?string $flowId = null): string
     {
-        return self::formatMessage('testSuiteFinished', ['name' => $name]);
+        $attributes = ['name' => $name];
+
+        $flowId !== null and $attributes['flowId'] = $flowId;
+
+        return self::formatMessage('testSuiteFinished', $attributes);
     }
 
     /**
@@ -65,9 +74,11 @@ final class Formatter
      *        the TeamCity `metainfo` attribute. Omitted when `null`.
      * @param \ReflectionClass<object>|null $caseReflection Concrete (runtime) case class, used to
      *        attribute an inherited test to the subclass rather than the method's declaring class.
+     * @param non-empty-string|null $flowId Flow this test belongs to; keeps its messages grouped apart
+     *        from other tests running concurrently on the same stream.
      * @return non-empty-string
      */
-    public static function testStarted(string $name, bool $captureStandardOutput = false, ?\ReflectionFunctionAbstract $reflection = null, ?string $locationSuffix = null, ?string $description = null, ?\ReflectionClass $caseReflection = null): string
+    public static function testStarted(string $name, bool $captureStandardOutput = false, ?\ReflectionFunctionAbstract $reflection = null, ?string $locationSuffix = null, ?string $description = null, ?\ReflectionClass $caseReflection = null, ?string $flowId = null): string
     {
         $attributes = ['name' => $name];
 
@@ -79,6 +90,7 @@ final class Formatter
         }
 
         $description !== null and $attributes['metainfo'] = $description;
+        $flowId !== null and $attributes['flowId'] = $flowId;
 
         return self::formatMessage('testStarted', $attributes);
     }
@@ -88,13 +100,15 @@ final class Formatter
      *
      * @param non-empty-string $name Test name
      * @param int<0, max>|null $duration Duration in milliseconds
+     * @param non-empty-string|null $flowId Flow this test belongs to.
      * @return non-empty-string
      */
-    public static function testFinished(string $name, ?int $duration = null): string
+    public static function testFinished(string $name, ?int $duration = null, ?string $flowId = null): string
     {
         $attributes = ['name' => $name];
 
         $duration !== null and $attributes['duration'] = (string) $duration;
+        $flowId !== null and $attributes['flowId'] = $flowId;
 
         return self::formatMessage('testFinished', $attributes);
     }
@@ -108,6 +122,7 @@ final class Formatter
      * @param non-empty-string|null $type Comparison type for diff display (e.g., 'comparisonFailure')
      * @param non-empty-string|null $expected Expected value for diff
      * @param non-empty-string|null $actual Actual value for diff
+     * @param non-empty-string|null $flowId Flow this test belongs to.
      * @return non-empty-string
      */
     public static function testFailed(
@@ -117,6 +132,7 @@ final class Formatter
         ?string $type = null,
         ?string $expected = null,
         ?string $actual = null,
+        ?string $flowId = null,
     ): string {
         $attributes = [
             'name' => $name,
@@ -127,6 +143,7 @@ final class Formatter
         $type !== null and $attributes['type'] = $type;
         $expected !== null and $attributes['expected'] = $expected;
         $actual !== null and $attributes['actual'] = $actual;
+        $flowId !== null and $attributes['flowId'] = $flowId;
 
         return self::formatMessage('testFailed', $attributes);
     }
@@ -136,13 +153,15 @@ final class Formatter
      *
      * @param non-empty-string $name Test name
      * @param non-empty-string $message Optional skip reason
+     * @param non-empty-string|null $flowId Flow this test belongs to.
      * @return non-empty-string
      */
-    public static function testIgnored(string $name, string $message = ''): string
+    public static function testIgnored(string $name, string $message = '', ?string $flowId = null): string
     {
         $attributes = ['name' => $name];
 
         $message !== '' and $attributes['message'] = $message;
+        $flowId !== null and $attributes['flowId'] = $flowId;
 
         return self::formatMessage('testIgnored', $attributes);
     }
@@ -154,10 +173,13 @@ final class Formatter
      * @param non-empty-string $output Standard output content
      * @param array<non-empty-string, string> $attributes Extra attributes (e.g. `channel`, `level`)
      *        for consumers that understand them; standard TeamCity parsers ignore unknown ones.
+     * @param non-empty-string|null $flowId Flow the emitting test belongs to.
      * @return non-empty-string
      */
-    public static function testStdOut(string $name, string $output, array $attributes = []): string
+    public static function testStdOut(string $name, string $output, array $attributes = [], ?string $flowId = null): string
     {
+        $flowId !== null and $attributes['flowId'] = $flowId;
+
         return self::formatMessage('testStdOut', [
             'name' => $name,
             'out' => $output,
@@ -171,10 +193,13 @@ final class Formatter
      * @param non-empty-string $output Standard error content
      * @param array<non-empty-string, string> $attributes Extra attributes (e.g. `channel`, `level`)
      *        for consumers that understand them; standard TeamCity parsers ignore unknown ones.
+     * @param non-empty-string|null $flowId Flow the emitting test belongs to.
      * @return non-empty-string
      */
-    public static function testStdErr(string $name, string $output, array $attributes = []): string
+    public static function testStdErr(string $name, string $output, array $attributes = [], ?string $flowId = null): string
     {
+        $flowId !== null and $attributes['flowId'] = $flowId;
+
         return self::formatMessage('testStdErr', [
             'name' => $name,
             'out' => $output,
