@@ -16,11 +16,9 @@ use Testo\Core\Context\TestResult;
  * as its own microtask (loop fiber) **at once**; they interleave at their await points and the calling
  * fiber blocks on a {@see \Revolt\EventLoop\Suspension} until all of them finish.
  *
- * This runs the whole per-test pipeline — including Testo's fiber-aware scoped-state guards — inside a
- * loop fiber. Those guards hand-drive a nested fiber and re-suspend to their own parent, which the
- * Revolt driver cannot cooperate with, so with the current guards **PerCase deadlocks / clashes test
- * state**. That is intentional on this branch: the fix (fiber-local guards) lands on the main branch —
- * here the PerCase self-tests fail on purpose to mark the blocker. See {@see Strategy::PerCase}.
+ * This runs the whole per-test pipeline — including Testo's scoped-state guards — inside a loop fiber.
+ * The guards hold their state per fiber (see {@see \Testo\Common\FiberLocal}), so concurrent tests keep
+ * separate assertion/messenger state across the interleave. See {@see Strategy::PerCase}.
  *
  * @internal
  * @psalm-internal Testo\Bridge\Revolt
@@ -99,15 +97,13 @@ final class RevoltTestBatchRunner
 
         $suspension->suspend();
 
-        // The loop must not unwind before every test finished. With the current fiber-aware guards it
-        // does exactly that — a guard bare-suspends its loop fiber, the Revolt driver has no resumer, the
-        // strand is abandoned and this suspension returns with tests missing. Fail loudly instead of
-        // silently dropping tests (a green run that ran nothing is the worst outcome). This is the
-        // PerCase blocker: it needs fiber-local guards, fixed on the main branch.
+        // Safety net: the loop must not unwind before every test finished. If a handler ever strands its
+        // loop fiber (a bare suspend with no resumer), this suspension would return with tests missing —
+        // fail loudly rather than silently dropping tests (a green run that ran nothing is the worst
+        // outcome). With the fiber-local guards in place this never fires in practice.
         $done = \count($results) + \count($errors);
         $done === \count($handlers) or throw new \RuntimeException(\sprintf(
-            'Revolt PerCase lost %d of %d test(s): the event loop unwound before they finished — the '
-            . 'fiber-aware guards deadlock against the Revolt driver. PerCase needs fiber-local guards.',
+            'Revolt PerCase lost %d of %d test(s): the event loop unwound before they finished.',
             \count($handlers) - $done,
             \count($handlers),
         ));

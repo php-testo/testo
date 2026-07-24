@@ -35,8 +35,10 @@ Suspension must go through a Revolt `Suspension` bound to a watcher (I/O, timer)
 
 `#[RunInRevolt]` takes a `Strategy` that chooses when the loop is entered:
 
-- `Strategy::PerTest` (default) — each test is placed on the loop individually, from *inside* Testo's fiber-aware scoped-state guards. Works today.
-- `Strategy::PerCase` — launches the whole case's tests **concurrently** on one loop run via `CaseInfo`'s batch runner. This puts the per-test pipeline (guards included) inside a loop fiber, which the guards cannot yet cooperate with, so it **currently deadlocks / fails**; it becomes correct once the guards move to fiber-local storage (a change made on the main branch). Its self-test is left failing on purpose to mark the blocker.
+- `Strategy::PerTest` (default) — each test's whole pipeline is placed on the loop individually, one test at a time, each run to completion before the next. No interleaving.
+- `Strategy::PerCase` — launches the whole case's tests **concurrently** on one loop run via `CaseInfo`'s batch runner, interleaving at their await points.
+
+Either way the whole per-test pipeline runs inside the loop fiber. Testo's scoped-state guards (assertion collector, messenger) hold their state per fiber, so concurrent tests stay isolated — each reads its own assertion/messenger state across every switch.
 
 ```php
 use Testo\Bridge\Revolt\RunInRevolt;
@@ -45,8 +47,6 @@ use Testo\Bridge\Revolt\Strategy;
 #[RunInRevolt(Strategy::PerTest)]
 final class TimersTest { /* ... */ }
 ```
-
-**Current limitation:** only `Strategy::PerTest` works today (tests run one at a time, each to completion). `Strategy::PerCase` runs tests concurrently but deadlocks against Testo's fiber-aware scoped-state guards; it becomes correct once those guards move to fiber-local storage.
 
 ## Install
 

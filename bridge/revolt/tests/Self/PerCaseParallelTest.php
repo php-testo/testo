@@ -13,15 +13,10 @@ use Testo\Codecov\Covers;
 use Testo\Test;
 
 /**
- * Demonstrative — **EXPECTED RED on this branch.**
- *
- * A class-level `#[RunInRevolt(Strategy::PerCase)]` launches the case's tests concurrently on the
- * Revolt loop. With the current, non-fiber-local guards the per-test pipeline runs inside a loop fiber
- * where the fiber-aware guards hand-drive a nested fiber and fight the Revolt driver for it, so this
- * deadlocks / clashes state (`Event loop terminated without resuming the current suspension`).
- *
- * Left failing on purpose to mark the blocker: real concurrent PerCase needs the guards to move to
- * fiber-local storage, which is done on the **main branch**, not here.
+ * A class-level `#[RunInRevolt(Strategy::PerCase)]` launches the case's tests concurrently on the Revolt
+ * loop: both start, both park on their own timer, and both resume once the loop drives the timers. The
+ * per-test pipeline runs inside a loop fiber, and the fiber-local scoped-state guards keep each test's
+ * assertion state isolated across the interleave — so both tests pass without clashing.
  */
 #[Test]
 #[RunInRevolt(Strategy::PerCase)]

@@ -19,24 +19,27 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * Drives {@see RunInRevolt} tests as coroutines on the Revolt event loop, per the chosen
  * {@see Strategy}.
  *
- * - {@see Strategy::PerTest} (default): each test is put on the loop from *inside* the fiber-aware
- *   scoped-state guards ({@see runTest()}), so the guards stay on their synchronous main-fiber path and
- *   only the test body reaches the loop.
+ * - {@see Strategy::PerTest} (default): each test's whole pipeline is put on the loop by {@see runTest()},
+ *   one test at a time, each to completion.
  * - {@see Strategy::PerCase}: the whole case is handed a {@see RevoltTestBatchRunner} (via
- *   {@see CaseInfo::withBatchRunner()}) that runs the batch on one loop run. This puts the guards inside
- *   a loop fiber and currently deadlocks — it is usable once the guards go fiber-local.
+ *   {@see CaseInfo::withBatchRunner()}) that launches every test at once, so they run concurrently and
+ *   interleave at their await points.
  *
- * Each test body is launched as a microtask and the current fiber blocks on a
+ * Each test's pipeline is launched as a microtask and the current fiber blocks on a
  * {@see \Revolt\EventLoop\Suspension} until it completes, so the test may await real async work while
  * staying, from the outside, an ordinary blocking call.
  *
- * Sits at {@see InterceptorOptions::ORDER_CLOSE_TO_TEST}, i.e. the innermost case/test interceptor, so
- * under {@see Strategy::PerTest} the guards wrap the loop dispatch rather than the other way around.
+ * Sits **outer** to the fiber-aware scoped-state guards (order just outside {@see
+ * InterceptorOptions::ORDER_DATA_PROVIDER}): the loop dispatch wraps the guards, so the whole per-test
+ * pipeline — assertion collector, messenger scope, the test body — runs *inside* the loop fiber. The
+ * guards hold their state per fiber (see {@see \Testo\Common\FiberLocal}), so each test reads its own
+ * scoped state even while several tests interleave on one loop; a data-driven/retried test runs all its
+ * datasets/attempts inside its single fiber (data provider stays inner to the dispatch).
  *
  * @internal
  * @psalm-internal Testo\Bridge\Revolt
  */
-#[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST, onConflict: ConflictPolicy::Last)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_DATA_PROVIDER - 1, onConflict: ConflictPolicy::Last)]
 final readonly class RunInRevoltInterceptor implements TestCaseRunInterceptor, TestRunInterceptor
 {
     public function __construct(
@@ -46,8 +49,9 @@ final readonly class RunInRevoltInterceptor implements TestCaseRunInterceptor, T
     #[\Override]
     public function runTestCase(CaseInfo $info, callable $next): CaseResult
     {
-        // Per-case: drive the whole case on the loop. Per-test leaves the case untouched and dispatches
-        // each test onto the loop individually in runTest().
+        // Per-case: hand the case a runner that launches every test on the loop at once (concurrent).
+        // Per-test leaves the case untouched and dispatches each test onto the loop individually, one at a
+        // time, in runTest().
         return $this->options->strategy === Strategy::PerCase
             ? $next($info->withBatchRunner(new RevoltTestBatchRunner()))
             : $next($info);
@@ -61,8 +65,8 @@ final readonly class RunInRevoltInterceptor implements TestCaseRunInterceptor, T
             return $next($info);
         }
 
-        // Strategy::PerTest (or a method-level attribute): put this single test on the loop, from inside
-        // the guards.
+        // Strategy::PerTest (or a method-level attribute): put this test's whole pipeline on the loop, so
+        // the fiber-local guards inner to us run in the same fiber as the test body.
         return RevoltTestBatchRunner::runOnLoop(static fn(): TestResult => $next($info));
     }
 }

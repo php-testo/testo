@@ -31,13 +31,10 @@ use Testo\Pipeline\Attribute\Interceptable;
  * `Suspension` bound to a watcher (I/O, timer) — a bare `\Fiber::suspend()` has no resumer on the loop.
  *
  * The {@see Strategy} chooses when the loop is entered — {@see Strategy::PerTest} (default, one test on
- * the loop at a time, inner to the guards) or {@see Strategy::PerCase} (launches the whole case's tests
- * concurrently on one loop run).
- *
- * **Current limitation:** only {@see Strategy::PerTest} works today — its tests run one at a time, each
- * to completion, with the guards on their synchronous main-fiber path. {@see Strategy::PerCase} runs the
- * tests concurrently but deadlocks against Testo's fiber-aware scoped-state guards; it becomes correct
- * once those guards move to fiber-local storage (a change made on the main branch).
+ * the loop at a time, each run to completion) or {@see Strategy::PerCase} (launches the whole case's tests
+ * concurrently on one loop run, interleaving at their await points). Either way the whole per-test
+ * pipeline runs inside the loop fiber; Testo's scoped-state guards hold their state per fiber (see
+ * {@see \Testo\Common\FiberLocal}), so concurrent tests stay isolated.
  *
  * @api
  */
