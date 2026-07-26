@@ -75,6 +75,61 @@ final class ChannelRendererTest
         Assert::string($out)->notContains("\n\n");
     }
 
+    public function resetKeepsAPartialLineInMindSoTheNextHeaderStartsOnItsOwnLine(): void
+    {
+        $renderer = new ChannelRenderer();
+        $renderer->render(self::message('stdout', 'no-newline'));
+
+        $renderer->reset();
+        $out = self::stripAnsi($renderer->render(self::message('stdout', "again\n")));
+
+        // The reset forgets which header is open, not that the cursor sits mid-line — otherwise the
+        // fresh header would be glued onto the tail of the previous content.
+        Assert::true(\str_starts_with($out, "\n[stdout] "), "Header glued onto a partial line: {$out}");
+    }
+
+    public function differentOwnersOnOneChannelEachGetTheirOwnHeader(): void
+    {
+        $renderer = new ChannelRenderer();
+
+        $out = self::stripAnsi(
+            $renderer->render(self::message('stdout', "a1\n"), 1)
+            . $renderer->render(self::message('stdout', "b1\n"), 2)
+            . $renderer->render(self::message('stdout', "a2\n"), 1),
+        );
+
+        // Same channel, two switches of owner: every block opens its own header instead of collapsing
+        // into one — this is what keeps interleaved tests' output readable.
+        Assert::same(\substr_count($out, '[stdout] '), 3);
+        Assert::true(
+            \preg_match('/^\[stdout] [\d:.]+\na1\n\[stdout] [\d:.]+\nb1\n\[stdout] [\d:.]+\na2\n$/', $out) === 1,
+            "Owner switches did not each open a header: {$out}",
+        );
+    }
+
+    public function sameOwnerAndChannelStillAppendsContentVerbatim(): void
+    {
+        $renderer = new ChannelRenderer();
+        $renderer->render(self::message('stdout', "first\n"), 7);
+
+        $out = $renderer->render(self::message('stdout', 'second'), 7);
+
+        Assert::same($out, 'second');
+    }
+
+    public function ownerLabelIsAppendedToTheHeader(): void
+    {
+        $renderer = new ChannelRenderer();
+
+        $out = self::stripAnsi($renderer->render(self::message('stdout', "hi\n"), 42, 'quickBursts'));
+
+        // The label rides after the time, so a reader sees whose block this is before its first line.
+        Assert::true(
+            \preg_match('/^\[stdout] [\d:.]+ · quickBursts\nhi\n$/', $out) === 1,
+            "Owner label missing from the header: {$out}",
+        );
+    }
+
     public function headerFormatsTimeAsWallClockWithMilliseconds(): void
     {
         $renderer = new ChannelRenderer();

@@ -7,7 +7,6 @@ namespace Testo\Output\Terminal;
 use Internal\Container\Container;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
-use Testo\Core\Context\TestInfo;
 use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Message\MessageReceived;
@@ -34,11 +33,22 @@ use Testo\Output\Terminal\Renderer\TerminalLogger;
 final class TerminalPlugin implements PluginConfigurator
 {
     /**
-     * Tracks whether we're inside a DataProvider batch.
+     * Ids of the tests currently inside a DataProvider batch.
      *
-     * @var array<non-empty-string, bool>
+     * Keyed by {@see \Testo\Core\Context\TestIdentity::$id} so concurrently running tests are tracked
+     * independently, and so the key never depends on an object address the way `spl_object_hash()` did.
+     *
+     * @var array<int, bool>
      */
     private array $isBatch = [];
+
+    /**
+     * Display name of every test currently in flight (the data set's name while one is running), keyed
+     * by test id. Streamed output is attributed through this map; a test with no entry is not running.
+     *
+     * @var array<int, non-empty-string>
+     */
+    private array $running = [];
 
     public function __construct(
         private readonly TerminalLogger $logger,
@@ -81,11 +91,6 @@ final class TerminalPlugin implements PluginConfigurator
         $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
     }
 
-    private static function getId(TestInfo $testInfo): string
-    {
-        return \spl_object_hash($testInfo->testDefinition);
-    }
-
     private function onSessionStarting(SessionStarting $event): void
     {
         $this->logger->ensureHeader();
@@ -99,19 +104,35 @@ final class TerminalPlugin implements PluginConfigurator
 
     private function onMessageReceived(MessageReceived $event): void
     {
-        $this->logger->logMessage($event->message);
+        $identity = $event->identity;
+        if ($identity === null) {
+            // Belongs to no test (suite/case setup, output between tests) — stream it ungrouped.
+            $this->logger->logMessage($event->message);
+            return;
+        }
+
+        // Name the test in the channel header only while several are in flight: then, and only then,
+        // is a block ambiguous. A sequential run keeps the plain `[channel] time` header it always had,
+        // and an unlabelled block means exactly one test was running when it opened.
+        $this->logger->logMessage(
+            $event->message,
+            $identity->id,
+            \count($this->running) > 1 ? ($this->running[$identity->id] ?? null) : null,
+        );
     }
 
     private function onTestPipelineStarting(TestPipelineStarting $event): void
     {
         // Fresh channel grouping for the test about to run.
         $this->logger->resetChannels();
+        $this->running[$event->testInfo->identity->id] = $event->testInfo->name;
     }
 
     private function onTestPipelineFinished(TestPipelineFinished $event): void
     {
         // Check if this test was inside a DataProvider batch
-        $id = self::getId($event->testInfo);
+        $id = $event->testInfo->identity->id;
+        unset($this->running[$id]);
         if (isset($this->isBatch[$id])) {
             // DataProvider test - already handled in dataset events
             unset($this->isBatch[$id]);
@@ -127,7 +148,7 @@ final class TerminalPlugin implements PluginConfigurator
     private function onTestBatchStarting(TestBatchStarting $event): void
     {
         // Mark that we're inside a batch
-        $id = self::getId($event->testInfo);
+        $id = $event->testInfo->identity->id;
         $this->isBatch[$id] = true;
 
         // Start batch in logger for proper indentation
@@ -149,6 +170,10 @@ final class TerminalPlugin implements PluginConfigurator
         $prefix = $event->providerIndex === null ? '' : "$event->providerIndex:";
         $datasetName = "Dataset #{$prefix}{$event->datasetIndex} [$event->dataSetKey]";
         $this->logger->testStartedFromInfo($event->testInfo, $datasetName);
+
+        // Data sets of one provider share the batch's identity and run sequentially, so attributing the
+        // batch's id to the data set currently streaming is unambiguous.
+        $this->running[$event->testInfo->identity->id] = $datasetName;
     }
 
     private function onTestDataSetFinished(TestDataSetFinished $event): void

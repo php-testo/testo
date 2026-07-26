@@ -172,13 +172,18 @@ final class TerminalLogger
     /**
      * Streams a captured channel {@see Message} to the terminal in real time.
      *
-     * A colored channel header (name + time of the channel's first message) is printed when the
-     * channel changes; same-channel content is appended verbatim. Live streaming happens only at
+     * A colored channel header (name + time of the group's first message) is printed when the group
+     * changes; same-group content is appended verbatim. Live streaming happens only at
      * {@see Verbosity::Verbose} and above; at lower verbosity the output of a *failed* test is shown
      * after the fact (see {@see printFailures()}). Suppressed in Dots mode, whose single-character
      * per-test layout multi-line output would break.
+     *
+     * @param int|string|null $owner Test the message belongs to (its {@see \Testo\Core\Context\TestIdentity::$id}),
+     *        so interleaved tests never share one channel block. `null` for output owned by no test.
+     * @param non-empty-string|null $ownerLabel Test name to show in the header; pass it only while
+     *        several tests are in flight, so a sequential run keeps its plain header.
      */
-    public function logMessage(Message $message): void
+    public function logMessage(Message $message, int|string|null $owner = null, ?string $ownerLabel = null): void
     {
         if ($message->content === '') {
             return;
@@ -198,7 +203,7 @@ final class TerminalLogger
             return;
         }
 
-        $this->write($this->channels->render($message));
+        $this->write($this->channels->render($message, $owner, $ownerLabel));
     }
 
     /**
