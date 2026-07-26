@@ -138,6 +138,53 @@ final class JUnitPluginTest
         }
     }
 
+    public function interleavedBatchesSharingADefinitionDoNotClobberEachOther(): void
+    {
+        $path = self::tmpPath();
+        try {
+            $dispatcher = self::wirePlugin(new JUnitPlugin($path));
+
+            $suiteInfo = self::makeSuiteInfo('CoreSuite');
+            $caseInfo = self::makeCaseInfo();
+
+            // Two runs of one test method: distinct in-flight tests, one shared TestDefinition object.
+            // The batch guard is keyed by identity, so hashing the shared definition can no longer make
+            // the first pipeline's finish clear the second's marker.
+            $definition = new TestDefinition(new \ReflectionMethod(SampleTestClass::class, 'passingTest'));
+            $first = new TestInfo(name: 'passingTest', caseInfo: $caseInfo, testDefinition: $definition);
+            $second = new TestInfo(name: 'passingTest', caseInfo: $caseInfo, testDefinition: $definition);
+
+            $firstResult = new TestResult(info: $first, status: Status::Passed);
+            $secondResult = new TestResult(info: $second, status: Status::Passed);
+
+            $dispatcher->dispatch(new SessionStarting());
+            $dispatcher->dispatch(new TestSuiteStarting($suiteInfo));
+            $dispatcher->dispatch(new TestCaseStarting($caseInfo));
+            $dispatcher->dispatch(new TestBatchStarting($first));
+            $dispatcher->dispatch(new TestBatchStarting($second));
+            $dispatcher->dispatch(new TestDataSetFinished($first, $firstResult, 'alpha', null, 0));
+            $dispatcher->dispatch(new TestDataSetFinished($second, $secondResult, 'beta', null, 0));
+            $dispatcher->dispatch(new TestBatchFinished($first, $firstResult));
+            $dispatcher->dispatch(new TestBatchFinished($second, $secondResult));
+            $dispatcher->dispatch(new TestPipelineFinished($first, $firstResult));
+            $dispatcher->dispatch(new TestPipelineFinished($second, $secondResult));
+            $dispatcher->dispatch(new TestCaseFinished($caseInfo, new CaseResult([$firstResult], Status::Passed)));
+            $dispatcher->dispatch(new TestSuiteFinished($suiteInfo, new SuiteResult([], Status::Passed)));
+            $dispatcher->dispatch(self::sessionFinished());
+
+            // One <testcase> per data set and no rolled-up duplicate for either batch.
+            $xml = \simplexml_load_file($path);
+            Assert::notSame($xml, false);
+            Assert::same((string) $xml['tests'], '2');
+            $cases = $xml->testsuite->testsuite->testcase;
+            Assert::count($cases, 2);
+            Assert::same((string) $cases[0]['name'], 'passingTest [alpha]');
+            Assert::same((string) $cases[1]['name'], 'passingTest [beta]');
+        } finally {
+            self::cleanup($path);
+        }
+    }
+
     public function multipleProvidersIncludeProviderIndexInName(): void
     {
         // Arrange
