@@ -95,7 +95,8 @@ final readonly class MyInterceptor implements TestRunInterceptor { … }
 
 ```php
 TestInfo  { string $name; CaseInfo $caseInfo; TestDefinition $testDefinition;
-            array $arguments; array $attributes; }      // testDefinition->reflection: ReflectionFunctionAbstract
+            array $arguments; array $attributes; TestIdentity $identity; }
+                                                         // testDefinition->reflection: ReflectionFunctionAbstract
 CaseInfo  { CaseDefinition $definition; ?CaseInstance $instance; array $attributes; }
                                                          // definition->reflection: ?ReflectionClass
 TestResult{ TestInfo $info; Status $status; mixed $result; ?\Throwable $failure; … }
@@ -103,6 +104,12 @@ TestResult{ TestInfo $info; Status $status; mixed $result; ?\Throwable $failure;
 
 Read the test method via `$info->testDefinition->reflection`; the test class via
 `$info->caseInfo->definition->reflection` (null for function-based cases — guard it).
+
+`$info->identity` (`Testo\Core\Context\TestIdentity`, with an `int $id`) tells one running test from
+another. Key per-test state in a reporter by `$identity->id` rather than a single "current test" field:
+when tests run concurrently (fibers, an event loop) their events and output interleave, and a scalar
+gets clobbered. The same identity is carried on `MessageReceived` as `?TestIdentity $identity` (`null`
+when the message belongs to no test), so streamed output can be attributed to the right test.
 
 ### Passing state down the pipeline — prefer attributes over mutable fields
 
