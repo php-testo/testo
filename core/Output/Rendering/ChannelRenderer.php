@@ -10,28 +10,28 @@ use Testo\Output\Terminal\Renderer\Style;
 /**
  * Renders a stream of channel {@see Message}s for human-facing output (terminal, TeamCity, ...).
  *
- * Keeps track of the active group and prints a colored channel header — the channel name in a
- * stable, name-derived color, followed by the (dimmed) time of the group's first message — only
- * when the group changes. Consecutive messages of the same group are appended verbatim, with
+ * Keeps track of the active channel and prints a colored channel header — the channel name in a
+ * stable, name-derived color, followed by the (dimmed) time of the channel's first message — only
+ * when the channel changes. Consecutive messages of the same channel are appended verbatim, with
  * no header and no inserted line breaks. The header is kept on its own line.
  *
- * A group is the *owner* and the channel taken together, so output of two owners never shares one
- * header even on the same channel: when tests interleave (fibers, an event loop) their lines land on
- * one stream, and a header re-prints on every switch instead of collapsing them into one block.
- *
- * Stateful: one instance per output stream; call {@see reset()} at each test boundary so every test
- * starts its channel grouping afresh. Callers must skip empty content (the returned string is only
- * guaranteed non-empty when the given content is).
+ * Stateful, and scoped to one block of output rather than to the stream: interleaved tests each get
+ * their own instance, so a block always opens with a fresh header and never inherits another test's
+ * channel. Call {@see reset()} at a boundary inside a block — data sets share their batch's — so the
+ * next message opens a header of its own. Callers must skip empty content (the returned string is
+ * only guaranteed non-empty when the given content is).
  *
  * @internal
  */
 final class ChannelRenderer
 {
     /**
-     * Group (owner + channel) of the last rendered message, i.e. whose header is currently open;
-     * `null` before the first message / after a reset.
+     * Channel of the last rendered message, i.e. whose header is currently open; `null` before the
+     * first message / after a reset.
+     *
+     * @var non-empty-string|null
      */
-    private ?string $lastGroup = null;
+    private ?string $lastChannel = null;
 
     /**
      * Whether the last rendered content ended on a newline, so a header can be kept on its own line
@@ -45,48 +45,40 @@ final class ChannelRenderer
 
     public function reset(): void
     {
-        $this->lastGroup = null;
+        $this->lastChannel = null;
         $this->lastEndedWithNewline = true;
     }
 
     /**
-     * @param int|string|null $owner Whoever emitted the message — a {@see \Testo\Core\Context\TestIdentity::$id}
-     *        for test output. Only ever compared, never displayed; pass `null` to group by channel alone.
-     * @param non-empty-string|null $ownerLabel Human-readable name of the owner, appended to the header.
-     *        Pass it only when the stream really carries several owners at once, so a sequential run
-     *        keeps the plain `[channel] time` header.
      * @return non-empty-string
      */
-    public function render(Message $message, int|string|null $owner = null, ?string $ownerLabel = null): string
+    public function render(Message $message): string
     {
         $channel = $message->channel;
         $content = $message->content;
-        $group = $owner === null ? $channel : "{$owner}\x00{$channel}";
 
-        if ($group === $this->lastGroup) {
+        if ($channel === $this->lastChannel) {
             $this->lastEndedWithNewline = \str_ends_with($content, "\n");
             return $content;
         }
 
         // Keep the header on its own line: break only if the previous content didn't already.
         $separator = $this->lastEndedWithNewline ? '' : "\n";
-        $this->lastGroup = $group;
+        $this->lastChannel = $channel;
         $this->lastEndedWithNewline = \str_ends_with($content, "\n");
 
-        return $separator . self::header($channel, $message->time, $ownerLabel) . "\n" . $content;
+        return $separator . self::header($channel, $message->time) . "\n" . $content;
     }
 
     /**
      * A channel header: the channel name highlighted in a stable, name-derived color, followed by
-     * the (dimmed) wall-clock time of the group's first message and, when given, the owner it belongs
-     * to. {@see Style} strips the ANSI when colors are disabled, leaving a plain
-     * `[channel] HH:MM:SS.mmm` header — or `[channel] HH:MM:SS.mmm · owner` when labelled.
+     * the (dimmed) wall-clock time of the channel's first message. {@see Style} strips the ANSI when
+     * colors are disabled, leaving a plain `[channel] HH:MM:SS.mmm` header.
      *
      * @param non-empty-string $channel
-     * @param non-empty-string|null $ownerLabel
      * @return non-empty-string
      */
-    private static function header(string $channel, float $time, ?string $ownerLabel = null): string
+    private static function header(string $channel, float $time): string
     {
         // Black is omitted on purpose — it is invisible on a dark terminal.
         $palette = [
@@ -100,9 +92,8 @@ final class ChannelRenderer
             Color::Gray,
         ];
         $color = $palette[\abs(\crc32($channel)) % \count($palette)];
-        $suffix = $ownerLabel === null ? '' : " · {$ownerLabel}";
 
-        return Style::colorize("[{$channel}]", $color) . ' ' . Style::dim(self::formatTime($time) . $suffix);
+        return Style::colorize("[{$channel}]", $color) . ' ' . Style::dim(self::formatTime($time));
     }
 
     /**
