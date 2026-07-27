@@ -20,6 +20,7 @@ use Testo\Core\Value\Status;
 use Testo\Core\Value\Verbosity;
 use Testo\Data\MultipleResult;
 use Testo\Output\Rendering\ChannelRenderer;
+use Testo\Output\Rendering\SharedStream;
 
 /**
  * Terminal logger for test reporting with configurable output format.
@@ -59,13 +60,24 @@ final class TerminalLogger
      */
     private ?TestResult $lastResult = null;
 
-    /** @var resource */
-    private $output;
+    private readonly SharedStream $out;
 
     /** @var resource */
     private $errorOutput;
 
-    private readonly ChannelRenderer $channels;
+    /**
+     * Channel grouping of each open block, keyed by test id. Its life is the block's life — created on
+     * the test's first write, dropped by {@see closeTest()} — so it never carries state across into
+     * another test's block, and a block always opens with a fresh channel header.
+     *
+     * @var array<int, ChannelRenderer>
+     */
+    private array $channels = [];
+
+    /**
+     * Channel grouping of output that belongs to no test, which is written through rather than blocked.
+     */
+    private ?ChannelRenderer $unownedChannels = null;
 
     /**
      * @param resource|null $output Stream for the human-facing report; defaults to {@see \STDOUT}.
@@ -81,9 +93,8 @@ final class TerminalLogger
         $output = null,
         $errorOutput = null,
     ) {
-        $this->output = $output ?? \STDOUT;
+        $this->out = new SharedStream($output ?? \STDOUT);
         $this->errorOutput = $errorOutput ?? \STDERR;
-        $this->channels = new ChannelRenderer();
     }
 
     /**
@@ -92,7 +103,7 @@ final class TerminalLogger
     public function suiteStartedFromInfo(SuiteInfo $info): void
     {
         $this->currentSuiteName = $info->name;
-        $this->write(Formatter::suiteHeader($info->name, $this->format));
+        $this->write(null, Formatter::suiteHeader($info->name, $this->format));
     }
 
     /**
@@ -100,7 +111,7 @@ final class TerminalLogger
      */
     public function handleSuiteResult(SuiteInfo $info, SuiteResult $result): void
     {
-        $this->write(Formatter::suiteSummary($result));
+        $this->write(null, Formatter::suiteSummary($result));
     }
 
     /**
@@ -108,7 +119,7 @@ final class TerminalLogger
      */
     public function caseStartedFromInfo(CaseInfo $info): void
     {
-        $this->write(Formatter::caseHeader($info->name, $this->format));
+        $this->write(null, Formatter::caseHeader($info->name, $this->format));
     }
 
     /**
@@ -116,8 +127,12 @@ final class TerminalLogger
      */
     public function handleCaseResult(CaseInfo $info, CaseResult $result): void
     {
-        $this->write(Formatter::caseFooter($this->format));
-        $this->write(Formatter::caseSummary($result, $this->format));
+        # Every test of the case has finished by now, so nothing should still be held — but a test the
+        # runner never closed would otherwise land under the *next* case's header.
+        $this->out->flush();
+
+        $this->write(null, Formatter::caseFooter($this->format));
+        $this->write(null, Formatter::caseSummary($result, $this->format));
     }
 
     /**
@@ -134,11 +149,12 @@ final class TerminalLogger
         // Print the batch test name (the main test with DataProvider)
         $indent = $this->format === OutputFormat::Verbose ? '     ' : '   ';
         $symbol = Style::dim(Symbol::DataProvider->value);
-        $this->write("{$indent}{$symbol} {$info->name}\n");
+        $id = $info->identity->id;
+        $this->write($id, "{$indent}{$symbol} {$info->name}\n");
 
         // The description belongs to the test, not to each dataset — print it once here, at the root
         // of the dataset tree, so it is not repeated under every dataset (see handle*Test).
-        $this->write(Formatter::description(
+        $this->write($id, Formatter::description(
             (string) $info->testDefinition->getDescription(),
             0,
             $this->format,
@@ -172,11 +188,25 @@ final class TerminalLogger
     }
 
     /**
-     * Resets channel grouping so the next test's first message prints a fresh channel header.
+     * Resets the test's channel grouping so its next message prints a fresh channel header. Used at
+     * data set boundaries: data sets share the batch's block, so nothing else would separate them.
      */
-    public function resetChannels(): void
+    public function resetChannels(TestInfo $info): void
     {
-        $this->channels->reset();
+        ($this->channels[$info->identity->id] ?? null)?->reset();
+    }
+
+    /**
+     * The test is done writing: release its block onto the stream and forget its channel grouping.
+     *
+     * Must come after the last write for the test — its result line included — or that line would be
+     * carried over into whatever block opens next.
+     */
+    public function closeTest(TestInfo $info): void
+    {
+        $id = $info->identity->id;
+        unset($this->channels[$id]);
+        $this->out->close($id);
     }
 
     /**
@@ -188,12 +218,11 @@ final class TerminalLogger
      * after the fact (see {@see printFailures()}). Suppressed in Dots mode, whose single-character
      * per-test layout multi-line output would break.
      *
-     * @param int|string|null $owner Test the message belongs to (its {@see \Testo\Core\Context\TestIdentity::$id}),
-     *        so interleaved tests never share one channel block. `null` for output owned by no test.
-     * @param non-empty-string|null $ownerLabel Test name to show in the header; pass it only while
-     *        several tests are in flight, so a sequential run keeps its plain header.
+     * @param int|null $owner Test the message belongs to (its {@see \Testo\Core\Context\TestIdentity::$id}),
+     *        which decides both the block it lands in and the channel grouping it continues. `null`
+     *        for output owned by no test.
      */
-    public function logMessage(Message $message, int|string|null $owner = null, ?string $ownerLabel = null): void
+    public function logMessage(Message $message, ?int $owner = null): void
     {
         if ($message->content === '') {
             return;
@@ -213,7 +242,7 @@ final class TerminalLogger
             return;
         }
 
-        $this->write($this->channels->render($message, $owner, $ownerLabel));
+        $this->write($owner, $this->channelsFor($owner)->render($message));
     }
 
     /**
@@ -238,6 +267,10 @@ final class TerminalLogger
      */
     public function printSummary(RunResult $result): void
     {
+        # Last chance for anything still held — a test the run never closed (aborted, timed out) must
+        # not be swallowed by the end of the report.
+        $this->out->flush();
+
         $this->printFailures();
         $this->printSingleTestOutput($result);
         $this->printStatistics($result);
@@ -248,13 +281,13 @@ final class TerminalLogger
      */
     public function ensureHeader(): void
     {
-        $this->write(Formatter::runHeader());
+        $this->write(null, Formatter::runHeader());
     }
 
     public function printEnvironment(): void
     {
-        $this->write(\sprintf(' %s %s (%s)', Style::info('OS:'), Environment::getOs(), Environment::getCpu()) . "\n");
-        $this->write(\sprintf(' %s %s (%s, memory: %s)', Style::info('PHP:'), Environment::getPhpVersion(), \PHP_SAPI, \ini_get('memory_limit') ?: 'unlimited') . "\n");
+        $this->write(null, \sprintf(' %s %s (%s)', Style::info('OS:'), Environment::getOs(), Environment::getCpu()) . "\n");
+        $this->write(null, \sprintf(' %s %s (%s, memory: %s)', Style::info('PHP:'), Environment::getPhpVersion(), \PHP_SAPI, \ini_get('memory_limit') ?: 'unlimited') . "\n");
 
         $modes = Environment::getXDebugMode();
         $xdebug = match (true) {
@@ -262,14 +295,14 @@ final class TerminalLogger
             $modes !== [] => Environment::getXDebugVersion() . Style::dim(' (' . \implode(', ', $modes) . ')'),
             default => Environment::getXDebugVersion() . Style::dim(' (off)'),
         };
-        $this->write(\sprintf('   %s %s', Style::info('XDebug:'), $xdebug) . "\n");
+        $this->write(null, \sprintf('   %s %s', Style::info('XDebug:'), $xdebug) . "\n");
 
         $opcache = match (true) {
             !Environment::isOpCacheEnabled() => 'off',
             Environment::isJitEnabled() => 'enabled with JIT',
             default => 'enabled',
         };
-        $this->write(\sprintf('   %s %s', Style::info('OPcache:'), $opcache) . "\n\n");
+        $this->write(null, \sprintf('   %s %s', Style::info('OPcache:'), $opcache) . "\n\n");
     }
 
     /**
@@ -341,12 +374,26 @@ final class TerminalLogger
         }
 
         $output = self::renderMessages($test->messages);
-        $output === '' or $this->write("\n" . $output);
+        $output === '' or $this->write(null, "\n" . $output);
     }
 
-    private function write(string $text): void
+    /**
+     * @param int|null $owner Test whose block the text belongs to; `null` for report structure that
+     *        belongs to no test (suite header, case footer, final summary).
+     */
+    private function write(?int $owner, string $text): void
     {
-        \fwrite($this->output, $text);
+        $this->out->write($owner, $text);
+    }
+
+    /**
+     * Channel grouping for the given owner's block, opened on demand.
+     */
+    private function channelsFor(?int $owner): ChannelRenderer
+    {
+        return $owner === null
+            ? $this->unownedChannels ??= new ChannelRenderer()
+            : $this->channels[$owner] ??= new ChannelRenderer();
     }
 
     /**
@@ -364,7 +411,7 @@ final class TerminalLogger
             description: $this->resultDescription($result),
         );
 
-        $this->write(Formatter::formatRun($item, $this->format));
+        $this->write($result->info->identity->id, Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
         unset($this->currentTestName[$result->info->identity->id]);
     }
@@ -391,7 +438,7 @@ final class TerminalLogger
             description: $this->resultDescription($result),
         );
 
-        $this->write(Formatter::formatRun($item, $this->format));
+        $this->write($result->info->identity->id, Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
         unset($this->currentTestName[$result->info->identity->id]);
     }
@@ -451,7 +498,7 @@ final class TerminalLogger
                 description: (string) $runKey,
             );
 
-            $this->write(Formatter::formatRun($item, $this->format));
+            $this->write($result->info->identity->id, Formatter::formatRun($item, $this->format));
             $runNumber++;
         }
     }
@@ -470,7 +517,7 @@ final class TerminalLogger
             indentLevel: $this->indentLevel($result),
         );
 
-        $this->write(Formatter::formatRun($item, $this->format));
+        $this->write($result->info->identity->id, Formatter::formatRun($item, $this->format));
         unset($this->currentTestName[$result->info->identity->id]);
     }
 
@@ -488,7 +535,7 @@ final class TerminalLogger
             indentLevel: $this->indentLevel($result),
         );
 
-        $this->write(Formatter::formatRun($item, $this->format));
+        $this->write($result->info->identity->id, Formatter::formatRun($item, $this->format));
         unset($this->currentTestName[$result->info->identity->id]);
     }
 
@@ -501,7 +548,7 @@ final class TerminalLogger
             return;
         }
 
-        $this->write(Formatter::failuresHeader());
+        $this->write(null, Formatter::failuresHeader());
 
         $index = 1;
         foreach ($this->failures as $failure) {
@@ -542,7 +589,7 @@ final class TerminalLogger
                 ? "{$file}:{$line}"
                 : null;
 
-            $this->write(Formatter::failureDetail(
+            $this->write(null, Formatter::failureDetail(
                 $index,
                 $testName,
                 $message,
@@ -562,14 +609,14 @@ final class TerminalLogger
     {
         $summary = $result->summary;
 
-        $this->write(Formatter::summary($summary, $result->duration));
+        $this->write(null, Formatter::summary($summary, $result->duration));
 
         if ($summary->total() === 0) {
-            $this->write(Formatter::emptyBanner());
+            $this->write(null, Formatter::emptyBanner());
             return;
         }
 
         $failures = $summary->failed() + $summary->count(Status::Aborted);
-        $this->write(Formatter::finalBanner($failures === 0));
+        $this->write(null, Formatter::finalBanner($failures === 0));
     }
 }

@@ -75,7 +75,7 @@ final class ChannelRendererTest
         Assert::string($out)->notContains("\n\n");
     }
 
-    public function resetKeepsAPartialLineInMindSoTheNextHeaderStartsOnItsOwnLine(): void
+    public function resetAssumesTheCallerLeftTheCursorAtLineStart(): void
     {
         $renderer = new ChannelRenderer();
         $renderer->render(self::message('stdout', 'no-newline'));
@@ -83,9 +83,9 @@ final class ChannelRendererTest
         $renderer->reset();
         $out = self::stripAnsi($renderer->render(self::message('stdout', "again\n")));
 
-        // The reset forgets which header is open, not that the cursor sits mid-line — otherwise the
-        // fresh header would be glued onto the tail of the previous content.
-        Assert::true(\str_starts_with($out, "\n[stdout] "), "Header glued onto a partial line: {$out}");
+        // The renderer sees only its own content, and reset() marks a boundary the caller terminated
+        // itself (a test's result line) — so it must not insert a separator of its own.
+        Assert::true(\str_starts_with($out, '[stdout] '), "Unwanted separator after reset: {$out}");
     }
 
     public function differentOwnersOnOneChannelEachGetTheirOwnHeader(): void

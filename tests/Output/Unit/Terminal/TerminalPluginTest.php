@@ -19,8 +19,11 @@ use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Verbosity;
 use Testo\Event\Message\MessageReceived;
+use Testo\Event\Test\TestBatchFinished;
+use Testo\Event\Test\TestBatchStarting;
+use Testo\Event\Test\TestDataSetFinished;
+use Testo\Event\Test\TestDataSetStarting;
 use Testo\Event\Test\TestPipelineFinished;
-use Testo\Event\Test\TestPipelineStarting;
 use Testo\Output\Terminal\Renderer\ColorMode;
 use Testo\Output\Terminal\Renderer\OutputFormat;
 use Testo\Output\Terminal\Renderer\Style;
@@ -30,52 +33,81 @@ use Testo\Test;
 use Tests\Output\Stub\JUnit\SampleTestClass;
 
 /**
- * How the terminal reporter attributes streamed output when tests interleave: it keys the in-flight
- * tests by {@see \Testo\Core\Context\TestIdentity::$id} taken off {@see MessageReceived}, so a switch
- * of test opens a fresh channel block named after its test instead of appending to a stranger's.
+ * How the terminal reporter keeps a line-oriented report readable when tests interleave: each test's
+ * lines form one block, and a block of a test that is not the one streaming live waits for the stream
+ * instead of cutting through someone else's group.
  */
 #[Test]
 #[Covers(TerminalPlugin::class)]
 final class TerminalPluginTest
 {
-    public function interleavedTestsEachGetTheirOwnLabelledChannelBlock(): void
+    public function interleavedDataProvidersEachRenderAsOneTree(): void
     {
         $first = self::makeTestInfo('passingTest');
         $second = self::makeTestInfo('failingTest');
 
         $output = self::capture(static function (EventDispatcher $dispatcher) use ($first, $second): void {
-            $dispatcher->dispatch(new TestPipelineStarting($first));
-            $dispatcher->dispatch(self::message("a1\n", $first));
-            $dispatcher->dispatch(new TestPipelineStarting($second));
-            $dispatcher->dispatch(self::message("b1\n", $second));
-            $dispatcher->dispatch(self::message("a2\n", $first));
-            $dispatcher->dispatch(self::message("b2\n", $second));
+            $dispatcher->dispatch(new TestBatchStarting($first));
+            $dispatcher->dispatch(new TestBatchStarting($second));
+            self::dataSet($dispatcher, $first, 'a0');
+            self::dataSet($dispatcher, $second, 'b0');
+            $dispatcher->dispatch(new TestBatchFinished($first, self::passed($first)));
+            $dispatcher->dispatch(new TestPipelineFinished($first, self::passed($first)));
+            $dispatcher->dispatch(new TestBatchFinished($second, self::passed($second)));
+            $dispatcher->dispatch(new TestPipelineFinished($second, self::passed($second)));
         });
 
-        // Two tests in flight, so every block names its test — and no line is appended to the other's.
-        Assert::string($output)->contains("· passingTest\na2\n");
-        Assert::string($output)->contains("· failingTest\nb1\n");
-        Assert::string($output)->contains("· failingTest\nb2\n");
-        // Four lines from two alternating tests must never collapse into fewer blocks.
-        Assert::same(\substr_count($output, '[stdout] '), 4);
+        // Both batch headers with both data sets under whichever came last would be unreadable — each
+        // tree has to come out whole: header, then its own data set.
+        Assert::same(
+            \array_values(\array_filter(\array_map(\trim(...), \explode("\n", $output)))),
+            [
+                '◆ passingTest',
+                '✓ Dataset #0 [a0] (0ms)',
+                '◆ failingTest',
+                '✓ Dataset #0 [b0] (0ms)',
+            ],
+        );
     }
 
-    public function sequentialTestsKeepThePlainUnlabelledHeader(): void
+    public function aTestsStreamedOutputStaysInOnePieceWhileAnotherRuns(): void
     {
         $first = self::makeTestInfo('passingTest');
         $second = self::makeTestInfo('failingTest');
 
         $output = self::capture(static function (EventDispatcher $dispatcher) use ($first, $second): void {
-            $dispatcher->dispatch(new TestPipelineStarting($first));
             $dispatcher->dispatch(self::message("a1\n", $first));
-            $dispatcher->dispatch(new TestPipelineFinished($first, new TestResult($first, Status::Passed)));
-            $dispatcher->dispatch(new TestPipelineStarting($second));
             $dispatcher->dispatch(self::message("b1\n", $second));
+            $dispatcher->dispatch(self::message("a2\n", $first));
+            $dispatcher->dispatch(new TestPipelineFinished($first, self::passed($first)));
+            $dispatcher->dispatch(self::message("b2\n", $second));
+            $dispatcher->dispatch(new TestPipelineFinished($second, self::passed($second)));
         });
 
-        // One test at a time is never ambiguous, so the header stays as terse as it always was.
-        Assert::string($output)->notContains('·');
+        // The first test took the stream, so everything of its own — output and result line — precedes
+        // anything of the second, whose lines then follow adjacent to each other.
+        $at = static fn(string $needle): int => (int) \strpos($output, $needle);
+        Assert::true($at('a1') < $at('a2'), $output);
+        Assert::true($at('a2') < $at('passingTest'), $output);
+        Assert::true($at('passingTest') < $at('b1'), $output);
+        Assert::true($at('b1') < $at('b2'), $output);
+    }
+
+    public function sequentialTestsAreUnaffected(): void
+    {
+        $first = self::makeTestInfo('passingTest');
+        $second = self::makeTestInfo('failingTest');
+
+        $output = self::capture(static function (EventDispatcher $dispatcher) use ($first, $second): void {
+            $dispatcher->dispatch(self::message("a1\n", $first));
+            $dispatcher->dispatch(new TestPipelineFinished($first, self::passed($first)));
+            $dispatcher->dispatch(self::message("b1\n", $second));
+            $dispatcher->dispatch(new TestPipelineFinished($second, self::passed($second)));
+        });
+
+        // One test at a time never waits, and each still opens its own channel header.
         Assert::same(\substr_count($output, '[stdout] '), 2);
+        Assert::true((int) \strpos($output, 'a1') < (int) \strpos($output, 'b1'));
     }
 
     public function messageOwnedByNoTestIsStillStreamed(): void
@@ -86,8 +118,8 @@ final class TerminalPluginTest
             ));
         });
 
-        // Output that belongs to no test (suite/case setup) has no identity to group by, but dropping
-        // it would lose framework-level output the user asked to see.
+        // Output that belongs to no test (suite/case setup) has no block to join, but dropping it
+        // would lose framework-level output the user asked to see.
         Assert::string($output)->contains("between tests\n");
     }
 
@@ -105,8 +137,10 @@ final class TerminalPluginTest
     /**
      * Runs the callback against a plugin wired to a real dispatcher and returns what it wrote to the
      * terminal stream. Verbose, because that is the verbosity at which output streams live.
+     *
+     * @param \Closure(EventDispatcher): void $scenario
      */
-    private static function capture(callable $scenario): string
+    private static function capture(\Closure $scenario): string
     {
         $stdout = \fopen('php://memory', 'w+');
         $stderr = \fopen('php://memory', 'w+');
@@ -127,6 +161,20 @@ final class TerminalPluginTest
             \fclose($stdout);
             \fclose($stderr);
         }
+    }
+
+    /**
+     * Runs one data set of `$info`'s batch, start to finish.
+     */
+    private static function dataSet(EventDispatcher $dispatcher, TestInfo $info, string $key): void
+    {
+        $dispatcher->dispatch(new TestDataSetStarting($info, $key, null, 0));
+        $dispatcher->dispatch(new TestDataSetFinished($info, self::passed($info), $key, null, 0));
+    }
+
+    private static function passed(TestInfo $info): TestResult
+    {
+        return new TestResult(info: $info, status: Status::Passed);
     }
 
     private static function message(string $content, TestInfo $owner): MessageReceived

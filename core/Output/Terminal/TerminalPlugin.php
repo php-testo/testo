@@ -15,7 +15,6 @@ use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestDataSetStarting;
 use Testo\Event\Test\TestPipelineFinished;
-use Testo\Event\Test\TestPipelineStarting;
 use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
@@ -42,14 +41,6 @@ final class TerminalPlugin implements PluginConfigurator
      */
     private array $isBatch = [];
 
-    /**
-     * Display name of every test currently in flight (the data set's name while one is running), keyed
-     * by test id. Streamed output is attributed through this map; a test with no entry is not running.
-     *
-     * @var array<int, non-empty-string>
-     */
-    private array $running = [];
-
     public function __construct(
         private readonly TerminalLogger $logger,
         ColorMode $colorMode = ColorMode::Always,
@@ -71,7 +62,6 @@ final class TerminalPlugin implements PluginConfigurator
         $listeners->addListener(MessageReceived::class, $this->onMessageReceived(...));
 
         // Test Pipeline events (lifecycle of entire test through all interceptors)
-        $listeners->addListener(TestPipelineStarting::class, $this->onTestPipelineStarting(...));
         $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
 
         // Test Batch events (for DataProvider)
@@ -104,38 +94,19 @@ final class TerminalPlugin implements PluginConfigurator
 
     private function onMessageReceived(MessageReceived $event): void
     {
-        $identity = $event->identity;
-        if ($identity === null) {
-            // Belongs to no test (suite/case setup, output between tests) — stream it ungrouped.
-            $this->logger->logMessage($event->message);
-            return;
-        }
-
-        // Name the test in the channel header only while several are in flight: then, and only then,
-        // is a block ambiguous. A sequential run keeps the plain `[channel] time` header it always had,
-        // and an unlabelled block means exactly one test was running when it opened.
-        $this->logger->logMessage(
-            $event->message,
-            $identity->id,
-            \count($this->running) > 1 ? ($this->running[$identity->id] ?? null) : null,
-        );
-    }
-
-    private function onTestPipelineStarting(TestPipelineStarting $event): void
-    {
-        // Fresh channel grouping for the test about to run.
-        $this->logger->resetChannels();
-        $this->running[$event->testInfo->identity->id] = $event->testInfo->name;
+        // A null identity means the message belongs to no test (suite/case setup, output between
+        // tests); the logger writes that through instead of putting it in anyone's block.
+        $this->logger->logMessage($event->message, $event->identity?->id);
     }
 
     private function onTestPipelineFinished(TestPipelineFinished $event): void
     {
         // Check if this test was inside a DataProvider batch
         $id = $event->testInfo->identity->id;
-        unset($this->running[$id]);
         if (isset($this->isBatch[$id])) {
             // DataProvider test - already handled in dataset events
             unset($this->isBatch[$id]);
+            $this->logger->closeTest($event->testInfo);
             return;
         }
 
@@ -143,6 +114,9 @@ final class TerminalPlugin implements PluginConfigurator
         $this->logger->testStartedFromInfo($event->testInfo);
         $duration = (int) $event->testResult->getAttribute('duration');
         $this->logger->handleTestResult($event->testResult, $duration);
+
+        // Last write for this test is done, so its block can go out.
+        $this->logger->closeTest($event->testInfo);
     }
 
     private function onTestBatchStarting(TestBatchStarting $event): void
@@ -163,17 +137,14 @@ final class TerminalPlugin implements PluginConfigurator
 
     private function onTestDataSetStarting(TestDataSetStarting $event): void
     {
-        // Fresh channel grouping for the data set about to run.
-        $this->logger->resetChannels();
+        // Data sets share the batch's block, so nothing else would separate their channel output —
+        // reset the grouping so this one opens with a fresh header.
+        $this->logger->resetChannels($event->testInfo);
 
         // Log individual dataset start with custom name
         $prefix = $event->providerIndex === null ? '' : "$event->providerIndex:";
         $datasetName = "Dataset #{$prefix}{$event->datasetIndex} [$event->dataSetKey]";
         $this->logger->testStartedFromInfo($event->testInfo, $datasetName);
-
-        // Data sets of one provider share the batch's identity and run sequentially, so attributing the
-        // batch's id to the data set currently streaming is unambiguous.
-        $this->running[$event->testInfo->identity->id] = $datasetName;
     }
 
     private function onTestDataSetFinished(TestDataSetFinished $event): void

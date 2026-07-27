@@ -35,14 +35,18 @@ final class ChannelRenderer
 
     /**
      * Whether the last rendered content ended on a newline, so a header can be kept on its own line
-     * without inserting blank lines. Deliberately survives a {@see reset()}: the reset forgets which
-     * header is open, not how far the cursor got.
+     * without inserting blank lines.
+     *
+     * Only tracks content this renderer produced. Callers write other things to the same sink — a
+     * test's result line, a batch header — which is why {@see reset()} restores the assumption: it is
+     * called at a boundary the caller has just terminated with a newline of its own.
      */
     private bool $lastEndedWithNewline = true;
 
     public function reset(): void
     {
         $this->lastGroup = null;
+        $this->lastEndedWithNewline = true;
     }
 
     /**

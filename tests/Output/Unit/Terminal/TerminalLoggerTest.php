@@ -174,6 +174,8 @@ final class TerminalLoggerTest
             // Out of order on purpose: the second batch's data set reports first.
             $logger->handleTestResult($second, 0);
             $logger->handleTestResult($first, 0);
+            $logger->closeTest($first->info);
+            $logger->closeTest($second->info);
         });
 
         // A single "current test" slot would give both data sets the name of whichever batch announced
@@ -191,6 +193,8 @@ final class TerminalLoggerTest
         $besideBatch = self::capture(static function (TerminalLogger $logger) use ($batch, $regular): void {
             $logger->batchStartedFromInfo($batch->info);
             $logger->handleTestResult($regular, 0);
+            $logger->closeTest($batch->info);
+            $logger->closeTest($regular->info);
         });
 
         // The batch's indentation belongs to the batch. A test finishing while someone else's batch is
