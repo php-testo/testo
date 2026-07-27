@@ -32,16 +32,20 @@ final class TerminalLogger
     private array $failures = [];
 
     /**
-     * Current indentation level for nested tests (e.g., DataProvider datasets).
+     * Indentation level of each test in flight (nested for DataProvider datasets), keyed by
+     * {@see \Testo\Core\Context\TestIdentity::$id}. A single counter is clobbered the moment two
+     * tests interleave: the one entering a batch would indent the other's lines.
      *
-     * @var int<0, max>
+     * @var array<int, int<0, max>>
      */
-    private int $currentIndentLevel = 0;
+    private array $currentIndentLevel = [];
 
     /**
-     * Override name for the current test (e.g., dataset name).
+     * Override name of each test in flight (e.g. the running data set's name), keyed by test id.
+     *
+     * @var array<int, non-empty-string>
      */
-    private ?string $currentTestName = null;
+    private array $currentTestName = [];
 
     /**
      * Current suite name for failure context.
@@ -121,7 +125,7 @@ final class TerminalLogger
      */
     public function batchStartedFromInfo(TestInfo $info): void
     {
-        $this->currentIndentLevel = 1;
+        $this->currentIndentLevel[$info->identity->id] = 1;
 
         if ($this->format === OutputFormat::Dots) {
             return;
@@ -146,7 +150,7 @@ final class TerminalLogger
      */
     public function batchFinishedFromInfo(TestInfo $info): void
     {
-        $this->currentIndentLevel = 0;
+        unset($this->currentIndentLevel[$info->identity->id]);
         // No visual output for batch finish in terminal mode
     }
 
@@ -157,7 +161,13 @@ final class TerminalLogger
      */
     public function testStartedFromInfo(TestInfo $info, ?string $overrideName = null): void
     {
-        $this->currentTestName = $overrideName;
+        $id = $info->identity->id;
+        if ($overrideName === null) {
+            # A regular test carries no override — it prints under its own name.
+            unset($this->currentTestName[$id]);
+        } else {
+            $this->currentTestName[$id] = $overrideName;
+        }
         // No output on test start for compact/dots mode
     }
 
@@ -347,16 +357,16 @@ final class TerminalLogger
     private function handlePassedTest(TestResult $result, ?int $duration): void
     {
         $item = new FormattedItem(
-            name: $this->currentTestName ?? $result->info->name,
+            name: $this->displayName($result),
             status: $result->status,
             duration: $duration,
-            indentLevel: $this->currentIndentLevel,
+            indentLevel: $this->indentLevel($result),
             description: $this->resultDescription($result),
         );
 
         $this->write(Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
-        $this->currentTestName = null;
+        unset($this->currentTestName[$result->info->identity->id]);
     }
 
     /**
@@ -370,20 +380,40 @@ final class TerminalLogger
             'result' => $result,
             'duration' => $duration,
             'suiteName' => $this->currentSuiteName,
-            'datasetName' => $this->currentTestName,
+            'datasetName' => $this->currentTestName[$result->info->identity->id] ?? null,
         ];
 
         $item = new FormattedItem(
-            name: $this->currentTestName ?? $result->info->name,
+            name: $this->displayName($result),
             status: $result->status,
             duration: $duration,
-            indentLevel: $this->currentIndentLevel,
+            indentLevel: $this->indentLevel($result),
             description: $this->resultDescription($result),
         );
 
         $this->write(Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
-        $this->currentTestName = null;
+        unset($this->currentTestName[$result->info->identity->id]);
+    }
+
+    /**
+     * Name to print for a finished test: the override recorded for it (a data set's name), or its own.
+     *
+     * @return non-empty-string
+     */
+    private function displayName(TestResult $result): string
+    {
+        return $this->currentTestName[$result->info->identity->id] ?? $result->info->name;
+    }
+
+    /**
+     * Indentation recorded for the test — 1 inside its DataProvider batch, 0 at the top level.
+     *
+     * @return int<0, max>
+     */
+    private function indentLevel(TestResult $result): int
+    {
+        return $this->currentIndentLevel[$result->info->identity->id] ?? 0;
     }
 
     /**
@@ -393,7 +423,7 @@ final class TerminalLogger
      */
     private function resultDescription(TestResult $result): string
     {
-        return $this->currentIndentLevel > 0 ? '' : (string) $result->getAttribute('description');
+        return $this->indentLevel($result) > 0 ? '' : (string) $result->getAttribute('description');
     }
 
     /**
@@ -434,14 +464,14 @@ final class TerminalLogger
     private function handleSkippedTest(TestResult $result, ?int $duration): void
     {
         $item = new FormattedItem(
-            name: $this->currentTestName ?? $result->info->name,
+            name: $this->displayName($result),
             status: $result->status,
             duration: $duration,
-            indentLevel: $this->currentIndentLevel,
+            indentLevel: $this->indentLevel($result),
         );
 
         $this->write(Formatter::formatRun($item, $this->format));
-        $this->currentTestName = null;
+        unset($this->currentTestName[$result->info->identity->id]);
     }
 
     /**
@@ -452,14 +482,14 @@ final class TerminalLogger
     private function handleRiskyTest(TestResult $result, ?int $duration): void
     {
         $item = new FormattedItem(
-            name: $this->currentTestName ?? $result->info->name,
+            name: $this->displayName($result),
             status: $result->status,
             duration: $duration,
-            indentLevel: $this->currentIndentLevel,
+            indentLevel: $this->indentLevel($result),
         );
 
         $this->write(Formatter::formatRun($item, $this->format));
-        $this->currentTestName = null;
+        unset($this->currentTestName[$result->info->identity->id]);
     }
 
     /**
