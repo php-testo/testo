@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Sandbox\Self;
 
 use Testo\Assert;
+use Testo\Data\DataSet;
 use Testo\Fiber\RunInFiber;
 use Testo\Fiber\Schedule;
 use Testo\Test;
@@ -14,6 +15,11 @@ use Testo\Test;
  * ({@see Schedule::RoundRobin}), each doing a few steps of real work-and-yield. Because they share the
  * scheduler and take a different number of steps, they interleave and finish in a staggered order —
  * handy for eyeballing concurrent output.
+ *
+ * Two of them ({@see slowDataSets}, {@see fastDataSets}) nest data sets under a batch node while
+ * yielding to each other. That is the case a line-oriented report struggles with: printed as events
+ * arrive, the two trees splice into one unreadable list, so each test's lines have to come out as a
+ * block of their own.
  */
 #[Test]
 #[RunInFiber(Schedule::RoundRobin)]
@@ -48,20 +54,43 @@ final class AsyncTest
     }
 
     /**
+     * Data sets at a steady pace, interleaving with the ones below.
+     */
+    #[DataSet(['slow-set-a'])]
+    #[DataSet(['slow-set-b'])]
+    public function slowDataSets(string $label): void
+    {
+        self::workThenYield('steady', $label);
+    }
+
+    /**
+     * Data sets at a quick pace, interleaving with the ones above.
+     */
+    #[DataSet(['fast-set-a'])]
+    #[DataSet(['fast-set-b'])]
+    public function fastDataSets(string $label): void
+    {
+        self::workThenYield('quick', $label);
+    }
+
+    /**
      * Do the `$label` profile's steps of "work" (a nap plus an echoed progress line), suspending the
      * fiber after each one so the sibling tests take their step in between.
      *
-     * @param non-empty-string $label
+     * @param non-empty-string $label Work profile to follow.
+     * @param non-empty-string|null $tag What to print the progress under, when it is not the profile
+     *        itself — a data set naming itself rather than the pace it keeps.
      */
-    private static function workThenYield(string $label): void
+    private static function workThenYield(string $label, ?string $tag = null): void
     {
         ['steps' => $steps, 'nap' => $nap] = self::PROFILES[$label];
+        $tag ??= $label;
 
         $done = 0;
         for ($i = 1; $i <= $steps; $i++) {
             \usleep($nap);
             ++$done;
-            echo \sprintf("[%s] step %d/%d (worked %.2fs)\n", $label, $i, $steps, $nap / 1_000_000);
+            echo \sprintf("[%s] step %d/%d (worked %.2fs)\n", $tag, $i, $steps, $nap / 1_000_000);
             \Fiber::suspend();
         }
 
