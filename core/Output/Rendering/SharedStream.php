@@ -64,7 +64,7 @@ final class SharedStream
     /**
      * Write on behalf of `$owner`, or with no owner at all.
      *
-     * @param int|null $owner {@see \Testo\Core\Context\TestIdentity::$id} of the emitting test; `null`
+     * @param int|null $owner {@see \Testo\Core\Context\Identity::$randomId} of the emitting test; `null`
      *        for output that belongs to no test, which is written through immediately.
      */
     public function write(?int $owner, string $text): void
@@ -97,7 +97,7 @@ final class SharedStream
      * Goes out at once when the stream is free, and waits its turn otherwise. Closing the live writer
      * releases the lease, which lets the waiting blocks out.
      *
-     * @param int $owner {@see \Testo\Core\Context\TestIdentity::$id} of the test that finished.
+     * @param int $owner {@see \Testo\Core\Context\Identity::$randomId} of the test that finished.
      */
     public function close(int $owner): void
     {

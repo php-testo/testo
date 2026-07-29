@@ -12,7 +12,7 @@ use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\SuiteInfo;
 use Testo\Core\Context\SuiteResult;
-use Testo\Core\Context\TestIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Log\Message;
@@ -54,7 +54,7 @@ final class TeamcityLogger
      */
     public static function flowId(TestIdentity $identity): string
     {
-        return (string) $identity->id;
+        return (string) $identity->randomId;
     }
 
     /**

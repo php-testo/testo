@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Event\Message;
 
-use Testo\Core\Context\TestIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Message;
 
 /**

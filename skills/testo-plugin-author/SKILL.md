@@ -97,19 +97,47 @@ final readonly class MyInterceptor implements TestRunInterceptor { … }
 TestInfo  { string $name; CaseInfo $caseInfo; TestDefinition $testDefinition;
             array $arguments; array $attributes; TestIdentity $identity; }
                                                          // testDefinition->reflection: ReflectionFunctionAbstract
-CaseInfo  { CaseDefinition $definition; ?CaseInstance $instance; array $attributes; }
-                                                         // definition->reflection: ?ReflectionClass
+CaseInfo  { CaseDefinition $definition; ?CaseInstance $instance; array $attributes;
+            CaseIdentity $identity; }                    // definition->reflection: ?ReflectionClass
+SuiteInfo { string $name; CaseDefinitions $testCases; array $attributes; SuiteIdentity $identity; }
 TestResult{ TestInfo $info; Status $status; mixed $result; ?\Throwable $failure; … }
 ```
 
 Read the test method via `$info->testDefinition->reflection`; the test class via
 `$info->caseInfo->definition->reflection` (null for function-based cases — guard it).
 
-`$info->identity` (`Testo\Core\Context\TestIdentity`, with an `int $id`) tells one running test from
-another. Key per-test state in a reporter by `$identity->id` rather than a single "current test" field:
+### Identity — where a test is, and which run of it
+
+Every context object carries its address. `abstract readonly class Identity` in `Testo\Core\Context`
+contributes only `randomId`; each level declares exactly the fields it has, and lives in
+`Testo\Core\Context\Identity\*` — `SuiteIdentity { suite }`, `CaseIdentity { suite, case, type }`,
+`TestIdentity { suite, case, type, test, ?provider, ?dataSet }`.
+The fields are plain scalars: no level references the one above it, so reading any part of an address
+never walks a chain of objects, and no level carries a field that does not apply to it.
+
+Step down with `SuiteIdentity::toCase($case, $type)`, `CaseIdentity::toTestIdentity($test)`, and
+`TestIdentity::with(provider:, dataSet:)` for a data set.
+
+```php
+(string) $info->identity;      // 'Core/Unit / Tests\Foo\BarTest [test] :: itWorks:0:1'
+$info->identity->suite;        // 'Core/Unit'
+$info->identity->randomId;
+```
+
+Two independent things live on it:
+
+- **The address** (`__toString()` and the fields) says *which* test this is and is stable from run to
+  run. `provider`/`dataSet` are set only for a data set, and address it by **index** — provider keys
+  may repeat, so only the index tells two data sets apart. The `method:provider:dataset` part pastes
+  straight into `--filter`.
+- **`randomId`** says *which run of it* is in flight. Process-local: never persist it or match on it.
+  Repeats, retries and the data sets of one batch all share it, since they are one run.
+
+Key per-test state in a reporter by `$identity->randomId` rather than a single "current test" field:
 when tests run concurrently (fibers, an event loop) their events and output interleave, and a scalar
-gets clobbered. The same identity is carried on `MessageReceived` as `?TestIdentity $identity` (`null`
-when the message belongs to no test), so streamed output can be attributed to the right test.
+gets clobbered. Because `with()` keeps the run it was derived from, a batch and its data sets share
+one `randomId` — which is what keeps a batch's report block whole. `MessageReceived` carries the same
+identity as `?TestIdentity $identity` (`null` when the message belongs to no test).
 
 ### Passing state down the pipeline — prefer attributes over mutable fields
 

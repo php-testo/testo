@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Core\Context;
 
+use Testo\Core\Context\Identity\CaseIdentity;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Internal\Attributed;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Internal\DefaultTestHandler;
@@ -21,6 +23,11 @@ final readonly class CaseInfo
     public string $name;
 
     /**
+     * Address of this case within its suite — what the tests of the case descend from.
+     */
+    public CaseIdentity $identity;
+
+    /**
      * Handler for executing the test method.
      *
      * @var \Closure(TestInfo): mixed
@@ -33,6 +40,9 @@ final readonly class CaseInfo
      * @param callable(TestInfo): mixed $handler Invoker for the test method.
      * @param ?\Closure(list<callable(): TestResult>): list<TestResult> $batchRunner Runner that drives
      *        this case's tests (given the per-test handlers); null uses the default sequential run.
+     * @param SuiteIdentity|null $suite Suite this case belongs to. Omitting it stands the case on a
+     *        suite of its own — for a case built outside a run (tests, tooling), whose address has no
+     *        real suite to name.
      */
     public function __construct(
         public CaseDefinition $definition,
@@ -40,21 +50,23 @@ final readonly class CaseInfo
         public array $attributes = [],
         callable $handler = new DefaultTestHandler(),
         public ?\Closure $batchRunner = null,
+        ?SuiteIdentity $suite = null,
     ) {
         $this->name = $definition->getName();
         $this->handler = $handler(...);
+
+        # A definition may be nameless (a file of free functions being one); the address still needs
+        # something to say, and `getName()` already settles on the same placeholder.
+        $case = $definition->name === null || $definition->name === '' ? 'undefined' : $definition->name;
+        $this->identity = ($suite ?? new SuiteIdentity('undefined'))->toCase($case, $definition->type);
     }
 
     public function with(
         ?\Closure $handler = null,
     ): self {
-        return new self(
-            definition: $this->definition,
-            instance: $this->instance,
-            attributes: $this->attributes,
-            handler: $handler ?? $this->handler,
-            batchRunner: $this->batchRunner,
-        );
+        # Clone rather than rebuild: re-running the constructor would mint a second address for a case
+        # that is still the same one, and the tests already descended from the first.
+        return $this->cloneWith('handler', $handler ?? $this->handler);
     }
 
     /**

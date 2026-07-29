@@ -8,7 +8,7 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Common\Messenger;
 use Testo\Core\Context\CaseInfo;
-use Testo\Core\Context\TestIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;

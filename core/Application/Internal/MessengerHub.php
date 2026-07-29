@@ -9,7 +9,7 @@ use Testo\Application\Internal\Messenger\State;
 use Testo\Application\Internal\Messenger\MutableContainer;
 use Testo\Common\Messenger;
 use Testo\Common\Messenger\Channel;
-use Testo\Core\Context\TestIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;

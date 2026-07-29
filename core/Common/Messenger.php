@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Common;
 
-use Testo\Core\Context\TestIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;

@@ -132,7 +132,7 @@ final class TeamcityLoggerTest
 
         $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($info));
 
-        Assert::string($output)->contains("flowId='{$info->identity->id}'");
+        Assert::string($output)->contains("flowId='{$info->identity->randomId}'");
     }
 
     public function handleSingleTestResultStampsFlowIdFromIdentity(): void
@@ -142,7 +142,7 @@ final class TeamcityLoggerTest
         $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
 
         // Both the failure and the finish message carry the test's flow, so a consumer keeps them together.
-        Assert::same(\substr_count($output, "flowId='{$result->info->identity->id}'"), 2);
+        Assert::same(\substr_count($output, "flowId='{$result->info->identity->randomId}'"), 2);
     }
 
     public function logMessageStampsTheGivenFlowId(): void
@@ -164,13 +164,13 @@ final class TeamcityLoggerTest
 
         // Two separate runs of the same method are distinct in-flight tests — their flows must differ so
         // that, when interleaved, a consumer never merges their messages.
-        Assert::notSame($first->identity->id, $second->identity->id);
+        Assert::notSame($first->identity->randomId, $second->identity->randomId);
 
         $a = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($first));
         $b = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($second));
 
-        Assert::string($a)->contains("flowId='{$first->identity->id}'");
-        Assert::string($b)->contains("flowId='{$second->identity->id}'");
+        Assert::string($a)->contains("flowId='{$first->identity->randomId}'");
+        Assert::string($b)->contains("flowId='{$second->identity->randomId}'");
     }
 
     /**

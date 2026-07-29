@@ -6,7 +6,7 @@ namespace Testo\Application\Internal\Messenger;
 
 use Internal\Destroy\Destroyable;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use Testo\Core\Context\TestIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Message;
 use Testo\Event\Message\MessageReceived;
 
