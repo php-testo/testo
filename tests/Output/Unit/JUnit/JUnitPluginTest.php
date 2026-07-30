@@ -611,10 +611,14 @@ final class JUnitPluginTest
      */
     private static function makeFreeFunctionTestInfo(CaseInfo $caseInfo, string $functionFqn): TestInfo
     {
+        $reflection = new \ReflectionFunction($functionFqn);
+
+        # Discovery keys a test by its short name and the runner passes that key straight through, so a
+        # name that disagrees with the reflection is a shape the runtime never produces.
         return new TestInfo(
-            name: 'free',
+            name: $reflection->getShortName(),
             caseInfo: $caseInfo,
-            testDefinition: new TestDefinition(new \ReflectionFunction($functionFqn)),
+            testDefinition: new TestDefinition($reflection),
         );
     }
 

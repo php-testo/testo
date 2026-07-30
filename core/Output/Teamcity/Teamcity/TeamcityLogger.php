@@ -139,8 +139,7 @@ final class TeamcityLogger
     {
         $this->publish(Formatter::suiteStarted(
             $info->name,
-            $info->testDefinition->reflection,
-            $info->caseInfo->definition->reflection,
+            $info->identity,
             self::flowId($info->identity),
         ));
     }
@@ -181,7 +180,7 @@ final class TeamcityLogger
      */
     public function caseStartedFromInfo(CaseInfo $info): void
     {
-        $this->publish(Formatter::suiteStarted($info->name, $info->definition->reflection));
+        $this->publish(Formatter::suiteStarted($info->name, $info->identity));
     }
 
     /**
@@ -222,7 +221,7 @@ final class TeamcityLogger
      *
      * If the test has DataProvider (MultipleResult), starts it as a test suite.
      */
-    public function testStartedFromInfo(TestInfo $info, bool $captureStandardOutput = false, ?string $overrideName = null, ?string $locationSuffix = null): void
+    public function testStartedFromInfo(TestInfo $info, bool $captureStandardOutput = false, ?string $overrideName = null): void
     {
         $description = $info->testDefinition->getDescription();
         $description === '' and $description = null;
@@ -230,10 +229,8 @@ final class TeamcityLogger
         $this->publish(Formatter::testStarted(
             $overrideName ?? $info->name,
             $captureStandardOutput,
-            $info->testDefinition->reflection,
-            $locationSuffix,
+            $info->identity,
             $description,
-            $info->caseInfo->definition->reflection,
             self::flowId($info->identity),
         ));
     }

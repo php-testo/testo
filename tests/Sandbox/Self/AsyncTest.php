@@ -68,6 +68,18 @@ final class AsyncTest
      */
     #[DataSet(['fast-set-a'])]
     #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
+    #[DataSet(['fast-set-b'])]
     public function fastDataSets(string $label): void
     {
         self::workThenYield('quick', $label);

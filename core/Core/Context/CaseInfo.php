@@ -55,10 +55,11 @@ final readonly class CaseInfo
         $this->name = $definition->getName();
         $this->handler = $handler(...);
 
-        # A definition may be nameless (a file of free functions being one); the address still needs
-        # something to say, and `getName()` already settles on the same placeholder.
-        $case = $definition->name === null || $definition->name === '' ? 'undefined' : $definition->name;
-        $this->identity = ($suite ?? new SuiteIdentity('undefined'))->toCase($case, $definition->type);
+        # The address takes the class FQN, not `$definition->name` — that one is the short name, which
+        # reads well in a report but does not identify the class. A case of free functions has no class,
+        # and is named by its file instead.
+        $this->identity = ($suite ?? new SuiteIdentity('undefined'))
+            ->toCase($definition->reflection?->getName(), $definition->type, self::fileOf($definition));
     }
 
     public function with(
@@ -87,5 +88,28 @@ final readonly class CaseInfo
     {
         /** @see self::$batchRunner */
         return $this->cloneWith('batchRunner', $batchRunner === null ? null : $batchRunner(...));
+    }
+
+    /**
+     * File to put on the address, in one spelling whatever it came from.
+     *
+     * A located case already carries a path normalized to `/`; a case built by hand carries none, and
+     * the class it reflects reports the OS separator. Left as two spellings the field would name the
+     * same file two ways depending on whether the case has a class.
+     *
+     * @return non-empty-string|null
+     */
+    private static function fileOf(CaseDefinition $definition): ?string
+    {
+        $file = $definition->file ?? $definition->reflection?->getFileName();
+
+        if ($file === false || $file === null) {
+            return null;
+        }
+
+        $normalized = \str_replace('\\', '/', $file);
+        \assert($normalized !== '');
+
+        return $normalized;
     }
 }

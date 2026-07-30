@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Testo\Output\Teamcity\Teamcity;
 
+use Testo\Core\Context\Identity\CaseIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
+
 /**
  * Formats TeamCity service messages.
  *
@@ -23,24 +26,19 @@ final class Formatter
      * Formats a test suite started message.
      *
      * @param non-empty-string $name Suite name
-     * @param \ReflectionClass<object>|\ReflectionFunctionAbstract|null $reflection Class/function reflection for location hint
-     * @param \ReflectionClass<object>|null $caseReflection Concrete (runtime) case class, used to
-     *        attribute a method-backed suite (a DataProvider batch) to the subclass rather than the
-     *        method's declaring class. Ignored when `$reflection` is a class.
+     * @param CaseIdentity|TestIdentity|null $identity Address to point the location hint at — a case, or
+     *        the test behind a DataProvider batch node. Omitted for the run's own suites, which are
+     *        configuration entries rather than code.
      * @param non-empty-string|null $flowId Flow this suite belongs to; groups its messages apart from
      *        other flows running concurrently on the same stream.
      * @return non-empty-string
      */
-    public static function suiteStarted(string $name, null|\ReflectionClass|\ReflectionFunctionAbstract $reflection = null, ?\ReflectionClass $caseReflection = null, ?string $flowId = null): string
+    public static function suiteStarted(string $name, CaseIdentity|TestIdentity|null $identity = null, ?string $flowId = null): string
     {
         $attributes = ['name' => $name];
 
-        if ($reflection !== null) {
-            $locationHint = $reflection instanceof \ReflectionClass
-                ? self::caseLocationHint($reflection)
-                : self::testLocationHint($reflection, caseReflection: $caseReflection);
-            $locationHint !== null and $attributes['locationHint'] = $locationHint;
-        }
+        $locationHint = $identity === null ? null : self::locationHint($identity);
+        $locationHint === null or $attributes['locationHint'] = $locationHint;
 
         $flowId !== null and $attributes['flowId'] = $flowId;
 
@@ -68,26 +66,22 @@ final class Formatter
      *
      * @param non-empty-string $name Test name
      * @param bool $captureStandardOutput Whether to capture standard output
-     * @param \ReflectionFunctionAbstract|null $reflection Function/method reflection for location hint
-     * @param non-empty-string|null $locationSuffix Optional suffix to append to location hint (e.g., " with data set #0")
+     * @param TestIdentity|null $identity Address to point the location hint at. When it addresses a data
+     *        set, the hint carries the coordinates — no separate suffix is needed.
      * @param non-empty-string|null $description Test description (from the PHPDoc summary), emitted as
      *        the TeamCity `metainfo` attribute. Omitted when `null`.
-     * @param \ReflectionClass<object>|null $caseReflection Concrete (runtime) case class, used to
-     *        attribute an inherited test to the subclass rather than the method's declaring class.
      * @param non-empty-string|null $flowId Flow this test belongs to; keeps its messages grouped apart
      *        from other tests running concurrently on the same stream.
      * @return non-empty-string
      */
-    public static function testStarted(string $name, bool $captureStandardOutput = false, ?\ReflectionFunctionAbstract $reflection = null, ?string $locationSuffix = null, ?string $description = null, ?\ReflectionClass $caseReflection = null, ?string $flowId = null): string
+    public static function testStarted(string $name, bool $captureStandardOutput = false, ?TestIdentity $identity = null, ?string $description = null, ?string $flowId = null): string
     {
         $attributes = ['name' => $name];
 
         $captureStandardOutput and $attributes['captureStandardOutput'] = 'true';
 
-        if ($reflection !== null) {
-            $locationHint = self::testLocationHint($reflection, $locationSuffix, $caseReflection);
-            $locationHint !== null and $attributes['locationHint'] = $locationHint;
-        }
+        $locationHint = $identity === null ? null : self::locationHint($identity);
+        $locationHint === null or $attributes['locationHint'] = $locationHint;
 
         $description !== null and $attributes['metainfo'] = $description;
         $flowId !== null and $attributes['flowId'] = $flowId;
@@ -395,65 +389,30 @@ final class Formatter
     }
 
     /**
-     * Generates location hint for a test case from reflection.
+     * Location hint for whatever the address names.
      *
-     * Format: php_qn://path/to/file.php::\ClassName
+     * ```
+     * php_qn://path/to/BarTest.php::\Ns\BarTest                 a case
+     * php_qn://path/to/BarTest.php::\Ns\BarTest::itWorks        a test, or its DataProvider batch node
+     * php_qn://path/to/BarTest.php::\Ns\BarTest::itWorks:0:1    one data set of it
+     * php_qn://path/to/functions.php::\Ns\itWorksToo            a free test function
+     * ```
      *
-     * @param \ReflectionClass<object> $reflection
+     * The tail is {@see TestIdentity::fqn()} verbatim, so a hint pastes straight back into `--filter`.
+     * It used to be assembled from reflection here, with a data set addressed by its *key* — which
+     * collides whenever a provider repeats one, and which `--filter` does not accept.
+     *
+     * Null when there is nothing to point at: no file (a case built by hand rather than located), or no
+     * code (a case of free functions, which has no class of its own).
+     *
      * @return non-empty-string|null
      */
-    private static function caseLocationHint(\ReflectionClass $reflection): ?string
+    private static function locationHint(CaseIdentity|TestIdentity $identity): ?string
     {
-        $file = $reflection->getFileName();
-        $className = $reflection->getName();
+        $fqn = $identity->fqn();
 
-        return $file !== false
-            ? \sprintf('php_qn://%s::\\%s', $file, $className)
-            : null;
-    }
-
-    /**
-     * Generates location hint for a test method/function from reflection.
-     *
-     * Format: php_qn://path/to/file.php::\ClassName::methodName (for methods)
-     * Format: php_qn://path/to/file.php::functionName (for functions)
-     * Format: php_qn://path/to/file.php::\ClassName::methodName with data set #0 (with suffix)
-     *
-     * @param non-empty-string|null $suffix Optional suffix to append (e.g., " with data set #0")
-     * @param \ReflectionClass<object>|null $caseReflection Concrete (runtime) case class. When given
-     *        for a method-backed test, the hint points at this class (name and file) instead of the
-     *        method's declaring class. For a `#[Test]` inherited from an abstract base,
-     *        getDeclaringClass() names the base — but the enclosing testSuite is named after the
-     *        concrete subclass (see {@see caseLocationHint}), so TeamCity would otherwise file the
-     *        inherited test under the abstract class. Mirrors JUnitWriter::classnameFor() and
-     *        CoverageTestInterceptor::buildMethodId().
-     * @return non-empty-string|null
-     */
-    private static function testLocationHint(\ReflectionFunctionAbstract $reflection, ?string $suffix = null, ?\ReflectionClass $caseReflection = null): ?string
-    {
-        $name = $reflection->getName();
-
-        // For methods, include class name
-        if ($reflection instanceof \ReflectionMethod) {
-            $class = $caseReflection ?? $reflection->getDeclaringClass();
-            $file = $class->getFileName();
-
-            if ($file === false) {
-                return null;
-            }
-
-            $locationHint = \sprintf('php_qn://%s::\\%s::%s', $file, $class->getName(), $name);
-        } else {
-            $file = $reflection->getFileName();
-
-            if ($file === false) {
-                return null;
-            }
-
-            // For functions, just the function name
-            $locationHint = \sprintf('php_qn://%s::%s', $file, "\\$name");
-        }
-
-        return $suffix !== null ? $locationHint . $suffix : $locationHint;
+        return $identity->file === null || $fqn === null
+            ? null
+            : "php_qn://{$identity->file}::\\{$fqn}";
     }
 }

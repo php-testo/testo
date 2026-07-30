@@ -506,7 +506,7 @@ final class JUnitWriterTest
         Status $status,
     ): TestResult {
         $info = new TestInfo(
-            name: 'free',
+            name: $reflection->getShortName(),
             caseInfo: new CaseInfo(
                 definition: new CaseDefinition(
                     name: null,

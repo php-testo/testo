@@ -104,7 +104,7 @@ final readonly class DataProviderInterceptor implements TestRunInterceptor
                         \count($attributes) === 1 ? null : $pNum,
                         $num,
                         $dataset,
-                        $info->identity->with(provider: $pNum, dataSet: $num),
+                        $info->identity->with(dataProvider: $pNum, dataSet: $num),
                     );
                     $result->status->isFailure() and $status = Status::Failed;
                     $results[] = $result;

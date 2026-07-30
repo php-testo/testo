@@ -153,7 +153,7 @@ final class CoversFilteringTest
         $reflection = new \ReflectionMethod($class, $method);
 
         return new TestInfo(
-            name: "{$class}::{$method}",
+            name: $method,
             caseInfo: new CaseInfo(
                 definition: new CaseDefinition(
                     name: $class,

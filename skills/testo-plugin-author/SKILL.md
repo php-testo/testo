@@ -109,27 +109,34 @@ Read the test method via `$info->testDefinition->reflection`; the test class via
 ### Identity — where a test is, and which run of it
 
 Every context object carries its address. `abstract readonly class Identity` in `Testo\Core\Context`
-contributes only `randomId`; each level declares exactly the fields it has, and lives in
-`Testo\Core\Context\Identity\*` — `SuiteIdentity { suite }`, `CaseIdentity { suite, case, type }`,
-`TestIdentity { suite, case, type, test, ?provider, ?dataSet }`.
+contributes only `randomId` and `fqn()`; each level declares exactly the fields it has, and lives in
+`Testo\Core\Context\Identity\*` — `SuiteIdentity { suite }`, `CaseIdentity { suite, ?case, type, ?file }`,
+`TestIdentity { suite, ?case, type, ?file, test, ?namespace, ?dataProvider, ?dataSet }`.
 The fields are plain scalars: no level references the one above it, so reading any part of an address
 never walks a chain of objects, and no level carries a field that does not apply to it.
 
-Step down with `SuiteIdentity::toCase($case, $type)`, `CaseIdentity::toTestIdentity($test)`, and
-`TestIdentity::with(provider:, dataSet:)` for a data set.
+`case` is the **class FQN**, and `null` for a case of free functions — there is no class, so `file`
+names the case and `namespace` qualifies the function instead.
+
+Step down with `SuiteIdentity::toCase($case, $type, $file)`,
+`CaseIdentity::toTestIdentity($test, $namespace)`, and `TestIdentity::with(dataProvider:, dataSet:)`
+for a data set.
 
 ```php
 (string) $info->identity;      // 'Core/Unit / Tests\Foo\BarTest [test] :: itWorks:0:1'
+$info->identity->fqn();        // 'Tests\Foo\BarTest::itWorks:0:1' — null only at the case level,
+                               // 'Tests\Foo\freeTest' for a function (namespace, no class)
 $info->identity->suite;        // 'Core/Unit'
 $info->identity->randomId;
 ```
 
 Two independent things live on it:
 
-- **The address** (`__toString()` and the fields) says *which* test this is and is stable from run to
-  run. `provider`/`dataSet` are set only for a data set, and address it by **index** — provider keys
-  may repeat, so only the index tells two data sets apart. The `method:provider:dataset` part pastes
-  straight into `--filter`.
+- **The address** (`__toString()`, `fqn()` and the fields) says *which* test this is and is stable from
+  run to run. `dataProvider`/`dataSet` are set only for a data set, and address it by **index** —
+  provider keys may repeat, so only the index tells two data sets apart. `fqn()` is the machine-facing
+  form: no suite, no type, pastes straight into `--filter`, and is the tail of TeamCity's
+  `locationHint` (`php_qn://<file>::\<fqn>`). `__toString()` is the readable one.
 - **`randomId`** says *which run of it* is in flight. Process-local: never persist it or match on it.
   Repeats, retries and the data sets of one batch all share it, since they are one run.
 

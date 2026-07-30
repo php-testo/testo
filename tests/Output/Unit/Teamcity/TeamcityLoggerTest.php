@@ -100,6 +100,32 @@ final class TeamcityLoggerTest
         Assert::string($output)->notContains('AbstractSampleTestCase::inheritedTest');
     }
 
+    public function testStartedFromInfoAddressesADataSetByItsCoordinates(): void
+    {
+        $batch = self::makeInfo('passingTest');
+        $first = $batch->with(identity: $batch->identity->with(dataProvider: 0, dataSet: 1));
+        $second = $batch->with(identity: $batch->identity->with(dataProvider: 0, dataSet: 2));
+
+        $a = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($first));
+        $b = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($second));
+
+        // The coordinates `--filter` takes, in the order it takes them. The hint used to name a data set
+        // by its provider key instead, which collides whenever a provider repeats one — so these two
+        // came out identical and neither selected anything when pasted back.
+        Assert::string($a)->contains('SampleTestClass::passingTest:0:1');
+        Assert::string($b)->contains('SampleTestClass::passingTest:0:2');
+    }
+
+    public function testStartedFromInfoLeavesABatchNodeWithoutCoordinates(): void
+    {
+        $info = self::makeInfo('passingTest');
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($info));
+
+        // A test that is not a data set carries no tail at all, so the hint stays clickable as a method.
+        Assert::string($output)->contains("SampleTestClass::passingTest'");
+    }
+
     public function testStartedFromInfoEmitsDescriptionFromPhpDoc(): void
     {
         $info = self::makeInfo('describedTest');

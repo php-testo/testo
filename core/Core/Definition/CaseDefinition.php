@@ -27,6 +27,13 @@ final readonly class CaseDefinition
          * @var null|\Closure(TestInfo): mixed Handler for executing the test methods in this case.
          */
         public ?\Closure $handler = null,
+
+        /**
+         * @var non-empty-string|null Path of the file this case was read from. Null when the case was
+         *      built by hand rather than located — the only thing that names a case of free functions,
+         *      since it has no class.
+         */
+        public ?string $file = null,
     ) {}
 
     public function with(
@@ -40,6 +47,7 @@ final readonly class CaseDefinition
             $this->reflection,
             $tests ?? $this->tests,
             $handler ?? $this->handler,
+            $this->file,
         );
     }
 

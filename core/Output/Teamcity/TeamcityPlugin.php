@@ -193,15 +193,11 @@ final class TeamcityPlugin implements PluginConfigurator
     {
         // Send testStarted for individual dataset within DataProvider
         $prefix = $event->providerIndex === null ? '' : "$event->providerIndex:";
-        $locationSuffix = $event->providerIndex !== null
-            ? ":$event->dataSetKey:$event->providerIndex"
-            : ":$event->dataSetKey";
         $name = "Dataset #{$prefix}{$event->datasetIndex} [$event->dataSetKey]";
-        $this->logger->testStartedFromInfo(
-            $event->testInfo,
-            overrideName: $name,
-            locationSuffix: $locationSuffix,
-        );
+
+        # No location suffix to assemble: this info's address already points at the data set, so the
+        # hint carries the same coordinates `--filter` takes.
+        $this->logger->testStartedFromInfo($event->testInfo, overrideName: $name);
 
         // testStarted already emitted eagerly; stream this data set's output to it in real time. Data
         // sets of one provider share the batch's identity and run sequentially, so one current-name

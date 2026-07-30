@@ -78,44 +78,14 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
         $coversTargets = \array_filter($attributes, static fn(CoverageAttribute $a): bool => $a instanceof Covers);
         $coversTargets === [] or $coverage = CoverageFilter::apply($coverage, \array_values($coversTargets));
 
-        $method = self::buildMethodId($info);
-        $method === null or $coverage = $coverage->withTestMethod($method);
+        # The address names the concrete case class, not the method's declaring class, so a `#[Test]`
+        # inherited from an abstract base is attributed to the subclass — which is what keeps
+        # `<covered by="Concrete::method">` aligned with the JUnit `<testsuite name="Concrete">` that
+        # Infection joins on. Data sets deliberately share one identifier: `qualifiedName()` carries no
+        # coordinates, and per-data-set granularity would break that join rather than sharpen it.
+        $coverage = $coverage->withTestMethod($info->identity->qualifiedName());
 
         return $result->withAttribute(CoverageResult::class, $coverage);
-    }
-
-    /**
-     * Builds a PHPUnit-style identifier for the test method.
-     *
-     * - Class methods: `Tests\\FooTest::testBar`.
-     * - Free functions: `Tests\\testFooBar` (FQN, no leading backslash).
-     *
-     * For inherited tests the concrete (runtime) case class is used, NOT the
-     * declaring class: a `#[Test]` method declared on an abstract base and run
-     * through a subclass is attributed to the subclass. This keeps the coverage
-     * `<covered by="Concrete::method">` aligned with the JUnit `<testsuite
-     * name="Concrete">`, which Infection joins on by class name — `getDeclaringClass()`
-     * would name the abstract base, which has no testsuite, and the lookup would fail.
-     *
-     * Data-set entries within data providers reuse the same identifier — Testo's
-     * `--filter` selects by method, not by individual dataset, so per-dataset granularity
-     * isn't useful for downstream consumers (e.g. Infection).
-     *
-     * @return non-empty-string|null
-     */
-    private static function buildMethodId(TestInfo $info): ?string
-    {
-        $reflection = $info->testDefinition->reflection;
-
-        if ($reflection instanceof \ReflectionMethod) {
-            $class = $info->caseInfo->definition->reflection;
-            $className = $class?->getName() ?? $reflection->getDeclaringClass()->getName();
-            $name = $className . '::' . $reflection->getName();
-            return $name === '' ? null : $name;
-        }
-
-        $name = $reflection->getName();
-        return $name === '' ? null : $name;
     }
 
     /**

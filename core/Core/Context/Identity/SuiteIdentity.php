@@ -25,14 +25,27 @@ final readonly class SuiteIdentity extends Identity
     /**
      * Step down to a case of this suite.
      *
-     * @param non-empty-string $caseName Class FQN, or the file for a function-based case.
+     * @param non-empty-string|null $caseName Class FQN, or null for a case of free functions.
+     *        {@see CaseIdentity::$case}.
      * @param non-empty-string $type Case type — `test`, `inline`, `bench`, …
      *        {@see \Testo\Core\Value\TestType}. Part of the address because one file can define cases
      *        of several types.
+     * @param non-empty-string|null $file Path of the file the case was read from.
+     *        {@see CaseIdentity::$file}.
      */
-    public function toCase(string $caseName, string $type): CaseIdentity
+    public function toCase(?string $caseName, string $type, ?string $file = null): CaseIdentity
     {
-        return new CaseIdentity($this->suite, $caseName, $type);
+        return new CaseIdentity($this->suite, $caseName, $type, $file);
+    }
+
+    /**
+     * A suite is a configuration entry, not code, so there is no narrower form to give: its name is
+     * both what it is called and what `--suite` matches. The only level where the two coincide.
+     */
+    #[\Override]
+    public function fqn(): string
+    {
+        return $this->suite;
     }
 
     #[\Override]

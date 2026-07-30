@@ -50,6 +50,7 @@ final class CaseDefinitions
             type: $type,
             reflection: $reflection,
             handler: $handler,
+            file: (string) $file->tokenizedFile->path,
         );
     }
 

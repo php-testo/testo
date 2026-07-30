@@ -39,7 +39,7 @@ final readonly class TestInfo
         public array $attributes = [],
         ?TestIdentity $identity = null,
     ) {
-        $this->identity = $identity ?? $caseInfo->identity->toTestIdentity($name);
+        $this->identity = $identity ?? $caseInfo->identity->toTestIdentity($name, self::namespaceOf($caseInfo, $testDefinition));
     }
 
     /**
@@ -58,5 +58,22 @@ final readonly class TestInfo
             attributes: $this->attributes,
             identity: $identity ?? $this->identity,
         );
+    }
+
+    /**
+     * Namespace to qualify a free test function with. Null for a method — the class FQN already carries
+     * one — and for a function declared at global scope, which has none.
+     *
+     * @return non-empty-string|null
+     */
+    private static function namespaceOf(CaseInfo $caseInfo, TestDefinition $definition): ?string
+    {
+        if ($caseInfo->identity->case !== null) {
+            return null;
+        }
+
+        $namespace = $definition->reflection->getNamespaceName();
+
+        return $namespace === '' ? null : $namespace;
     }
 }

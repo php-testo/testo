@@ -42,4 +42,20 @@ abstract readonly class Identity implements \Stringable
     {
         $this->randomId = RuntimeSequence::next();
     }
+
+    /**
+     * The address in the form the outside world writes it: what `--filter` accepts and what TeamCity
+     * puts in a `locationHint`.
+     *
+     * Deliberately narrower than {@see __toString()}. This names *code*, so it carries neither the
+     * suite nor the type — the same class runs under any suite, and both are filtered separately
+     * (`--suite`, `--type`). The result is meant to be parsed, not read.
+     *
+     * Null where the level names no code at all: a case of free functions has no class to qualify,
+     * and nothing else about it belongs in an FQN. The levels that always have one narrow the return
+     * type back to `string`.
+     *
+     * @return non-empty-string|null
+     */
+    abstract public function fqn(): ?string;
 }
