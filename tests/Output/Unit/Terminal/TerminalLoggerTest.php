@@ -33,6 +33,8 @@ use Tests\Output\Stub\JUnit\SampleTestClass;
 #[Covers(TerminalLogger::class)]
 final class TerminalLoggerTest
 {
+    private bool $colors;
+
     public function singleTestRunSurfacesCapturedChannelOutput(): void
     {
         $test = self::test('passingTest', Status::Passed, messages: new MessageLog([
@@ -219,12 +221,13 @@ final class TerminalLoggerTest
     protected function setUp(): void
     {
         // Strip ANSI styling so assertions match raw text regardless of TTY config.
+        $this->colors = Style::areColorsEnabled();
         Style::setColorsEnabled(false);
     }
 
     protected function tearDown(): void
     {
-        Style::setColorsEnabled(true);
+        Style::setColorsEnabled($this->colors);
     }
 
     /**

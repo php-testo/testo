@@ -14,6 +14,8 @@ use Testo\Test;
 #[Test]
 final class FormatterTest
 {
+    private bool $colors;
+
     public function comparisonBlockHasExpectedAndActualHeaders(): void
     {
         $failure = self::makeFailure('foo', 'bar');
@@ -106,12 +108,13 @@ final class FormatterTest
     protected function setUp(): void
     {
         // Strip ANSI styling so assertions match raw text regardless of TTY config.
+        $this->colors = Style::areColorsEnabled();
         Style::setColorsEnabled(false);
     }
 
     protected function tearDown(): void
     {
-        Style::setColorsEnabled(true);
+        Style::setColorsEnabled($this->colors);
     }
 
     /**

@@ -43,6 +43,8 @@ use Tests\Output\Stub\JUnit\SampleTestClass;
 #[Covers(TerminalPlugin::class)]
 final class TerminalPluginTest
 {
+    private bool $colors;
+
     public function interleavedDataProvidersEachRenderAsOneTree(): void
     {
         $first = self::makeTestInfo('passingTest');
@@ -128,12 +130,13 @@ final class TerminalPluginTest
     protected function setUp(): void
     {
         // Strip ANSI styling so assertions match raw text regardless of TTY config.
+        $this->colors = Style::areColorsEnabled();
         Style::setColorsEnabled(false);
     }
 
     protected function tearDown(): void
     {
-        Style::setColorsEnabled(true);
+        Style::setColorsEnabled($this->colors);
     }
 
     /**
