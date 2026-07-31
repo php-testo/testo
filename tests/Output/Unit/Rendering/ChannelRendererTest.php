@@ -17,8 +17,6 @@ use Testo\Test;
 #[Covers(ChannelRenderer::class)]
 final class ChannelRendererTest
 {
-    private bool $colors;
-
     public function firstMessageEmitsHeaderWithoutLeadingSeparator(): void
     {
         $renderer = new ChannelRenderer();
@@ -143,33 +141,28 @@ final class ChannelRendererTest
     /**
      * The color a channel's header is rendered in, as its raw escape sequence.
      *
+     * Colorization hangs on a process-global flag in {@see Style}, and building a `TerminalPlugin` sets
+     * it — so a case elsewhere in the run can leave it off and there would be no color here to read.
+     * Turning it on for the render and putting back what was there keeps this independent of whatever
+     * order the finder walks files in, which differs between platforms.
+     *
      * @param non-empty-string $channel
      */
     private static function headerColor(string $channel): string
     {
-        $out = (new ChannelRenderer())->render(self::message($channel, "x\n"));
+        $colors = Style::areColorsEnabled();
+        Style::setColorsEnabled(true);
+
+        try {
+            $out = (new ChannelRenderer())->render(self::message($channel, "x\n"));
+        } finally {
+            Style::setColorsEnabled($colors);
+        }
 
         \preg_match('/^\033\[\d+m/', $out, $matches);
         Assert::notSame($matches, [], "Header not colorized for '{$channel}': " . \addcslashes($out, "\033"));
 
         return $matches[0];
-    }
-
-    /**
-     * Colorization is decided by a process-global flag that other output tests switch off for their own
-     * assertions, so a test that inspects ANSI has to own the flag rather than inherit whatever the last
-     * case left behind — otherwise it passes or fails on the order the finder happens to walk files in,
-     * which differs between platforms.
-     */
-    protected function setUp(): void
-    {
-        $this->colors = Style::areColorsEnabled();
-        Style::setColorsEnabled(true);
-    }
-
-    protected function tearDown(): void
-    {
-        Style::setColorsEnabled($this->colors);
     }
 
     private static function stripAnsi(string $text): string

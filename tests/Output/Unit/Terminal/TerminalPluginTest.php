@@ -43,8 +43,6 @@ use Tests\Output\Stub\JUnit\SampleTestClass;
 #[Covers(TerminalPlugin::class)]
 final class TerminalPluginTest
 {
-    private bool $colors;
-
     public function interleavedDataProvidersEachRenderAsOneTree(): void
     {
         $first = self::makeTestInfo('passingTest');
@@ -127,18 +125,6 @@ final class TerminalPluginTest
         Assert::string($output)->contains("between tests\n");
     }
 
-    protected function setUp(): void
-    {
-        // Strip ANSI styling so assertions match raw text regardless of TTY config.
-        $this->colors = Style::areColorsEnabled();
-        Style::setColorsEnabled(false);
-    }
-
-    protected function tearDown(): void
-    {
-        Style::setColorsEnabled($this->colors);
-    }
-
     /**
      * Runs the callback against a plugin wired to a real dispatcher and returns what it wrote to the
      * terminal stream. Verbose, because that is the verbosity at which output streams live.
@@ -150,6 +136,10 @@ final class TerminalPluginTest
         $stdout = \fopen('php://memory', 'w+');
         $stderr = \fopen('php://memory', 'w+');
         \assert($stdout !== false && $stderr !== false);
+
+        # Constructing the plugin writes colorization into a process-global flag, so this has to be put
+        # back: leaking `Never` would strip ANSI from every case that runs after this one.
+        $colors = Style::areColorsEnabled();
 
         try {
             $logger = new TerminalLogger(OutputFormat::Compact, Verbosity::Verbose, $stdout, $stderr);
@@ -163,6 +153,7 @@ final class TerminalPluginTest
             \rewind($stdout);
             return (string) \stream_get_contents($stdout);
         } finally {
+            Style::setColorsEnabled($colors);
             \fclose($stdout);
             \fclose($stderr);
         }

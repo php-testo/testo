@@ -8,14 +8,11 @@ use Testo\Assert;
 use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Core\Value\Status;
 use Testo\Output\Terminal\Renderer\Formatter;
-use Testo\Output\Terminal\Renderer\Style;
 use Testo\Test;
 
 #[Test]
 final class FormatterTest
 {
-    private bool $colors;
-
     public function comparisonBlockHasExpectedAndActualHeaders(): void
     {
         $failure = self::makeFailure('foo', 'bar');
@@ -103,18 +100,6 @@ final class FormatterTest
     public function emptyBannerReadsNoTests(): void
     {
         Assert::string(Formatter::emptyBanner())->contains('NO TESTS');
-    }
-
-    protected function setUp(): void
-    {
-        // Strip ANSI styling so assertions match raw text regardless of TTY config.
-        $this->colors = Style::areColorsEnabled();
-        Style::setColorsEnabled(false);
-    }
-
-    protected function tearDown(): void
-    {
-        Style::setColorsEnabled($this->colors);
     }
 
     /**
