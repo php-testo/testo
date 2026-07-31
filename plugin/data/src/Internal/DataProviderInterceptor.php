@@ -158,16 +158,16 @@ final readonly class DataProviderInterceptor implements TestRunInterceptor
      * @param int<0, max>|null $providerNum Data provider number or null if only one.
      * @param int<0, max> $datasetNum Data set number.
      * @param callable(TestInfo): TestResult $next Next interceptor or core logic to run the test.
-     * @param TestIdentity|null $identity Address of this data set; derived from the batch's when omitted.
+     * @param TestIdentity $identity Address of this data set, derived from the batch's.
      */
-    public function run(
+    private function run(
         TestInfo $info,
         callable $next,
         string $label,
         ?int $providerNum,
         int $datasetNum,
         array $arguments,
-        ?TestIdentity $identity = null,
+        TestIdentity $identity,
     ): TestResult {
         $newInfo = $info->with(
             arguments: $arguments,
