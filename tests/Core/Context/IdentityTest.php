@@ -226,6 +226,30 @@ final class IdentityTest
         Assert::same($test->pipelineId, $test->runtimeId);
     }
 
+    public function everyLevelPointsAtTheRunItOpenedInside(): void
+    {
+        $suite = new SuiteIdentity('Core/Unit');
+        $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
+        $test = $case->toTestIdentity('itWorks');
+        $dataSet = $test->with(dataProvider: 0, dataSet: 1);
+
+        // One field at every level, so rebuilding the tree of a run — an IDE's `parentNodeId` — needs
+        // neither the order the events arrived in nor knowledge of which level is in hand.
+        Assert::null($suite->parentId);
+        Assert::same($case->parentId, $suite->runtimeId);
+        Assert::same($test->parentId, $case->runtimeId);
+        Assert::same($dataSet->parentId, $test->runtimeId);
+    }
+
+    public function reDerivingADataSetLeavesItASiblingOfTheOthers(): void
+    {
+        $test = self::test();
+
+        // Deriving from a data set corrects coordinates rather than nesting a data set inside one, so
+        // the test stays the parent of both.
+        Assert::same($test->with(dataProvider: 0, dataSet: 1)->with(dataSet: 7)->parentId, $test->runtimeId);
+    }
+
     public function everyLevelGetsItsOwnRuntimeId(): void
     {
         $suite = new SuiteIdentity('Core/Unit');

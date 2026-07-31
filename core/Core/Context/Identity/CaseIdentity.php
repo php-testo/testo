@@ -30,18 +30,21 @@ final readonly class CaseIdentity extends Identity
      * @param Path $file Path of the file the case was read from. Carried even when there is a class — a
      *        class does name its own file, but resolving that means loading the class, and TeamCity
      *        wants both parts.
+     * @param int<1, max>|null $parentId Run of the suite this case opened inside; passed by
+     *        {@see SuiteIdentity::toCase()}. {@see Identity::$parentId}
      */
     public function __construct(
         public string $suite,
         public ?string $case,
         public string $type,
         public Path $file,
+        ?int $parentId = null,
     ) {
         # A case of free functions has no class to name it, so its file stands in.
         $node = $case ?? (string) $file;
         $this->display = "{$suite} / {$node} [{$type}]";
 
-        parent::__construct();
+        parent::__construct($parentId);
     }
 
     /**
@@ -52,7 +55,14 @@ final readonly class CaseIdentity extends Identity
      */
     public function toTestIdentity(string $testName): TestIdentity
     {
-        return new TestIdentity($this->suite, $this->case, $this->type, $this->file, $testName);
+        return new TestIdentity(
+            $this->suite,
+            $this->case,
+            $this->type,
+            $this->file,
+            $testName,
+            parentId: $this->runtimeId,
+        );
     }
 
     #[\Override]

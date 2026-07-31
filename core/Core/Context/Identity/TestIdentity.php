@@ -72,6 +72,9 @@ final readonly class TestIdentity extends Identity
      * @param int<1, max>|null $pipelineId Test run this address is a part of; omit to open a new one.
      *        Only {@see with()} passes it, to keep a data set inside its batch's run — see
      *        {@see $pipelineId}.
+     * @param int<1, max>|null $parentId Run this one opened inside — the case for a test, the test for
+     *        a data set. Passed by {@see CaseIdentity::toTestIdentity()} and {@see with()}.
+     *        {@see Identity::$parentId}
      */
     public function __construct(
         public string $suite,
@@ -82,6 +85,7 @@ final readonly class TestIdentity extends Identity
         public ?int $dataProvider = null,
         public ?int $dataSet = null,
         ?int $pipelineId = null,
+        ?int $parentId = null,
     ) {
         self::assertDataSetIsWholeOrAbsent($dataProvider, $dataSet);
 
@@ -96,7 +100,7 @@ final readonly class TestIdentity extends Identity
         $node = $case ?? (string) $file;
         $this->display = "{$suite} / {$node} [{$type}] :: {$test}{$coordinates}";
 
-        parent::__construct();
+        parent::__construct($parentId);
 
         # A test opens the run its data sets then join.
         $this->pipelineId = $pipelineId ?? $this->runtimeId;
@@ -111,6 +115,9 @@ final readonly class TestIdentity extends Identity
      * carries over, which is what keeps a batch and its data sets in one report block and one
      * TeamCity flow.
      *
+     * The test run is also what the data set hangs under ({@see Identity::$parentId}) — so re-deriving
+     * one data set into another keeps them siblings under the test rather than nesting them.
+     *
      * @param int<0, max>|null $dataProvider Index of the data provider; keeps the current one when omitted.
      * @param int<0, max>|null $dataSet Index of the data set within it; keeps the current one when omitted.
      */
@@ -124,7 +131,8 @@ final readonly class TestIdentity extends Identity
             $this->test,
             $dataProvider ?? $this->dataProvider,
             $dataSet ?? $this->dataSet,
-            $this->pipelineId,
+            pipelineId: $this->pipelineId,
+            parentId: $this->pipelineId,
         );
     }
 

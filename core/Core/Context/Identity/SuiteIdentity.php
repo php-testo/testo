@@ -35,7 +35,7 @@ final readonly class SuiteIdentity extends Identity
      */
     public function toCase(?string $caseName, string $type, Path $file): CaseIdentity
     {
-        return new CaseIdentity($this->suite, $caseName, $type, $file);
+        return new CaseIdentity($this->suite, $caseName, $type, $file, parentId: $this->runtimeId);
     }
 
     /**
