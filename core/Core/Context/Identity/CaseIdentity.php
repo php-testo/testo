@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Core\Context\Identity;
 
+use Internal\Path;
 use Testo\Core\Context\Identity;
 
 /**
@@ -26,21 +27,19 @@ final readonly class CaseIdentity extends Identity
      *        class — {@see $file} is what names such a case instead.
      * @param non-empty-string $type Case type — `test`, `inline`, `bench`, …
      *        {@see \Testo\Core\Value\TestType}.
-     * @param non-empty-string|null $file Path of the file the case was read from. Null only for a case
-     *        built by hand rather than located. Carried even when there is a class — a class does name
-     *        its own file, but resolving that means loading the class, and TeamCity wants both parts.
+     * @param Path $file Path of the file the case was read from. Carried even when there is a class — a
+     *        class does name its own file, but resolving that means loading the class, and TeamCity
+     *        wants both parts.
      */
     public function __construct(
         public string $suite,
         public ?string $case,
         public string $type,
-        public ?string $file = null,
+        public Path $file,
     ) {
-        # A case of free functions is named by its file; with neither there is nothing to put here.
-        $node = $case ?? $file;
-        $this->display = $node === null
-            ? "{$suite} [{$type}]"
-            : "{$suite} / {$node} [{$type}]";
+        # A case of free functions has no class to name it, so its file stands in.
+        $node = $case ?? (string) $file;
+        $this->display = "{$suite} / {$node} [{$type}]";
 
         parent::__construct();
     }
@@ -48,13 +47,12 @@ final readonly class CaseIdentity extends Identity
     /**
      * Step down to a test of this case.
      *
-     * @param non-empty-string $testName Method or function name.
-     * @param non-empty-string|null $namespace Namespace of a free test function.
-     *        {@see TestIdentity::$namespace}.
+     * @param non-empty-string $testName Name relative to this case — a bare method name when the case
+     *        has a class, the function's own FQN when it does not. {@see TestIdentity::$test}.
      */
-    public function toTestIdentity(string $testName, ?string $namespace = null): TestIdentity
+    public function toTestIdentity(string $testName): TestIdentity
     {
-        return new TestIdentity($this->suite, $this->case, $this->type, $this->file, $testName, $namespace);
+        return new TestIdentity($this->suite, $this->case, $this->type, $this->file, $testName);
     }
 
     #[\Override]

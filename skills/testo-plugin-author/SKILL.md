@@ -110,17 +110,17 @@ Read the test method via `$info->testDefinition->reflection`; the test class via
 
 Every context object carries its address. `abstract readonly class Identity` in `Testo\Core\Context`
 contributes only `randomId` and `fqn()`; each level declares exactly the fields it has, and lives in
-`Testo\Core\Context\Identity\*` — `SuiteIdentity { suite }`, `CaseIdentity { suite, ?case, type, ?file }`,
-`TestIdentity { suite, ?case, type, ?file, test, ?namespace, ?dataProvider, ?dataSet }`.
-The fields are plain scalars: no level references the one above it, so reading any part of an address
-never walks a chain of objects, and no level carries a field that does not apply to it.
+`Testo\Core\Context\Identity\*` — `SuiteIdentity { suite }`, `CaseIdentity { suite, ?case, type, file }`,
+`TestIdentity { suite, ?case, type, file, test, ?dataProvider, ?dataSet }`. No level references the one
+above it, so reading any part of an address never walks a chain of objects, and no level carries a field
+that does not apply to it.
 
 `case` is the **class FQN**, and `null` for a case of free functions — there is no class, so `file`
-names the case and `namespace` qualifies the function instead.
+(an `Internal\Path`) names the case instead. `test` is the name **relative to `case`**: a bare method
+name when there is a class, the function's own FQN when there is not.
 
-Step down with `SuiteIdentity::toCase($case, $type, $file)`,
-`CaseIdentity::toTestIdentity($test, $namespace)`, and `TestIdentity::with(dataProvider:, dataSet:)`
-for a data set.
+Step down with `SuiteIdentity::toCase($case, $type, $file)`, `CaseIdentity::toTestIdentity($test)`, and
+`TestIdentity::with(dataProvider:, dataSet:)` for a data set.
 
 ```php
 (string) $info->identity;      // 'Core/Unit / Tests\Foo\BarTest [test] :: itWorks:0:1'

@@ -8,8 +8,8 @@ use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
-use Testo\Core\Context\Identity\CaseIdentity;
 use Testo\Core\Context\Identity;
+use Testo\Core\Context\Identity\CaseIdentity;
 use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Definition\CaseDefinition;
@@ -30,7 +30,7 @@ final class IdentityTest
     public function eachLevelRendersTheWholePathToIt(): void
     {
         $suite = new SuiteIdentity('Core/Unit');
-        $case = $suite->toCase('Tests\Foo\BarTest', 'test');
+        $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
         $test = $case->toTestIdentity('itWorks');
 
         Assert::same((string) $suite, 'Core/Unit');
@@ -40,20 +40,21 @@ final class IdentityTest
 
     public function stepsDownCopyTheFieldsRatherThanNestTheLevels(): void
     {
-        $test = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test')->toTestIdentity('itWorks');
+        $test = self::test();
 
-        // The whole address is flat scalars, so reading any part of it never walks a chain of objects.
+        // The whole address is flat: reading any part of it never walks a chain of objects.
         Assert::same($test->suite, 'Core/Unit');
         Assert::same($test->case, 'Tests\Foo\BarTest');
         Assert::same($test->type, 'test');
         Assert::same($test->test, 'itWorks');
+        Assert::same((string) $test->file, '/app/tests/BarTest.php');
         Assert::null($test->dataProvider);
         Assert::null($test->dataSet);
     }
 
     public function aDataSetIsAddressedByIndex(): void
     {
-        $test = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test')->toTestIdentity('itWorks');
+        $test = self::test();
 
         // Provider keys repeat freely (`yield 1 => …` twice is legal), so only the indices tell two
         // data sets of one test apart.
@@ -69,9 +70,9 @@ final class IdentityTest
 
     public function aReDerivedAddressCarriesNoStaleRendering(): void
     {
-        $test = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test')->toTestIdentity('itWorks');
+        $test = self::test();
 
-        // Both forms are composed once, in the constructor, so `with()` has to rebuild rather than copy
+        // Every form is composed once, in the constructor, so `with()` has to rebuild rather than copy
         // — otherwise a re-derived address would still render the coordinates it no longer has.
         $moved = $test->with(dataProvider: 0, dataSet: 1)->with(dataProvider: 2, dataSet: 3);
 
@@ -84,74 +85,82 @@ final class IdentityTest
 
     public function theFqnNamesCodeAndNothingElse(): void
     {
-        $suite = new SuiteIdentity('Core/Unit');
-        $case = $suite->toCase('Tests\Foo\BarTest', 'test');
+        $case = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test', self::path());
         $test = $case->toTestIdentity('itWorks');
 
         // The same class runs under any suite and any type, and both are filtered separately, so
-        // neither belongs in the form that `--filter` and TeamCity consume.
+        // neither belongs in the form that `--filter` and TeamCity consume. Nor does the file.
         Assert::same($case->fqn(), 'Tests\Foo\BarTest');
         Assert::same($test->fqn(), 'Tests\Foo\BarTest::itWorks');
         Assert::same($test->with(dataProvider: 0, dataSet: 1)->fqn(), 'Tests\Foo\BarTest::itWorks:0:1');
     }
 
-    public function aFreeFunctionIsQualifiedByItsNamespace(): void
+    public function theQualifiedNameDropsTheCoordinatesTheFqnKeeps(): void
     {
-        $case = (new SuiteIdentity('Core/Unit'))->toCase(null, 'test', '/app/tests/functions.php');
+        $dataSet = self::test()->with(dataProvider: 1, dataSet: 4);
 
-        // No class to join with `::`, so the namespace qualifies the function directly. The case itself
-        // still has no FQN — a file is not one.
-        Assert::null($case->fqn());
-        Assert::same($case->toTestIdentity('itWorksToo', 'Tests\Foo')->fqn(), 'Tests\Foo\itWorksToo');
+        // Consumers that group by test method — coverage entries, the JUnit `classname` — need every
+        // data set of one test to answer the same string, so they read this rather than `fqn()`.
+        Assert::same($dataSet->qualifiedName(), 'Tests\Foo\BarTest::itWorks');
+        Assert::same($dataSet->fqn(), 'Tests\Foo\BarTest::itWorks:1:4');
+    }
 
-        // A function at global scope has no namespace either; the bare name is the filter's fragment form.
-        Assert::same($case->toTestIdentity('itWorksToo')->fqn(), 'itWorksToo');
+    public function aTestNameIsRelativeToItsCaseAndAbsoluteWithoutOne(): void
+    {
+        $withClass = self::test();
+        $free = (new SuiteIdentity('Core/Unit'))
+            ->toCase(null, 'test', self::path('/app/tests/functions.php'))
+            ->toTestIdentity('Tests\Foo\itWorksToo');
+
+        // A method is named relative to its class, so the bare name is complete. A free function has no
+        // class to be relative to, so it carries its own namespace in the same field — which is also
+        // why "a class *and* a namespace" is not a state this type can be put in.
+        Assert::same($withClass->fqn(), 'Tests\Foo\BarTest::itWorks');
+        Assert::same($free->fqn(), 'Tests\Foo\itWorksToo');
+
+        // The case itself still has no FQN — a file is not one.
+        Assert::null($free->case);
     }
 
     public function aCaseWithoutAClassIsNamedByItsFile(): void
     {
-        $case = (new SuiteIdentity('Core/Unit'))->toCase(null, 'test', '/app/tests/functions.php');
+        $case = (new SuiteIdentity('Core/Unit'))->toCase(null, 'test', self::path('/app/tests/functions.php'));
 
         // Otherwise two files of free functions in one suite would render the same address.
+        Assert::null($case->fqn());
         Assert::same((string) $case, 'Core/Unit / /app/tests/functions.php [test]');
         Assert::same(
             (string) $case->toTestIdentity('itWorksToo'),
             'Core/Unit / /app/tests/functions.php [test] :: itWorksToo',
         );
-
-        // With neither a class nor a file there is nothing to name the node with, so the segment goes.
-        Assert::same((string) (new SuiteIdentity('Core/Unit'))->toCase(null, 'test'), 'Core/Unit [test]');
     }
 
     #[Covers(CaseInfo::class)]
-    public function theFileIsSpelledOneWayWhateverItCameFrom(): void
+    public function theFileComesStraightFromTheDefinition(): void
     {
-        $path = (string) Path::create((new \ReflectionClass(CaseInfo::class))->getFileName());
-
-        // Three routes to the same file: reflection reports the OS separator, a located definition
-        // carries a path already normalized to `/`, and a case of free functions has only the latter.
-        $fromReflection = new CaseInfo(new CaseDefinition(
+        $definition = new CaseDefinition(
             name: 'CaseInfo',
             type: 'test',
+            file: Path::create((new \ReflectionClass(CaseInfo::class))->getFileName()),
             reflection: new \ReflectionClass(CaseInfo::class),
-        ));
-        $fromDefinition = new CaseInfo(new CaseDefinition(name: 'CaseInfo', type: 'test', file: $path));
+        );
 
-        Assert::same($fromReflection->identity->file, $path);
-        Assert::same($fromDefinition->identity->file, $path);
+        $case = new CaseInfo($definition, new SuiteIdentity('Core/Context'));
 
-        // Nothing to take it from at all.
-        Assert::null((new CaseInfo(new CaseDefinition(name: 'X', type: 'test')))->identity->file);
+        // One spelling for the whole address, and it is `Path` that guarantees it: a filename reflection
+        // reports with the OS separator comes back normalized, so the field cannot name one file two ways.
+        Assert::same($case->identity->file, $definition->file);
+        Assert::same(\substr_count((string) $case->identity->file, '\\'), 0);
     }
 
     public function theFileStaysOnTheAddressEvenWithAClass(): void
     {
-        $case = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test', '/app/tests/BarTest.php');
+        $case = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test', self::path());
 
         // A class does name its own file, but resolving that means loading the class — and TeamCity's
         // location hint needs both parts side by side.
-        Assert::same($case->file, '/app/tests/BarTest.php');
-        Assert::same($case->toTestIdentity('itWorks')->file, '/app/tests/BarTest.php');
+        Assert::same((string) $case->file, '/app/tests/BarTest.php');
+        Assert::same((string) $case->toTestIdentity('itWorks')->file, '/app/tests/BarTest.php');
 
         // The class still wins for display and for the FQN.
         Assert::same((string) $case, 'Core/Unit / Tests\Foo\BarTest [test]');
@@ -171,14 +180,14 @@ final class IdentityTest
 
         // One file can define cases of several types, so two of them are not the same case.
         Assert::notSame(
-            (string) $suite->toCase('Tests\Foo\BarTest', 'test'),
-            (string) $suite->toCase('Tests\Foo\BarTest', 'inline'),
+            (string) $suite->toCase('Tests\Foo\BarTest', 'test', self::path()),
+            (string) $suite->toCase('Tests\Foo\BarTest', 'inline', self::path()),
         );
     }
 
     public function distinctRunsGetDistinctRandomIds(): void
     {
-        $case = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test');
+        $case = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test', self::path());
 
         $first = $case->toTestIdentity('itWorks');
         $second = $case->toTestIdentity('itWorks');
@@ -191,7 +200,7 @@ final class IdentityTest
 
     public function withStaysInsideTheRunItCameFrom(): void
     {
-        $test = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test')->toTestIdentity('itWorks');
+        $test = self::test();
 
         $first = $test->with(dataProvider: 0, dataSet: 0);
         $second = $test->with(dataProvider: 0, dataSet: 1);
@@ -205,7 +214,7 @@ final class IdentityTest
     public function everyLevelGetsItsOwnRandomId(): void
     {
         $suite = new SuiteIdentity('Core/Unit');
-        $case = $suite->toCase('Tests\Foo\BarTest', 'test');
+        $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
         $test = $case->toTestIdentity('itWorks');
 
         // One shared sequence behind all three levels, so a suite and a case never collide on a number.
@@ -217,6 +226,18 @@ final class IdentityTest
         Expect::exception(\InvalidArgumentException::class);
 
         // Without both coordinates the address would claim to be a data set it cannot name.
-        new TestIdentity('Core/Unit', 'Tests\Foo\BarTest', 'test', null, 'itWorks', dataProvider: 0);
+        new TestIdentity('Core/Unit', 'Tests\Foo\BarTest', 'test', self::path(), 'itWorks', dataProvider: 0);
+    }
+
+    private static function test(): TestIdentity
+    {
+        return (new SuiteIdentity('Core/Unit'))
+            ->toCase('Tests\Foo\BarTest', 'test', self::path())
+            ->toTestIdentity('itWorks');
+    }
+
+    private static function path(string $path = '/app/tests/BarTest.php'): Path
+    {
+        return Path::create($path);
     }
 }

@@ -48,9 +48,9 @@ final class CaseDefinitions
         return $this->cases[$type][] = new CaseDefinition(
             name: $reflection?->getShortName() ?? $file->tokenizedFile->path->name(),
             type: $type,
+            file: $file->tokenizedFile->path,
             reflection: $reflection,
             handler: $handler,
-            file: (string) $file->tokenizedFile->path,
         );
     }
 

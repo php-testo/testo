@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Core\Context\Identity;
 
+use Internal\Path;
 use Testo\Core\Context\Identity;
 use Testo\Core\Internal\CloneWith;
 
@@ -48,12 +49,12 @@ final readonly class TestIdentity extends Identity
      *        {@see CaseIdentity::$case}.
      * @param non-empty-string $type Case type — `test`, `inline`, `bench`, …
      *        {@see \Testo\Core\Value\TestType}.
-     * @param non-empty-string|null $file Path of the file the case was read from.
+     * @param Path $file Path of the file the case was read from.
      *        {@see CaseIdentity::$file}.
-     * @param non-empty-string $test Method or function name.
-     * @param non-empty-string|null $namespace Namespace of a free test function — what qualifies its
-     *        name when there is no class to do it. Set only when `$case` is null: a method takes its
-     *        namespace from the class FQN, and a global function has none.
+     * @param non-empty-string $test Name of the test **relative to `$case`** — a bare method name when
+     *        there is a class, and the function's own FQN when there is not. A free function has no
+     *        class to be relative to, so it carries its namespace here rather than in a field of its
+     *        own; that also makes "a class *and* a namespace" a state this type cannot be put in.
      * @param int<0, max>|null $dataProvider Index of the data provider a data set came from. Always the
      *        real index — unlike the display-facing one on {@see \Testo\Event\Test\TestDataSetStarting},
      *        which is `null` when the test has a single provider.
@@ -63,9 +64,8 @@ final readonly class TestIdentity extends Identity
         public string $suite,
         public ?string $case,
         public string $type,
-        public ?string $file,
+        public Path $file,
         public string $test,
-        public ?string $namespace = null,
         public ?int $dataProvider = null,
         public ?int $dataSet = null,
     ) {
@@ -75,17 +75,12 @@ final readonly class TestIdentity extends Identity
         # copying, so a derived address can never carry a rendering of the coordinates it no longer has.
         $coordinates = $dataProvider === null ? '' : ":{$dataProvider}:{$dataSet}";
 
-        $this->qualifiedName = match (true) {
-            $case !== null => "{$case}::{$test}",
-            $namespace !== null => "{$namespace}\\{$test}",
-            default => $test,
-        };
+        $this->qualifiedName = $case === null ? $test : "{$case}::{$test}";
         $this->fqn = $this->qualifiedName . $coordinates;
 
-        # A case of free functions is named by its file; with neither there is nothing to put here.
-        $node = $case ?? $file;
-        $head = $node === null ? "{$suite} [{$type}]" : "{$suite} / {$node} [{$type}]";
-        $this->display = "{$head} :: {$test}{$coordinates}";
+        # A case of free functions has no class to name it, so its file stands in.
+        $node = $case ?? (string) $file;
+        $this->display = "{$suite} / {$node} [{$type}] :: {$test}{$coordinates}";
 
         parent::__construct();
     }
@@ -109,7 +104,6 @@ final readonly class TestIdentity extends Identity
             $this->type,
             $this->file,
             $this->test,
-            $this->namespace,
             $dataProvider ?? $this->dataProvider,
             $dataSet ?? $this->dataSet,
         );

@@ -39,7 +39,9 @@ final readonly class TestInfo
         public array $attributes = [],
         ?TestIdentity $identity = null,
     ) {
-        $this->identity = $identity ?? $caseInfo->identity->toTestIdentity($name, self::namespaceOf($caseInfo, $testDefinition));
+        $this->identity = $identity ?? $caseInfo->identity->toTestIdentity(
+            self::addressableName($caseInfo, $name, $testDefinition),
+        );
     }
 
     /**
@@ -61,19 +63,23 @@ final readonly class TestInfo
     }
 
     /**
-     * Namespace to qualify a free test function with. Null for a method — the class FQN already carries
-     * one — and for a function declared at global scope, which has none.
+     * The name the address wants, which is not always {@see $name} — that one is for reading.
      *
-     * @return non-empty-string|null
+     * A method is named relative to its class, so the bare name is already complete. A free function has
+     * no class to be relative to, so it has to carry its own namespace or the address would name a
+     * different function in every namespace that happens to define one by that name.
+     *
+     * @param non-empty-string $name
+     * @return non-empty-string
      */
-    private static function namespaceOf(CaseInfo $caseInfo, TestDefinition $definition): ?string
+    private static function addressableName(CaseInfo $caseInfo, string $name, TestDefinition $definition): string
     {
         if ($caseInfo->identity->case !== null) {
-            return null;
+            return $name;
         }
 
-        $namespace = $definition->reflection->getNamespaceName();
+        $fqn = $definition->reflection->getName();
 
-        return $namespace === '' ? null : $namespace;
+        return $fqn === '' ? $name : $fqn;
     }
 }

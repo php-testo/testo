@@ -87,11 +87,11 @@ final readonly class SuiteRunner
             try {
                 $caseInfo = new CaseInfo(
                     definition: $caseDefinition,
+                    suiteIdentity: $suite->identity,
                     instance: $caseDefinition->reflection === null
                         ? null
                         : new SimpleCaseInstantiator($caseDefinition->reflection),
                     handler: $caseDefinition->handler ?? $handler,
-                    suite: $suite->identity,
                 );
                 $result = $runner->runCase($caseInfo, $filter);
                 $result->status->isFailure() and $status = Status::Failed;

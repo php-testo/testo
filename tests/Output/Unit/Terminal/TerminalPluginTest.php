@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\Terminal;
 
+use Internal\Path;
 use Internal\Container\ObjectContainer;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Common\EventListenerCollector;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -193,9 +195,11 @@ final class TerminalPluginTest
         return new TestInfo(
             name: $method,
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: SampleTestClass::class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: new \ReflectionClass(SampleTestClass::class),
                 ),
             ),

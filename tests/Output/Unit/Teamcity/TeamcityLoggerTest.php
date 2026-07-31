@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\Teamcity;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -83,9 +85,11 @@ final class TeamcityLoggerTest
         $info = new TestInfo(
             name: 'inheritedTest',
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: ConcreteSampleTestCase::class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: $caseReflection,
                 ),
             ),
@@ -253,9 +257,11 @@ final class TeamcityLoggerTest
         return new TestInfo(
             name: $method,
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: SampleTestClass::class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: new \ReflectionClass(SampleTestClass::class),
                 ),
             ),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\JUnit;
 
+use Internal\Path;
 use Internal\Container\ObjectContainer;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
@@ -13,6 +14,7 @@ use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Context\SuiteInfo;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -573,9 +575,11 @@ final class JUnitPluginTest
     private static function makeCaseInfo(): CaseInfo
     {
         return new CaseInfo(
+            suiteIdentity: new SuiteIdentity('Output/Unit'),
             definition: new CaseDefinition(
                 name: SampleTestClass::class,
                 type: 'test',
+                file: Path::create(__FILE__),
                 reflection: new \ReflectionClass(SampleTestClass::class),
             ),
         );
@@ -598,9 +602,11 @@ final class JUnitPluginTest
         // No class reflection — emulates how Testo builds a case for a file
         // containing free-function tests (see CaseDefinitions::define).
         return new CaseInfo(
+            suiteIdentity: new SuiteIdentity('Output/Unit'),
             definition: new CaseDefinition(
                 name: 'free_function_helper.php',
                 type: 'test',
+                file: Path::create(__FILE__),
                 reflection: null,
             ),
         );

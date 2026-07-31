@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Core\Pipeline;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Common\Messenger;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
@@ -127,9 +129,10 @@ final class OutputInterceptorTest
         $caseDefinition = new CaseDefinition(
             name: 'TestCase',
             type: 'unit',
+            file: Path::create(__FILE__),
             reflection: null,
         );
-        $caseInfo = new CaseInfo($caseDefinition);
+        $caseInfo = new CaseInfo($caseDefinition, new SuiteIdentity('Core/Pipeline'));
         $testDefinition = new TestDefinition(
             reflection: new \ReflectionMethod(SimpleTest::class, 'test'),
         );

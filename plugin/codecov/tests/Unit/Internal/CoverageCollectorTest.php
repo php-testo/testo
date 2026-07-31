@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Codecov\Unit\Internal;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Internal\CoverageCollector;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\SuiteResult;
 use Testo\Core\Context\TestInfo;
@@ -89,7 +91,7 @@ final class CoverageCollectorTest
     private static function createTestResult(): TestResult
     {
         $reflection = new \ReflectionMethod(self::class, 'createTestResult');
-        $caseInfo = new CaseInfo(definition: new CaseDefinition(name: 'TestCase', type: 'test'));
+        $caseInfo = new CaseInfo(suiteIdentity: new SuiteIdentity('Codecov/Unit'), definition: new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__)));
         $testDefinition = new TestDefinition(reflection: $reflection);
         $info = new TestInfo(name: 'testMethod', caseInfo: $caseInfo, testDefinition: $testDefinition);
 

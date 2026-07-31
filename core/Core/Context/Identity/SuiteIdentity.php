@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Core\Context\Identity;
 
+use Internal\Path;
 use Testo\Core\Context\Identity;
 
 /**
@@ -30,10 +31,9 @@ final readonly class SuiteIdentity extends Identity
      * @param non-empty-string $type Case type — `test`, `inline`, `bench`, …
      *        {@see \Testo\Core\Value\TestType}. Part of the address because one file can define cases
      *        of several types.
-     * @param non-empty-string|null $file Path of the file the case was read from.
-     *        {@see CaseIdentity::$file}.
+     * @param Path $file Path of the file the case was read from.
      */
-    public function toCase(?string $caseName, string $type, ?string $file = null): CaseIdentity
+    public function toCase(?string $caseName, string $type, Path $file): CaseIdentity
     {
         return new CaseIdentity($this->suite, $caseName, $type, $file);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Core\Definition;
 
+use Internal\Path;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Value\TestType;
 
@@ -20,6 +21,7 @@ final readonly class CaseDefinition
          * @see TestType
          */
         public string $type,
+        public Path $file,
         public ?\ReflectionClass $reflection = null,
         public TestDefinitions $tests = new TestDefinitions(),
 
@@ -27,13 +29,6 @@ final readonly class CaseDefinition
          * @var null|\Closure(TestInfo): mixed Handler for executing the test methods in this case.
          */
         public ?\Closure $handler = null,
-
-        /**
-         * @var non-empty-string|null Path of the file this case was read from. Null when the case was
-         *      built by hand rather than located — the only thing that names a case of free functions,
-         *      since it has no class.
-         */
-        public ?string $file = null,
     ) {}
 
     public function with(
@@ -44,10 +39,10 @@ final readonly class CaseDefinition
         return new self(
             $name ?? $this->name,
             $this->type,
+            $this->file,
             $this->reflection,
             $tests ?? $this->tests,
             $handler ?? $this->handler,
-            $this->file,
         );
     }
 

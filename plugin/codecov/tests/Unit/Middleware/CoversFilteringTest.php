@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Codecov\Unit\Middleware;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Internal\Middleware\CoverageTestInterceptor;
 use Testo\Codecov\Result\CoverageResult;
@@ -11,6 +12,7 @@ use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineCoverage;
 use Testo\Codecov\Result\LineStatus;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -155,9 +157,11 @@ final class CoversFilteringTest
         return new TestInfo(
             name: $method,
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Codecov/Unit'),
                 definition: new CaseDefinition(
                     name: $class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: new \ReflectionClass($class),
                 ),
             ),

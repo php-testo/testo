@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Filter\Unit\Internal;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinitions;
@@ -111,9 +113,11 @@ final class DataPointerTest
         return new TestInfo(
             name: $reflection->getName(),
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Filter/Unit'),
                 definition: new \Testo\Core\Definition\CaseDefinition(
                     name: $reflection->getDeclaringClass()->getName(),
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: $reflection->getDeclaringClass(),
                 ),
             ),
