@@ -39,7 +39,7 @@ final readonly class TestInfo
         public array $attributes = [],
         ?TestIdentity $identity = null,
     ) {
-        $this->identity = $identity ?? $caseInfo->identity->toTestIdentity(
+        $this->identity = $identity ?? $caseInfo->identity->toTest(
             self::addressableName($caseInfo, $name, $testDefinition),
         );
     }

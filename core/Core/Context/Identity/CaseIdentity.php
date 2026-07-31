@@ -53,7 +53,7 @@ final readonly class CaseIdentity extends Identity
      * @param non-empty-string $testName Name relative to this case — a bare method name when the case
      *        has a class, the function's own FQN when it does not. {@see TestIdentity::$test}.
      */
-    public function toTestIdentity(string $testName): TestIdentity
+    public function toTest(string $testName): TestIdentity
     {
         return new TestIdentity(
             $this->suite,

@@ -131,6 +131,6 @@ final class FormatterTest
     {
         return (new SuiteIdentity('Core/Unit'))
             ->toCase('Tests\Foo\BarTest', 'test', Path::create('/app/tests/BarTest.php'))
-            ->toTestIdentity('itWorks');
+            ->toTest('itWorks');
     }
 }

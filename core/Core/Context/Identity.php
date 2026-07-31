@@ -15,7 +15,7 @@ use Testo\Core\Internal\RuntimeSequence;
  * that deep". The fields are plain scalars: no level references the one above it, so reading any part
  * of an address never walks a chain of objects.
  *
- * Step down with {@see Identity\SuiteIdentity::toCase()}, {@see Identity\CaseIdentity::toTestIdentity()}
+ * Step down with {@see Identity\SuiteIdentity::toCase()}, {@see Identity\CaseIdentity::toTest()}
  * and {@see Identity\TestIdentity::with()}.
  *
  * Two things live on an address, and they answer different questions:

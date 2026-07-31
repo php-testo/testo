@@ -31,7 +31,7 @@ final class IdentityTest
     {
         $suite = new SuiteIdentity('Core/Unit');
         $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
-        $test = $case->toTestIdentity('itWorks');
+        $test = $case->toTest('itWorks');
 
         Assert::same((string) $suite, 'Core/Unit');
         Assert::same((string) $case, 'Core/Unit / Tests\Foo\BarTest [test]');
@@ -86,7 +86,7 @@ final class IdentityTest
     public function theFqnNamesCodeAndNothingElse(): void
     {
         $case = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test', self::path());
-        $test = $case->toTestIdentity('itWorks');
+        $test = $case->toTest('itWorks');
 
         // The same class runs under any suite and any type, and both are filtered separately, so
         // neither belongs in the form that `--filter` and TeamCity consume. Nor does the file.
@@ -110,7 +110,7 @@ final class IdentityTest
         $withClass = self::test();
         $free = (new SuiteIdentity('Core/Unit'))
             ->toCase(null, 'test', self::path('/app/tests/functions.php'))
-            ->toTestIdentity('Tests\Foo\itWorksToo');
+            ->toTest('Tests\Foo\itWorksToo');
 
         // A method is named relative to its class, so the bare name is complete. A free function has no
         // class to be relative to, so it carries its own namespace in the same field — which is also
@@ -130,7 +130,7 @@ final class IdentityTest
         Assert::null($case->fqn());
         Assert::same((string) $case, 'Core/Unit / /app/tests/functions.php [test]');
         Assert::same(
-            (string) $case->toTestIdentity('itWorksToo'),
+            (string) $case->toTest('itWorksToo'),
             'Core/Unit / /app/tests/functions.php [test] :: itWorksToo',
         );
     }
@@ -160,7 +160,7 @@ final class IdentityTest
         // A class does name its own file, but resolving that means loading the class — and TeamCity's
         // location hint needs both parts side by side.
         Assert::same((string) $case->file, '/app/tests/BarTest.php');
-        Assert::same((string) $case->toTestIdentity('itWorks')->file, '/app/tests/BarTest.php');
+        Assert::same((string) $case->toTest('itWorks')->file, '/app/tests/BarTest.php');
 
         // The class still wins for display and for the FQN.
         Assert::same((string) $case, 'Core/Unit / Tests\Foo\BarTest [test]');
@@ -189,8 +189,8 @@ final class IdentityTest
     {
         $case = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test', self::path());
 
-        $first = $case->toTestIdentity('itWorks');
-        $second = $case->toTestIdentity('itWorks');
+        $first = $case->toTest('itWorks');
+        $second = $case->toTest('itWorks');
 
         // Same address, different runs — which is exactly why the address alone cannot serve as the
         // correlation key for output and events.
@@ -230,7 +230,7 @@ final class IdentityTest
     {
         $suite = new SuiteIdentity('Core/Unit');
         $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
-        $test = $case->toTestIdentity('itWorks');
+        $test = $case->toTest('itWorks');
         $dataSet = $test->with(dataProvider: 0, dataSet: 1);
 
         // One field at every level, so rebuilding the tree of a run — an IDE's `parentNodeId` — needs
@@ -254,7 +254,7 @@ final class IdentityTest
     {
         $suite = new SuiteIdentity('Core/Unit');
         $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
-        $test = $case->toTestIdentity('itWorks');
+        $test = $case->toTest('itWorks');
 
         // One shared sequence behind all three levels, so a suite and a case never collide on a number.
         Assert::same(\count(\array_unique([$suite->runtimeId, $case->runtimeId, $test->runtimeId])), 3);
@@ -272,7 +272,7 @@ final class IdentityTest
     {
         return (new SuiteIdentity('Core/Unit'))
             ->toCase('Tests\Foo\BarTest', 'test', self::path())
-            ->toTestIdentity('itWorks');
+            ->toTest('itWorks');
     }
 
     private static function path(string $path = '/app/tests/BarTest.php'): Path

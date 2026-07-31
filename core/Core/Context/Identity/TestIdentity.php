@@ -73,7 +73,7 @@ final readonly class TestIdentity extends Identity
      *        Only {@see with()} passes it, to keep a data set inside its batch's run — see
      *        {@see $pipelineId}.
      * @param int<1, max>|null $parentId Run this one opened inside — the case for a test, the test for
-     *        a data set. Passed by {@see CaseIdentity::toTestIdentity()} and {@see with()}.
+     *        a data set. Passed by {@see CaseIdentity::toTest()} and {@see with()}.
      *        {@see Identity::$parentId}
      */
     public function __construct(

@@ -119,7 +119,7 @@ that does not apply to it.
 (an `Internal\Path`) names the case instead. `test` is the name **relative to `case`**: a bare method
 name when there is a class, the function's own FQN when there is not.
 
-Step down with `SuiteIdentity::toCase($case, $type, $file)`, `CaseIdentity::toTestIdentity($test)`, and
+Step down with `SuiteIdentity::toCase($case, $type, $file)`, `CaseIdentity::toTest($test)`, and
 `TestIdentity::with(dataProvider:, dataSet:)` for a data set.
 
 ```php
