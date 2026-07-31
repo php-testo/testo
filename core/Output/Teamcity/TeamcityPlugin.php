@@ -136,7 +136,7 @@ final class TeamcityPlugin implements PluginConfigurator
             unset($this->pendingStart[$id]);
         }
 
-        $this->logger->logMessage($this->currentName[$id], $event->message, TeamcityLogger::flowId($identity));
+        $this->logger->logMessage($this->currentName[$id], $event->message, $identity);
     }
 
     private function onTestPipelineStarting(TestPipelineStarting $event): void

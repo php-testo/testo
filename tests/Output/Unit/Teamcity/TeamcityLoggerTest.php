@@ -188,15 +188,19 @@ final class TeamcityLoggerTest
         Assert::same(\substr_count($output, "flowId='{$result->info->identity->pipelineId}'"), 2);
     }
 
-    public function logMessageStampsTheGivenFlowId(): void
+    public function logMessagePlacesTheOutputOnItsTestsNode(): void
     {
+        $info = self::makeInfo('passingTest');
         $message = new Message(time: 0.0, channel: 'stdout', level: Level::Info, content: 'streamed line');
 
         $output = self::capture(
-            static fn(TeamcityLogger $logger) => $logger->logMessage('someTest', $message, '4242'),
+            static fn(TeamcityLogger $logger) => $logger->logMessage('someTest', $message, $info->identity),
         );
 
-        Assert::string($output)->contains("flowId='4242'");
+        // Streamed output has to name the node it came from, or a consumer attaches it to whichever test
+        // happens to be open — which, when tests interleave, is somebody else's.
+        Assert::string($output)->contains("nodeId='{$info->identity->runtimeId}'");
+        Assert::string($output)->contains("flowId='{$info->identity->pipelineId}'");
         Assert::string($output)->contains('streamed line');
     }
 
