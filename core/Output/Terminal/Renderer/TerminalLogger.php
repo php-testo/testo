@@ -128,8 +128,12 @@ final class TerminalLogger
     public function handleCaseResult(CaseInfo $info, CaseResult $result): void
     {
         # Every test of the case has finished by now, so nothing should still be held — but a test the
-        # runner never closed would otherwise land under the *next* case's header.
+        # runner never closed would otherwise land under the *next* case's header. Its per-test state
+        # goes with it, so a long session does not accumulate entries no close will ever drop.
         $this->out->flush();
+        $this->channels = [];
+        $this->currentTestName = [];
+        $this->currentIndentLevel = [];
 
         $this->write(null, Formatter::caseFooter($this->format));
         $this->write(null, Formatter::caseSummary($result, $this->format));

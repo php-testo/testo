@@ -162,6 +162,9 @@ final class TerminalPlugin implements PluginConfigurator
     private function onTestCaseFinished(TestCaseFinished $event): void
     {
         $this->logger->handleCaseResult($event->caseInfo, $event->caseResult);
+
+        // No test spans a case boundary: a leftover entry belongs to a test that never finished.
+        $this->isBatch = [];
     }
 
     private function onTestSuiteStarting(TestSuiteStarting $event): void

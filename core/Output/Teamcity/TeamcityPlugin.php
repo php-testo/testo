@@ -227,6 +227,12 @@ final class TeamcityPlugin implements PluginConfigurator
     private function onTestCaseFinished(TestCaseFinished $event): void
     {
         $this->logger->handleCaseResult($event->caseInfo, $event->caseResult);
+
+        // No test spans a case boundary, so anything still tracked belongs to a test the runner never
+        // finished (a hang, an abort) — dropped here so a long session does not accumulate it.
+        $this->isBatch = [];
+        $this->currentName = [];
+        $this->pendingStart = [];
     }
 
     private function onTestSuiteStarting(TestSuiteStarting $event): void
