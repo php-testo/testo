@@ -54,7 +54,9 @@ final readonly class MessengerHub implements Messenger
         $old = $this->state->state;
         // A test scope carries the test's identity, so every MessageReceived dispatched from within it
         // is stamped with that test — the seam that keeps interleaving tests' output attributable.
-        $new = new State($this->eventDispatcher, identity: $identity);
+        // With no identity given the ambient one carries over, like in fork(): a nested scope opened
+        // mid-test still belongs to that test, and stamping null would silently strip attribution.
+        $new = new State($this->eventDispatcher, identity: $identity ?? $old->identity);
         try {
             $this->state->state = $new;
             if (\Fiber::getCurrent() === null) {

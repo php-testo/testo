@@ -41,11 +41,15 @@ final class State implements Destroyable
 
     private bool $suspended = false;
 
+    /**
+     * @param TestIdentity|null $identity Test whose {@see MessageReceived} events this state stamps;
+     *        `null` when the state belongs to no test. Read by the hub so a nested scope can inherit it.
+     */
     public function __construct(
         private readonly EventDispatcherInterface $dispatcher,
         private readonly ?self $parent = null,
         private readonly bool $holdEvents = false,
-        private readonly ?TestIdentity $identity = null,
+        public readonly ?TestIdentity $identity = null,
     ) {}
 
     /**

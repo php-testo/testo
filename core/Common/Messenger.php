@@ -81,13 +81,16 @@ interface Messenger
      * inside the closure observes only what was written within it. Fiber-aware: the parent state
      * is restored across suspension points.
      *
-     * When an `$identity` is given, every {@see MessageReceived} dispatched from within the scope is
-     * stamped with it, so a consumer can attribute the message to that test even while other tests
-     * interleave their output on the same stream.
+     * Every {@see MessageReceived} dispatched from within the scope is stamped with `$identity`, so a
+     * consumer can attribute the message to that test even while other tests interleave their output
+     * on the same stream. When `$identity` is omitted the enclosing scope's identity carries over,
+     * like in {@see fork()}: a scope opened mid-test still belongs to that test. The framework sets
+     * the identity once per test (in its per-test output scope) — a plugin rarely needs to pass one.
      *
      * @template T
      * @param \Closure(self): T $scope
-     * @param TestIdentity|null $identity Test this scope's messages belong to, if any.
+     * @param TestIdentity|null $identity Test this scope's messages belong to; inherited from the
+     *        enclosing scope when omitted.
      * @return T
      */
     public function scope(\Closure $scope, ?TestIdentity $identity = null): mixed;
