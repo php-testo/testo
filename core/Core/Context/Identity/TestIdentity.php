@@ -6,7 +6,6 @@ namespace Testo\Core\Context\Identity;
 
 use Internal\Path;
 use Testo\Core\Context\Identity;
-use Testo\Core\Internal\CloneWith;
 
 /**
  * Address of a single test within its case — or of one data set of that test.
@@ -20,7 +19,18 @@ use Testo\Core\Internal\CloneWith;
  */
 final readonly class TestIdentity extends Identity
 {
-    use CloneWith;
+    /**
+     * Run of the test this address belongs to: a test's own {@see Identity::$runtimeId}, and the
+     * batch's for every data set derived from it with {@see with()}.
+     *
+     * What consumers that need a whole test to stay together key on — one terminal block, one channel
+     * grouping, one TeamCity flow. {@see $runtimeId} cannot serve for that: it counts *this* run, so
+     * every data set has its own, and grouping by it would break a batch into as many blocks as it has
+     * data sets. Process-local like the number it is taken from.
+     *
+     * @var int<1, max>
+     */
+    public int $pipelineId;
 
     /**
      * The code this address names, without the data. {@see qualifiedName()}
@@ -59,6 +69,9 @@ final readonly class TestIdentity extends Identity
      *        real index — unlike the display-facing one on {@see \Testo\Event\Test\TestDataSetStarting},
      *        which is `null` when the test has a single provider.
      * @param int<0, max>|null $dataSet Index of the data set within that provider.
+     * @param int<1, max>|null $pipelineId Test run this address is a part of; omit to open a new one.
+     *        Only {@see with()} passes it, to keep a data set inside its batch's run — see
+     *        {@see $pipelineId}.
      */
     public function __construct(
         public string $suite,
@@ -68,6 +81,7 @@ final readonly class TestIdentity extends Identity
         public string $test,
         public ?int $dataProvider = null,
         public ?int $dataSet = null,
+        ?int $pipelineId = null,
     ) {
         self::assertDataSetIsWholeOrAbsent($dataProvider, $dataSet);
 
@@ -83,22 +97,26 @@ final readonly class TestIdentity extends Identity
         $this->display = "{$suite} / {$node} [{$type}] :: {$test}{$coordinates}";
 
         parent::__construct();
+
+        # A test opens the run its data sets then join.
+        $this->pipelineId = $pipelineId ?? $this->runtimeId;
     }
 
     /**
-     * A more specific address of the same run — a data set of this test.
+     * A data set of this test: a more specific address, inside the same test run.
      *
-     * Rebuilt rather than copied, so the constructor recomposes the strings for the new coordinates;
-     * the run is then carried over, so the derived address stays inside the one it came from. A data
-     * set shares its batch's {@see $randomId}, and that is what keeps a batch and its data sets in one
-     * report block and one TeamCity flow.
+     * Rebuilt rather than copied, so the constructor recomposes the strings for the new coordinates —
+     * a derived address can never carry a rendering of coordinates it no longer has. Its run is its
+     * own ({@see $runtimeId}) because a data set is a test in its own right, while {@see $pipelineId}
+     * carries over, which is what keeps a batch and its data sets in one report block and one
+     * TeamCity flow.
      *
      * @param int<0, max>|null $dataProvider Index of the data provider; keeps the current one when omitted.
      * @param int<0, max>|null $dataSet Index of the data set within it; keeps the current one when omitted.
      */
     public function with(?int $dataProvider = null, ?int $dataSet = null): self
     {
-        $derived = new self(
+        return new self(
             $this->suite,
             $this->case,
             $this->type,
@@ -106,11 +124,8 @@ final readonly class TestIdentity extends Identity
             $this->test,
             $dataProvider ?? $this->dataProvider,
             $dataSet ?? $this->dataSet,
+            $this->pipelineId,
         );
-
-        # Rebuilding minted a fresh run; adopt the one this address came from instead.
-        /** @see self::$randomId */
-        return $derived->cloneWith('randomId', $this->randomId);
     }
 
     /**

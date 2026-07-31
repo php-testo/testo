@@ -34,7 +34,7 @@ final class TerminalLogger
 
     /**
      * Indentation level of each test in flight (nested for DataProvider datasets), keyed by
-     * {@see \Testo\Core\Context\Identity::$randomId}. A single counter is clobbered the moment two
+     * {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}. A single counter is clobbered the moment two
      * tests interleave: the one entering a batch would indent the other's lines.
      *
      * @var array<int, int<0, max>>
@@ -140,7 +140,7 @@ final class TerminalLogger
      */
     public function batchStartedFromInfo(TestInfo $info): void
     {
-        $this->currentIndentLevel[$info->identity->randomId] = 1;
+        $this->currentIndentLevel[$info->identity->pipelineId] = 1;
 
         if ($this->format === OutputFormat::Dots) {
             return;
@@ -149,7 +149,7 @@ final class TerminalLogger
         // Print the batch test name (the main test with DataProvider)
         $indent = $this->format === OutputFormat::Verbose ? '     ' : '   ';
         $symbol = Style::dim(Symbol::DataProvider->value);
-        $id = $info->identity->randomId;
+        $id = $info->identity->pipelineId;
         $this->write($id, "{$indent}{$symbol} {$info->name}\n");
 
         // The description belongs to the test, not to each dataset — print it once here, at the root
@@ -166,7 +166,7 @@ final class TerminalLogger
      */
     public function batchFinishedFromInfo(TestInfo $info): void
     {
-        unset($this->currentIndentLevel[$info->identity->randomId]);
+        unset($this->currentIndentLevel[$info->identity->pipelineId]);
         // No visual output for batch finish in terminal mode
     }
 
@@ -177,7 +177,7 @@ final class TerminalLogger
      */
     public function testStartedFromInfo(TestInfo $info, ?string $overrideName = null): void
     {
-        $id = $info->identity->randomId;
+        $id = $info->identity->pipelineId;
         if ($overrideName === null) {
             # A regular test carries no override — it prints under its own name.
             unset($this->currentTestName[$id]);
@@ -193,7 +193,7 @@ final class TerminalLogger
      */
     public function resetChannels(TestInfo $info): void
     {
-        ($this->channels[$info->identity->randomId] ?? null)?->reset();
+        ($this->channels[$info->identity->pipelineId] ?? null)?->reset();
     }
 
     /**
@@ -204,7 +204,7 @@ final class TerminalLogger
      */
     public function closeTest(TestInfo $info): void
     {
-        $id = $info->identity->randomId;
+        $id = $info->identity->pipelineId;
         unset($this->channels[$id]);
         $this->out->close($id);
     }
@@ -218,9 +218,10 @@ final class TerminalLogger
      * after the fact (see {@see printFailures()}). Suppressed in Dots mode, whose single-character
      * per-test layout multi-line output would break.
      *
-     * @param int|null $owner Test the message belongs to (its {@see \Testo\Core\Context\Identity::$randomId}),
-     *        which decides both the block it lands in and the channel grouping it continues. `null`
-     *        for output owned by no test.
+     * @param int|null $owner Run of the test the message belongs to
+     *        ({@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}), which decides both the
+     *        block it lands in and the channel grouping it continues. `null` for output owned by no
+     *        test.
      */
     public function logMessage(Message $message, ?int $owner = null): void
     {
@@ -411,9 +412,9 @@ final class TerminalLogger
             description: $this->resultDescription($result),
         );
 
-        $this->write($result->info->identity->randomId, Formatter::formatRun($item, $this->format));
+        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
-        unset($this->currentTestName[$result->info->identity->randomId]);
+        unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
     /**
@@ -427,7 +428,7 @@ final class TerminalLogger
             'result' => $result,
             'duration' => $duration,
             'suiteName' => $this->currentSuiteName,
-            'datasetName' => $this->currentTestName[$result->info->identity->randomId] ?? null,
+            'datasetName' => $this->currentTestName[$result->info->identity->pipelineId] ?? null,
         ];
 
         $item = new FormattedItem(
@@ -438,9 +439,9 @@ final class TerminalLogger
             description: $this->resultDescription($result),
         );
 
-        $this->write($result->info->identity->randomId, Formatter::formatRun($item, $this->format));
+        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
-        unset($this->currentTestName[$result->info->identity->randomId]);
+        unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
     /**
@@ -450,7 +451,7 @@ final class TerminalLogger
      */
     private function displayName(TestResult $result): string
     {
-        return $this->currentTestName[$result->info->identity->randomId] ?? $result->info->name;
+        return $this->currentTestName[$result->info->identity->pipelineId] ?? $result->info->name;
     }
 
     /**
@@ -460,7 +461,7 @@ final class TerminalLogger
      */
     private function indentLevel(TestResult $result): int
     {
-        return $this->currentIndentLevel[$result->info->identity->randomId] ?? 0;
+        return $this->currentIndentLevel[$result->info->identity->pipelineId] ?? 0;
     }
 
     /**
@@ -498,7 +499,7 @@ final class TerminalLogger
                 description: (string) $runKey,
             );
 
-            $this->write($result->info->identity->randomId, Formatter::formatRun($item, $this->format));
+            $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
             $runNumber++;
         }
     }
@@ -517,8 +518,8 @@ final class TerminalLogger
             indentLevel: $this->indentLevel($result),
         );
 
-        $this->write($result->info->identity->randomId, Formatter::formatRun($item, $this->format));
-        unset($this->currentTestName[$result->info->identity->randomId]);
+        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+        unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
     /**
@@ -535,8 +536,8 @@ final class TerminalLogger
             indentLevel: $this->indentLevel($result),
         );
 
-        $this->write($result->info->identity->randomId, Formatter::formatRun($item, $this->format));
-        unset($this->currentTestName[$result->info->identity->randomId]);
+        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+        unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
     /**

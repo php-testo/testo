@@ -162,7 +162,20 @@ final class TeamcityLoggerTest
 
         $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($info));
 
-        Assert::string($output)->contains("flowId='{$info->identity->randomId}'");
+        Assert::string($output)->contains("flowId='{$info->identity->pipelineId}'");
+    }
+
+    public function aDataSetReportsInsideItsBatchesFlow(): void
+    {
+        $batch = self::makeInfo('passingTest');
+        $dataSet = $batch->with(identity: $batch->identity->with(dataProvider: 0, dataSet: 1));
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($dataSet));
+
+        // The batch opened a nested suite in its own flow, and a data set reports inside that suite —
+        // a flow of its own (its run differs from the batch's) would leave the suite behind.
+        Assert::notSame($dataSet->identity->runtimeId, $batch->identity->runtimeId);
+        Assert::string($output)->contains("flowId='{$batch->identity->pipelineId}'");
     }
 
     public function handleSingleTestResultStampsFlowIdFromIdentity(): void
@@ -172,7 +185,7 @@ final class TeamcityLoggerTest
         $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
 
         // Both the failure and the finish message carry the test's flow, so a consumer keeps them together.
-        Assert::same(\substr_count($output, "flowId='{$result->info->identity->randomId}'"), 2);
+        Assert::same(\substr_count($output, "flowId='{$result->info->identity->pipelineId}'"), 2);
     }
 
     public function logMessageStampsTheGivenFlowId(): void
@@ -194,13 +207,13 @@ final class TeamcityLoggerTest
 
         // Two separate runs of the same method are distinct in-flight tests — their flows must differ so
         // that, when interleaved, a consumer never merges their messages.
-        Assert::notSame($first->identity->randomId, $second->identity->randomId);
+        Assert::notSame($first->identity->pipelineId, $second->identity->pipelineId);
 
         $a = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($first));
         $b = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($second));
 
-        Assert::string($a)->contains("flowId='{$first->identity->randomId}'");
-        Assert::string($b)->contains("flowId='{$second->identity->randomId}'");
+        Assert::string($a)->contains("flowId='{$first->identity->pipelineId}'");
+        Assert::string($b)->contains("flowId='{$second->identity->pipelineId}'");
     }
 
     /**

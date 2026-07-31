@@ -185,7 +185,7 @@ final class IdentityTest
         );
     }
 
-    public function distinctRunsGetDistinctRandomIds(): void
+    public function distinctRunsGetDistinctRuntimeIds(): void
     {
         $case = (new SuiteIdentity('Core/Unit'))->toCase('Tests\Foo\BarTest', 'test', self::path());
 
@@ -195,30 +195,45 @@ final class IdentityTest
         // Same address, different runs — which is exactly why the address alone cannot serve as the
         // correlation key for output and events.
         Assert::same((string) $first, (string) $second);
-        Assert::notSame($first->randomId, $second->randomId);
+        Assert::notSame($first->runtimeId, $second->runtimeId);
     }
 
-    public function withStaysInsideTheRunItCameFrom(): void
+    public function eachDataSetIsARunOfItsOwn(): void
     {
         $test = self::test();
 
         $first = $test->with(dataProvider: 0, dataSet: 0);
         $second = $test->with(dataProvider: 0, dataSet: 1);
 
-        // A data set is a phase of its batch's run, not a run of its own: it shares the report block,
-        // the output scope and the TeamCity flow, all keyed by this number.
-        Assert::same($first->randomId, $test->randomId);
-        Assert::same($second->randomId, $test->randomId);
+        // A data set runs, and so it correlates its own events and its own captured output.
+        Assert::same(\count(\array_unique([$test->runtimeId, $first->runtimeId, $second->runtimeId])), 3);
     }
 
-    public function everyLevelGetsItsOwnRandomId(): void
+    public function everyDataSetBelongsToTheTestRunItCameFrom(): void
+    {
+        $test = self::test();
+
+        $first = $test->with(dataProvider: 0, dataSet: 0);
+        $second = $test->with(dataProvider: 1, dataSet: 0)->with(dataSet: 3);
+
+        // What holds a batch together in a report — one terminal block, one TeamCity flow. It survives
+        // re-deriving, so a data set addressed in two steps is still inside the same test run.
+        Assert::same($first->pipelineId, $test->pipelineId);
+        Assert::same($second->pipelineId, $test->pipelineId);
+
+        // A test opens its own run, so grouping by this number needs no special case for a test
+        // that never had a data set.
+        Assert::same($test->pipelineId, $test->runtimeId);
+    }
+
+    public function everyLevelGetsItsOwnRuntimeId(): void
     {
         $suite = new SuiteIdentity('Core/Unit');
         $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
         $test = $case->toTestIdentity('itWorks');
 
         // One shared sequence behind all three levels, so a suite and a case never collide on a number.
-        Assert::same(\count(\array_unique([$suite->randomId, $case->randomId, $test->randomId])), 3);
+        Assert::same(\count(\array_unique([$suite->runtimeId, $case->runtimeId, $test->runtimeId])), 3);
     }
 
     public function halfADataSetAddressIsRejected(): void

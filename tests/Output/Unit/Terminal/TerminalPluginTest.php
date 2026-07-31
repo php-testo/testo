@@ -161,11 +161,16 @@ final class TerminalPluginTest
 
     /**
      * Runs one data set of `$info`'s batch, start to finish.
+     *
+     * Addressed under the batch, as the data-provider interceptor builds it — a data set is a run of
+     * its own, so it is only the batch's `pipelineId` that puts its lines in the batch's block.
      */
     private static function dataSet(EventDispatcher $dispatcher, TestInfo $info, string $key): void
     {
-        $dispatcher->dispatch(new TestDataSetStarting($info, $key, null, 0));
-        $dispatcher->dispatch(new TestDataSetFinished($info, self::passed($info), $key, null, 0));
+        $set = $info->with(identity: $info->identity->with(dataProvider: 0, dataSet: 0));
+
+        $dispatcher->dispatch(new TestDataSetStarting($set, $key, null, 0));
+        $dispatcher->dispatch(new TestDataSetFinished($set, self::passed($set), $key, null, 0));
     }
 
     private static function passed(TestInfo $info): TestResult

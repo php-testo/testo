@@ -34,7 +34,7 @@ final class TerminalPlugin implements PluginConfigurator
     /**
      * Ids of the tests currently inside a DataProvider batch.
      *
-     * Keyed by {@see \Testo\Core\Context\Identity::$randomId} so concurrently running tests are tracked
+     * Keyed by {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId} so concurrently running tests are tracked
      * independently, and so the key never depends on an object address the way `spl_object_hash()` did.
      *
      * @var array<int, bool>
@@ -96,13 +96,13 @@ final class TerminalPlugin implements PluginConfigurator
     {
         // A null identity means the message belongs to no test (suite/case setup, output between
         // tests); the logger writes that through instead of putting it in anyone's block.
-        $this->logger->logMessage($event->message, $event->identity?->randomId);
+        $this->logger->logMessage($event->message, $event->identity?->pipelineId);
     }
 
     private function onTestPipelineFinished(TestPipelineFinished $event): void
     {
         // Check if this test was inside a DataProvider batch
-        $id = $event->testInfo->identity->randomId;
+        $id = $event->testInfo->identity->pipelineId;
         if (isset($this->isBatch[$id])) {
             // DataProvider test - already handled in dataset events
             unset($this->isBatch[$id]);
@@ -122,7 +122,7 @@ final class TerminalPlugin implements PluginConfigurator
     private function onTestBatchStarting(TestBatchStarting $event): void
     {
         // Mark that we're inside a batch
-        $id = $event->testInfo->identity->randomId;
+        $id = $event->testInfo->identity->pipelineId;
         $this->isBatch[$id] = true;
 
         // Start batch in logger for proper indentation

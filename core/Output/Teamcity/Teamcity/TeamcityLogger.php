@@ -50,11 +50,14 @@ final class TeamcityLogger
      * TeamCity `flowId` for a test: distinct concurrent tests get distinct flows, so their interleaved
      * `testStarted`/output/`testFinished` messages stay grouped instead of overlapping on one stream.
      *
+     * A data set answers its batch's flow rather than one of its own — the batch opened a nested suite
+     * that its data sets report inside, and a flow of their own would leave that suite behind.
+     *
      * @return non-empty-string
      */
     public static function flowId(TestIdentity $identity): string
     {
-        return (string) $identity->randomId;
+        return (string) $identity->pipelineId;
     }
 
     /**

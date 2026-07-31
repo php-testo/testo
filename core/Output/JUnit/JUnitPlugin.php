@@ -78,7 +78,7 @@ final class JUnitPlugin implements PluginConfigurator
 {
     /**
      * Tracks whether we're inside a DataProvider batch, keyed by
-     * {@see \Testo\Core\Context\Identity::$randomId}. Same guard `TeamcityPlugin`
+     * {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}. Same guard `TeamcityPlugin`
      * uses to avoid emitting both the per-dataset and the rolled-up `<testcase>`;
      * the identity keys it per running test rather than per definition object
      * address, so concurrently running tests are tracked independently.
@@ -282,7 +282,7 @@ final class JUnitPlugin implements PluginConfigurator
         // Closed in onTestBatchFinished.
         $caseInfo->definition->reflection === null and $this->openFunctionSuite($event->testInfo);
 
-        $this->isBatch[$event->testInfo->identity->randomId] = true;
+        $this->isBatch[$event->testInfo->identity->pipelineId] = true;
     }
 
     private function onTestBatchFinished(TestBatchFinished $event): void
@@ -324,7 +324,7 @@ final class JUnitPlugin implements PluginConfigurator
             return;
         }
 
-        $id = $event->testInfo->identity->randomId;
+        $id = $event->testInfo->identity->pipelineId;
         if (isset($this->isBatch[$id])) {
             // DataProvider/multi-inline test — individual datasets were already emitted.
             unset($this->isBatch[$id]);

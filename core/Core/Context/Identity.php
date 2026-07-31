@@ -20,27 +20,29 @@ use Testo\Core\Internal\RuntimeSequence;
  *
  * Two things live on an address, and they answer different questions:
  * - the fields (and `__toString()`) say *which* node this is, and stay the same across runs;
- * - {@see $randomId} says *which run of it* is in flight, and means nothing outside this process.
+ * - {@see $runtimeId} says *which run of it* is in flight, and means nothing outside this process.
  *
  * @api
  */
 abstract readonly class Identity implements \Stringable
 {
     /**
-     * Number correlating everything one in-flight run emits — its events, its captured output, its
-     * report block. Process-local and not part of the address: never persist it, never match on it,
-     * and expect a different number for the same test on the next run.
+     * Number correlating everything this one in-flight run emits — its events, its captured output.
+     * Process-local and not part of the address: never persist it, never match on it, and expect a
+     * different number for the same test on the next run.
      *
-     * Repeats and retries of one test share it, since they are one run being re-attempted. A data set
-     * shares its batch's, since it is a phase of that run rather than a run of its own.
+     * One number per run, and a data set is a run: it gets its own rather than its batch's. What needs
+     * a whole test held together — a report block, a TeamCity flow — groups by
+     * {@see Identity\TestIdentity::$pipelineId} instead. Repeats and retries do share this number,
+     * since they re-attempt one run rather than open new ones.
      *
      * @var int<1, max>
      */
-    public int $randomId;
+    public int $runtimeId;
 
     public function __construct()
     {
-        $this->randomId = RuntimeSequence::next();
+        $this->runtimeId = RuntimeSequence::next();
     }
 
     /**
