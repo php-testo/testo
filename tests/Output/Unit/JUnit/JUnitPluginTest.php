@@ -150,8 +150,8 @@ final class JUnitPluginTest
             $caseInfo = self::makeCaseInfo();
 
             // Two runs of one test method: distinct in-flight tests, one shared TestDefinition object.
-            // The batch guard is keyed by identity, so hashing the shared definition can no longer make
-            // the first pipeline's finish clear the second's marker.
+            // The batch guard is keyed per running test, so one pipeline's finish must not clear the
+            // other's marker.
             $definition = new TestDefinition(new \ReflectionMethod(SampleTestClass::class, 'passingTest'));
             $first = new TestInfo(name: 'passingTest', caseInfo: $caseInfo, testDefinition: $definition);
             $second = new TestInfo(name: 'passingTest', caseInfo: $caseInfo, testDefinition: $definition);

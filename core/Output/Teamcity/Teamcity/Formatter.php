@@ -433,8 +433,6 @@ final class Formatter
      * ```
      *
      * The tail is {@see TestIdentity::fqn()} verbatim, so a hint pastes straight back into `--filter`.
-     * It used to be assembled from reflection here, with a data set addressed by its *key* — which
-     * collides whenever a provider repeats one, and which `--filter` does not accept.
      *
      * Null when there is no code to point at: a suite of the run is a configuration entry, and a case
      * of free functions has no class of its own.

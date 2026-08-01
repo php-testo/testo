@@ -80,8 +80,7 @@ final class JUnitPlugin implements PluginConfigurator
      * Tracks whether we're inside a DataProvider batch, keyed by
      * {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}. Same guard `TeamcityPlugin`
      * uses to avoid emitting both the per-dataset and the rolled-up `<testcase>`;
-     * the identity keys it per running test rather than per definition object
-     * address, so concurrently running tests are tracked independently.
+     * keyed per running test, so concurrently running tests are tracked independently.
      *
      * @var array<int, bool>
      */

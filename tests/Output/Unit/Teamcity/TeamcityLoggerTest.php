@@ -113,9 +113,9 @@ final class TeamcityLoggerTest
         $a = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($first));
         $b = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($second));
 
-        // The coordinates `--filter` takes, in the order it takes them. The hint used to name a data set
-        // by its provider key instead, which collides whenever a provider repeats one — so these two
-        // came out identical and neither selected anything when pasted back.
+        // The coordinates `--filter` takes, in the order it takes them. A key-based hint would collide
+        // whenever a provider repeats one — these two would come out identical and select nothing when
+        // pasted back.
         Assert::string($a)->contains('SampleTestClass::passingTest:0:1');
         Assert::string($b)->contains('SampleTestClass::passingTest:0:2');
     }

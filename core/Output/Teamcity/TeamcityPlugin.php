@@ -196,8 +196,8 @@ final class TeamcityPlugin implements PluginConfigurator
         $prefix = $event->providerIndex === null ? '' : "$event->providerIndex:";
         $name = "Dataset #{$prefix}{$event->datasetIndex} [$event->dataSetKey]";
 
-        # No location suffix to assemble: this info's address already points at the data set, so the
-        # hint carries the same coordinates `--filter` takes.
+        # The info's address already points at the data set, so the location hint carries the same
+        # coordinates `--filter` takes.
         $this->logger->testStartedFromInfo($event->testInfo, overrideName: $name);
 
         // testStarted already emitted eagerly; stream this data set's output to it in real time. Data

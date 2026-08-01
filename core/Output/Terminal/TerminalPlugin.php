@@ -34,8 +34,8 @@ final class TerminalPlugin implements PluginConfigurator
     /**
      * Ids of the tests currently inside a DataProvider batch.
      *
-     * Keyed by {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId} so concurrently running tests are tracked
-     * independently, and so the key never depends on an object address the way `spl_object_hash()` did.
+     * Keyed by {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId} so concurrently running
+     * tests are tracked independently.
      *
      * @var array<int, bool>
      */
