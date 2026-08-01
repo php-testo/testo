@@ -107,8 +107,8 @@ final class TeamcityLoggerTest
     public function testStartedFromInfoAddressesADataSetByItsCoordinates(): void
     {
         $batch = self::makeInfo('passingTest');
-        $first = $batch->with(identity: $batch->identity->with(dataProvider: 0, dataSet: 1));
-        $second = $batch->with(identity: $batch->identity->with(dataProvider: 0, dataSet: 2));
+        $first = $batch->with(identity: $batch->identity->toDataSet(dataProvider: 0, dataSet: 1));
+        $second = $batch->with(identity: $batch->identity->toDataSet(dataProvider: 0, dataSet: 2));
 
         $a = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($first));
         $b = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($second));
@@ -168,7 +168,7 @@ final class TeamcityLoggerTest
     public function aDataSetReportsInsideItsBatchesFlow(): void
     {
         $batch = self::makeInfo('passingTest');
-        $dataSet = $batch->with(identity: $batch->identity->with(dataProvider: 0, dataSet: 1));
+        $dataSet = $batch->with(identity: $batch->identity->toDataSet(dataProvider: 0, dataSet: 1));
 
         $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($dataSet));
 

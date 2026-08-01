@@ -8,6 +8,7 @@ use Testo\Assert;
 use Testo\Data\DataSet;
 use Testo\Fiber\RunInFiber;
 use Testo\Fiber\Schedule;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -23,6 +24,7 @@ use Testo\Test;
  */
 #[Test]
 #[RunInFiber(Schedule::RoundRobin)]
+#[Group('sandbox', 'async')]
 final class AsyncTest
 {
     /**

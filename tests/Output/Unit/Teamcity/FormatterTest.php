@@ -46,7 +46,7 @@ final class FormatterTest
     public function aDataSetNamesTheBatchItCameFrom(): void
     {
         $test = self::test();
-        $dataSet = $test->with(dataProvider: 0, dataSet: 1);
+        $dataSet = $test->toDataSet(dataProvider: 0, dataSet: 1);
 
         $msg = Formatter::testStarted('Dataset #0:1 [x]', identity: $dataSet);
 

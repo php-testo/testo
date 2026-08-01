@@ -21,7 +21,7 @@ final readonly class TestIdentity extends Identity
 {
     /**
      * Run of the test this address belongs to: a test's own {@see Identity::$runtimeId}, and the
-     * batch's for every data set derived from it with {@see with()}.
+     * batch's for every data set derived from it with {@see toDataSet()}.
      *
      * What consumers that need a whole test to stay together key on — one terminal block, one channel
      * grouping, one TeamCity flow. {@see $runtimeId} cannot serve for that: it counts *this* run, so
@@ -63,10 +63,10 @@ final readonly class TestIdentity extends Identity
      *        which is `null` when the test has a single provider.
      * @param int<0, max>|null $dataSet Index of the data set within that provider.
      * @param int<1, max>|null $pipelineId Test run this address is a part of; omit to open a new one.
-     *        Only {@see with()} passes it, to keep a data set inside its batch's run — see
+     *        Only {@see toDataSet()} passes it, to keep a data set inside its batch's run — see
      *        {@see $pipelineId}.
      * @param int<1, max>|null $parentId Run this one opened inside — the case for a test, the test for
-     *        a data set. Passed by {@see CaseIdentity::toTest()} and {@see with()}.
+     *        a data set. Passed by {@see CaseIdentity::toTest()} and {@see toDataSet()}.
      *        {@see Identity::$parentId}
      */
     public function __construct(
@@ -82,7 +82,7 @@ final readonly class TestIdentity extends Identity
     ) {
         self::assertDataSetIsWholeOrAbsent($dataProvider, $dataSet);
 
-        # The one place these strings are composed. `with()` rebuilds through here rather than
+        # The one place these strings are composed. `toDataSet()` rebuilds through here rather than
         # copying, so a derived address can never carry a rendering of the coordinates it no longer has.
         $coordinates = $dataProvider === null ? '' : ":{$dataProvider}:{$dataSet}";
 
@@ -110,7 +110,7 @@ final readonly class TestIdentity extends Identity
      * @param int<0, max>|null $dataProvider Index of the data provider; keeps the current one when omitted.
      * @param int<0, max>|null $dataSet Index of the data set within it; keeps the current one when omitted.
      */
-    public function with(?int $dataProvider = null, ?int $dataSet = null): self
+    public function toDataSet(?int $dataProvider = null, ?int $dataSet = null): self
     {
         return new self(
             $this->suite,

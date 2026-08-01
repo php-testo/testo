@@ -120,7 +120,7 @@ that does not apply to it.
 name when there is a class, the function's own FQN when there is not.
 
 Step down with `SuiteIdentity::toCase($case, $type, $file)`, `CaseIdentity::toTest($test)`, and
-`TestIdentity::with(dataProvider:, dataSet:)` for a data set.
+`TestIdentity::toDataSet(dataProvider:, dataSet:)` for a data set.
 
 ```php
 $info->identity->fqn();        // 'Tests\Foo\BarTest::itWorks:0:1' — null only at the case level,

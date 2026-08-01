@@ -16,7 +16,7 @@ use Testo\Core\Internal\RuntimeSequence;
  * of an address never walks a chain of objects.
  *
  * Step down with {@see Identity\SuiteIdentity::toCase()}, {@see Identity\CaseIdentity::toTest()}
- * and {@see Identity\TestIdentity::with()}.
+ * and {@see Identity\TestIdentity::toDataSet()}.
  *
  * Two things live on an address, and they answer different questions:
  * - the fields say *which* node this is, and stay the same across runs;

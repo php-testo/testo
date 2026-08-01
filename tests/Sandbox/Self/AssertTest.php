@@ -12,6 +12,7 @@ use Testo\Common\Messenger;
 use Testo\Data\DataProvider;
 use Testo\Data\DataSet;
 use Testo\Expect;
+use Testo\Filter\Group;
 use Testo\Repeat;
 use Testo\Retry;
 use Testo\Test;
@@ -21,6 +22,7 @@ use Tests\Fixture\ClassDataProvider;
 /**
  * Aassertions sandbox
  */
+#[Group('sandbox')]
 final class AssertTest
 {
     #[Inject]

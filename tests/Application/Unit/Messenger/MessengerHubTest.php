@@ -219,7 +219,7 @@ final class MessengerHubTest
         };
         $hub = new MessengerHub($dispatcher);
         $outer = self::identity();
-        $inner = $outer->with(dataProvider: 0, dataSet: 1);
+        $inner = $outer->toDataSet(dataProvider: 0, dataSet: 1);
 
         $hub->scope(static function () use ($hub, $inner): void {
             $hub->scope(static fn() => $hub->log('c', 'inner'), $inner);

@@ -167,7 +167,7 @@ final class TerminalPluginTest
      */
     private static function dataSet(EventDispatcher $dispatcher, TestInfo $info, string $key): void
     {
-        $set = $info->with(identity: $info->identity->with(dataProvider: 0, dataSet: 0));
+        $set = $info->with(identity: $info->identity->toDataSet(dataProvider: 0, dataSet: 0));
 
         $dispatcher->dispatch(new TestDataSetStarting($set, $key, null, 0));
         $dispatcher->dispatch(new TestDataSetFinished($set, self::passed($set), $key, null, 0));

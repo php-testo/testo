@@ -29,7 +29,7 @@ final readonly class TestInfo
      * @param array<non-empty-string, mixed> $attributes
      * @param TestIdentity|null $identity Address to carry; derived from the case when omitted. Pass one
      *        to keep an address across a derived info — {@see with()} does, and a data-set address is
-     *        made with {@see TestIdentity::with()}.
+     *        made with {@see TestIdentity::toDataSet()}.
      */
     public function __construct(
         public string $name,
@@ -46,7 +46,7 @@ final readonly class TestInfo
 
     /**
      * @param TestIdentity|null $identity Address for the derived info; keeps this one's when omitted.
-     *        A data-set runner passes {@see TestIdentity::with()} here.
+     *        A data-set runner passes {@see TestIdentity::toDataSet()} here.
      */
     public function with(
         ?array $arguments = null,

@@ -6,6 +6,7 @@ namespace Tests\Sandbox\Self;
 
 use Testo\Assert;
 use Testo\Data\DataProvider;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -21,6 +22,7 @@ use Testo\Test;
  * ```
  */
 #[Test]
+#[Group('sandbox')]
 final class DataCoordinatesTest
 {
     /**

@@ -47,22 +47,22 @@ final class IdentityTest
 
         // Provider keys repeat freely (`yield 1 => …` twice is legal), so only the indices tell two
         // data sets of one test apart.
-        Assert::same($test->with(dataProvider: 0, dataSet: 1)->fqn(), 'Tests\Foo\BarTest::itWorks:0:1');
-        Assert::same($test->with(dataProvider: 2, dataSet: 0)->fqn(), 'Tests\Foo\BarTest::itWorks:2:0');
+        Assert::same($test->toDataSet(dataProvider: 0, dataSet: 1)->fqn(), 'Tests\Foo\BarTest::itWorks:0:1');
+        Assert::same($test->toDataSet(dataProvider: 2, dataSet: 0)->fqn(), 'Tests\Foo\BarTest::itWorks:2:0');
     }
 
     public function aReDerivedAddressCarriesNoStaleRendering(): void
     {
         $test = self::test();
 
-        // The strings are composed once, in the constructor, so `with()` has to rebuild rather than copy
-        // — otherwise a re-derived address would still render the coordinates it no longer has.
-        $moved = $test->with(dataProvider: 0, dataSet: 1)->with(dataProvider: 2, dataSet: 3);
+        // The strings are composed once, in the constructor, so `toDataSet()` has to rebuild rather than
+        // copy — otherwise a re-derived address would still render the coordinates it no longer has.
+        $moved = $test->toDataSet(dataProvider: 0, dataSet: 1)->toDataSet(dataProvider: 2, dataSet: 3);
 
         Assert::same($moved->fqn(), 'Tests\Foo\BarTest::itWorks:2:3');
 
         // Overriding one coordinate keeps the other, and still re-renders.
-        Assert::same($test->with(dataProvider: 0, dataSet: 1)->with(dataSet: 7)->fqn(), 'Tests\Foo\BarTest::itWorks:0:7');
+        Assert::same($test->toDataSet(dataProvider: 0, dataSet: 1)->toDataSet(dataSet: 7)->fqn(), 'Tests\Foo\BarTest::itWorks:0:7');
     }
 
     public function theFqnNamesCodeAndNothingElse(): void
@@ -74,12 +74,12 @@ final class IdentityTest
         // neither belongs in the form that `--filter` and TeamCity consume. Nor does the file.
         Assert::same($case->fqn(), 'Tests\Foo\BarTest');
         Assert::same($test->fqn(), 'Tests\Foo\BarTest::itWorks');
-        Assert::same($test->with(dataProvider: 0, dataSet: 1)->fqn(), 'Tests\Foo\BarTest::itWorks:0:1');
+        Assert::same($test->toDataSet(dataProvider: 0, dataSet: 1)->fqn(), 'Tests\Foo\BarTest::itWorks:0:1');
     }
 
     public function theQualifiedNameDropsTheCoordinatesTheFqnKeeps(): void
     {
-        $dataSet = self::test()->with(dataProvider: 1, dataSet: 4);
+        $dataSet = self::test()->toDataSet(dataProvider: 1, dataSet: 4);
 
         // Consumers that group by test method — coverage entries, the JUnit `classname` — need every
         // data set of one test to answer the same string, so they read this rather than `fqn()`.
@@ -170,8 +170,8 @@ final class IdentityTest
     {
         $test = self::test();
 
-        $first = $test->with(dataProvider: 0, dataSet: 0);
-        $second = $test->with(dataProvider: 0, dataSet: 1);
+        $first = $test->toDataSet(dataProvider: 0, dataSet: 0);
+        $second = $test->toDataSet(dataProvider: 0, dataSet: 1);
 
         // A data set runs, and so it correlates its own events and its own captured output.
         Assert::same(\count(\array_unique([$test->runtimeId, $first->runtimeId, $second->runtimeId])), 3);
@@ -181,8 +181,8 @@ final class IdentityTest
     {
         $test = self::test();
 
-        $first = $test->with(dataProvider: 0, dataSet: 0);
-        $second = $test->with(dataProvider: 1, dataSet: 0)->with(dataSet: 3);
+        $first = $test->toDataSet(dataProvider: 0, dataSet: 0);
+        $second = $test->toDataSet(dataProvider: 1, dataSet: 0)->toDataSet(dataSet: 3);
 
         // What holds a batch together in a report — one terminal block, one TeamCity flow. It survives
         // re-deriving, so a data set addressed in two steps is still inside the same test run.
@@ -199,7 +199,7 @@ final class IdentityTest
         $suite = new SuiteIdentity('Core/Unit');
         $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
         $test = $case->toTest('itWorks');
-        $dataSet = $test->with(dataProvider: 0, dataSet: 1);
+        $dataSet = $test->toDataSet(dataProvider: 0, dataSet: 1);
 
         // One field at every level, so rebuilding the tree of a run — an IDE's `parentNodeId` — needs
         // neither the order the events arrived in nor knowledge of which level is in hand.
@@ -215,7 +215,7 @@ final class IdentityTest
 
         // Deriving from a data set corrects coordinates rather than nesting a data set inside one, so
         // the test stays the parent of both.
-        Assert::same($test->with(dataProvider: 0, dataSet: 1)->with(dataSet: 7)->parentId, $test->runtimeId);
+        Assert::same($test->toDataSet(dataProvider: 0, dataSet: 1)->toDataSet(dataSet: 7)->parentId, $test->runtimeId);
     }
 
     public function everyLevelGetsItsOwnRuntimeId(): void
