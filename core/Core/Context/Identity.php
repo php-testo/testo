@@ -19,14 +19,14 @@ use Testo\Core\Internal\RuntimeSequence;
  * and {@see Identity\TestIdentity::with()}.
  *
  * Two things live on an address, and they answer different questions:
- * - the fields (and `__toString()`) say *which* node this is, and stay the same across runs;
+ * - the fields say *which* node this is, and stay the same across runs;
  * - {@see $runtimeId} says *which run of it* is in flight, and means nothing outside this process.
  *   {@see $parentId} points at the run it opened inside, which is how a consumer rebuilds the tree of
  *   a run without relying on the order events happened to arrive in.
  *
  * @api
  */
-abstract readonly class Identity implements \Stringable
+abstract readonly class Identity
 {
     /**
      * Number correlating everything this one in-flight run emits — its events, its captured output.
@@ -74,9 +74,9 @@ abstract readonly class Identity implements \Stringable
      * The address in the form the outside world writes it: what `--filter` accepts and what TeamCity
      * puts in a `locationHint`.
      *
-     * Deliberately narrower than {@see __toString()}. This names *code*, so it carries neither the
-     * suite nor the type — the same class runs under any suite, and both are filtered separately
-     * (`--suite`, `--type`). The result is meant to be parsed, not read.
+     * This names *code*, so it carries neither the suite nor the type — the same class runs under any
+     * suite, and both are filtered separately (`--suite`, `--type`). The result is meant to be parsed,
+     * not read.
      *
      * Null where the level names no code at all: a case of free functions has no class to qualify,
      * and nothing else about it belongs in an FQN. The levels that always have one narrow the return

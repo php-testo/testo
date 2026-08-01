@@ -40,16 +40,10 @@ final readonly class SuiteIdentity extends Identity
 
     /**
      * A suite is a configuration entry, not code, so there is no narrower form to give: its name is
-     * both what it is called and what `--suite` matches. The only level where the two coincide.
+     * both what it is called and what `--suite` matches.
      */
     #[\Override]
     public function fqn(): string
-    {
-        return $this->suite;
-    }
-
-    #[\Override]
-    public function __toString(): string
     {
         return $this->suite;
     }

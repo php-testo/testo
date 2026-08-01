@@ -27,17 +27,6 @@ use Testo\Test;
 #[Covers(TestIdentity::class)]
 final class IdentityTest
 {
-    public function eachLevelRendersTheWholePathToIt(): void
-    {
-        $suite = new SuiteIdentity('Core/Unit');
-        $case = $suite->toCase('Tests\Foo\BarTest', 'test', self::path());
-        $test = $case->toTest('itWorks');
-
-        Assert::same((string) $suite, 'Core/Unit');
-        Assert::same((string) $case, 'Core/Unit / Tests\Foo\BarTest [test]');
-        Assert::same((string) $test, 'Core/Unit / Tests\Foo\BarTest [test] :: itWorks');
-    }
-
     public function stepsDownCopyTheFieldsRatherThanNestTheLevels(): void
     {
         $test = self::test();
@@ -58,26 +47,19 @@ final class IdentityTest
 
         // Provider keys repeat freely (`yield 1 => …` twice is legal), so only the indices tell two
         // data sets of one test apart.
-        Assert::same(
-            (string) $test->with(dataProvider: 0, dataSet: 1),
-            'Core/Unit / Tests\Foo\BarTest [test] :: itWorks:0:1',
-        );
-        Assert::same(
-            (string) $test->with(dataProvider: 2, dataSet: 0),
-            'Core/Unit / Tests\Foo\BarTest [test] :: itWorks:2:0',
-        );
+        Assert::same($test->with(dataProvider: 0, dataSet: 1)->fqn(), 'Tests\Foo\BarTest::itWorks:0:1');
+        Assert::same($test->with(dataProvider: 2, dataSet: 0)->fqn(), 'Tests\Foo\BarTest::itWorks:2:0');
     }
 
     public function aReDerivedAddressCarriesNoStaleRendering(): void
     {
         $test = self::test();
 
-        // Every form is composed once, in the constructor, so `with()` has to rebuild rather than copy
+        // The strings are composed once, in the constructor, so `with()` has to rebuild rather than copy
         // — otherwise a re-derived address would still render the coordinates it no longer has.
         $moved = $test->with(dataProvider: 0, dataSet: 1)->with(dataProvider: 2, dataSet: 3);
 
         Assert::same($moved->fqn(), 'Tests\Foo\BarTest::itWorks:2:3');
-        Assert::same((string) $moved, 'Core/Unit / Tests\Foo\BarTest [test] :: itWorks:2:3');
 
         // Overriding one coordinate keeps the other, and still re-renders.
         Assert::same($test->with(dataProvider: 0, dataSet: 1)->with(dataSet: 7)->fqn(), 'Tests\Foo\BarTest::itWorks:0:7');
@@ -126,13 +108,9 @@ final class IdentityTest
     {
         $case = (new SuiteIdentity('Core/Unit'))->toCase(null, 'test', self::path('/app/tests/functions.php'));
 
-        // Otherwise two files of free functions in one suite would render the same address.
+        // No class means no FQN; the file is the only thing that tells two such cases of one suite apart.
         Assert::null($case->fqn());
-        Assert::same((string) $case, 'Core/Unit / /app/tests/functions.php [test]');
-        Assert::same(
-            (string) $case->toTest('itWorksToo'),
-            'Core/Unit / /app/tests/functions.php [test] :: itWorksToo',
-        );
+        Assert::same((string) $case->file, '/app/tests/functions.php');
     }
 
     #[Covers(CaseInfo::class)]
@@ -162,27 +140,17 @@ final class IdentityTest
         Assert::same((string) $case->file, '/app/tests/BarTest.php');
         Assert::same((string) $case->toTest('itWorks')->file, '/app/tests/BarTest.php');
 
-        // The class still wins for display and for the FQN.
-        Assert::same((string) $case, 'Core/Unit / Tests\Foo\BarTest [test]');
+        // The class still wins for the FQN.
+        Assert::same($case->fqn(), 'Tests\Foo\BarTest');
     }
 
-    public function theSuiteIsTheOneLevelWhereBothFormsAgree(): void
+    public function theSuiteFqnIsItsName(): void
     {
         $suite = new SuiteIdentity('Core/Unit');
 
-        // A suite is a configuration entry rather than code: its name is all there is to give.
-        Assert::same($suite->fqn(), (string) $suite);
-    }
-
-    public function theTypeIsPartOfTheAddress(): void
-    {
-        $suite = new SuiteIdentity('Core/Unit');
-
-        // One file can define cases of several types, so two of them are not the same case.
-        Assert::notSame(
-            (string) $suite->toCase('Tests\Foo\BarTest', 'test', self::path()),
-            (string) $suite->toCase('Tests\Foo\BarTest', 'inline', self::path()),
-        );
+        // A suite is a configuration entry rather than code: its name is all there is to give, and it
+        // is exactly what `--suite` matches.
+        Assert::same($suite->fqn(), 'Core/Unit');
     }
 
     public function distinctRunsGetDistinctRuntimeIds(): void
@@ -194,7 +162,7 @@ final class IdentityTest
 
         // Same address, different runs — which is exactly why the address alone cannot serve as the
         // correlation key for output and events.
-        Assert::same((string) $first, (string) $second);
+        Assert::same($first->fqn(), $second->fqn());
         Assert::notSame($first->runtimeId, $second->runtimeId);
     }
 

@@ -15,13 +15,6 @@ use Testo\Core\Context\Identity;
 final readonly class CaseIdentity extends Identity
 {
     /**
-     * Rendered form of this address, composed once. {@see __toString()}
-     *
-     * @var non-empty-string
-     */
-    private string $display;
-
-    /**
      * @param non-empty-string $suite Suite name as configured in `testo.php`.
      * @param non-empty-string|null $case Class FQN. Null for a case of free functions, which has no
      *        class — {@see $file} is what names such a case instead.
@@ -40,10 +33,6 @@ final readonly class CaseIdentity extends Identity
         public Path $file,
         ?int $parentId = null,
     ) {
-        # A case of free functions has no class to name it, so its file stands in.
-        $node = $case ?? (string) $file;
-        $this->display = "{$suite} / {$node} [{$type}]";
-
         parent::__construct($parentId);
     }
 
@@ -69,11 +58,5 @@ final readonly class CaseIdentity extends Identity
     public function fqn(): ?string
     {
         return $this->case;
-    }
-
-    #[\Override]
-    public function __toString(): string
-    {
-        return $this->display;
     }
 }

@@ -47,13 +47,6 @@ final readonly class TestIdentity extends Identity
     private string $fqn;
 
     /**
-     * Rendered form of this address, composed once. {@see __toString()}
-     *
-     * @var non-empty-string
-     */
-    private string $display;
-
-    /**
      * @param non-empty-string $suite Suite name as configured in `testo.php`.
      * @param non-empty-string|null $case Class FQN, or null for a free function.
      *        {@see CaseIdentity::$case}.
@@ -89,16 +82,12 @@ final readonly class TestIdentity extends Identity
     ) {
         self::assertDataSetIsWholeOrAbsent($dataProvider, $dataSet);
 
-        # The one place any of these strings is composed. `with()` rebuilds through here rather than
+        # The one place these strings are composed. `with()` rebuilds through here rather than
         # copying, so a derived address can never carry a rendering of the coordinates it no longer has.
         $coordinates = $dataProvider === null ? '' : ":{$dataProvider}:{$dataSet}";
 
         $this->qualifiedName = $case === null ? $test : "{$case}::{$test}";
         $this->fqn = $this->qualifiedName . $coordinates;
-
-        # A case of free functions has no class to name it, so its file stands in.
-        $node = $case ?? (string) $file;
-        $this->display = "{$suite} / {$node} [{$type}] :: {$test}{$coordinates}";
 
         parent::__construct($parentId);
 
@@ -161,12 +150,6 @@ final readonly class TestIdentity extends Identity
     public function qualifiedName(): string
     {
         return $this->qualifiedName;
-    }
-
-    #[\Override]
-    public function __toString(): string
-    {
-        return $this->display;
     }
 
     private static function assertDataSetIsWholeOrAbsent(?int $dataProvider, ?int $dataSet): void
