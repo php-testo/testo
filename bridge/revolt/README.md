@@ -31,20 +31,18 @@ Runs a test on the process-global [Revolt](https://revolt.run) event loop, so th
 
 Suspension must go through a Revolt `Suspension` bound to a watcher (I/O, timer) — a bare `\Fiber::suspend()` has no resumer on the loop (that is the plain-fiber `#[RunInFiber]` from `testo/fiber`, a different concern).
 
-### Strategy
+### One test at a time
 
-`#[RunInRevolt]` takes a `Strategy` that chooses when the loop is entered:
+Each test's whole pipeline — the assertion collector, the messenger scope, the data provider and the test body — is placed on the loop individually, and the next test only enters once it has finished. Tests of a case never share a loop run.
 
-- `Strategy::PerTest` (default) — each test's whole pipeline is placed on the loop individually, one test at a time, each run to completion before the next. No interleaving.
-- `Strategy::PerCase` — launches the whole case's tests **concurrently** on one loop run via `CaseInfo`'s batch runner, interleaving at their await points.
+That is what keeps the coroutines a test spawns attributable to it. Testo's scoped-state guards bind their state per fiber, and PHP gives a fiber no link to its creator, so a coroutine started with `EventLoop::queue()` or `async()` can only be traced back to a test while a single test is in flight. With one test on the loop that always holds, and its assertions and output land on it however deep it nests.
 
-Either way the whole per-test pipeline runs inside the loop fiber. Testo's scoped-state guards (assertion collector, messenger) hold their state per fiber, so concurrent tests stay isolated — each reads its own assertion/messenger state across every switch.
+To interleave whole tests with each other, use `#[RunInFiber]` from `testo/fiber` — those run on plain fibers Testo itself drives.
 
 ```php
 use Testo\Bridge\Revolt\RunInRevolt;
-use Testo\Bridge\Revolt\Strategy;
 
-#[RunInRevolt(Strategy::PerTest)]
+#[RunInRevolt]
 final class TimersTest { /* ... */ }
 ```
 

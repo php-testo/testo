@@ -7,20 +7,24 @@ namespace Tests\Application\Stub\Messenger\Concurrency;
 use Revolt\EventLoop;
 use Testo\Assert;
 use Testo\Bridge\Revolt\RunInRevolt;
-use Testo\Bridge\Revolt\Strategy;
 use Testo\Common\Messenger;
 use Testo\Core\Log\Message;
 use Testo\Test;
 use Testo\Testing\Attribute\Inject;
 
 /**
- * The same distinct-messages isolation as {@see RoundRobinMessengerScenarios}, but on a **real Revolt loop**
- * ({@see Strategy::PerCase}): all three tests run at once and interleave at genuine await points (a timer
- * after every logged message). Each test must still read back only its own messages from the shared
- * fiber-local {@see Messenger}, proving the buffer stays per-test through real event-loop scheduling.
+ * Message buffering on a **real Revolt loop**, where {@see RunInRevolt} gives the whole loop run to one test
+ * at a time. Each test logs a distinct number of messages, awaiting a genuine timer after each, and writes
+ * the last one from a **coroutine of its own** that it starts on the loop.
+ *
+ * A spawned coroutine holds no messenger scope of its own, and PHP gives a fiber no link to whoever created
+ * it, so its message reaches the test's buffer only by inference — which holds precisely because a single
+ * test owns the loop. Reading the buffer back must then show exactly this test's messages, in order, the
+ * coroutine's included. Keeping interleaved tests' buffers apart is {@see RoundRobinMessengerScenarios}' job,
+ * on fibers Testo drives itself.
  */
 #[Test]
-#[RunInRevolt(Strategy::PerCase)]
+#[RunInRevolt]
 final class RevoltMessengerScenarios
 {
     #[Inject]
@@ -42,13 +46,13 @@ final class RevoltMessengerScenarios
     }
 
     /**
-     * Log `$count` messages tagged with `$prefix`, awaiting a real timer after each so the other tests
-     * interleave on the loop, then assert this test's own buffer holds exactly its own messages.
+     * Log `$count` messages tagged with `$prefix` — all but the last from the test body, awaiting a real
+     * timer after each, the last from a spawned coroutine — then assert the buffer holds exactly them.
      */
     private function logAndVerifyOwnMessages(string $prefix, int $count): void
     {
         $expected = [];
-        for ($i = 1; $i <= $count; $i++) {
+        for ($i = 1; $i < $count; $i++) {
             $content = $prefix . '-' . $i;
             $this->messenger->log(MessengerConcurrency::CHANNEL, $content);
             $expected[] = $content;
@@ -58,11 +62,34 @@ final class RevoltMessengerScenarios
             $suspension->suspend();
         }
 
+        $last = $prefix . '-' . $count;
+        $expected[] = $last;
+        $this->inCoroutine(fn() => $this->messenger->log(MessengerConcurrency::CHANNEL, $last));
+
         $mine = \array_map(
             static fn(Message $message): string => $message->content,
             $this->messenger->getMessages()->channel(MessengerConcurrency::CHANNEL),
         );
 
         Assert::same($mine, $expected);
+    }
+
+    /**
+     * Run $body as a coroutine of its own on the loop and block until it finishes.
+     */
+    private function inCoroutine(\Closure $body): void
+    {
+        $suspension = EventLoop::getSuspension();
+
+        EventLoop::queue(static function () use ($suspension, $body): void {
+            try {
+                $body();
+                $suspension->resume();
+            } catch (\Throwable $e) {
+                $suspension->throw($e);
+            }
+        });
+
+        $suspension->suspend();
     }
 }

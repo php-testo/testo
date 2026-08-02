@@ -7,18 +7,21 @@ namespace Tests\Assert\Stub\Concurrency;
 use Revolt\EventLoop;
 use Testo\Assert;
 use Testo\Bridge\Revolt\RunInRevolt;
-use Testo\Bridge\Revolt\Strategy;
 use Testo\Test;
 
 /**
- * The same distinct-count assertion isolation as {@see RoundRobinAssertScenarios}, but on a **real Revolt
- * loop** ({@see Strategy::PerCase}): all three tests are launched at once and interleave at genuine await
- * points (a timer per assertion, far more than two suspensions each). Each test must still find exactly its
- * own assertions in its {@see \Testo\Assert\TestState} — proving the fiber-local collector survives real
- * event-loop scheduling, where the loop resumes each test's own fiber directly.
+ * Assertion collection on a **real Revolt loop**, where {@see RunInRevolt} gives the whole loop run to one
+ * test at a time. Each test records a distinct number of assertions, awaiting a genuine timer between them,
+ * and makes the last one inside a **coroutine of its own** that it starts on the loop.
+ *
+ * That last one is the point. A spawned coroutine holds no assertion scope, and PHP gives a fiber no link
+ * to whoever created it, so the collector can only attribute it by inference — which holds precisely
+ * because a single test owns the loop. Its assertion must land in that test's {@see \Testo\Assert\TestState}
+ * like any other, and the test must still find exactly its own count. Interleaving whole tests is
+ * {@see RoundRobinAssertScenarios}' job, on fibers Testo drives itself.
  */
 #[Test]
-#[RunInRevolt(Strategy::PerCase)]
+#[RunInRevolt]
 final class RevoltAssertScenarios
 {
     public function recordsThreeAssertions(): void
@@ -37,17 +40,45 @@ final class RevoltAssertScenarios
     }
 
     /**
-     * Record exactly `$count` passing assertions, awaiting a real timer after each so the other tests
-     * genuinely interleave on the loop.
+     * Record exactly `$count` passing assertions: all but the last from the test body, awaiting a real
+     * timer after each, and the last one from a spawned coroutine.
      */
     private static function assertAcrossAwaits(int $count): void
     {
-        for ($i = 1; $i <= $count; $i++) {
+        for ($i = 1; $i < $count; $i++) {
             Assert::same($i, $i);
-
-            $suspension = EventLoop::getSuspension();
-            EventLoop::delay(0.001, static fn() => $suspension->resume());
-            $suspension->suspend();
+            self::await();
         }
+
+        self::inCoroutine(static fn() => Assert::same($count, $count));
+    }
+
+    /**
+     * Park on a real timer, letting the loop run while we wait.
+     */
+    private static function await(): void
+    {
+        $suspension = EventLoop::getSuspension();
+        EventLoop::delay(0.001, static fn() => $suspension->resume());
+        $suspension->suspend();
+    }
+
+    /**
+     * Run $body as a coroutine of its own on the loop and block until it finishes.
+     */
+    private static function inCoroutine(\Closure $body): void
+    {
+        $suspension = EventLoop::getSuspension();
+
+        EventLoop::queue(static function () use ($suspension, $body): void {
+            try {
+                $body();
+                $suspension->resume();
+            } catch (\Throwable $e) {
+                $suspension->throw($e);
+            }
+        });
+
+        $suspension->suspend();
     }
 }

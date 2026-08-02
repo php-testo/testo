@@ -19,11 +19,12 @@ use Tests\Assert\Stub\Concurrency\RevoltAssertScenarios;
 use Tests\Assert\Stub\Concurrency\RoundRobinAssertScenarios;
 
 /**
- * The Assert collector is a fiber-local guard ({@see StaticState}), so concurrently running tests each
- * get their own {@see TestState}. These cases drive stub suites whose tests interleave — on Testo's fiber
- * scheduler and on a real Revolt loop — each recording a distinct number of assertions across many
- * suspensions. After the run, each test's own history must hold exactly its own assertions: concurrency
- * must not let one test's assertions bleed into another's history.
+ * The Assert collector is a fiber-local guard ({@see StaticState}), so a test's assertions follow the
+ * fiber it runs on. These cases drive stub suites that stress that from both sides: tests interleaving on
+ * Testo's fiber scheduler, where each must keep exactly its own history and none of a sibling's; and a test
+ * on a real Revolt loop, which owns the loop alone and must therefore also collect what the coroutines it
+ * spawns assert. Each stub test records a distinct number of assertions across many suspensions, so a leak
+ * in either direction shows up as a wrong count.
  */
 #[Test]
 #[Covers(StaticState::class)]
@@ -63,7 +64,7 @@ final class ConcurrentAssertIsolationTest
         );
     }
 
-    public function revoltPerCaseTestsKeepSeparateHistories(): void
+    public function revoltTestsCollectTheirCoroutinesAssertions(): void
     {
         self::assertHistoryCount(
             TestRunner::runTest([RevoltAssertScenarios::class, 'recordsThreeAssertions']),

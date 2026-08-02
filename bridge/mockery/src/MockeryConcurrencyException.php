@@ -9,9 +9,9 @@ namespace Testo\Bridge\Mockery;
  * interleaving execution, where sibling tests would clobber each other's mocks.
  *
  * Mockery's mock container is process-global static state and cannot be isolated per fiber, so the
- * bridge serializes Mockery tests. Run them one at a time — {@see \Testo\Fiber\Schedule::Solo} /
- * {@see \Testo\Bridge\Revolt\Strategy::PerTest} (or without fibers at all) — rather than interleaved
- * ({@see \Testo\Fiber\Schedule::RoundRobin}/`Random`, {@see \Testo\Bridge\Revolt\Strategy::PerCase}).
+ * bridge serializes Mockery tests. Run them one at a time — {@see \Testo\Fiber\Schedule::Solo}, or
+ * {@see \Testo\Bridge\Revolt\RunInRevolt} (which runs one test on the loop at a time), or without fibers
+ * at all — rather than interleaved ({@see \Testo\Fiber\Schedule::RoundRobin}/`Random`).
  *
  * @api
  */
@@ -22,8 +22,8 @@ final class MockeryConcurrencyException extends \RuntimeException
         parent::__construct(
             'Mockery cannot run under interleaving test execution: its mock container is process-global '
             . 'and cannot be isolated per fiber, so concurrently running tests would clobber each other\'s '
-            . 'mocks. Run Mockery tests one at a time (Schedule::Solo / Strategy::PerTest, or no fibers), '
-            . 'not interleaved (Schedule::RoundRobin/Random, Strategy::PerCase).',
+            . 'mocks. Run Mockery tests one at a time (Schedule::Solo, #[RunInRevolt], or no fibers), '
+            . 'not interleaved (Schedule::RoundRobin/Random).',
         );
     }
 }

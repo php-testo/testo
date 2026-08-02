@@ -30,19 +30,15 @@ use Testo\Pipeline\Attribute\Interceptable;
  * the fiber), here the **Revolt loop** owns the fiber, so suspension must go through a Revolt
  * `Suspension` bound to a watcher (I/O, timer) — a bare `\Fiber::suspend()` has no resumer on the loop.
  *
- * The {@see Strategy} chooses when the loop is entered — {@see Strategy::PerTest} (default, one test on
- * the loop at a time, each run to completion) or {@see Strategy::PerCase} (launches the whole case's tests
- * concurrently on one loop run, interleaving at their await points). Either way the whole per-test
- * pipeline runs inside the loop fiber; Testo's scoped-state guards hold their state per fiber (see
- * {@see \Internal\Fiber\FiberLocal}), so concurrent tests stay isolated.
+ * Applied to a class it drives every test of the case — but **one at a time**, each run to completion
+ * before the next enters the loop. That is what keeps a coroutine the test spawns (`EventLoop::queue()`,
+ * an `async()` call) attributable to it: with a single test in flight, Testo's scoped-state guards can tell
+ * whose the coroutine is (see {@see \Internal\Fiber\FiberLocal}), and its assertions and output land on the
+ * right test however deep it nests. To interleave whole tests with each other, use `testo/fiber`'s
+ * `#[RunInFiber]` schedules, which run on plain fibers Testo itself drives.
  *
  * @api
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
 #[FallbackInterceptor(RunInRevoltInterceptor::class)]
-final readonly class RunInRevolt implements Interceptable
-{
-    public function __construct(
-        public Strategy $strategy = Strategy::PerTest,
-    ) {}
-}
+final readonly class RunInRevolt implements Interceptable {}

@@ -19,11 +19,12 @@ use Tests\Application\Stub\Messenger\Concurrency\RevoltMessengerScenarios;
 use Tests\Application\Stub\Messenger\Concurrency\RoundRobinMessengerScenarios;
 
 /**
- * The messenger keeps each test's message buffer in a fiber-local guard ({@see MessengerHub}). These cases
- * drive stub suites whose tests interleave — on Testo's fiber scheduler and on a real Revolt loop — each
- * logging a distinct set of messages across many suspensions. Every test's captured messages, read back off
- * its {@see TestResult}, must be exactly its own: concurrency must not let one test's output leak into
- * another's buffer.
+ * The messenger keeps each test's message buffer in a fiber-local guard ({@see MessengerHub}), so the buffer
+ * follows the fiber a test runs on. These cases drive stub suites that stress that from both sides: tests
+ * interleaving on Testo's fiber scheduler, where no test may see a sibling's messages; and a test on a real
+ * Revolt loop, which owns the loop alone and must therefore also capture what the coroutines it spawns log.
+ * Each stub logs a distinct set of messages across many suspensions, so a leak in either direction shows up
+ * in what is read back off the {@see TestResult}.
  */
 #[Test]
 #[Covers(MessengerHub::class)]
@@ -52,7 +53,7 @@ final class ConcurrentMessengerIsolationTest
         );
     }
 
-    public function revoltPerCaseTestsKeepSeparateMessageBuffers(): void
+    public function revoltTestsCollectTheirCoroutinesMessages(): void
     {
         self::assertOwnMessages(
             TestRunner::runTest([RevoltMessengerScenarios::class, 'alphaLogsThreeMessages']),

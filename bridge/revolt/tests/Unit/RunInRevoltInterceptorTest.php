@@ -5,68 +5,85 @@ declare(strict_types=1);
 namespace Tests\Bridge\Revolt\Unit;
 
 use Internal\Path;
+use Revolt\EventLoop;
 use Testo\Assert;
-use Testo\Bridge\Revolt\Internal\RevoltTestBatchRunner;
 use Testo\Bridge\Revolt\Internal\RunInRevoltInterceptor;
-use Testo\Bridge\Revolt\RunInRevolt;
-use Testo\Bridge\Revolt\Strategy;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
-use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\Identity\SuiteIdentity;
+use Testo\Core\Context\TestInfo;
+use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
+use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
+use Testo\Expect;
 use Testo\Test;
 
 /**
- * Unit: {@see RunInRevoltInterceptor::runTestCase()} wires the case for the chosen {@see Strategy}
- * without touching the event loop — {@see Strategy::PerCase} hands the case a batch runner,
- * {@see Strategy::PerTest} leaves it alone (the loop is entered per test in `runTest()` instead).
+ * Unit: {@see RunInRevoltInterceptor::runTest()} puts the rest of the pipeline on the Revolt loop and
+ * hands back what it returned — the test body runs in a loop fiber, not on `{main}`, and the interceptor
+ * blocks until it is done.
  */
 #[Test]
 #[Covers(RunInRevoltInterceptor::class)]
-#[Covers(Strategy::class)]
-#[Covers(RevoltTestBatchRunner::class)]
 final class RunInRevoltInterceptorTest
 {
-    public function perCaseStrategySetsBatchRunnerOnTheCase(): void
+    public function theRestOfThePipelineRunsInALoopFiber(): void
     {
-        $captured = null;
-        $next = static function (CaseInfo $info) use (&$captured): CaseResult {
-            $captured = $info;
-            return new CaseResult(results: [], status: Status::Passed);
+        $onLoop = null;
+        $next = static function (TestInfo $info) use (&$onLoop): TestResult {
+            $onLoop = \Fiber::getCurrent() !== null && EventLoop::getDriver()->isRunning();
+            return self::passed($info);
         };
 
-        (new RunInRevoltInterceptor(new RunInRevolt(Strategy::PerCase)))
-            ->runTestCase($this->caseInfo(), $next);
+        (new RunInRevoltInterceptor())->runTest(self::testInfo(), $next);
 
-        Assert::notNull($captured?->batchRunner);
+        Assert::true($onLoop);
     }
 
-    public function perTestStrategyLeavesTheCaseRunnerUnset(): void
+    public function theResultTravelsBackOutOfTheLoop(): void
     {
-        $captured = null;
-        $next = static function (CaseInfo $info) use (&$captured): CaseResult {
-            $captured = $info;
-            return new CaseResult(results: [], status: Status::Passed);
-        };
+        $expected = self::passed(self::testInfo());
 
-        (new RunInRevoltInterceptor(new RunInRevolt(Strategy::PerTest)))
-            ->runTestCase($this->caseInfo(), $next);
+        $result = (new RunInRevoltInterceptor())
+            ->runTest(self::testInfo(), static fn(): TestResult => $expected);
 
-        Assert::same(null, $captured?->batchRunner);
+        Assert::same($result, $expected);
     }
 
-    public function defaultStrategyIsPerTest(): void
+    public function aFailureInsideTheLoopIsRethrownToTheCaller(): void
     {
-        Assert::same(Strategy::PerTest, (new RunInRevolt())->strategy);
+        // The dispatch relays the throwable out of the loop fiber, so the pipeline above sees the failure
+        // where it would have seen it without the loop at all.
+        Expect::exception(\RuntimeException::class)->withMessage('boom');
+
+        (new RunInRevoltInterceptor())->runTest(
+            self::testInfo(),
+            static fn(): TestResult => throw new \RuntimeException('boom'),
+        );
     }
 
-    private function caseInfo(): CaseInfo
+    private static function testInfo(): TestInfo
+    {
+        return new TestInfo(
+            name: 'awaitsSomething',
+            caseInfo: self::caseInfo(),
+            testDefinition: new TestDefinition(
+                reflection: new \ReflectionMethod(self::class, 'testInfo'),
+            ),
+        );
+    }
+
+    private static function caseInfo(): CaseInfo
     {
         return new CaseInfo(
             definition: new CaseDefinition(name: 'RevoltCase', type: 'test', file: Path::create(__FILE__)),
             suiteIdentity: new SuiteIdentity('Revolt/Unit'),
         );
+    }
+
+    private static function passed(TestInfo $info): TestResult
+    {
+        return new TestResult(info: $info, status: Status::Passed);
     }
 }

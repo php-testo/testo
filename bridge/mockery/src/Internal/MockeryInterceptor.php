@@ -27,9 +27,9 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * it cannot be isolated per fiber. This guard therefore serializes: it runs the test directly (no fiber
  * trampoline, so it cooperates with a real event loop) and, if another Mockery test is already in flight,
  * refuses to start with a {@see MockeryConcurrencyException}. That only happens under interleaving
- * ({@see \Testo\Fiber\Schedule::RoundRobin}/`Random`, {@see \Testo\Bridge\Revolt\Strategy::PerCase}),
- * where siblings would clobber each other's mocks. One-at-a-time execution — `Solo`/`PerTest` or no
- * fibers — is fully supported, including across a real event-loop suspension.
+ * ({@see \Testo\Fiber\Schedule::RoundRobin}/`Random`), where siblings would clobber each other's mocks.
+ * One-at-a-time execution — `Solo`, {@see \Testo\Bridge\Revolt\RunInRevolt} or no fibers — is fully
+ * supported, including across a real event-loop suspension.
  *
  * @internal
  * @psalm-internal Testo\Bridge\Mockery
