@@ -57,7 +57,11 @@ final readonly class BenchInterceptor implements TestRunInterceptor
         $results = [];
         $status = Status::Passed;
         foreach ($attributes as $index => $attr) {
-            $newInfo = $info->with(arguments: $attr->arguments)->withAttribute(Bench::class, $attr);
+            # Each attribute occupies the provider slot of the address, as it does for inline tests,
+            # with a single data set inside it.
+            $newInfo = $info
+                ->with(arguments: $attr->arguments, identity: $info->identity->toDataSet(dataProvider: $index, dataSet: 0))
+                ->withAttribute(Bench::class, $attr);
             $label = "$index";
 
             # Dispatch dataset starting event

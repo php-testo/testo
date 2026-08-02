@@ -12,19 +12,22 @@ use Testo\Output\Terminal\Renderer\Style;
  *
  * Keeps track of the active channel and prints a colored channel header — the channel name in a
  * stable, name-derived color, followed by the (dimmed) time of the channel's first message — only
- * when the channel changes. Consecutive messages from the same channel are appended verbatim, with
+ * when the channel changes. Consecutive messages of the same channel are appended verbatim, with
  * no header and no inserted line breaks. The header is kept on its own line.
  *
- * Stateful: one instance per output stream; call {@see reset()} at each test boundary so every test
- * starts its channel grouping afresh. Callers must skip empty content (the returned string is only
- * guaranteed non-empty when the given content is).
+ * Stateful, and scoped to one block of output rather than to the stream: interleaved tests each get
+ * their own instance, so a block always opens with a fresh header and never inherits another test's
+ * channel. Call {@see reset()} at a boundary inside a block — data sets share their batch's — so the
+ * next message opens a header of its own. Callers must skip empty content (the returned string is
+ * only guaranteed non-empty when the given content is).
  *
  * @internal
  */
 final class ChannelRenderer
 {
     /**
-     * Channel of the last rendered message; `null` before the first message / after a reset.
+     * Channel of the last rendered message, i.e. whose header is currently open; `null` before the
+     * first message / after a reset.
      *
      * @var non-empty-string|null
      */
@@ -33,6 +36,10 @@ final class ChannelRenderer
     /**
      * Whether the last rendered content ended on a newline, so a header can be kept on its own line
      * without inserting blank lines.
+     *
+     * Only tracks content this renderer produced. Callers write other things to the same sink — a
+     * test's result line, a batch header — which is why {@see reset()} restores the assumption: it is
+     * called at a boundary the caller has just terminated with a newline of its own.
      */
     private bool $lastEndedWithNewline = true;
 
@@ -56,7 +63,7 @@ final class ChannelRenderer
         }
 
         // Keep the header on its own line: break only if the previous content didn't already.
-        $separator = $this->lastChannel !== null && !$this->lastEndedWithNewline ? "\n" : '';
+        $separator = $this->lastEndedWithNewline ? '' : "\n";
         $this->lastChannel = $channel;
         $this->lastEndedWithNewline = \str_ends_with($content, "\n");
 

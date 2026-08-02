@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\Json;
 
+use Internal\Path;
 use Internal\Container\ObjectContainer;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
@@ -13,6 +14,7 @@ use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -89,9 +91,11 @@ final class JsonPluginTest
         $info = new TestInfo(
             name: 'failingTest',
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: SampleTestClass::class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: new \ReflectionClass(SampleTestClass::class),
                 ),
             ),

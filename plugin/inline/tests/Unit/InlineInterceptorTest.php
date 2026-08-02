@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Inline\Unit;
 
+use Internal\Path;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -90,7 +92,10 @@ final class InlineInterceptorTest
      */
     private static function createTestInfo(array $inlines, ?DataPointer $dataPointer = null): TestInfo
     {
-        $caseInfo = new CaseInfo(definition: new CaseDefinition(name: 'TestCase', type: 'test'));
+        $caseInfo = new CaseInfo(
+            definition: new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__)),
+            suiteIdentity: new SuiteIdentity('Inline/Unit')
+        );
         $testDefinition = new TestDefinition(reflection: new \ReflectionFunction(static fn() => null));
 
         $attributes = [TestInline::class => $inlines];

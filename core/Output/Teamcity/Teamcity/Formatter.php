@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Testo\Output\Teamcity\Teamcity;
 
+use Testo\Core\Context\Identity;
+use Testo\Core\Context\Identity\CaseIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
+
 /**
  * Formats TeamCity service messages.
  *
@@ -17,50 +21,57 @@ namespace Testo\Output\Teamcity\Teamcity;
  */
 final class Formatter
 {
+    /**
+     * Node every top-level one hangs under, as the IntelliJ id-based protocol fixes it.
+     *
+     * @see https://github.com/JetBrains/intellij-community/blob/master/platform/smRunner/src/com/intellij/execution/testframework/sm/runner/events/TreeNodeEvent.java
+     */
+    private const ROOT_NODE = '0';
+
     private function __construct() {}
+
+    /**
+     * TeamCity `flowId` for a test: distinct concurrent tests get distinct flows, so their interleaved
+     * `testStarted`/output/`testFinished` messages stay grouped instead of overlapping on one stream.
+     *
+     * A data set answers its batch's flow rather than one of its own — the batch opened a nested suite
+     * that its data sets report inside, and a flow of their own would leave that suite behind.
+     *
+     * @return non-empty-string
+     */
+    public static function flowId(TestIdentity $identity): string
+    {
+        return (string) $identity->pipelineId;
+    }
 
     /**
      * Formats a test suite started message.
      *
      * @param non-empty-string $name Suite name
-     * @param \ReflectionClass<object>|\ReflectionFunctionAbstract|null $reflection Class/function reflection for location hint
-     * @param \ReflectionClass<object>|null $caseReflection Concrete (runtime) case class, used to
-     *        attribute a method-backed suite (a DataProvider batch) to the subclass rather than the
-     *        method's declaring class. Ignored when `$reflection` is a class.
-     * @param non-empty-string|null $flowId Flow this suite belongs to; groups its messages apart from
-     *        other flows running concurrently on the same stream.
+     * @param Identity|null $identity Address of the node this message opens — a suite of the run, a
+     *        case, or the test behind a DataProvider batch node. {@see placement()}
      * @return non-empty-string
      */
-    public static function suiteStarted(string $name, null|\ReflectionClass|\ReflectionFunctionAbstract $reflection = null, ?\ReflectionClass $caseReflection = null, ?string $flowId = null): string
+    public static function suiteStarted(string $name, ?Identity $identity = null): string
     {
         $attributes = ['name' => $name];
 
-        if ($reflection !== null) {
-            $locationHint = $reflection instanceof \ReflectionClass
-                ? self::caseLocationHint($reflection)
-                : self::testLocationHint($reflection, caseReflection: $caseReflection);
-            $locationHint !== null and $attributes['locationHint'] = $locationHint;
-        }
+        $locationHint = self::locationHint($identity);
+        $locationHint === null or $attributes['locationHint'] = $locationHint;
 
-        $flowId !== null and $attributes['flowId'] = $flowId;
-
-        return self::formatMessage('testSuiteStarted', $attributes);
+        return self::formatMessage('testSuiteStarted', $attributes + self::placement($identity));
     }
 
     /**
      * Formats a test suite finished message.
      *
      * @param non-empty-string $name Suite name
-     * @param non-empty-string|null $flowId Flow this suite belongs to.
+     * @param Identity|null $identity Address of the node this message closes. {@see placement()}
      * @return non-empty-string
      */
-    public static function suiteFinished(string $name, ?string $flowId = null): string
+    public static function suiteFinished(string $name, ?Identity $identity = null): string
     {
-        $attributes = ['name' => $name];
-
-        $flowId !== null and $attributes['flowId'] = $flowId;
-
-        return self::formatMessage('testSuiteFinished', $attributes);
+        return self::formatMessage('testSuiteFinished', ['name' => $name] + self::placement($identity));
     }
 
     /**
@@ -68,31 +79,24 @@ final class Formatter
      *
      * @param non-empty-string $name Test name
      * @param bool $captureStandardOutput Whether to capture standard output
-     * @param \ReflectionFunctionAbstract|null $reflection Function/method reflection for location hint
-     * @param non-empty-string|null $locationSuffix Optional suffix to append to location hint (e.g., " with data set #0")
+     * @param TestIdentity|null $identity Address to point the location hint at. When it addresses a data
+     *        set, the hint carries the coordinates — no separate suffix is needed.
      * @param non-empty-string|null $description Test description (from the PHPDoc summary), emitted as
      *        the TeamCity `metainfo` attribute. Omitted when `null`.
-     * @param \ReflectionClass<object>|null $caseReflection Concrete (runtime) case class, used to
-     *        attribute an inherited test to the subclass rather than the method's declaring class.
-     * @param non-empty-string|null $flowId Flow this test belongs to; keeps its messages grouped apart
-     *        from other tests running concurrently on the same stream.
      * @return non-empty-string
      */
-    public static function testStarted(string $name, bool $captureStandardOutput = false, ?\ReflectionFunctionAbstract $reflection = null, ?string $locationSuffix = null, ?string $description = null, ?\ReflectionClass $caseReflection = null, ?string $flowId = null): string
+    public static function testStarted(string $name, bool $captureStandardOutput = false, ?TestIdentity $identity = null, ?string $description = null): string
     {
         $attributes = ['name' => $name];
 
         $captureStandardOutput and $attributes['captureStandardOutput'] = 'true';
 
-        if ($reflection !== null) {
-            $locationHint = self::testLocationHint($reflection, $locationSuffix, $caseReflection);
-            $locationHint !== null and $attributes['locationHint'] = $locationHint;
-        }
+        $locationHint = self::locationHint($identity);
+        $locationHint === null or $attributes['locationHint'] = $locationHint;
 
         $description !== null and $attributes['metainfo'] = $description;
-        $flowId !== null and $attributes['flowId'] = $flowId;
 
-        return self::formatMessage('testStarted', $attributes);
+        return self::formatMessage('testStarted', $attributes + self::placement($identity));
     }
 
     /**
@@ -100,17 +104,16 @@ final class Formatter
      *
      * @param non-empty-string $name Test name
      * @param int<0, max>|null $duration Duration in milliseconds
-     * @param non-empty-string|null $flowId Flow this test belongs to.
+     * @param TestIdentity|null $identity Address of the test this message closes. {@see placement()}
      * @return non-empty-string
      */
-    public static function testFinished(string $name, ?int $duration = null, ?string $flowId = null): string
+    public static function testFinished(string $name, ?int $duration = null, ?TestIdentity $identity = null): string
     {
         $attributes = ['name' => $name];
 
         $duration !== null and $attributes['duration'] = (string) $duration;
-        $flowId !== null and $attributes['flowId'] = $flowId;
 
-        return self::formatMessage('testFinished', $attributes);
+        return self::formatMessage('testFinished', $attributes + self::placement($identity));
     }
 
     /**
@@ -122,7 +125,7 @@ final class Formatter
      * @param non-empty-string|null $type Comparison type for diff display (e.g., 'comparisonFailure')
      * @param non-empty-string|null $expected Expected value for diff
      * @param non-empty-string|null $actual Actual value for diff
-     * @param non-empty-string|null $flowId Flow this test belongs to.
+     * @param TestIdentity|null $identity Address of the test that failed. {@see placement()}
      * @return non-empty-string
      */
     public static function testFailed(
@@ -132,7 +135,7 @@ final class Formatter
         ?string $type = null,
         ?string $expected = null,
         ?string $actual = null,
-        ?string $flowId = null,
+        ?TestIdentity $identity = null,
     ): string {
         $attributes = [
             'name' => $name,
@@ -143,9 +146,8 @@ final class Formatter
         $type !== null and $attributes['type'] = $type;
         $expected !== null and $attributes['expected'] = $expected;
         $actual !== null and $attributes['actual'] = $actual;
-        $flowId !== null and $attributes['flowId'] = $flowId;
 
-        return self::formatMessage('testFailed', $attributes);
+        return self::formatMessage('testFailed', $attributes + self::placement($identity));
     }
 
     /**
@@ -153,17 +155,16 @@ final class Formatter
      *
      * @param non-empty-string $name Test name
      * @param non-empty-string $message Optional skip reason
-     * @param non-empty-string|null $flowId Flow this test belongs to.
+     * @param TestIdentity|null $identity Address of the test that was skipped. {@see placement()}
      * @return non-empty-string
      */
-    public static function testIgnored(string $name, string $message = '', ?string $flowId = null): string
+    public static function testIgnored(string $name, string $message = '', ?TestIdentity $identity = null): string
     {
         $attributes = ['name' => $name];
 
         $message !== '' and $attributes['message'] = $message;
-        $flowId !== null and $attributes['flowId'] = $flowId;
 
-        return self::formatMessage('testIgnored', $attributes);
+        return self::formatMessage('testIgnored', $attributes + self::placement($identity));
     }
 
     /**
@@ -173,17 +174,15 @@ final class Formatter
      * @param non-empty-string $output Standard output content
      * @param array<non-empty-string, string> $attributes Extra attributes (e.g. `channel`, `level`)
      *        for consumers that understand them; standard TeamCity parsers ignore unknown ones.
-     * @param non-empty-string|null $flowId Flow the emitting test belongs to.
+     * @param TestIdentity|null $identity Address of the test the output came from. {@see placement()}
      * @return non-empty-string
      */
-    public static function testStdOut(string $name, string $output, array $attributes = [], ?string $flowId = null): string
+    public static function testStdOut(string $name, string $output, array $attributes = [], ?TestIdentity $identity = null): string
     {
-        $flowId !== null and $attributes['flowId'] = $flowId;
-
         return self::formatMessage('testStdOut', [
             'name' => $name,
             'out' => $output,
-        ] + $attributes);
+        ] + $attributes + self::placement($identity));
     }
 
     /**
@@ -193,17 +192,16 @@ final class Formatter
      * @param non-empty-string $output Standard error content
      * @param array<non-empty-string, string> $attributes Extra attributes (e.g. `channel`, `level`)
      *        for consumers that understand them; standard TeamCity parsers ignore unknown ones.
-     * @param non-empty-string|null $flowId Flow the emitting test belongs to.
+     * @param Identity|null $identity Address of the node the output came from — a test, or the suite or
+     *        case whose own failure this reports. {@see placement()}
      * @return non-empty-string
      */
-    public static function testStdErr(string $name, string $output, array $attributes = [], ?string $flowId = null): string
+    public static function testStdErr(string $name, string $output, array $attributes = [], ?Identity $identity = null): string
     {
-        $flowId !== null and $attributes['flowId'] = $flowId;
-
         return self::formatMessage('testStdErr', [
             'name' => $name,
             'out' => $output,
-        ] + $attributes);
+        ] + $attributes + self::placement($identity));
     }
 
     /**
@@ -395,65 +393,60 @@ final class Formatter
     }
 
     /**
-     * Generates location hint for a test case from reflection.
+     * Where in the run a message belongs: which node it is about, and which flow carries it.
      *
-     * Format: php_qn://path/to/file.php::\ClassName
+     * `nodeId`/`parentNodeId` state the tree outright, which is the only way a consumer gets it right
+     * when tests run concurrently — one that nests by whatever opened last puts an interleaved batch's
+     * node inside its neighbour's. The ids are the run numbers off the address
+     * ({@see Identity::$runtimeId}, {@see Identity::$parentId}), so a node keeps its identity across
+     * every message about it, and a level with no parent hangs under {@see ROOT_NODE}.
      *
-     * @param \ReflectionClass<object> $reflection
-     * @return non-empty-string|null
+     * `flowId` is TeamCity's own grouping and applies to tests only: suites and cases of one process
+     * never overlap, so there is nothing to tell apart. {@see flowId()}
+     *
+     * @return array<non-empty-string, string>
      */
-    private static function caseLocationHint(\ReflectionClass $reflection): ?string
+    private static function placement(?Identity $identity): array
     {
-        $file = $reflection->getFileName();
-        $className = $reflection->getName();
+        if ($identity === null) {
+            return [];
+        }
 
-        return $file !== false
-            ? \sprintf('php_qn://%s::\\%s', $file, $className)
-            : null;
+        $placement = [
+            'nodeId' => (string) $identity->runtimeId,
+            'parentNodeId' => (string) ($identity->parentId ?? self::ROOT_NODE),
+        ];
+
+        $identity instanceof TestIdentity and $placement['flowId'] = self::flowId($identity);
+
+        return $placement;
     }
 
     /**
-     * Generates location hint for a test method/function from reflection.
+     * Location hint for whatever the address names.
      *
-     * Format: php_qn://path/to/file.php::\ClassName::methodName (for methods)
-     * Format: php_qn://path/to/file.php::functionName (for functions)
-     * Format: php_qn://path/to/file.php::\ClassName::methodName with data set #0 (with suffix)
+     * ```
+     * php_qn://path/to/BarTest.php::\Ns\BarTest                 a case
+     * php_qn://path/to/BarTest.php::\Ns\BarTest::itWorks        a test, or its DataProvider batch node
+     * php_qn://path/to/BarTest.php::\Ns\BarTest::itWorks:0:1    one data set of it
+     * php_qn://path/to/functions.php::\Ns\itWorksToo            a free test function
+     * ```
      *
-     * @param non-empty-string|null $suffix Optional suffix to append (e.g., " with data set #0")
-     * @param \ReflectionClass<object>|null $caseReflection Concrete (runtime) case class. When given
-     *        for a method-backed test, the hint points at this class (name and file) instead of the
-     *        method's declaring class. For a `#[Test]` inherited from an abstract base,
-     *        getDeclaringClass() names the base — but the enclosing testSuite is named after the
-     *        concrete subclass (see {@see caseLocationHint}), so TeamCity would otherwise file the
-     *        inherited test under the abstract class. Mirrors JUnitWriter::classnameFor() and
-     *        CoverageTestInterceptor::buildMethodId().
+     * The tail is {@see TestIdentity::fqn()} verbatim, so a hint pastes straight back into `--filter`.
+     *
+     * Null when there is no code to point at: a suite of the run is a configuration entry, and a case
+     * of free functions has no class of its own.
+     *
      * @return non-empty-string|null
      */
-    private static function testLocationHint(\ReflectionFunctionAbstract $reflection, ?string $suffix = null, ?\ReflectionClass $caseReflection = null): ?string
+    private static function locationHint(?Identity $identity): ?string
     {
-        $name = $reflection->getName();
-
-        // For methods, include class name
-        if ($reflection instanceof \ReflectionMethod) {
-            $class = $caseReflection ?? $reflection->getDeclaringClass();
-            $file = $class->getFileName();
-
-            if ($file === false) {
-                return null;
-            }
-
-            $locationHint = \sprintf('php_qn://%s::\\%s::%s', $file, $class->getName(), $name);
-        } else {
-            $file = $reflection->getFileName();
-
-            if ($file === false) {
-                return null;
-            }
-
-            // For functions, just the function name
-            $locationHint = \sprintf('php_qn://%s::%s', $file, "\\$name");
+        if (!$identity instanceof CaseIdentity && !$identity instanceof TestIdentity) {
+            return null;
         }
 
-        return $suffix !== null ? $locationHint . $suffix : $locationHint;
+        $fqn = $identity->fqn();
+
+        return $fqn === null ? null : "php_qn://{$identity->file}::\\{$fqn}";
     }
 }

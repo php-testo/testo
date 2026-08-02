@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\JUnit;
 
+use Internal\Path;
 use Internal\Container\ObjectContainer;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
@@ -13,6 +14,7 @@ use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Context\SuiteInfo;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -126,6 +128,53 @@ final class JUnitPluginTest
             $dispatcher->dispatch(self::sessionFinished());
 
             // Assert — exactly two cases, no rolled-up duplicate.
+            $xml = \simplexml_load_file($path);
+            Assert::notSame($xml, false);
+            Assert::same((string) $xml['tests'], '2');
+            $cases = $xml->testsuite->testsuite->testcase;
+            Assert::count($cases, 2);
+            Assert::same((string) $cases[0]['name'], 'passingTest [alpha]');
+            Assert::same((string) $cases[1]['name'], 'passingTest [beta]');
+        } finally {
+            self::cleanup($path);
+        }
+    }
+
+    public function interleavedBatchesSharingADefinitionDoNotClobberEachOther(): void
+    {
+        $path = self::tmpPath();
+        try {
+            $dispatcher = self::wirePlugin(new JUnitPlugin($path));
+
+            $suiteInfo = self::makeSuiteInfo('CoreSuite');
+            $caseInfo = self::makeCaseInfo();
+
+            // Two runs of one test method: distinct in-flight tests, one shared TestDefinition object.
+            // The batch guard is keyed per running test, so one pipeline's finish must not clear the
+            // other's marker.
+            $definition = new TestDefinition(new \ReflectionMethod(SampleTestClass::class, 'passingTest'));
+            $first = new TestInfo(name: 'passingTest', caseInfo: $caseInfo, testDefinition: $definition);
+            $second = new TestInfo(name: 'passingTest', caseInfo: $caseInfo, testDefinition: $definition);
+
+            $firstResult = new TestResult(info: $first, status: Status::Passed);
+            $secondResult = new TestResult(info: $second, status: Status::Passed);
+
+            $dispatcher->dispatch(new SessionStarting());
+            $dispatcher->dispatch(new TestSuiteStarting($suiteInfo));
+            $dispatcher->dispatch(new TestCaseStarting($caseInfo));
+            $dispatcher->dispatch(new TestBatchStarting($first));
+            $dispatcher->dispatch(new TestBatchStarting($second));
+            $dispatcher->dispatch(new TestDataSetFinished($first, $firstResult, 'alpha', null, 0));
+            $dispatcher->dispatch(new TestDataSetFinished($second, $secondResult, 'beta', null, 0));
+            $dispatcher->dispatch(new TestBatchFinished($first, $firstResult));
+            $dispatcher->dispatch(new TestBatchFinished($second, $secondResult));
+            $dispatcher->dispatch(new TestPipelineFinished($first, $firstResult));
+            $dispatcher->dispatch(new TestPipelineFinished($second, $secondResult));
+            $dispatcher->dispatch(new TestCaseFinished($caseInfo, new CaseResult([$firstResult], Status::Passed)));
+            $dispatcher->dispatch(new TestSuiteFinished($suiteInfo, new SuiteResult([], Status::Passed)));
+            $dispatcher->dispatch(self::sessionFinished());
+
+            // One <testcase> per data set and no rolled-up duplicate for either batch.
             $xml = \simplexml_load_file($path);
             Assert::notSame($xml, false);
             Assert::same((string) $xml['tests'], '2');
@@ -526,9 +575,11 @@ final class JUnitPluginTest
     private static function makeCaseInfo(): CaseInfo
     {
         return new CaseInfo(
+            suiteIdentity: new SuiteIdentity('Output/Unit'),
             definition: new CaseDefinition(
                 name: SampleTestClass::class,
                 type: 'test',
+                file: Path::create(__FILE__),
                 reflection: new \ReflectionClass(SampleTestClass::class),
             ),
         );
@@ -551,9 +602,11 @@ final class JUnitPluginTest
         // No class reflection — emulates how Testo builds a case for a file
         // containing free-function tests (see CaseDefinitions::define).
         return new CaseInfo(
+            suiteIdentity: new SuiteIdentity('Output/Unit'),
             definition: new CaseDefinition(
                 name: 'free_function_helper.php',
                 type: 'test',
+                file: Path::create(__FILE__),
                 reflection: null,
             ),
         );
@@ -564,10 +617,14 @@ final class JUnitPluginTest
      */
     private static function makeFreeFunctionTestInfo(CaseInfo $caseInfo, string $functionFqn): TestInfo
     {
+        $reflection = new \ReflectionFunction($functionFqn);
+
+        # Discovery keys a test by its short name and the runner passes that key straight through, so a
+        # name that disagrees with the reflection is a shape the runtime never produces.
         return new TestInfo(
-            name: 'free',
+            name: $reflection->getShortName(),
             caseInfo: $caseInfo,
-            testDefinition: new TestDefinition(new \ReflectionFunction($functionFqn)),
+            testDefinition: new TestDefinition($reflection),
         );
     }
 

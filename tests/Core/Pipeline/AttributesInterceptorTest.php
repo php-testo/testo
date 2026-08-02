@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Core\Pipeline;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -367,8 +369,9 @@ final class AttributesInterceptorTest
         return new CaseInfo(new CaseDefinition(
             name: 'TestCase',
             type: 'unit',
+            file: Path::create(__FILE__),
             reflection: $reflection,
-        ));
+        ), new SuiteIdentity('Core/Pipeline'));
     }
 
     private function createInterceptorProvider(): InterceptorProvider

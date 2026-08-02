@@ -95,14 +95,65 @@ final readonly class MyInterceptor implements TestRunInterceptor { … }
 
 ```php
 TestInfo  { string $name; CaseInfo $caseInfo; TestDefinition $testDefinition;
-            array $arguments; array $attributes; }      // testDefinition->reflection: ReflectionFunctionAbstract
-CaseInfo  { CaseDefinition $definition; ?CaseInstance $instance; array $attributes; }
-                                                         // definition->reflection: ?ReflectionClass
+            array $arguments; array $attributes; TestIdentity $identity; }
+                                                         // testDefinition->reflection: ReflectionFunctionAbstract
+CaseInfo  { CaseDefinition $definition; ?CaseInstance $instance; array $attributes;
+            CaseIdentity $identity; }                    // definition->reflection: ?ReflectionClass
+SuiteInfo { string $name; CaseDefinitions $testCases; array $attributes; SuiteIdentity $identity; }
 TestResult{ TestInfo $info; Status $status; mixed $result; ?\Throwable $failure; … }
 ```
 
 Read the test method via `$info->testDefinition->reflection`; the test class via
 `$info->caseInfo->definition->reflection` (null for function-based cases — guard it).
+
+### Identity — where a test is, and which run of it
+
+Every context object carries its address. `abstract readonly class Identity` in `Testo\Core\Context`
+contributes `runtimeId`, `?parentId` and `fqn()`; each level declares exactly the fields it has, and lives in
+`Testo\Core\Context\Identity\*` — `SuiteIdentity { suite }`, `CaseIdentity { suite, ?case, type, file }`,
+`TestIdentity { suite, ?case, type, file, test, ?dataProvider, ?dataSet, pipelineId }`. No level references the one
+above it, so reading any part of an address never walks a chain of objects, and no level carries a field
+that does not apply to it.
+
+`case` is the **class FQN**, and `null` for a case of free functions — there is no class, so `file`
+(an `Internal\Path`) names the case instead. `test` is the name **relative to `case`**: a bare method
+name when there is a class, the function's own FQN when there is not.
+
+Step down with `SuiteIdentity::toCase($case, $type, $file)`, `CaseIdentity::toTest($test)`, and
+`TestIdentity::toDataSet(dataProvider:, dataSet:)` for a data set.
+
+```php
+$info->identity->fqn();        // 'Tests\Foo\BarTest::itWorks:0:1' — null only at the case level,
+                               // 'Tests\Foo\freeTest' for a function (namespace, no class)
+$info->identity->suite;        // 'Core/Unit'
+$info->identity->runtimeId;    // this run; a data set has its own
+$info->identity->pipelineId;   // the test run it belongs to; a data set answers its batch's
+$info->identity->parentId;     // the run it opened inside: suite ← case ← test ← data set
+```
+
+Two independent things live on it:
+
+- **The address** (`fqn()` and the fields) says *which* test this is and is stable from
+  run to run. `dataProvider`/`dataSet` are set only for a data set, and address it by **index** —
+  provider keys may repeat, so only the index tells two data sets apart. `fqn()` is the machine-facing
+  form: no suite, no type, pastes straight into `--filter`, and is the tail of TeamCity's
+  `locationHint` (`php_qn://<file>::\<fqn>`).
+- **`runtimeId`** says *which run of it* is in flight, **`pipelineId`** which test run that one is part
+  of — its own for a test, the batch's for each of its data sets — and **`parentId`** which run it
+  opened inside (`null` at a suite). All three are process-local: never persist them or match on them.
+  Repeats and retries keep `runtimeId`, since they re-attempt one run.
+
+Key per-test state in a reporter by one of the two rather than by a single "current test" field: when
+tests run concurrently (fibers, an event loop) their events and output interleave, and a scalar gets
+clobbered. Key by **`pipelineId`** for anything a whole test owns — a report block, a channel grouping,
+a TeamCity flow — or a batch would break into as many pieces as it has data sets; by **`runtimeId`**
+only for state that is genuinely per data set. `MessageReceived` carries the identity of the test (or
+data set) that emitted it as `?TestIdentity $identity` (`null` when the message belongs to no test).
+
+To report a **tree** rather than a stream — an IDE that wants `nodeId`/`parentNodeId` — take the node
+from `runtimeId` and its parent from `parentId`, the same two fields at every level. Do not read the
+tree off the order events arrive in: concurrent tests interleave, so a consumer that nests by "whatever
+opened last" puts one test's node inside another's.
 
 ### Passing state down the pipeline — prefer attributes over mutable fields
 

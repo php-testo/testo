@@ -4,13 +4,71 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\Teamcity;
 
+use Internal\Path;
 use Testo\Assert;
+use Testo\Core\Context\Identity\SuiteIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Output\Teamcity\Teamcity\Formatter;
 use Testo\Test;
 
 #[Test]
 final class FormatterTest
 {
+    public function aCaseHangsUnderItsSuiteRatherThanUnderWhateverOpenedLast(): void
+    {
+        $suite = new SuiteIdentity('Core/Unit');
+        $case = $suite->toCase('Tests\Foo\BarTest', 'test', Path::create('/app/tests/BarTest.php'));
+
+        $msg = Formatter::suiteStarted('BarTest', $case);
+
+        // The tree is stated, not implied by the order messages arrive in — which is the only thing that
+        // survives concurrency, where two nodes are open at once.
+        Assert::string($msg)->contains("nodeId='{$case->runtimeId}'");
+        Assert::string($msg)->contains("parentNodeId='{$suite->runtimeId}'");
+    }
+
+    public function aSuiteOfTheRunHangsUnderTheRoot(): void
+    {
+        $suite = new SuiteIdentity('Core/Unit');
+
+        $msg = Formatter::suiteStarted('Core/Unit', $suite);
+
+        // Nothing sits above a suite, and the id-based protocol fixes the root node at 0.
+        Assert::string($msg)->contains("nodeId='{$suite->runtimeId}'");
+        Assert::string($msg)->contains("parentNodeId='0'");
+
+        // A suite is a configuration entry rather than code, so there is nothing to point an editor at;
+        // and nothing else runs alongside it, so it needs no flow of its own.
+        Assert::string($msg)->notContains('locationHint');
+        Assert::string($msg)->notContains('flowId');
+    }
+
+    public function aDataSetNamesTheBatchItCameFrom(): void
+    {
+        $test = self::test();
+        $dataSet = $test->toDataSet(dataProvider: 0, dataSet: 1);
+
+        $msg = Formatter::testStarted('Dataset #0:1 [x]', identity: $dataSet);
+
+        // Its own node, under the batch's — and in the batch's flow, so the row lands inside the nested
+        // suite the batch opened.
+        Assert::string($msg)->contains("nodeId='{$dataSet->runtimeId}'");
+        Assert::string($msg)->contains("parentNodeId='{$test->runtimeId}'");
+        Assert::string($msg)->contains("flowId='{$test->pipelineId}'");
+    }
+
+    public function aFinishedMessageNamesTheNodeItCloses(): void
+    {
+        $test = self::test();
+
+        $msg = Formatter::testFinished('itWorks', 12, $test);
+
+        // A consumer closes the node by id, so a finish never lands on the wrong one when two tests are
+        // open at once.
+        Assert::string($msg)->contains("nodeId='{$test->runtimeId}'");
+        Assert::string($msg)->contains("duration='12'");
+    }
+
     public function testFailedWithoutComparisonHasNoExtraAttributes(): void
     {
         $msg = Formatter::testFailed(
@@ -67,5 +125,12 @@ final class FormatterTest
 
         Assert::string($msg)->contains("expected='line1|nline2'");
         Assert::string($msg)->contains("actual='|[item||with|'quote|]'");
+    }
+
+    private static function test(): TestIdentity
+    {
+        return (new SuiteIdentity('Core/Unit'))
+            ->toCase('Tests\Foo\BarTest', 'test', Path::create('/app/tests/BarTest.php'))
+            ->toTest('itWorks');
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Data\Internal;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
@@ -94,7 +95,17 @@ final readonly class DataProviderInterceptor implements TestRunInterceptor
                     // }
 
 
-                    $result = $this->run($info, $next, $label, \count($attributes) === 1 ? null : $pNum, $num, $dataset);
+                    $result = $this->run(
+                        $info,
+                        $next,
+                        $label,
+                        # Events name the provider only when there is more than one to tell apart; the
+                        # address always carries the real index.
+                        \count($attributes) === 1 ? null : $pNum,
+                        $num,
+                        $dataset,
+                        $info->identity->toDataSet(dataProvider: $pNum, dataSet: $num),
+                    );
                     $result->status->isFailure() and $status = Status::Failed;
                     $results[] = $result;
                 }
@@ -147,17 +158,20 @@ final readonly class DataProviderInterceptor implements TestRunInterceptor
      * @param int<0, max>|null $providerNum Data provider number or null if only one.
      * @param int<0, max> $datasetNum Data set number.
      * @param callable(TestInfo): TestResult $next Next interceptor or core logic to run the test.
+     * @param TestIdentity $identity Address of this data set, derived from the batch's.
      */
-    public function run(
+    private function run(
         TestInfo $info,
         callable $next,
         string $label,
         ?int $providerNum,
         int $datasetNum,
         array $arguments,
+        TestIdentity $identity,
     ): TestResult {
         $newInfo = $info->with(
             arguments: $arguments,
+            identity: $identity,
         );
 
         // Dispatch dataset starting event

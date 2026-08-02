@@ -9,7 +9,7 @@ use Internal\Fiber\FiberLocal;
 use Testo\Application\Internal\Messenger\State;
 use Testo\Common\Messenger;
 use Testo\Common\Messenger\Channel;
-use Testo\Core\Context\TestIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
@@ -57,7 +57,9 @@ final readonly class MessengerHub implements Messenger
     {
         // A test scope carries the test's identity, so every MessageReceived dispatched from within it
         // is stamped with that test — the seam that keeps interleaving tests' output attributable.
-        $new = new State($this->eventDispatcher, identity: $identity);
+        // With no identity given the surrounding one carries over, like in fork(): a nested scope opened
+        // mid-test still belongs to that test, and stamping null would silently strip attribution.
+        $new = new State($this->eventDispatcher, identity: $identity ?? $this->current->get()->identity);
         return $this->current->scope($new, fn(): mixed => $scope($this), $new->destroy(...));
     }
 

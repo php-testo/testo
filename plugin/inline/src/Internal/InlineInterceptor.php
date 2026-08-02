@@ -67,7 +67,11 @@ final readonly class InlineInterceptor implements TestRunInterceptor
                 continue;
             }
 
-            $newInfo = $info->with(arguments: $inline->arguments)->withAttribute(TestInline::class, $inline);
+            # Each attribute occupies the provider slot of the address, matching the filter check above
+            # (`--filter=method:2` selects the third one), with a single data set inside it.
+            $newInfo = $info
+                ->with(arguments: $inline->arguments, identity: $info->identity->toDataSet(dataProvider: $index, dataSet: 0))
+                ->withAttribute(TestInline::class, $inline);
             $label = "$index";
 
             # Dispatch dataset starting event

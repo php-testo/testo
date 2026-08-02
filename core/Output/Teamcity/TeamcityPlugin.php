@@ -29,8 +29,9 @@ final class TeamcityPlugin implements PluginConfigurator
     /**
      * Ids of the tests currently inside a DataProvider batch.
      *
-     * Keyed by {@see \Testo\Core\Context\TestIdentity::$id} so concurrently running tests are tracked
-     * independently — a single scalar would be clobbered the moment two tests interleave.
+     * Keyed by {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId} so concurrently running
+     * tests are tracked independently — a single scalar would be clobbered the moment two tests
+     * interleave — and so a batch's data sets, whose own runs differ, find the batch's entry.
      *
      * @var array<int, bool>
      */
@@ -121,13 +122,13 @@ final class TeamcityPlugin implements PluginConfigurator
         // No attributable test — the message belongs to none (suite/case setup, output between tests),
         // or its test is not tracked here. Drop it; internal errors on the dedicated stderr channel are
         // the exception and are surfaced as a standalone message instead.
-        if ($identity === null || !isset($this->currentName[$identity->id])) {
+        if ($identity === null || !isset($this->currentName[$identity->pipelineId])) {
             $event->message->channel === Messenger::CHANNEL_STDERR
                 and $this->logger->logStandaloneMessage($event->message);
             return;
         }
 
-        $id = $identity->id;
+        $id = $identity->pipelineId;
 
         // Lazily emit testStarted for a regular test on its first output, so it streams in real time.
         if (isset($this->pendingStart[$id])) {
@@ -135,14 +136,14 @@ final class TeamcityPlugin implements PluginConfigurator
             unset($this->pendingStart[$id]);
         }
 
-        $this->logger->logMessage($this->currentName[$id], $event->message, TeamcityLogger::flowId($identity));
+        $this->logger->logMessage($this->currentName[$id], $event->message, $identity);
     }
 
     private function onTestPipelineStarting(TestPipelineStarting $event): void
     {
         // Assume a regular test: attribute output to it and keep testStarted pending until output
         // arrives. If it turns out to be a DataProvider batch, onTestBatchStarting clears this.
-        $id = $event->testInfo->identity->id;
+        $id = $event->testInfo->identity->pipelineId;
         $this->currentName[$id] = $event->testInfo->name;
         $this->pendingStart[$id] = $event->testInfo;
     }
@@ -150,7 +151,7 @@ final class TeamcityPlugin implements PluginConfigurator
     private function onTestPipelineFinished(TestPipelineFinished $event): void
     {
         // Check if this test was inside a DataProvider batch
-        $id = $event->testInfo->identity->id;
+        $id = $event->testInfo->identity->pipelineId;
         if (isset($this->isBatch[$id])) {
             // DataProvider test - already handled in batch events
             unset($this->isBatch[$id]);
@@ -172,7 +173,7 @@ final class TeamcityPlugin implements PluginConfigurator
     private function onTestBatchStarting(TestBatchStarting $event): void
     {
         // Mark that we're inside a batch
-        $id = $event->testInfo->identity->id;
+        $id = $event->testInfo->identity->pipelineId;
         $this->isBatch[$id] = true;
 
         // It's a DataProvider, not a single test: drop the pending single-test start; data sets
@@ -193,20 +194,16 @@ final class TeamcityPlugin implements PluginConfigurator
     {
         // Send testStarted for individual dataset within DataProvider
         $prefix = $event->providerIndex === null ? '' : "$event->providerIndex:";
-        $locationSuffix = $event->providerIndex !== null
-            ? ":$event->dataSetKey:$event->providerIndex"
-            : ":$event->dataSetKey";
         $name = "Dataset #{$prefix}{$event->datasetIndex} [$event->dataSetKey]";
-        $this->logger->testStartedFromInfo(
-            $event->testInfo,
-            overrideName: $name,
-            locationSuffix: $locationSuffix,
-        );
+
+        # The info's address already points at the data set, so the location hint carries the same
+        # coordinates `--filter` takes.
+        $this->logger->testStartedFromInfo($event->testInfo, overrideName: $name);
 
         // testStarted already emitted eagerly; stream this data set's output to it in real time. Data
-        // sets of one provider share the batch's identity and run sequentially, so one current-name
-        // entry per id is unambiguous.
-        $id = $event->testInfo->identity->id;
+        // sets of one batch share its run and go one at a time, so one current-name entry per run is
+        // unambiguous — this one replaces the previous data set's.
+        $id = $event->testInfo->identity->pipelineId;
         $this->currentName[$id] = $name;
         unset($this->pendingStart[$id]);
     }
@@ -219,7 +216,7 @@ final class TeamcityPlugin implements PluginConfigurator
         $name = "Dataset #{$prefix}{$event->datasetIndex} [$event->datasetKey]";
 
         $this->logger->handleSingleTestResult($event->testResult, $duration, overrideName: $name);
-        $this->resetCurrent($event->testInfo->identity->id);
+        $this->resetCurrent($event->testInfo->identity->pipelineId);
     }
 
     private function onTestCaseStarting(TestCaseStarting $event): void
@@ -230,6 +227,12 @@ final class TeamcityPlugin implements PluginConfigurator
     private function onTestCaseFinished(TestCaseFinished $event): void
     {
         $this->logger->handleCaseResult($event->caseInfo, $event->caseResult);
+
+        // No test spans a case boundary, so anything still tracked belongs to a test the runner never
+        // finished (a hang, an abort) — dropped here so a long session does not accumulate it.
+        $this->isBatch = [];
+        $this->currentName = [];
+        $this->pendingStart = [];
     }
 
     private function onTestSuiteStarting(TestSuiteStarting $event): void

@@ -7,7 +7,6 @@ namespace Testo\Output\Terminal;
 use Internal\Container\Container;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
-use Testo\Core\Context\TestInfo;
 use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Message\MessageReceived;
@@ -16,7 +15,6 @@ use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestDataSetStarting;
 use Testo\Event\Test\TestPipelineFinished;
-use Testo\Event\Test\TestPipelineStarting;
 use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
@@ -34,9 +32,12 @@ use Testo\Output\Terminal\Renderer\TerminalLogger;
 final class TerminalPlugin implements PluginConfigurator
 {
     /**
-     * Tracks whether we're inside a DataProvider batch.
+     * Ids of the tests currently inside a DataProvider batch.
      *
-     * @var array<non-empty-string, bool>
+     * Keyed by {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId} so concurrently running
+     * tests are tracked independently.
+     *
+     * @var array<int, bool>
      */
     private array $isBatch = [];
 
@@ -61,7 +62,6 @@ final class TerminalPlugin implements PluginConfigurator
         $listeners->addListener(MessageReceived::class, $this->onMessageReceived(...));
 
         // Test Pipeline events (lifecycle of entire test through all interceptors)
-        $listeners->addListener(TestPipelineStarting::class, $this->onTestPipelineStarting(...));
         $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
 
         // Test Batch events (for DataProvider)
@@ -81,11 +81,6 @@ final class TerminalPlugin implements PluginConfigurator
         $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
     }
 
-    private static function getId(TestInfo $testInfo): string
-    {
-        return \spl_object_hash($testInfo->testDefinition);
-    }
-
     private function onSessionStarting(SessionStarting $event): void
     {
         $this->logger->ensureHeader();
@@ -99,22 +94,19 @@ final class TerminalPlugin implements PluginConfigurator
 
     private function onMessageReceived(MessageReceived $event): void
     {
-        $this->logger->logMessage($event->message);
-    }
-
-    private function onTestPipelineStarting(TestPipelineStarting $event): void
-    {
-        // Fresh channel grouping for the test about to run.
-        $this->logger->resetChannels();
+        // A null identity means the message belongs to no test (suite/case setup, output between
+        // tests); the logger writes that through instead of putting it in anyone's block.
+        $this->logger->logMessage($event->message, $event->identity?->pipelineId);
     }
 
     private function onTestPipelineFinished(TestPipelineFinished $event): void
     {
         // Check if this test was inside a DataProvider batch
-        $id = self::getId($event->testInfo);
+        $id = $event->testInfo->identity->pipelineId;
         if (isset($this->isBatch[$id])) {
             // DataProvider test - already handled in dataset events
             unset($this->isBatch[$id]);
+            $this->logger->closeTest($event->testInfo);
             return;
         }
 
@@ -122,12 +114,15 @@ final class TerminalPlugin implements PluginConfigurator
         $this->logger->testStartedFromInfo($event->testInfo);
         $duration = (int) $event->testResult->getAttribute('duration');
         $this->logger->handleTestResult($event->testResult, $duration);
+
+        // Last write for this test is done, so its block can go out.
+        $this->logger->closeTest($event->testInfo);
     }
 
     private function onTestBatchStarting(TestBatchStarting $event): void
     {
         // Mark that we're inside a batch
-        $id = self::getId($event->testInfo);
+        $id = $event->testInfo->identity->pipelineId;
         $this->isBatch[$id] = true;
 
         // Start batch in logger for proper indentation
@@ -142,8 +137,9 @@ final class TerminalPlugin implements PluginConfigurator
 
     private function onTestDataSetStarting(TestDataSetStarting $event): void
     {
-        // Fresh channel grouping for the data set about to run.
-        $this->logger->resetChannels();
+        // Data sets share the batch's block, so nothing else would separate their channel output —
+        // reset the grouping so this one opens with a fresh header.
+        $this->logger->resetChannels($event->testInfo);
 
         // Log individual dataset start with custom name
         $prefix = $event->providerIndex === null ? '' : "$event->providerIndex:";
@@ -166,6 +162,9 @@ final class TerminalPlugin implements PluginConfigurator
     private function onTestCaseFinished(TestCaseFinished $event): void
     {
         $this->logger->handleCaseResult($event->caseInfo, $event->caseResult);
+
+        // No test spans a case boundary: a leftover entry belongs to a test that never finished.
+        $this->isBatch = [];
     }
 
     private function onTestSuiteStarting(TestSuiteStarting $event): void

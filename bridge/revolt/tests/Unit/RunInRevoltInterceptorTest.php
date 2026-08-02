@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Bridge\Revolt\Unit;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Bridge\Revolt\Internal\RevoltTestBatchRunner;
 use Testo\Bridge\Revolt\Internal\RunInRevoltInterceptor;
@@ -12,6 +13,7 @@ use Testo\Bridge\Revolt\Strategy;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Value\Status;
 use Testo\Test;
@@ -62,6 +64,9 @@ final class RunInRevoltInterceptorTest
 
     private function caseInfo(): CaseInfo
     {
-        return new CaseInfo(definition: new CaseDefinition(name: 'RevoltCase', type: 'test'));
+        return new CaseInfo(
+            definition: new CaseDefinition(name: 'RevoltCase', type: 'test', file: Path::create(__FILE__)),
+            suiteIdentity: new SuiteIdentity('Revolt/Unit'),
+        );
     }
 }

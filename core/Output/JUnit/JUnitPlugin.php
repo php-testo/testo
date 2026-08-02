@@ -77,11 +77,12 @@ use Testo\Output\JUnit\Internal\JUnitWriter;
 final class JUnitPlugin implements PluginConfigurator
 {
     /**
-     * Tracks whether we're inside a DataProvider batch, keyed by test
-     * definition object hash. Same guard `TeamcityPlugin` uses to avoid
-     * emitting both the per-dataset and the rolled-up `<testcase>`.
+     * Tracks whether we're inside a DataProvider batch, keyed by
+     * {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}. Same guard `TeamcityPlugin`
+     * uses to avoid emitting both the per-dataset and the rolled-up `<testcase>`;
+     * keyed per running test, so concurrently running tests are tracked independently.
      *
-     * @var array<non-empty-string, bool>
+     * @var array<int, bool>
      */
     private array $isBatch = [];
 
@@ -185,14 +186,6 @@ final class JUnitPlugin implements PluginConfigurator
         $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
     }
 
-    /**
-     * @return non-empty-string
-     */
-    private static function getId(TestInfo $testInfo): string
-    {
-        return \spl_object_hash($testInfo->testDefinition);
-    }
-
     private static function formatDatasetSuffix(string|int $datasetKey, ?int $providerIndex): string
     {
         return $providerIndex === null
@@ -288,8 +281,7 @@ final class JUnitPlugin implements PluginConfigurator
         // Closed in onTestBatchFinished.
         $caseInfo->definition->reflection === null and $this->openFunctionSuite($event->testInfo);
 
-        $id = self::getId($event->testInfo);
-        $this->isBatch[$id] = true;
+        $this->isBatch[$event->testInfo->identity->pipelineId] = true;
     }
 
     private function onTestBatchFinished(TestBatchFinished $event): void
@@ -331,7 +323,7 @@ final class JUnitPlugin implements PluginConfigurator
             return;
         }
 
-        $id = self::getId($event->testInfo);
+        $id = $event->testInfo->identity->pipelineId;
         if (isset($this->isBatch[$id])) {
             // DataProvider/multi-inline test — individual datasets were already emitted.
             unset($this->isBatch[$id]);

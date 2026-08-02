@@ -9,6 +9,8 @@ use Testo\Codecov\Covers;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Output\Rendering\ChannelRenderer;
+use Testo\Output\Rendering\Color;
+use Testo\Output\Terminal\Renderer\Style;
 use Testo\Test;
 
 #[Test]
@@ -75,6 +77,19 @@ final class ChannelRendererTest
         Assert::string($out)->notContains("\n\n");
     }
 
+    public function resetAssumesTheCallerLeftTheCursorAtLineStart(): void
+    {
+        $renderer = new ChannelRenderer();
+        $renderer->render(self::message('stdout', 'no-newline'));
+
+        $renderer->reset();
+        $out = self::stripAnsi($renderer->render(self::message('stdout', "again\n")));
+
+        // The renderer sees only its own content, and reset() marks a boundary the caller terminated
+        // itself (a test's result line) — so it must not insert a separator of its own.
+        Assert::true(\str_starts_with($out, '[stdout] '), "Unwanted separator after reset: {$out}");
+    }
+
     public function headerFormatsTimeAsWallClockWithMilliseconds(): void
     {
         $renderer = new ChannelRenderer();
@@ -101,18 +116,53 @@ final class ChannelRendererTest
         );
     }
 
-    public function headerColorIsNameDerivedFromTheFullEightColorPalette(): void
+    public function aChannelAlwaysGetsTheSameHeaderColor(): void
     {
-        $renderer = new ChannelRenderer();
+        // Derived from the name, so it survives across renderers — that is what lets a reader track one
+        // channel down a report. Which color any given name lands on is crc32 arithmetic and pinning it
+        // would freeze the palette's order against a reordering that changes nothing.
+        Assert::same(self::headerColor('stderr'), self::headerColor('stderr'));
+        Assert::same(self::headerColor('sql'), self::headerColor('sql'));
+    }
 
-        // abs(crc32('stderr')) % 8 == 1 -> Color::Cyan ("\033[36m"). Dropping Color::Cyan from the
-        // palette (size 8 -> 7) shifts the mapping and would colorize this header green instead.
-        $out = $renderer->render(self::message('stderr', "oops\n"));
+    public function everyColorOfThePaletteIsReachable(): void
+    {
+        $seen = [];
+        for ($i = 0; $i < 200; ++$i) {
+            $seen[self::headerColor("channel-{$i}")] = true;
+        }
 
-        Assert::true(
-            \str_starts_with($out, "\033[36m[stderr]\033[0m "),
-            "Header not Cyan-colorized for 'stderr': " . \addcslashes($out, "\033"),
-        );
+        // The size claim, stated as a set so it holds whatever order the palette sits in: drop a color
+        // and this shrinks. Black stays out on purpose — invisible on a dark terminal.
+        Assert::same(\count($seen), 8);
+        Assert::false(isset($seen[Color::Black->value]));
+    }
+
+    /**
+     * The color a channel's header is rendered in, as its raw escape sequence.
+     *
+     * Colorization hangs on a process-global flag in {@see Style}, and building a `TerminalPlugin` sets
+     * it — so a case elsewhere in the run can leave it off and there would be no color here to read.
+     * Turning it on for the render and putting back what was there keeps this independent of whatever
+     * order the finder walks files in, which differs between platforms.
+     *
+     * @param non-empty-string $channel
+     */
+    private static function headerColor(string $channel): string
+    {
+        $colors = Style::areColorsEnabled();
+        Style::setColorsEnabled(true);
+
+        try {
+            $out = (new ChannelRenderer())->render(self::message($channel, "x\n"));
+        } finally {
+            Style::setColorsEnabled($colors);
+        }
+
+        \preg_match('/^\033\[\d+m/', $out, $matches);
+        Assert::notSame($matches, [], "Header not colorized for '{$channel}': " . \addcslashes($out, "\033"));
+
+        return $matches[0];
     }
 
     private static function stripAnsi(string $text): string

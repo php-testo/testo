@@ -57,6 +57,7 @@ final class RaceTest
 
 - `Schedule` enum (`Testo\Fiber\Schedule`): `Solo` (each test in its own fiber, to completion, no interleave — default), `RoundRobin` (one step per ready test each round), `Random` (a random ready test each round — non-seeded, not reproducible yet).
 - `RoundRobin` / `Random` interleave the case's tests on plain fibers, switching only where a fiber calls `\Fiber::suspend()`. Put a `\Fiber::suspend()` where a context switch should be allowed (in real use, the async driver the test exercises does this). Per-test assertion state stays isolated across the interleave.
+- Reports stay readable while tests interleave: each test carries a `TestIdentity`, so the terminal renders every test — its batch node, data sets, streamed `-vv` output and result line — as one contiguous block instead of splicing them together, and `--teamcity` stamps a per-test `flowId`. Blocks appear in the order tests finish, so a test that is not the one currently streaming shows up once it completes.
 
 ## Pitfalls
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Core\Context;
 
+use Testo\Core\Context\Identity\CaseIdentity;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Internal\Attributed;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Internal\DefaultTestHandler;
@@ -19,6 +21,7 @@ final readonly class CaseInfo
     use Attributed;
 
     public string $name;
+    public CaseIdentity $identity;
 
     /**
      * Handler for executing the test method.
@@ -28,6 +31,8 @@ final readonly class CaseInfo
     public \Closure $handler;
 
     /**
+     * @param SuiteIdentity $suiteIdentity Suite this case belongs to — the root its address descends from. Every
+     *        case is reached through a suite, so there is no sensible stand-in to default to.
      * @param ?CaseInstance $instance Test Case class instance if class is defined, null otherwise.
      * @param array<non-empty-string, mixed> $attributes
      * @param callable(TestInfo): mixed $handler Invoker for the test method.
@@ -36,6 +41,7 @@ final readonly class CaseInfo
      */
     public function __construct(
         public CaseDefinition $definition,
+        SuiteIdentity $suiteIdentity,
         public ?CaseInstance $instance = null,
         public array $attributes = [],
         callable $handler = new DefaultTestHandler(),
@@ -43,18 +49,16 @@ final readonly class CaseInfo
     ) {
         $this->name = $definition->getName();
         $this->handler = $handler(...);
+        $this->identity = $suiteIdentity
+            ->toCase($definition->reflection?->getName(), $definition->type, $definition->file);
     }
 
     public function with(
         ?\Closure $handler = null,
     ): self {
-        return new self(
-            definition: $this->definition,
-            instance: $this->instance,
-            attributes: $this->attributes,
-            handler: $handler ?? $this->handler,
-            batchRunner: $this->batchRunner,
-        );
+        # Clone rather than rebuild: re-running the constructor would mint a second address for a case
+        # that is still the same one, and the tests already descended from the first.
+        return $this->cloneWith('handler', $handler ?? $this->handler);
     }
 
     /**

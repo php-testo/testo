@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\JUnit;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -458,9 +460,11 @@ final class JUnitWriterTest
         $info = new TestInfo(
             name: $method,
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: SampleTestClass::class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: new \ReflectionClass(SampleTestClass::class),
                 ),
             ),
@@ -485,9 +489,11 @@ final class JUnitWriterTest
         $info = new TestInfo(
             name: 'inheritedTest',
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: ConcreteSampleTest::class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: new \ReflectionClass(ConcreteSampleTest::class),
                 ),
             ),
@@ -506,11 +512,13 @@ final class JUnitWriterTest
         Status $status,
     ): TestResult {
         $info = new TestInfo(
-            name: 'free',
+            name: $reflection->getShortName(),
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: null,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: null,
                 ),
             ),

@@ -20,6 +20,7 @@ use Testo\Core\Value\Status;
 use Testo\Core\Value\Verbosity;
 use Testo\Data\MultipleResult;
 use Testo\Output\Rendering\ChannelRenderer;
+use Testo\Output\Rendering\SharedStream;
 
 /**
  * Terminal logger for test reporting with configurable output format.
@@ -32,16 +33,20 @@ final class TerminalLogger
     private array $failures = [];
 
     /**
-     * Current indentation level for nested tests (e.g., DataProvider datasets).
+     * Indentation level of each test in flight (nested for DataProvider datasets), keyed by
+     * {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}. A single counter is clobbered the moment two
+     * tests interleave: the one entering a batch would indent the other's lines.
      *
-     * @var int<0, max>
+     * @var array<int, int<0, max>>
      */
-    private int $currentIndentLevel = 0;
+    private array $currentIndentLevel = [];
 
     /**
-     * Override name for the current test (e.g., dataset name).
+     * Override name of each test in flight (e.g. the running data set's name), keyed by test id.
+     *
+     * @var array<int, non-empty-string>
      */
-    private ?string $currentTestName = null;
+    private array $currentTestName = [];
 
     /**
      * Current suite name for failure context.
@@ -55,13 +60,24 @@ final class TerminalLogger
      */
     private ?TestResult $lastResult = null;
 
-    /** @var resource */
-    private $output;
+    private readonly SharedStream $out;
 
     /** @var resource */
     private $errorOutput;
 
-    private readonly ChannelRenderer $channels;
+    /**
+     * Channel grouping of each open block, keyed by test id. Its life is the block's life — created on
+     * the test's first write, dropped by {@see closeTest()} — so it never carries state across into
+     * another test's block, and a block always opens with a fresh channel header.
+     *
+     * @var array<int, ChannelRenderer>
+     */
+    private array $channels = [];
+
+    /**
+     * Channel grouping of output that belongs to no test, which is written through rather than blocked.
+     */
+    private ?ChannelRenderer $unownedChannels = null;
 
     /**
      * @param resource|null $output Stream for the human-facing report; defaults to {@see \STDOUT}.
@@ -77,9 +93,8 @@ final class TerminalLogger
         $output = null,
         $errorOutput = null,
     ) {
-        $this->output = $output ?? \STDOUT;
+        $this->out = new SharedStream($output ?? \STDOUT);
         $this->errorOutput = $errorOutput ?? \STDERR;
-        $this->channels = new ChannelRenderer();
     }
 
     /**
@@ -88,7 +103,7 @@ final class TerminalLogger
     public function suiteStartedFromInfo(SuiteInfo $info): void
     {
         $this->currentSuiteName = $info->name;
-        $this->write(Formatter::suiteHeader($info->name, $this->format));
+        $this->write(null, Formatter::suiteHeader($info->name, $this->format));
     }
 
     /**
@@ -96,7 +111,7 @@ final class TerminalLogger
      */
     public function handleSuiteResult(SuiteInfo $info, SuiteResult $result): void
     {
-        $this->write(Formatter::suiteSummary($result));
+        $this->write(null, Formatter::suiteSummary($result));
     }
 
     /**
@@ -104,7 +119,7 @@ final class TerminalLogger
      */
     public function caseStartedFromInfo(CaseInfo $info): void
     {
-        $this->write(Formatter::caseHeader($info->name, $this->format));
+        $this->write(null, Formatter::caseHeader($info->name, $this->format));
     }
 
     /**
@@ -112,8 +127,16 @@ final class TerminalLogger
      */
     public function handleCaseResult(CaseInfo $info, CaseResult $result): void
     {
-        $this->write(Formatter::caseFooter($this->format));
-        $this->write(Formatter::caseSummary($result, $this->format));
+        # Every test of the case has finished by now, so nothing should still be held — but a test the
+        # runner never closed would otherwise land under the *next* case's header. Its per-test state
+        # goes with it, so a long session does not accumulate entries no close will ever drop.
+        $this->out->flush();
+        $this->channels = [];
+        $this->currentTestName = [];
+        $this->currentIndentLevel = [];
+
+        $this->write(null, Formatter::caseFooter($this->format));
+        $this->write(null, Formatter::caseSummary($result, $this->format));
     }
 
     /**
@@ -121,7 +144,7 @@ final class TerminalLogger
      */
     public function batchStartedFromInfo(TestInfo $info): void
     {
-        $this->currentIndentLevel = 1;
+        $this->currentIndentLevel[$info->identity->pipelineId] = 1;
 
         if ($this->format === OutputFormat::Dots) {
             return;
@@ -130,11 +153,12 @@ final class TerminalLogger
         // Print the batch test name (the main test with DataProvider)
         $indent = $this->format === OutputFormat::Verbose ? '     ' : '   ';
         $symbol = Style::dim(Symbol::DataProvider->value);
-        $this->write("{$indent}{$symbol} {$info->name}\n");
+        $id = $info->identity->pipelineId;
+        $this->write($id, "{$indent}{$symbol} {$info->name}\n");
 
         // The description belongs to the test, not to each dataset — print it once here, at the root
         // of the dataset tree, so it is not repeated under every dataset (see handle*Test).
-        $this->write(Formatter::description(
+        $this->write($id, Formatter::description(
             (string) $info->testDefinition->getDescription(),
             0,
             $this->format,
@@ -146,7 +170,7 @@ final class TerminalLogger
      */
     public function batchFinishedFromInfo(TestInfo $info): void
     {
-        $this->currentIndentLevel = 0;
+        unset($this->currentIndentLevel[$info->identity->pipelineId]);
         // No visual output for batch finish in terminal mode
     }
 
@@ -157,28 +181,53 @@ final class TerminalLogger
      */
     public function testStartedFromInfo(TestInfo $info, ?string $overrideName = null): void
     {
-        $this->currentTestName = $overrideName;
+        $id = $info->identity->pipelineId;
+        if ($overrideName === null) {
+            # A regular test carries no override — it prints under its own name.
+            unset($this->currentTestName[$id]);
+        } else {
+            $this->currentTestName[$id] = $overrideName;
+        }
         // No output on test start for compact/dots mode
     }
 
     /**
-     * Resets channel grouping so the next test's first message prints a fresh channel header.
+     * Resets the test's channel grouping so its next message prints a fresh channel header. Used at
+     * data set boundaries: data sets share the batch's block, so nothing else would separate them.
      */
-    public function resetChannels(): void
+    public function resetChannels(TestInfo $info): void
     {
-        $this->channels->reset();
+        ($this->channels[$info->identity->pipelineId] ?? null)?->reset();
+    }
+
+    /**
+     * The test is done writing: release its block onto the stream and forget its channel grouping.
+     *
+     * Must come after the last write for the test — its result line included — or that line would be
+     * carried over into whatever block opens next.
+     */
+    public function closeTest(TestInfo $info): void
+    {
+        $id = $info->identity->pipelineId;
+        unset($this->channels[$id]);
+        $this->out->close($id);
     }
 
     /**
      * Streams a captured channel {@see Message} to the terminal in real time.
      *
-     * A colored channel header (name + time of the channel's first message) is printed when the
-     * channel changes; same-channel content is appended verbatim. Live streaming happens only at
+     * A colored channel header (name + time of the group's first message) is printed when the group
+     * changes; same-group content is appended verbatim. Live streaming happens only at
      * {@see Verbosity::Verbose} and above; at lower verbosity the output of a *failed* test is shown
      * after the fact (see {@see printFailures()}). Suppressed in Dots mode, whose single-character
      * per-test layout multi-line output would break.
+     *
+     * @param int|null $owner Run of the test the message belongs to
+     *        ({@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}), which decides both the
+     *        block it lands in and the channel grouping it continues. `null` for output owned by no
+     *        test.
      */
-    public function logMessage(Message $message): void
+    public function logMessage(Message $message, ?int $owner = null): void
     {
         if ($message->content === '') {
             return;
@@ -198,7 +247,7 @@ final class TerminalLogger
             return;
         }
 
-        $this->write($this->channels->render($message));
+        $this->write($owner, $this->channelsFor($owner)->render($message));
     }
 
     /**
@@ -223,6 +272,10 @@ final class TerminalLogger
      */
     public function printSummary(RunResult $result): void
     {
+        # Last chance for anything still held — a test the run never closed (aborted, timed out) must
+        # not be swallowed by the end of the report.
+        $this->out->flush();
+
         $this->printFailures();
         $this->printSingleTestOutput($result);
         $this->printStatistics($result);
@@ -233,13 +286,13 @@ final class TerminalLogger
      */
     public function ensureHeader(): void
     {
-        $this->write(Formatter::runHeader());
+        $this->write(null, Formatter::runHeader());
     }
 
     public function printEnvironment(): void
     {
-        $this->write(\sprintf(' %s %s (%s)', Style::info('OS:'), Environment::getOs(), Environment::getCpu()) . "\n");
-        $this->write(\sprintf(' %s %s (%s, memory: %s)', Style::info('PHP:'), Environment::getPhpVersion(), \PHP_SAPI, \ini_get('memory_limit') ?: 'unlimited') . "\n");
+        $this->write(null, \sprintf(' %s %s (%s)', Style::info('OS:'), Environment::getOs(), Environment::getCpu()) . "\n");
+        $this->write(null, \sprintf(' %s %s (%s, memory: %s)', Style::info('PHP:'), Environment::getPhpVersion(), \PHP_SAPI, \ini_get('memory_limit') ?: 'unlimited') . "\n");
 
         $modes = Environment::getXDebugMode();
         $xdebug = match (true) {
@@ -247,14 +300,14 @@ final class TerminalLogger
             $modes !== [] => Environment::getXDebugVersion() . Style::dim(' (' . \implode(', ', $modes) . ')'),
             default => Environment::getXDebugVersion() . Style::dim(' (off)'),
         };
-        $this->write(\sprintf('   %s %s', Style::info('XDebug:'), $xdebug) . "\n");
+        $this->write(null, \sprintf('   %s %s', Style::info('XDebug:'), $xdebug) . "\n");
 
         $opcache = match (true) {
             !Environment::isOpCacheEnabled() => 'off',
             Environment::isJitEnabled() => 'enabled with JIT',
             default => 'enabled',
         };
-        $this->write(\sprintf('   %s %s', Style::info('OPcache:'), $opcache) . "\n\n");
+        $this->write(null, \sprintf('   %s %s', Style::info('OPcache:'), $opcache) . "\n\n");
     }
 
     /**
@@ -326,12 +379,26 @@ final class TerminalLogger
         }
 
         $output = self::renderMessages($test->messages);
-        $output === '' or $this->write("\n" . $output);
+        $output === '' or $this->write(null, "\n" . $output);
     }
 
-    private function write(string $text): void
+    /**
+     * @param int|null $owner Test whose block the text belongs to; `null` for report structure that
+     *        belongs to no test (suite header, case footer, final summary).
+     */
+    private function write(?int $owner, string $text): void
     {
-        \fwrite($this->output, $text);
+        $this->out->write($owner, $text);
+    }
+
+    /**
+     * Channel grouping for the given owner's block, opened on demand.
+     */
+    private function channelsFor(?int $owner): ChannelRenderer
+    {
+        return $owner === null
+            ? $this->unownedChannels ??= new ChannelRenderer()
+            : $this->channels[$owner] ??= new ChannelRenderer();
     }
 
     /**
@@ -342,16 +409,16 @@ final class TerminalLogger
     private function handlePassedTest(TestResult $result, ?int $duration): void
     {
         $item = new FormattedItem(
-            name: $this->currentTestName ?? $result->info->name,
+            name: $this->displayName($result),
             status: $result->status,
             duration: $duration,
-            indentLevel: $this->currentIndentLevel,
+            indentLevel: $this->indentLevel($result),
             description: $this->resultDescription($result),
         );
 
-        $this->write(Formatter::formatRun($item, $this->format));
+        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
-        $this->currentTestName = null;
+        unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
     /**
@@ -365,20 +432,40 @@ final class TerminalLogger
             'result' => $result,
             'duration' => $duration,
             'suiteName' => $this->currentSuiteName,
-            'datasetName' => $this->currentTestName,
+            'datasetName' => $this->currentTestName[$result->info->identity->pipelineId] ?? null,
         ];
 
         $item = new FormattedItem(
-            name: $this->currentTestName ?? $result->info->name,
+            name: $this->displayName($result),
             status: $result->status,
             duration: $duration,
-            indentLevel: $this->currentIndentLevel,
+            indentLevel: $this->indentLevel($result),
             description: $this->resultDescription($result),
         );
 
-        $this->write(Formatter::formatRun($item, $this->format));
+        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
-        $this->currentTestName = null;
+        unset($this->currentTestName[$result->info->identity->pipelineId]);
+    }
+
+    /**
+     * Name to print for a finished test: the override recorded for it (a data set's name), or its own.
+     *
+     * @return non-empty-string
+     */
+    private function displayName(TestResult $result): string
+    {
+        return $this->currentTestName[$result->info->identity->pipelineId] ?? $result->info->name;
+    }
+
+    /**
+     * Indentation recorded for the test — 1 inside its DataProvider batch, 0 at the top level.
+     *
+     * @return int<0, max>
+     */
+    private function indentLevel(TestResult $result): int
+    {
+        return $this->currentIndentLevel[$result->info->identity->pipelineId] ?? 0;
     }
 
     /**
@@ -388,7 +475,7 @@ final class TerminalLogger
      */
     private function resultDescription(TestResult $result): string
     {
-        return $this->currentIndentLevel > 0 ? '' : (string) $result->getAttribute('description');
+        return $this->indentLevel($result) > 0 ? '' : (string) $result->getAttribute('description');
     }
 
     /**
@@ -416,7 +503,7 @@ final class TerminalLogger
                 description: (string) $runKey,
             );
 
-            $this->write(Formatter::formatRun($item, $this->format));
+            $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
             $runNumber++;
         }
     }
@@ -429,14 +516,14 @@ final class TerminalLogger
     private function handleSkippedTest(TestResult $result, ?int $duration): void
     {
         $item = new FormattedItem(
-            name: $this->currentTestName ?? $result->info->name,
+            name: $this->displayName($result),
             status: $result->status,
             duration: $duration,
-            indentLevel: $this->currentIndentLevel,
+            indentLevel: $this->indentLevel($result),
         );
 
-        $this->write(Formatter::formatRun($item, $this->format));
-        $this->currentTestName = null;
+        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+        unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
     /**
@@ -447,14 +534,14 @@ final class TerminalLogger
     private function handleRiskyTest(TestResult $result, ?int $duration): void
     {
         $item = new FormattedItem(
-            name: $this->currentTestName ?? $result->info->name,
+            name: $this->displayName($result),
             status: $result->status,
             duration: $duration,
-            indentLevel: $this->currentIndentLevel,
+            indentLevel: $this->indentLevel($result),
         );
 
-        $this->write(Formatter::formatRun($item, $this->format));
-        $this->currentTestName = null;
+        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+        unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
     /**
@@ -466,7 +553,7 @@ final class TerminalLogger
             return;
         }
 
-        $this->write(Formatter::failuresHeader());
+        $this->write(null, Formatter::failuresHeader());
 
         $index = 1;
         foreach ($this->failures as $failure) {
@@ -507,7 +594,7 @@ final class TerminalLogger
                 ? "{$file}:{$line}"
                 : null;
 
-            $this->write(Formatter::failureDetail(
+            $this->write(null, Formatter::failureDetail(
                 $index,
                 $testName,
                 $message,
@@ -527,14 +614,14 @@ final class TerminalLogger
     {
         $summary = $result->summary;
 
-        $this->write(Formatter::summary($summary, $result->duration));
+        $this->write(null, Formatter::summary($summary, $result->duration));
 
         if ($summary->total() === 0) {
-            $this->write(Formatter::emptyBanner());
+            $this->write(null, Formatter::emptyBanner());
             return;
         }
 
         $failures = $summary->failed() + $summary->count(Status::Aborted);
-        $this->write(Formatter::finalBanner($failures === 0));
+        $this->write(null, Formatter::finalBanner($failures === 0));
     }
 }
