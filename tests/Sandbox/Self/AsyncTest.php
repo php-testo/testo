@@ -6,6 +6,7 @@ namespace Tests\Sandbox\Self;
 
 use Testo\Assert;
 use Testo\Data\DataSet;
+use Tests\Sandbox\Stub\CooperativeTimer;
 use Testo\Fiber\RunInFiber;
 use Testo\Fiber\Schedule;
 use Testo\Filter\Group;
@@ -88,8 +89,9 @@ final class AsyncTest
     }
 
     /**
-     * Do the `$label` profile's steps of "work" (a nap plus an echoed progress line), suspending the
-     * fiber after each one so the sibling tests take their step in between.
+     * Do the `$label` profile's steps of "work" (a cooperative nap plus an echoed progress line).
+     * The nap suspends the fiber ({@see CooperativeTimer::await()}) instead of blocking, so the
+     * sibling tests take their steps while this one waits its step out.
      *
      * @param non-empty-string $label Work profile to follow.
      * @param non-empty-string|null $tag What to print the progress under, when it is not the profile
@@ -102,10 +104,9 @@ final class AsyncTest
 
         $done = 0;
         for ($i = 1; $i <= $steps; $i++) {
-            \usleep($nap);
+            CooperativeTimer::nap($nap)->await();
             ++$done;
             echo \sprintf("[%s] step %d/%d (worked %.2fs)\n", $tag, $i, $steps, $nap / 1_000_000);
-            \Fiber::suspend();
         }
 
         Assert::same($done, $steps);
