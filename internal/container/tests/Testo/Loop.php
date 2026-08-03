@@ -23,8 +23,9 @@ final class Loop
     /**
      * Run $body as a single coroutine on the Revolt loop; return its value (or rethrow).
      *
-     * `getSuspension()` is taken on the caller (main) fiber, so `suspend()` runs the loop while
-     * the queued microtask executes $body inside a loop-driven fiber.
+     * `getSuspension()` binds to whatever calls this — `{main}` or a loop-driven fiber, so bodies may
+     * nest `run()` calls. `suspend()` parks the caller (entering the loop when the caller is `{main}`)
+     * while the queued microtask executes $body inside a loop-driven fiber of its own.
      *
      * @template T
      * @param \Closure(): T $body

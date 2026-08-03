@@ -35,7 +35,7 @@ Suspension must go through a Revolt `Suspension` bound to a watcher (I/O, timer)
 
 Only the test body is placed on the loop — right before the test, inner to the data provider, retries and every scoped-state guard — and the next test only enters once it has finished. Tests of a case never share a loop run, and the framework pipeline itself never parks on the loop.
 
-That is what keeps the coroutines a test spawns attributable to it. Testo's scoped-state guards bind their state per fiber, and PHP gives a fiber no link to its creator, so a coroutine started with `EventLoop::queue()` or `async()` can only be traced back to a test while a single test is in flight. With one test on the loop that always holds, and its assertions and output land on it however deep it nests.
+That is what keeps the coroutines a test spawns attributable to it. Testo's scoped-state guards keep one active state and swap it only at fiber switches they drive themselves — and the loop's switches belong to the Revolt driver, which resumes parked fibers directly, past anything wrapping them. So the guards open their scopes outside the loop and never park during the dispatch: for as long as the test runs, the active state is simply this test's, and a coroutine started with `EventLoop::queue()` or `async()` reads it like the body does, however deep it nests. A second test on the same loop run would need that state swapped at switches nobody but the driver controls — hence one test at a time.
 
 To interleave whole tests with each other, use `#[RunInFiber]` from `testo/fiber` — those run on plain fibers Testo itself drives.
 
