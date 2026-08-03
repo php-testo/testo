@@ -10,9 +10,9 @@ use Revolt\EventLoop;
  * Minimal Revolt harness for the container-scope tests.
  *
  * Runs a body as a coroutine on the process event loop and, from inside it, forces a real
- * round-trip through the Revolt driver. Deliberately independent of the `testo/async` plugin:
- * these tests probe how {@see \Internal\Container\ObjectContainer::scope()} behaves under
- * Revolt — the exact guard/driver interaction the fiber-local migration must fix.
+ * round-trip through the Revolt driver. Deliberately independent of the Revolt bridge: these
+ * tests probe how {@see \Internal\Container\ObjectContainer::scope()} behaves around a loop —
+ * a scope opened outside it reaching everything on it, and nothing more.
  *
  * @internal
  */

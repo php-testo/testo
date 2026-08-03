@@ -14,10 +14,10 @@ use Testo\Test;
  * test at a time. Each test records a distinct number of assertions, awaiting a genuine timer between them,
  * and makes the last one inside a **coroutine of its own** that it starts on the loop.
  *
- * That last one is the point. A spawned coroutine holds no assertion scope, and PHP gives a fiber no link
- * to whoever created it, so the collector can only attribute it by inference — which holds precisely
- * because a single test owns the loop. Its assertion must land in that test's {@see \Testo\Assert\TestState}
- * like any other, and the test must still find exactly its own count. Interleaving whole tests is
+ * That last one is the point. The collector opens its scope outside the loop and never suspends, so for
+ * the whole dispatch its active state is this test's — and the spawned coroutine, which holds no scope of
+ * its own, reads exactly that. Its assertion must land in the test's {@see \Testo\Assert\TestState} like
+ * any other, and the test must still find exactly its own count. Interleaving whole tests is
  * {@see RoundRobinAssertScenarios}' job, on fibers Testo drives itself.
  */
 #[Test]

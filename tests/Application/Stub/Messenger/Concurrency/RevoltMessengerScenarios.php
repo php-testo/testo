@@ -17,11 +17,11 @@ use Testo\Testing\Attribute\Inject;
  * at a time. Each test logs a distinct number of messages, awaiting a genuine timer after each, and writes
  * the last one from a **coroutine of its own** that it starts on the loop.
  *
- * A spawned coroutine holds no messenger scope of its own, and PHP gives a fiber no link to whoever created
- * it, so its message reaches the test's buffer only by inference — which holds precisely because a single
- * test owns the loop. Reading the buffer back must then show exactly this test's messages, in order, the
- * coroutine's included. Keeping interleaved tests' buffers apart is {@see RoundRobinMessengerScenarios}' job,
- * on fibers Testo drives itself.
+ * The messenger scope is opened outside the loop and never suspends, so for the whole dispatch the active
+ * buffer is this test's — and the spawned coroutine, which holds no scope of its own, writes into exactly
+ * that. Reading the buffer back must then show this test's messages, in order, the coroutine's included.
+ * Keeping interleaved tests' buffers apart is {@see RoundRobinMessengerScenarios}' job, on fibers Testo
+ * drives itself.
  */
 #[Test]
 #[RunInRevolt]

@@ -19,12 +19,12 @@ use Tests\Application\Stub\Messenger\Concurrency\RevoltMessengerScenarios;
 use Tests\Application\Stub\Messenger\Concurrency\RoundRobinMessengerScenarios;
 
 /**
- * The messenger keeps each test's message buffer in a fiber-local guard ({@see MessengerHub}), so the buffer
- * follows the fiber a test runs on. These cases drive stub suites that stress that from both sides: tests
- * interleaving on Testo's fiber scheduler, where no test may see a sibling's messages; and a test on a real
- * Revolt loop, which owns the loop alone and must therefore also capture what the coroutines it spawns log.
- * Each stub logs a distinct set of messages across many suspensions, so a leak in either direction shows up
- * in what is read back off the {@see TestResult}.
+ * The messenger ({@see MessengerHub}) guards a single active buffer, swapping each test's state out at
+ * every suspension it relays and back in on resumption. These cases drive stub suites that stress that
+ * from both sides: tests interleaving on Testo's fiber scheduler, where no test may see a sibling's
+ * messages; and a test on a real Revolt loop, which owns the loop alone and must therefore also capture
+ * what the coroutines it spawns log. Each stub logs a distinct set of messages across many suspensions, so
+ * a leak in either direction shows up in what is read back off the {@see TestResult}.
  */
 #[Test]
 #[Covers(MessengerHub::class)]

@@ -15,7 +15,7 @@ use Testo\Testing\Attribute\Inject;
 /**
  * Three tests interleaved on Testo's fiber scheduler ({@see Schedule::RoundRobin}), each logging a distinct
  * set of messages on the shared {@see Messenger} across several `\Fiber::suspend()`s. The messenger keeps
- * its per-test buffer in a fiber-local guard ({@see \Testo\Application\Internal\MessengerHub}), so each test
+ * its per-test buffer guarded across the interleave ({@see \Testo\Application\Internal\MessengerHub}), so each test
  * must read back only its own messages even though a sibling logged into the same {@see Messenger} in
  * between. Every test verifies its own view here; the Feature suite additionally checks each test's
  * captured messages off the {@see \Testo\Core\Context\TestResult}.

@@ -16,8 +16,8 @@ use Testo\Test;
  * {@see ObjectContainer::scope()} driven by hand through plain fibers — exceptions injected at a
  * suspension point and many scopes interleaving on one thread.
  *
- * Adapted from Spiral's Core scope fiber tests. Assertions run on the test fiber (values are collected
- * or returned out of the driven fibers), because the assertion collector is itself fiber-local.
+ * Adapted from Spiral's Core scope fiber tests. Assertions run on the test fiber: values are collected
+ * or returned out of the driven fibers, keeping the hand-driven fibers free of framework calls.
  */
 #[Test]
 #[Covers(ObjectContainer::class)]

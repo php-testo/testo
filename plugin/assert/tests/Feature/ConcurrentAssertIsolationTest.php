@@ -19,12 +19,12 @@ use Tests\Assert\Stub\Concurrency\RevoltAssertScenarios;
 use Tests\Assert\Stub\Concurrency\RoundRobinAssertScenarios;
 
 /**
- * The Assert collector is a fiber-local guard ({@see StaticState}), so a test's assertions follow the
- * fiber it runs on. These cases drive stub suites that stress that from both sides: tests interleaving on
- * Testo's fiber scheduler, where each must keep exactly its own history and none of a sibling's; and a test
- * on a real Revolt loop, which owns the loop alone and must therefore also collect what the coroutines it
- * spawns assert. Each stub test records a distinct number of assertions across many suspensions, so a leak
- * in either direction shows up as a wrong count.
+ * The Assert collector guards a single active {@see StaticState} slot, swapping each test's state out at
+ * every suspension it relays and back in on resumption. These cases drive stub suites that stress that
+ * from both sides: tests interleaving on Testo's fiber scheduler, where each must keep exactly its own
+ * history and none of a sibling's; and a test on a real Revolt loop, which owns the loop alone and must
+ * therefore also collect what the coroutines it spawns assert. Each stub test records a distinct number of
+ * assertions across many suspensions, so a leak in either direction shows up as a wrong count.
  */
 #[Test]
 #[Covers(StaticState::class)]

@@ -27,10 +27,10 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  *
  * Sits **outer** to the fiber-aware scoped-state guards (order just outside {@see
  * InterceptorOptions::ORDER_DATA_PROVIDER}): the method-level fiber wraps the whole per-test pipeline —
- * assertion collector, messenger scope, the test body — so the guards run *inside* the fiber. They hold
- * their state per fiber (see {@see \Internal\Fiber\FiberLocal}), so each test reads its own scoped state
- * even while several interleave; a data-driven/retried test runs all its datasets/attempts in its single
- * fiber (data provider stays inner to the wrap).
+ * assertion collector, messenger scope, the test body — so the guards run *inside* the fiber. Each guard
+ * swaps its per-test state out at every suspension it relays and back in on resumption, so each test
+ * reads its own scoped state even while several interleave; a data-driven/retried test runs all its
+ * datasets/attempts in its single fiber (data provider stays inner to the wrap).
  *
  * @internal
  * @psalm-internal Testo\Fiber

@@ -31,11 +31,11 @@ use Testo\Pipeline\Attribute\Interceptable;
  * `Suspension` bound to a watcher (I/O, timer) — a bare `\Fiber::suspend()` has no resumer on the loop.
  *
  * Applied to a class it drives every test of the case — but **one at a time**, each run to completion
- * before the next enters the loop. That is what keeps a coroutine the test spawns (`EventLoop::queue()`,
- * an `async()` call) attributable to it: with a single test in flight, Testo's scoped-state guards can tell
- * whose the coroutine is (see {@see \Internal\Fiber\FiberLocal}), and its assertions and output land on the
- * right test however deep it nests. To interleave whole tests with each other, use `testo/fiber`'s
- * `#[RunInFiber]` schedules, which run on plain fibers Testo itself drives.
+ * before the next enters the loop. Only the test body goes on the loop; Testo's scoped-state guards open
+ * their scopes outside it, so for the whole dispatch their active state is this test's — and a coroutine
+ * the test spawns (`EventLoop::queue()`, an `async()` call) reads it like the body does: its assertions
+ * and output land on the right test however deep it nests. To interleave whole tests with each other, use
+ * `testo/fiber`'s `#[RunInFiber]` schedules, which run on plain fibers Testo itself drives.
  *
  * @api
  */

@@ -16,8 +16,8 @@ use Testo\Test;
 /**
  * {@see ObjectContainer::scope()} isolation — synchronously and across interleaved fibers.
  *
- * A scope clones the active state, so its resolved services are its own; the active state is held per
- * fiber (see {@see \Internal\Fiber\FiberLocal}), so two fibers each in their own scope never observe each
+ * A scope clones the active state, so its resolved services are its own; inside a fiber, `scope()` swaps
+ * the parent state back in at every suspension, so two fibers each in their own scope never observe each
  * other's instances even while interleaving on one thread.
  */
 #[Test]

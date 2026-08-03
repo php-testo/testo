@@ -7,19 +7,20 @@ namespace Internal\Container\Tests\Unit;
 use Internal\Container\ObjectContainer;
 use Internal\Container\Tests\Testo\Loop;
 use Internal\Container\Tests\Unit\Stub\ContainerScopeService;
-use Revolt\EventLoop;
 use Testo\Assert;
-use Testo\Bridge\Revolt\RunInRevolt;
 use Testo\Codecov\Covers;
 use Testo\Test;
 
 /**
- * Harness sanity for probing {@see ObjectContainer} under a real Revolt event loop.
+ * {@see ObjectContainer} under a real Revolt event loop.
  *
- * These first cases only prove the {@see Loop} harness itself — that a body runs inside a
- * driver-managed fiber, that a suspension round-trips, and that the container resolves inside
- * the loop. The scope-across-suspension behaviour (which today breaks via the fiber
- * trampoline) is added on top of this harness next.
+ * The first cases prove the {@see Loop} harness itself — that a body runs inside a driver-managed
+ * fiber, that a suspension round-trips, and that the container resolves inside the loop. The last one
+ * states the supported contract: a scope is opened **outside** the loop, and everything running on the
+ * loop under it — the body, the coroutines it spawns — resolves through it, because the scope's state is
+ * simply the active one for as long as the scope is open. The inverse — opening a scope *inside* a
+ * loop-driven fiber and awaiting within it — is not supported: `scope()` would hand-drive a child fiber
+ * there, and the Revolt driver resumes that child directly, bypassing the guard.
  */
 #[Test]
 #[Covers(ObjectContainer::class)]
@@ -73,25 +74,31 @@ final class ScopesRevoltTest
     }
 
     /**
-     * A real Revolt await **inside** a container `scope()`: the scope's state must survive the
-     * suspension. The loop resumes this exact fiber directly, and because the active {@see State} is held
-     * per fiber (see {@see \Internal\Fiber\FiberLocal}), `get()` after the await still reads the scope's
-     * own instance (`tag = 42`), not a fresh parent one. Before the fiber-local migration this leaked via
-     * the fiber trampoline (returned `tag = 0`) or deadlocked the Revolt driver.
+     * The supported shape: the scope is opened on the main thread and the loop runs **inside** it. The
+     * body — a loop-driven fiber — and a further coroutine it spawns both resolve through the scope's
+     * state across real awaits, and after the scope closes the root resolves its own instance again.
      */
-    #[RunInRevolt]
-    public function scopeAcrossARevoltAwaitKeepsItsState(): void
+    public function aScopeOpenedOutsideTheLoopReachesTheBodyAndItsCoroutines(): void
     {
         $container = new ObjectContainer();
 
-        $container->scope(static function (ObjectContainer $scoped): void {
+        $container->scope(static function (ObjectContainer $scoped) use ($container): void {
             $scoped->get(ContainerScopeService::class)->tag = 42;
 
-            $suspension = EventLoop::getSuspension();
-            EventLoop::delay(0.001, static fn() => $suspension->resume());
-            $suspension->suspend();
+            [$body, $spawned] = Loop::run(static function () use ($container): array {
+                $body = $container->get(ContainerScopeService::class)->tag;
+                Loop::tick();
 
-            Assert::same($scoped->get(ContainerScopeService::class)->tag, 42);
+                # A coroutine of the body's own, one level deeper on the loop.
+                $spawned = Loop::run(static fn(): ?int => $container->get(ContainerScopeService::class)->tag);
+
+                return [$body, $spawned];
+            });
+
+            Assert::same($body, 42);
+            Assert::same($spawned, 42);
         });
+
+        Assert::same($container->get(ContainerScopeService::class)->tag, 0);
     }
 }

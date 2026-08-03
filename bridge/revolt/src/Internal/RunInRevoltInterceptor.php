@@ -22,17 +22,17 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * Sits at {@see InterceptorOptions::ORDER_RIGHT_BEFORE_TEST} — inner to everything but coverage — so the
  * loop gets only what actually needs it: the code that awaits. The rest of the pipeline (data provider,
  * retries, the assertion collector, the messenger scope, the Mockery guard) stays off the loop and never
- * parks mid-flight; each dataset or attempt is dispatched as a loop run of its own. The scoped-state
- * guards still reach the body: {@see \Internal\Fiber\FiberLocal} answers a fiber holding no binding of its
- * own from the surrounding scope whenever that is unambiguous, and with one test in flight it always is —
- * for the body's fiber and for every coroutine the body spawns, however deep they nest.
+ * parks mid-flight; each dataset or attempt is dispatched as a loop run of its own. That placement is
+ * what makes the scoped-state guards and the loop compatible: the guards keep their state in a
+ * process-global slot they swap at fiber switches they drive themselves, and here they open their scopes
+ * outside the loop and never suspend — so for the whole dispatch the slot simply holds this test's state,
+ * and the body reads it from its loop fiber, as does every coroutine the body spawns, however deep.
  *
- * **A case's tests are not run concurrently with each other.** Sharing one loop run between them would put
- * several test scopes in flight at once, and that is exactly where the inference above must refuse to
- * answer: PHP gives a fiber no link to its creator, so a spawned coroutine — `EventLoop::queue()`, an
- * `async()` call, the everyday shape of an async test — has an unambiguous owner only while a single test
- * is in flight. Interleaving whole tests is what `testo/fiber`'s `#[RunInFiber]` schedules do, on plain
- * fibers Testo itself drives.
+ * **A case's tests are not run concurrently with each other.** Sharing one loop run between them would
+ * need the guards to swap that slot at the loop's own switches — and those belong to the Revolt driver,
+ * which resumes parked fibers directly, past anything wrapping them. Interleaving whole tests is what
+ * `testo/fiber`'s `#[RunInFiber]` schedules do, on plain fibers Testo itself drives — there the guards own
+ * every switch.
  *
  * @internal
  * @psalm-internal Testo\Bridge\Revolt

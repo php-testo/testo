@@ -13,7 +13,7 @@ use Testo\Test;
  * Same distinct-count assertion isolation as {@see RoundRobinAssertScenarios}, but under
  * {@see Schedule::Random}: the scheduler steps one random ready fiber each round, so the interleave order
  * is non-deterministic. The per-test count each test ends up with must stay deterministic regardless —
- * that is exactly what proves the fiber-local assert collector is not affected by the switching order.
+ * that is exactly what proves the assert collector's state swapping is not affected by the switching order.
  */
 #[Test]
 #[RunInFiber(Schedule::Random)]
