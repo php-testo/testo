@@ -8,7 +8,6 @@ use Mockery;
 use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\Expectation\ExpectationFailed;
 use Testo\Assert\State\Expectation\ExpectationFulfilled;
-use Testo\Bridge\Mockery\MockeryConcurrencyException;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
@@ -23,13 +22,10 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  *
  * Runs innermost so the teardown fires as close as possible to the test function.
  *
- * Mockery's mock container is process-global static state, so — unlike Testo's own fiber-local guards —
- * it cannot be isolated per fiber. This guard therefore serializes: it runs the test directly (no fiber
- * trampoline, so it cooperates with a real event loop) and, if another Mockery test is already in flight,
- * refuses to start with a {@see MockeryConcurrencyException}. That only happens under interleaving
- * ({@see \Testo\Fiber\Schedule::RoundRobin}/`Random`), where siblings would clobber each other's mocks.
- * One-at-a-time execution — `Solo`, {@see \Testo\Bridge\Revolt\RunInRevolt} or no fibers — is fully
- * supported, including across a real event-loop suspension.
+ * Mockery's mock container is process-global static state the bridge does not own, so this guard keeps
+ * it bound to its test the same way Testo's own guards keep theirs: across fiber suspensions it drives
+ * the test in a child fiber, saving the test's container and resetting the global one on every
+ * suspension, restoring it on resumption ({@see run()}).
  *
  * @internal
  * @psalm-internal Testo\Bridge\Mockery
@@ -38,26 +34,15 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
     order: InterceptorOptions::ORDER_CLOSE_TO_TEST,
     testType: TestType::Test,
 )]
-final class MockeryInterceptor implements TestRunInterceptor
+final readonly class MockeryInterceptor implements TestRunInterceptor
 {
-    /**
-     * Whether a Mockery-guarded test is currently running. The container is process-global, so a second
-     * test starting while this is set means two tests are interleaving over the same container.
-     */
-    private static bool $running = false;
-
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
-        self::$running and throw new MockeryConcurrencyException();
-        self::$running = true;
-
         $result = null;
         try {
-            $result = $next($info);
+            $result = $this->run($info, $next);
         } finally {
-            self::$running = false;
-
             # close() clears the container, so read the count first.
             $verified = \Mockery::getContainer()->mockery_getExpectationCount();
             try {
@@ -119,5 +104,42 @@ final class MockeryInterceptor implements TestRunInterceptor
         $state === null or $state->history[] = $failure;
 
         return $failure;
+    }
+
+    /**
+     * Run the test, keeping the global Mockery container bound to it across fiber suspensions.
+     *
+     * The container is process-global static state, so under concurrent (fiber-based) execution
+     * sibling tests would clobber each other's mocks. On every suspension we save this test's
+     * container and reset the global one; on resumption we restore it.
+     *
+     * @param callable(TestInfo): TestResult $next
+     */
+    private function run(TestInfo $info, callable $next): TestResult
+    {
+        if (\Fiber::getCurrent() === null) {
+            return $next($info);
+        }
+
+        $fiber = new \Fiber(static fn(): TestResult => $next($info));
+        $value = $fiber->start();
+        while (!$fiber->isTerminated()) {
+            $container = \Mockery::getContainer();
+            \Mockery::resetContainer();
+            try {
+                $resume = \Fiber::suspend($value);
+            } catch (\Throwable $e) {
+                \Mockery::setContainer($container);
+                $value = $fiber->throw($e);
+                continue;
+            }
+
+            \Mockery::setContainer($container);
+            $value = $fiber->resume($resume);
+        }
+
+        /** @var TestResult $result */
+        $result = $fiber->getReturn();
+        return $result;
     }
 }

@@ -14,9 +14,9 @@ use Testo\Fiber\RunInFiber;
 use Testo\Test;
 
 /**
- * Mockery under one-at-a-time fiber execution — the supported case after the trampoline was dropped.
- * A mock set up inside a scheduler fiber (Solo) and one carried across a real Revolt await both verify
- * normally: with no sibling test running, the process-global container stays this test's throughout.
+ * Mockery under one-at-a-time fiber execution. A mock set up inside a scheduler fiber (Solo) and one
+ * carried across a real Revolt await both verify normally: with no sibling test running, the
+ * process-global container stays this test's throughout.
  */
 #[Test]
 #[Covers(MockeryPlugin::class, MockeryInterceptor::class)]
