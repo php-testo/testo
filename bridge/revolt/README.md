@@ -33,7 +33,7 @@ Suspension must go through a Revolt `Suspension` bound to a watcher (I/O, timer)
 
 ### One test at a time
 
-Each test's whole pipeline — the assertion collector, the messenger scope, the data provider and the test body — is placed on the loop individually, and the next test only enters once it has finished. Tests of a case never share a loop run.
+Only the test body is placed on the loop — right before the test, inner to the data provider, retries and every scoped-state guard — and the next test only enters once it has finished. Tests of a case never share a loop run, and the framework pipeline itself never parks on the loop.
 
 That is what keeps the coroutines a test spawns attributable to it. Testo's scoped-state guards bind their state per fiber, and PHP gives a fiber no link to its creator, so a coroutine started with `EventLoop::queue()` or `async()` can only be traced back to a test while a single test is in flight. With one test on the loop that always holds, and its assertions and output land on it however deep it nests.
 

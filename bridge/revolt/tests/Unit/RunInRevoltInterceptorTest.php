@@ -20,15 +20,15 @@ use Testo\Expect;
 use Testo\Test;
 
 /**
- * Unit: {@see RunInRevoltInterceptor::runTest()} puts the rest of the pipeline on the Revolt loop and
- * hands back what it returned — the test body runs in a loop fiber, not on `{main}`, and the interceptor
- * blocks until it is done.
+ * Unit: {@see RunInRevoltInterceptor::runTest()} puts the test body on the Revolt loop and hands back
+ * what it returned — the body runs in a loop fiber, not on `{main}`, and the interceptor blocks until it
+ * is done.
  */
 #[Test]
 #[Covers(RunInRevoltInterceptor::class)]
 final class RunInRevoltInterceptorTest
 {
-    public function theRestOfThePipelineRunsInALoopFiber(): void
+    public function theTestBodyRunsInALoopFiber(): void
     {
         $onLoop = null;
         $next = static function (TestInfo $info) use (&$onLoop): TestResult {
