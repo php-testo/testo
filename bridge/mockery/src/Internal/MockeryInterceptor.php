@@ -22,11 +22,6 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  *
  * Runs innermost so the teardown fires as close as possible to the test function.
  *
- * Mockery's mock container is process-global static state the bridge does not own, so this guard keeps
- * it bound to its test the same way Testo's own guards keep theirs: across fiber suspensions it drives
- * the test in a child fiber, saving the test's container and resetting the global one on every
- * suspension, restoring it on resumption ({@see run()}).
- *
  * @internal
  * @psalm-internal Testo\Bridge\Mockery
  */

@@ -32,7 +32,7 @@ enum Schedule
      * Run all tests together, switching fibers in random order.
      *
      * Interleave the case's tests by stepping a random ready test each round, to shake out
-     * order-dependent races. Non-seeded for now, so runs are not reproducible.
+     * order-dependent races. Non-seeded: runs are not reproducible.
      */
     case Random;
 }

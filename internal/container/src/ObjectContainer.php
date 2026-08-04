@@ -12,11 +12,6 @@ use Internal\Container\Interanl\State;
  * Provides service creation and caching with autowiring capabilities.
  * Automatically loads configuration for config classes.
  *
- * {@see scope()} is fiber-aware the classic way: inside a fiber the scope body runs in a child fiber this
- * call pumps, and on every suspension the parent state is swapped back in — so whatever runs while the
- * scope is parked sees its own bindings, while everything running *under* the scope (however many fibers
- * deep) resolves through the scope's state, which is simply the active one.
- *
  * @internal
  * @psalm-internal Testo\Application
  */
