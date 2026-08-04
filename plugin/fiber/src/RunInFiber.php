@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Fiber;
 
+use Testo\Fiber\Internal\CoroutineScopeInterceptor;
 use Testo\Fiber\Internal\RunInFiberInterceptor;
 use Testo\Pipeline\Attribute\FallbackInterceptor;
 use Testo\Pipeline\Attribute\Interceptable;
@@ -30,18 +31,23 @@ use Testo\Pipeline\Attribute\Interceptable;
  * - on a **class** — every test of the case is scheduled per {@see Schedule}: `Solo` (each test in
  *   its own fiber, one after another — the default), or `RoundRobin` / `Random` cooperative interleaving.
  *
+ * Either way the test gets its own coroutine scope: {@see Coroutine::spawn()} adds coroutines to the
+ * test's schedule, {@see Coroutine::await()} / {@see Coroutine::concurrently()} wait for them.
+ *
  * Switching is **cooperative** and happens only where the running fiber calls `\Fiber::suspend()` —
  * Testo's scheduler owns the fibers, there is no event loop and no preemption. This is for
  * fiber-based/cooperative code and race hunting, **not** for real async I/O: awaiting a timer, socket
  * or `Future` needs the Revolt event loop — use the `testo/bridge-revolt` `#[RunInRevolt]` attribute.
  *
- * Self-wiring: it is {@see Interceptable}, so {@see RunInFiberInterceptor} is inserted only for tests
- * that carry it — no plugin registration needed.
+ * Self-wiring: it is {@see Interceptable}, so {@see RunInFiberInterceptor} (the fiber wrap) and
+ * {@see CoroutineScopeInterceptor} (the coroutine scope) are inserted only for tests that carry it —
+ * no plugin registration needed.
  *
  * @api
  */
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD)]
 #[FallbackInterceptor(RunInFiberInterceptor::class)]
+#[FallbackInterceptor(CoroutineScopeInterceptor::class)]
 final readonly class RunInFiber implements Interceptable
 {
     /**

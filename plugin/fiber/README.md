@@ -28,10 +28,25 @@
 Runs tests as plain PHP fibers driven by Testo's own cooperative scheduler, so a test (or the code it exercises) may suspend with `\Fiber::suspend()` and be resumed, and a case's tests may be interleaved to shake out order-dependent races.
 
 - `#[RunInFiber]` — run a test (method) or a whole case (class) inside fibers, scheduled by `Schedule::Solo` (default), `RoundRobin` or `Random`.
+- `Coroutine::spawn()` / `->await()` / `Coroutine::concurrently()` — add coroutines to the running test's schedule and wait for them; they interleave with the test body (and, under a class-level `#[RunInFiber]`, with the case's other tests) at every suspension point.
+
+```php
+#[RunInFiber]
+public function pingPong(): void
+{
+    $server = Coroutine::spawn(fn(): string => $this->acceptAndEcho());
+    $client = Coroutine::spawn(fn(): string => $this->connectAndSend('ping'));
+
+    Assert::same($client->await(), 'pong');
+    Assert::same($server->await(), 'ping');
+}
+```
+
+The scope is structured: the test is not finished until every coroutine it spawned is. Coroutine failures always surface wrapped in a `CompositeException` — even a single one; if the test body fails, pending coroutines are cancelled with a `CancelledException` thrown into them, and an await cycle is broken with a `DeadlockException` at the guilty `await()`.
 
 Switching is cooperative and happens only at suspension points — there is no event loop and no preemption. This is for fiber-based/cooperative code and race hunting, **not** for real async I/O: awaiting a timer, socket or `Future` needs the Revolt event loop — use the `testo/bridge-revolt` `#[RunInRevolt]` attribute for that.
 
-The attribute lives under the `Testo\Fiber\` namespace.
+Everything lives under the `Testo\Fiber\` namespace.
 
 ## Install
 

@@ -12,10 +12,10 @@ use Testo\Fiber\Schedule;
  * Drives a case's test handlers on Testo's cooperative fiber {@see Scheduler}.
  *
  * An invokable runner — set on {@see \Testo\Core\Context\CaseInfo::$batchRunner} by
- * {@see RunInFiberInterceptor::runTestCase()}. Wraps each handler in its own `\Fiber` and drives the
- * whole set per the case {@see Schedule} (`Solo` to completion, or `RoundRobin` / `Random` interleaved).
- * Each handler runs its test's pipeline synchronously inside the fiber, so Testo's fiber-aware guards
- * cooperate and per-test state stays isolated across an interleave.
+ * {@see RunInFiberInterceptor::runTestCase()}. Spawns each handler as a task of a fresh scheduler and
+ * drives the whole set per the case {@see Schedule} (`Solo` to completion, or `RoundRobin` / `Random`
+ * interleaved). Each handler runs its test's pipeline synchronously inside the fiber, so Testo's
+ * fiber-aware guards cooperate and per-test state stays isolated across an interleave.
  *
  * @internal
  * @psalm-internal Testo\Fiber
@@ -32,19 +32,26 @@ final readonly class FiberTestBatchRunner
      */
     public function __invoke(array $handlers): array
     {
-        // One fiber per handler; the scheduler drives the whole set at once.
-        $fibers = \array_map(static fn(callable $handler): \Fiber => new \Fiber($handler), $handlers);
+        $scheduler = new Scheduler($this->schedule);
+        $tasks = \array_map(
+            static fn(callable $handler): Task => $scheduler->spawn($handler(...)),
+            $handlers,
+        );
 
-        $errors = Scheduler::run($fibers, $this->schedule);
+        $scheduler->drive();
 
         // Handlers never throw (a pipeline failure is captured as an Aborted result), so an error here is
         // unexpected; surface all of them together rather than dropping every failure but the first.
+        $errors = [];
+        foreach ($tasks as $i => $task) {
+            $task->error === null or $errors[$i] = $task->error;
+        }
         $errors === [] or throw new CompositeException($errors);
 
         return \array_map(
             /** @var TestResult */
-            static fn(\Fiber $fiber): TestResult => $fiber->getReturn(),
-            $fibers,
+            static fn(Task $task): TestResult => $task->result,
+            $tasks,
         );
     }
 }

@@ -7,6 +7,9 @@ namespace Tests\Fiber\Feature;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Value\Status;
+use Testo\Fiber\Coroutine;
+use Testo\Fiber\Exception\CompositeException;
+use Testo\Fiber\Internal\CoroutineScopeInterceptor;
 use Testo\Fiber\Internal\RunInFiberInterceptor;
 use Testo\Fiber\RunInFiber;
 use Testo\Test;
@@ -21,6 +24,8 @@ use Tests\Fiber\Stub\FiberScenarios;
 #[Test]
 #[Covers(RunInFiber::class)]
 #[Covers(RunInFiberInterceptor::class)]
+#[Covers(CoroutineScopeInterceptor::class)]
+#[Covers(Coroutine::class)]
 #[TestingSuite(path: __DIR__ . '/../Stub')]
 final class StatusTest
 {
@@ -43,5 +48,49 @@ final class StatusTest
         $result = TestRunner::runTest([FiberScenarios::class, 'untaggedRunsOnMainFiber']);
 
         Assert::same($result->status, Status::Passed);
+    }
+
+    public function unawaitedCoroutineFailureErrorsTheTest(): void
+    {
+        $result = TestRunner::runTest([FiberScenarios::class, 'unawaitedCoroutineFailure']);
+
+        Assert::same($result->status, Status::Error);
+        # Coroutine failures always arrive as a composite, even a single one.
+        Assert::instanceOf($result->failure, CompositeException::class);
+        Assert::instanceOf($result->failure->getPrevious(), \RuntimeException::class);
+    }
+
+    public function awaitedCoroutineFailureHandledInTestPasses(): void
+    {
+        $result = TestRunner::runTest([FiberScenarios::class, 'awaitedCoroutineFailureHandledInTest']);
+
+        # await() marked the failure observed; the scope does not resurface it.
+        Assert::same($result->status, Status::Passed);
+    }
+
+    public function bodyThrowKeepsWorkingWithExpectException(): void
+    {
+        $result = TestRunner::runTest([FiberScenarios::class, 'bodyThrowStaysUnwrapped']);
+
+        # The body's own throw is not wrapped — #[ExpectException] matches it as usual.
+        Assert::same($result->status, Status::Passed);
+    }
+
+    public function coroutineAssertionsCountTowardTheirTest(): void
+    {
+        $result = TestRunner::runTest([FiberScenarios::class, 'assertionsInsideCoroutinesCountForTheTest']);
+
+        Assert::same($result->status, Status::Passed);
+        # 1 assert in the body + 2 inside the coroutine, attributed to the same test.
+        Assert::same($result->summary->metric('assertions'), 3);
+    }
+
+    public function spawnWithoutScopeErrorsWithAHint(): void
+    {
+        $result = TestRunner::runTest([FiberScenarios::class, 'spawnWithoutFiberScope']);
+
+        Assert::same($result->status, Status::Error);
+        Assert::instanceOf($result->failure, \LogicException::class);
+        Assert::string($result->failure->getMessage())->contains('RunInFiber');
     }
 }

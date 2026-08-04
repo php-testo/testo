@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Fiber\Stub;
 
 use Testo\Assert;
+use Testo\Assert\ExpectException;
+use Testo\Fiber\Coroutine;
+use Testo\Fiber\Exception\CompositeException;
 use Testo\Fiber\RunInFiber;
 use Testo\Test;
 
@@ -30,5 +33,50 @@ final class FiberScenarios
     public function untaggedRunsOnMainFiber(): void
     {
         Assert::null(\Fiber::getCurrent());
+    }
+
+    #[RunInFiber]
+    public function unawaitedCoroutineFailure(): void
+    {
+        Coroutine::spawn(static fn() => throw new \RuntimeException('nobody awaited me'));
+        Assert::true(true);
+    }
+
+    #[RunInFiber]
+    public function awaitedCoroutineFailureHandledInTest(): void
+    {
+        $bad = Coroutine::spawn(static fn() => throw new \RuntimeException('boom'));
+        try {
+            $bad->await();
+            Assert::true(false);
+        } catch (CompositeException $e) {
+            Assert::instanceOf($e->getPrevious(), \RuntimeException::class);
+        }
+    }
+
+    #[RunInFiber]
+    #[ExpectException(\DomainException::class)]
+    public function bodyThrowStaysUnwrapped(): void
+    {
+        Coroutine::spawn(static fn(): string => 'fine');
+
+        throw new \DomainException('straight from the body');
+    }
+
+    #[RunInFiber]
+    public function assertionsInsideCoroutinesCountForTheTest(): void
+    {
+        Coroutine::spawn(static function (): void {
+            Assert::true(true);
+            \Fiber::suspend();
+            Assert::true(true);
+        })->await();
+
+        Assert::true(true);
+    }
+
+    public function spawnWithoutFiberScope(): void
+    {
+        Coroutine::spawn(static fn(): string => 'no scope for me');
     }
 }

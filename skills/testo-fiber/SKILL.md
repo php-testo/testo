@@ -1,6 +1,6 @@
 ---
 name: testo-fiber
-description: Run Testo tests as cooperatively-scheduled plain PHP fibers with #[RunInFiber] — for fiber/coroutine code that suspends with \Fiber::suspend() and for interleaving a case's tests to shake out order-dependent races. Use when a test drives fibers, yields cooperatively, or needs deterministic interleaving. For real async I/O (amphp, Revolt timers/streams, Future::await()) use the testo/bridge-revolt #[RunInRevolt] attribute instead.
+description: Run Testo tests as cooperatively-scheduled plain PHP fibers with #[RunInFiber] — for fiber/coroutine code that suspends with \Fiber::suspend() and for interleaving a case's tests to shake out order-dependent races. Coroutine::spawn()/await()/concurrently() add coroutines to the running test's schedule. Use when a test drives fibers, yields cooperatively, spawns concurrent coroutines, or needs deterministic interleaving. For real async I/O (amphp, Revolt timers/streams, Future::await()) use the testo/bridge-revolt #[RunInRevolt] attribute instead.
 ---
 
 # Fiber / coroutine tests in Testo
@@ -9,12 +9,15 @@ Provided by the `testo/fiber` plugin (ships with Testo). It runs tests inside pl
 
 Fetch `https://php-testo.github.io/llms.txt` for the current attribute namespaces and parameters before writing code.
 
-| Attribute | Level | Purpose |
+| API | Level | Purpose |
 |---|---|---|
 | `#[RunInFiber]` | method | Run this test in its own fiber (so cooperative `\Fiber::suspend()` works). |
 | `#[RunInFiber(Schedule)]` | class | Schedule the case's tests: `Solo` (default), `RoundRobin` / `Random` cooperative interleaving. |
+| `Coroutine::spawn(fn)` | in test | Add a coroutine to the running test's schedule; returns a `Coroutine` handle. |
+| `$handle->await()` | in test | Park the caller until the coroutine finishes; return its result or rethrow its failure. |
+| `Coroutine::concurrently(...)` | in test | Spawn several closures/fibers and wait for all; results keyed like the arguments. |
 
-Everything lives in the `Testo\Fiber\` namespace (`Testo\Fiber\RunInFiber`, `Testo\Fiber\Schedule`).
+Everything lives in the `Testo\Fiber\` namespace (`Testo\Fiber\RunInFiber`, `Testo\Fiber\Schedule`, `Testo\Fiber\Coroutine`).
 
 ## `#[RunInFiber]` — run a test in a fiber
 
@@ -58,6 +61,40 @@ final class RaceTest
 - `Schedule` enum (`Testo\Fiber\Schedule`): `Solo` (each test in its own fiber, to completion, no interleave — default), `RoundRobin` (one step per ready test each round), `Random` (a random ready test each round — non-seeded, not reproducible yet).
 - `RoundRobin` / `Random` interleave the case's tests on plain fibers, switching only where a fiber calls `\Fiber::suspend()`. Put a `\Fiber::suspend()` where a context switch should be allowed (in real use, the async driver the test exercises does this). Per-test assertion state stays isolated across the interleave.
 - Reports stay readable while tests interleave: each test carries a `TestIdentity`, so the terminal renders every test — its batch node, data sets, streamed `-vv` output and result line — as one contiguous block instead of splicing them together, and `--teamcity` stamps a per-test `flowId`. Blocks appear in the order tests finish, so a test that is not the one currently streaming shows up once it completes.
+
+## `Coroutine` — spawn concurrent coroutines inside a test
+
+Every `#[RunInFiber]` test runs inside its own **coroutine scope**: the test body is the scope's first coroutine, and `Coroutine::spawn()` adds more to the same round-robin schedule. Coroutines interleave with the body (and each other) at every `\Fiber::suspend()`, and — under a class-level `#[RunInFiber]` — the whole scope keeps interleaving with the case's other tests.
+
+```php
+use Testo\Assert;
+use Testo\Fiber\Coroutine;
+use Testo\Fiber\RunInFiber;
+use Testo\Test;
+
+#[Test]
+#[RunInFiber]
+public function pingPong(): void
+{
+    $server = Coroutine::spawn(fn(): string => $this->acceptAndEcho());   // Closure or unstarted \Fiber
+    $client = Coroutine::spawn(fn(): string => $this->connectAndSend('ping'));
+
+    Assert::same($client->await(), 'pong');   // parks the body; others keep running
+    Assert::true($server->isFinished());
+
+    // Sugar: spawn + await all; named arguments key the results.
+    $r = Coroutine::concurrently(pull: fn() => $q->pull(), push: fn() => $q->push(1));
+    Assert::same($r['push'], 1);
+}
+```
+
+Rules (verified against `plugin/fiber/src/Coroutine.php`):
+
+- `spawn()` needs an active scope — outside `#[RunInFiber]` it throws a `LogicException`. Assertions, messages **and coverage** inside a coroutine are attributed to the test that spawned it: the scope runs inside both the scoped-state guards and the test's coverage window.
+- **The scope is structured**: the test is not finished until every coroutine it spawned is. Coroutines still pending when the body returns keep being driven; if the body *fails*, they are cancelled — a `Testo\Fiber\Exception\CancelledException` is thrown into each pending fiber (its `finally` blocks run; don't swallow it).
+- **Coroutine failures always arrive wrapped in `Testo\Fiber\Exception\CompositeException`** — even a single one — whether rethrown by `await()` / `concurrently()` or reported at scope close for a coroutine nobody awaited (that marks the test `Error`). The body's own throw stays unwrapped, so `#[ExpectException]` on it works as usual; expect `CompositeException` when the throw comes from a coroutine.
+- An await cycle is detected and broken with a `Testo\Fiber\Exception\DeadlockException` raised at the first parked `await()`. A bare `\Fiber::suspend()` loop waiting for something that never happens is **not** detected.
+- `concurrently()` waits for *all* its coroutines even after one fails, then bundles every failure into one composite.
 
 ## Pitfalls
 

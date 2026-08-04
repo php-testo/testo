@@ -22,8 +22,8 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * - {@see runTestCase()} (class-level) sets a {@see FiberTestBatchRunner} on {@see CaseInfo::$batchRunner};
  *   `CaseRunner` reads it there and drives the whole case's batch on fibers per the class-level
  *   {@see Schedule}. No container swapping, no re-emitted events.
- * - {@see runTest()} (method-level) wraps a single test in its own fiber. When the case is already
- *   scheduling (a class-level `#[RunInFiber]`), it is a pass-through to avoid double-wrapping.
+ * - {@see runTest()} (method-level) wraps a single test in its own fiber. When a scheduler is already
+ *   driving (a class-level `#[RunInFiber]`), it is a pass-through to avoid double-wrapping.
  *
  * Sits **outer** to the fiber-aware scoped-state guards (order just outside {@see
  * InterceptorOptions::ORDER_DATA_PROVIDER}): the method-level fiber wraps the whole per-test pipeline —
@@ -31,6 +31,10 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * swaps its per-test state out at every suspension it relays and back in on resumption, so each test
  * reads its own scoped state even while several interleave; a data-driven/retried test runs all its
  * datasets/attempts in its single fiber (data provider stays inner to the wrap).
+ *
+ * The test's coroutine scope ({@see \Testo\Fiber\Coroutine}) is *not* opened here — that is
+ * {@see CoroutineScopeInterceptor}, wired by the same attribute at the innermost position, so spawned
+ * coroutines run inside the guards and read their test's scoped state.
  *
  * @internal
  * @psalm-internal Testo\Fiber
@@ -55,17 +59,18 @@ final readonly class RunInFiberInterceptor implements TestCaseRunInterceptor, Te
     {
         // Under a class-level #[RunInFiber] the batch runner already runs this test inside a scheduled
         // fiber — don't wrap it again.
-        if (Scheduler::active()) {
+        if (Scheduler::current() !== null) {
             return $next($info);
         }
 
         // Method-level #[RunInFiber] (no class scheduling): run this one test in its own fiber.
-        $fiber = new \Fiber(static fn(): TestResult => $next($info));
-        $errors = Scheduler::run([$fiber], Schedule::Solo);
+        $scheduler = new Scheduler(Schedule::Solo);
+        $task = $scheduler->spawn(static fn(): TestResult => $next($info));
+        $scheduler->drive();
 
-        \array_key_exists(0, $errors) and throw $errors[0];
+        $task->error === null or throw $task->error;
 
         /** @var TestResult */
-        return $fiber->getReturn();
+        return $task->result;
     }
 }

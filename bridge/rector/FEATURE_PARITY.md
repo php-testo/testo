@@ -31,7 +31,7 @@ Conversion coverage across the three directions supported by `testo/bridge-recto
 | **Mocks** (`createMock`/`getMockBuilder`/`prophesize`) | ➖ | ⛔ *Testo has no built-in mocking* | ➖ |
 | **Memory-leak expectations** | ⛔ *no PHPUnit equivalent* | ➖ | ➖ |
 | **Retry / Repeat** (`#[Retry]`/`#[Repeat]`) | ⛔ *no PHPUnit equivalent* | ➖ | ➖ |
-| **Fiber** (`#[RunInFiber]`) | ⛔ *no PHPUnit/Pest equivalent — neither has a fiber/coroutine test attribute* | ➖ | ➖ |
+| **Fiber** (`#[RunInFiber]`, `Coroutine::spawn/await/concurrently`) | ⛔ *no PHPUnit/Pest equivalent — neither has a fiber/coroutine test attribute or an in-test coroutine scope* | ➖ | ➖ |
 | **`uses()`** (Pest) | ➖ | ➖ | ⛔ *a converted function has no base class, traits or `$this` to attach to; closures that capture `$this`-shared state are left untouched* |
 | **`arch()` tests** (Pest) | ➖ | ➖ | ⛔ *Testo has no arch-assertion subsystem* |
 
