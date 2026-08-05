@@ -81,6 +81,12 @@ vendor/bin/testo --coverage-xml=build/coverage-xml      # directory, for Infecti
 
 Don't ship `Path` on every CI run — it's the slowest. Reserve it for mutation testing or scheduled jobs.
 
+**`Branch` / `Path` with fibers needs Xdebug ≥ 3.4.5.** Both levels enable Xdebug's branch analysis,
+which corrupts memory in older builds when a test runs inside a fiber (`#[RunInFiber]`) — the process
+dies with no PHP error and no report. On Xdebug < 3.4.5 Testo stops such a test with
+`BranchCoverageUnsafeInFiber` rather than letting it crash; upgrade Xdebug or use `Line`. PCOV is
+unaffected (it only does `Line` anyway).
+
 ## `#[Covers]` and `#[CoversNothing]`
 
 Declare which production classes a test exercises. This scopes coverage reports and surfaces dead tests.
@@ -124,5 +130,8 @@ For Infection, point `infection.json`'s `coverage.path` at the directory you gav
 - No coverage written? Check the active Xdebug mode includes `coverage` — set it via `xdebug.mode`, `-d xdebug.mode=coverage`, or `XDEBUG_MODE=coverage` (or load PCOV). Testo skips the driver if neither is available.
 - `clover.xml` empty? Suite-level finder probably excludes the `src` directory you expected — verify the `FinderConfig` covers it.
 - Don't enable coverage in benchmark suites — it falsifies timings.
+- Coverage under `#[RunInFiber]` costs an extra driver stop/start per suspension (the window is closed
+  around every fiber switch so each test keeps its own lines). Suspension-heavy tests pay for it — a
+  reason to keep coverage runs on `Line` and off the interleaving-heavy suites.
 - Don't write `#[Covers(SomeInterface::class)]` — point at concrete classes that own the executable code.
 - Don't combine `#[Covers]` and `#[CoversNothing]` on the same class/method — pick one.

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Internal\Middleware;
 
+use Testo\Codecov\Config\CoverageLevel;
 use Testo\Codecov\Covers;
 use Testo\Codecov\CoversNothing;
+use Testo\Codecov\Internal\Cache;
 use Testo\Codecov\Internal\CoverageAttribute;
 use Testo\Codecov\Internal\CoverageDriver;
 use Testo\Codecov\Internal\CoverageFilter;
@@ -24,6 +26,8 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  *
  * Tests marked with {@see CoversNothing} are executed without coverage collection.
  * Tests marked with {@see Covers} have their coverage filtered to the specified targets.
+ *
+ * Fiber-aware: see {@see run()} for how a test's window survives an interleave.
  *
  * @internal
  */
@@ -63,12 +67,15 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
             return $next($info);
         }
 
+        $banked = new Cache(new CoverageResult());
+
         $this->driver->start();
 
         try {
-            $result = $next($info);
+            $result = $this->run($info, $next, $banked);
         } finally {
-            $coverage = $this->driver->collect();
+            # Every exit path leaves the window open, so it holds this test's last slice.
+            $coverage = $banked->value->merge($this->driver->collect());
         }
 
         /**
@@ -86,6 +93,49 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
         $coverage = $coverage->withTestMethod($info->identity->qualifiedName());
 
         return $result->withAttribute(CoverageResult::class, $coverage);
+    }
+
+    /**
+     * Run the test, keeping its coverage window bound to it across fiber suspensions.
+     *
+     * The driver collects process-wide and its window cannot nest — a `collect()` from any fiber ends
+     * collection for all of them. So on every suspension this test's window is closed and what it
+     * holds is banked; on resumption a fresh window is opened. Lines a sibling test executes while
+     * this one is parked therefore never land here, and the banked slices add up to exactly this
+     * test's coverage.
+     *
+     * Keeping no window open across a switch is also what keeps the process alive: with
+     * `XDEBUG_CC_BRANCH_CHECK` (any {@see CoverageLevel} above {@see CoverageLevel::Line}) a window
+     * that spans a fiber switch corrupts memory inside XDebug and kills the run outright.
+     *
+     * @param callable(TestInfo): TestResult $next
+     * @param Cache $banked Accumulator for the slices collected so far.
+     */
+    private function run(TestInfo $info, callable $next, Cache $banked): TestResult
+    {
+        if (\Fiber::getCurrent() === null) {
+            return $next($info);
+        }
+
+        $fiber = new \Fiber(static fn(): TestResult => $next($info));
+        $value = $fiber->start();
+        while (!$fiber->isTerminated()) {
+            # Leaving our slice: bank it and close the window before anyone else gets to run.
+            $banked->value = $banked->value->merge($this->driver->collect());
+            try {
+                $resume = \Fiber::suspend($value);
+            } catch (\Throwable $e) {
+                $this->driver->start();
+                $value = $fiber->throw($e);
+                continue;
+            }
+
+            $this->driver->start();
+            $value = $fiber->resume($resume);
+        }
+
+        /** @var TestResult */
+        return $fiber->getReturn();
     }
 
     /**
