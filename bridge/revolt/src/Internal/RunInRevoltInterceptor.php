@@ -19,14 +19,19 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * {@see \Revolt\EventLoop\Suspension} until it finishes, so from the outside the test stays an ordinary
  * blocking call while, inside, it may await real async work.
  *
- * Sits at {@see InterceptorOptions::ORDER_RIGHT_BEFORE_TEST} — inner to everything but coverage — so the
- * loop gets only what actually needs it: the code that awaits. The rest of the pipeline (data provider,
- * retries, the assertion collector, the messenger scope, the Mockery guard) stays off the loop and never
+ * Sits at {@see InterceptorOptions::ORDER_ASYNC_COROUTINE} so the loop gets only what
+ * actually needs it: the code that awaits. The rest of the pipeline (data provider, retries, the assertion
+ * collector, the messenger scope, the Mockery guard, coverage collection) stays off the loop and never
  * parks mid-flight; each dataset or attempt is dispatched as a loop run of its own. That placement is
  * what makes the scoped-state guards and the loop compatible: the guards keep their state in a
  * process-global slot they swap at fiber switches they drive themselves, and here they open their scopes
  * outside the loop and never suspend — so for the whole dispatch the slot simply holds this test's state,
  * and the body reads it from its loop fiber, as does every coroutine the body spawns, however deep.
+ *
+ * Nothing may be scheduled inner to this: the loop fiber belongs to the Revolt driver, which resumes it
+ * directly, past anything wrapping it. An interceptor that suspended out of that fiber — as the coverage
+ * trampoline does to keep interleaved tests apart — would never be resumed, and the run would die on
+ * "Event loop terminated without resuming the current suspension".
  *
  * **A case's tests are not run concurrently with each other.** Sharing one loop run between them would
  * need the guards to swap that slot at the loop's own switches — and those belong to the Revolt driver,
@@ -37,7 +42,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * @internal
  * @psalm-internal Testo\Bridge\Revolt
  */
-#[InterceptorOptions(order: InterceptorOptions::ORDER_RIGHT_BEFORE_TEST, onConflict: ConflictPolicy::Last)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_ASYNC_COROUTINE, onConflict: ConflictPolicy::Last)]
 final readonly class RunInRevoltInterceptor implements TestRunInterceptor
 {
     #[\Override]

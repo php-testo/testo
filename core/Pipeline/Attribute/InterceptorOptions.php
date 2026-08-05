@@ -42,6 +42,24 @@ final class InterceptorOptions
      */
     public const ORDER_RIGHT_BEFORE_TEST = 300_000_000_000;
 
+    /**
+     * Collects code coverage for the test.
+     *
+     * Outer to {@see ORDER_ASYNC_COROUTINE} on purpose: a collector has to close its window around
+     * every fiber switch it can see, and it can only do that for fibers Testo drives itself.
+     */
+    public const ORDER_COVERAGE = 300_000_100_000;
+
+    /**
+     * Hands the test body to a coroutine — an event loop, a coroutine scope — that owns the fiber it
+     * runs in and resumes it directly.
+     *
+     * Nothing that suspends may be scheduled outer to such an interceptor and inner to
+     * {@see ORDER_COVERAGE}: a suspension relayed out of a fiber the interceptor does not drive is
+     * never resumed.
+     */
+    public const ORDER_ASYNC_COROUTINE = 300_000_300_000;
+
     public function __construct(
         /**
          * The priority of the interceptor.

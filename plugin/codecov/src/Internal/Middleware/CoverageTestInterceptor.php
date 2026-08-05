@@ -36,9 +36,16 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * `XDEBUG_CC_BRANCH_CHECK` (any {@see CoverageLevel} above {@see CoverageLevel::Line}) a window that
  * spans a fiber switch corrupts memory inside XDebug and kills the run outright.
  *
+ * The trampoline is why this sits at {@see InterceptorOptions::ORDER_COVERAGE}, outer to
+ * {@see InterceptorOptions::ORDER_ASYNC_COROUTINE} rather than innermost: an interceptor there hands the
+ * test to a fiber it owns and resumes directly — `testo/bridge-revolt` dispatches the body onto the
+ * Revolt event loop — and a suspension relayed out of such a fiber is never resumed. From here the
+ * trampoline only ever relays through fibers Testo drives, and a coroutine-dispatched test is measured
+ * in one window, which is enough because the loop runs one test at a time.
+ *
  * @internal
  */
-#[InterceptorOptions(order: \PHP_INT_MAX)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_COVERAGE)]
 final readonly class CoverageTestInterceptor implements TestRunInterceptor
 {
     /**

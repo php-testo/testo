@@ -17,6 +17,7 @@ use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
 use Testo\Codecov\Covers;
+use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Test;
 use Tests\Codecov\Stub\InterleavedCase;
 use Tests\Codecov\Stub\WindowDriver;
@@ -112,6 +113,26 @@ final class CoverageFiberGuardTest
 
         // Guard against a vacuous pass: the tests really did yield control back.
         Assert::true($switches > 0);
+    }
+
+    /**
+     * The trampoline only works through fibers Testo drives itself, so the interceptor has to stay
+     * outer to {@see InterceptorOptions::ORDER_ASYNC_COROUTINE} — the slot for interceptors that hand
+     * the test to a fiber they own and resume directly (`testo/bridge-revolt` dispatches the body onto
+     * the Revolt event loop). Suspending out of such a fiber leaves nobody to resume it and the run
+     * dies on "Event loop terminated without resuming the current suspension". Staying inner to
+     * {@see InterceptorOptions::ORDER_CLOSE_TO_TEST} keeps the window over as little framework code as
+     * possible.
+     */
+    public function isOrderedOutsideTheAsyncCoroutineSlot(): void
+    {
+        $options = (new \ReflectionClass(CoverageTestInterceptor::class))
+            ->getAttributes(InterceptorOptions::class)[0]
+            ->newInstance();
+
+        Assert::same($options->order, InterceptorOptions::ORDER_COVERAGE);
+        Assert::true(InterceptorOptions::ORDER_COVERAGE < InterceptorOptions::ORDER_ASYNC_COROUTINE);
+        Assert::true(InterceptorOptions::ORDER_COVERAGE > InterceptorOptions::ORDER_CLOSE_TO_TEST);
     }
 
     /**
