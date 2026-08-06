@@ -7,6 +7,7 @@ namespace Tests\Fiber\Stub;
 use Testo\Assert;
 use Testo\Assert\ExpectException;
 use Testo\Fiber\Coroutine;
+use Testo\Fiber\Exception\CancelledException;
 use Testo\Fiber\Exception\CompositeException;
 use Testo\Fiber\RunInFiber;
 use Testo\Test;
@@ -18,6 +19,9 @@ use Testo\Test;
 #[Test]
 final class FiberScenarios
 {
+    /** @var list<string> What a pending coroutine observed when its test's body failed. */
+    public static array $cancellationLog = [];
+
     #[RunInFiber]
     public function runsInAFiber(): void
     {
@@ -78,5 +82,23 @@ final class FiberScenarios
     public function spawnWithoutFiberScope(): void
     {
         Coroutine::spawn(static fn(): string => 'no scope for me');
+    }
+
+    #[RunInFiber]
+    public function failingBodyLeavesAPendingCoroutine(): void
+    {
+        Coroutine::spawn(static function (): void {
+            try {
+                \Fiber::suspend();
+                self::$cancellationLog[] = 'survived';
+            } catch (CancelledException) {
+                self::$cancellationLog[] = 'cancelled';
+            }
+        });
+
+        // Let the coroutine reach its suspension point before the body fails.
+        \Fiber::suspend();
+
+        Assert::same(1, 2);
     }
 }

@@ -85,6 +85,17 @@ final class StatusTest
         Assert::same($result->summary->metric('assertions'), 3);
     }
 
+    public function failingBodyCancelsPendingCoroutines(): void
+    {
+        FiberScenarios::$cancellationLog = [];
+
+        $result = TestRunner::runTest([FiberScenarios::class, 'failingBodyLeavesAPendingCoroutine']);
+
+        Assert::same($result->status, Status::Failed);
+        # The pending coroutine was cancelled at its suspension point, not driven to completion.
+        Assert::same(FiberScenarios::$cancellationLog, ['cancelled']);
+    }
+
     public function spawnWithoutScopeErrorsWithAHint(): void
     {
         $result = TestRunner::runTest([FiberScenarios::class, 'spawnWithoutFiberScope']);

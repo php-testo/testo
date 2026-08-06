@@ -8,6 +8,7 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Fiber\Exception\CancelledException;
 use Testo\Fiber\Internal\Scheduler;
+use Testo\Fiber\Internal\Task;
 use Testo\Fiber\Schedule;
 use Testo\Test;
 
@@ -160,6 +161,32 @@ final class SchedulerTest
         # The child was unwound by the cancellation: its finally ran, no error recorded.
         Assert::same($log, ['cleanup']);
         Assert::null($child->error);
+    }
+
+    public function primaryFailedPredicateCancelsPendingTasks(): void
+    {
+        $log = [];
+        $scheduler = new Scheduler();
+        $body = $scheduler->spawn(static function (): string {
+            \Fiber::suspend();
+
+            return 'captured failure';
+        });
+        $child = $scheduler->spawn(static function () use (&$log): void {
+            try {
+                \Fiber::suspend();
+                $log[] = 'survived';
+            } catch (CancelledException) {
+                $log[] = 'cancelled';
+            }
+        });
+
+        # The primary settles without an error — the predicate is what recognizes the failure.
+        $scheduler->drive($body, static fn(Task $task): bool => $task->result === 'captured failure');
+
+        Assert::null($body->error);
+        Assert::true($child->finished);
+        Assert::same($log, ['cancelled']);
     }
 
     public function swallowedCancellationIsDrivenToTermination(): void

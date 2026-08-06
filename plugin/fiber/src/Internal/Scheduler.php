@@ -94,13 +94,17 @@ final class Scheduler
      * With `$primary` set (a test's coroutine scope, where `$primary` is the test body), a primary
      * failure cancels the remaining tasks instead of driving them further: a {@see CancelledException}
      * is thrown into every pending fiber so its `finally` blocks run; a throwable escaping that unwind
-     * (other than the cancellation itself) is recorded as the task's error.
+     * (other than the cancellation itself) is recorded as the task's error. A failure is an error that
+     * escaped the primary fiber, or `$primaryFailed` returning `true` for the settled task — the
+     * caller's chance to recognize failures its pipeline captured into the task's result.
+     *
+     * @param null|\Closure(Task): bool $primaryFailed
      *
      * An await cycle is broken by throwing a {@see DeadlockException} into the first parked task;
      * the failure then cascades to its awaiters, so the deadlock surfaces as an ordinary task error
      * with a stack trace pointing at the guilty `await()`.
      */
-    public function drive(?Task $primary = null): void
+    public function drive(?Task $primary = null, ?\Closure $primaryFailed = null): void
     {
         $prev = self::$current;
         self::$current = $this;
@@ -141,7 +145,7 @@ final class Scheduler
                         $task = $this->tasks[$id];
                         self::ready($task) and $this->step($task);
 
-                        if (self::failed($primary)) {
+                        if (self::failed($primary, $primaryFailed)) {
                             $this->cancelPending();
                             return;
                         }
@@ -152,7 +156,7 @@ final class Scheduler
                         : $ready[\random_int(0, \count($ready) - 1)];
                     $this->step($this->tasks[$pick]);
 
-                    if (self::failed($primary)) {
+                    if (self::failed($primary, $primaryFailed)) {
                         $this->cancelPending();
                         return;
                     }
@@ -172,9 +176,13 @@ final class Scheduler
         return !$task->finished && ($task->awaiting === null || $task->awaiting->finished);
     }
 
-    private static function failed(?Task $primary): bool
+    /**
+     * @param null|\Closure(Task): bool $predicate
+     */
+    private static function failed(?Task $primary, ?\Closure $predicate): bool
     {
-        return $primary !== null && $primary->finished && $primary->error !== null;
+        return $primary !== null && $primary->finished
+            && ($primary->error !== null || $predicate !== null && $predicate($primary));
     }
 
     /**

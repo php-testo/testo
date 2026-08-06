@@ -38,7 +38,9 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  *
  * Coroutine failures nobody awaited fail the test: they are bundled into a {@see CompositeException}
  * (always, even a single one) and attached to the result as its failure with {@see Status::Error}.
- * The body's own throw is captured as a result by the pipeline below and stays unwrapped.
+ * The body's own throw is captured as a result by the pipeline below and stays unwrapped. A body that
+ * settles with a failed result cancels its pending coroutines ({@see Scheduler::drive()}'s failure
+ * predicate) instead of driving them further; one that never got to start is simply dropped.
  *
  * @internal
  * @psalm-internal Testo\Fiber
@@ -59,7 +61,10 @@ final readonly class CoroutineScopeInterceptor implements TestRunInterceptor
         $scheduler = new Scheduler(Schedule::RoundRobin);
         $body = $scheduler->spawn(static fn(): TestResult => $next($info));
 
-        $scheduler->drive($body);
+        // The pipeline below captures test throwables into the result, so a failed body settles with
+        // no error on the task — the predicate is how the scheduler learns to cancel pending coroutines.
+        $scheduler->drive($body, static fn(Task $task): bool =>
+            $task->result instanceof TestResult && $task->result->status->isFailure());
 
         // The pipeline below captures test throwables as results, so a body error is unexpected
         // infrastructure breakage — let it abort the pipeline.
