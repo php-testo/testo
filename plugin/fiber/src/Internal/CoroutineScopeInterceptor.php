@@ -91,9 +91,8 @@ final readonly class CoroutineScopeInterceptor implements TestRunInterceptor
             // errors so nothing is dropped, and keep the harsher of the two statuses.
             $result->failure === null or $errors = [$body->id => $result->failure] + $errors;
 
-            $failed = $result->status === Status::Failed || $result->status === Status::Error;
             $result = $result
-                ->with(status: $failed ? $result->status : Status::Error)
+                ->with(status: $result->status->isFailure() ? $result->status : Status::Error)
                 ->withFailure(new CompositeException($errors));
         }
 

@@ -24,7 +24,7 @@ final class CacheTest
     {
         $result = Cache::resolveAliases(AttributeWithFallback::class);
 
-        Assert::same([MockInterceptor::class], $result);
+        Assert::same($result, [MockInterceptor::class]);
     }
 
     /**
@@ -34,7 +34,7 @@ final class CacheTest
     {
         $result = Cache::resolveAliases(AttributeWithSeveralFallbacks::class);
 
-        Assert::same([MockInterceptor::class, SecondMockInterceptor::class], $result);
+        Assert::same($result, [MockInterceptor::class, SecondMockInterceptor::class]);
     }
 
     /**
@@ -61,11 +61,11 @@ final class CacheTest
             $map->setValue(null, []);
 
             $result = Cache::resolveAliases(AttributeWithFallbackForCache::class);
-            Assert::same([MockInterceptor::class], $result);
+            Assert::same($result, [MockInterceptor::class]);
 
             $stored = $map->getValue();
             Assert::true(\array_key_exists(AttributeWithFallbackForCache::class, $stored));
-            Assert::same([MockInterceptor::class], $stored[AttributeWithFallbackForCache::class]);
+            Assert::same($stored[AttributeWithFallbackForCache::class], [MockInterceptor::class]);
         } finally {
             $map->setValue(null, $orig);
         }
@@ -84,14 +84,14 @@ final class CacheTest
             $map->setValue(null, []);
 
             $parent = Cache::resolveAliases(ParentAttributeForMapWalk::class);
-            Assert::same([MockInterceptor::class], $parent);
+            Assert::same($parent, [MockInterceptor::class]);
 
             $stored = $map->getValue();
             Assert::true(\array_key_exists(ParentAttributeForMapWalk::class, $stored));
             Assert::false(\array_key_exists(ChildAttributeForMapWalk::class, $stored));
 
             $child = Cache::resolveAliases(ChildAttributeForMapWalk::class);
-            Assert::same([MockInterceptor::class], $child);
+            Assert::same($child, [MockInterceptor::class]);
         } finally {
             $map->setValue(null, $orig);
         }
@@ -131,7 +131,7 @@ final class CacheTest
     {
         $result = Cache::resolveAliases(ChildAttributeOfFallback::class);
 
-        Assert::same([MockInterceptor::class], $result);
+        Assert::same($result, [MockInterceptor::class]);
     }
 
     private static function mapProperty(): \ReflectionProperty
