@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/php-testo/testo/compare/repeat-0.1.8...repeat-0.1.9) (2026-08-06)
+
+
+### Features
+
+* **core:** Add `Identity` to test context ([#271](https://github.com/php-testo/testo/issues/271)) ([f17f4ed](https://github.com/php-testo/testo/commit/f17f4ed347986f4ea857f5def3c7425bb02683db))
+
 ## [0.1.8](https://github.com/php-testo/testo/compare/repeat-0.1.7...repeat-0.1.8) (2026-06-07)
 
 
