@@ -107,9 +107,12 @@ final class Coroutine
      * Other coroutines — and, through the scope's relay, the case's other tests — keep running while
      * the caller is parked. A throwable raised by the awaited coroutine is rethrown here wrapped in
      * a {@see CompositeException}; rethrowing marks the failure as observed, so the scope will not
-     * report it again.
+     * report it again. Awaiting a cancelled coroutine rethrows the cancellation — unwrapped, it is
+     * the scope's control signal rather than a failure of the coroutine — so a `finally` unwinding
+     * on the same cancellation cannot mistake a torn-down sibling for one that returned `null`.
      *
      * @throws CompositeException When the awaited coroutine threw.
+     * @throws CancelledException When the awaited coroutine was cancelled with its scope.
      * @throws \LogicException When called outside a coroutine scope, or when a coroutine awaits itself.
      */
     public function await(): mixed
@@ -132,6 +135,8 @@ final class Coroutine
             $this->task->errorObserved = true;
             throw new CompositeException([$this->task->id => $this->task->error]);
         }
+
+        $this->task->cancelled and throw new CancelledException('The awaited coroutine was cancelled with its scope.');
 
         return $this->task->result;
     }

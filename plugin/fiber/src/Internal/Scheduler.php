@@ -311,6 +311,7 @@ final class Scheduler
         foreach ($this->tasks as $task) {
             if (!$task->finished) {
                 $task->finished = true;
+                $task->cancelled = true;
                 $pending[] = $task;
             }
         }

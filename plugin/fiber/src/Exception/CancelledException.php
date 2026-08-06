@@ -12,6 +12,9 @@ namespace Testo\Fiber\Exception;
  * Don't swallow it: a coroutine that catches the cancellation and suspends again is resumed until it
  * terminates, but it has no schedule to cooperate with anymore.
  *
+ * Also rethrown by {@see \Testo\Fiber\Coroutine::await()} on a cancelled coroutine — it has no
+ * result to report.
+ *
  * @api
  */
 final class CancelledException extends \RuntimeException {}

@@ -7,6 +7,7 @@ namespace Tests\Fiber\Unit;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Fiber\Coroutine;
+use Testo\Fiber\Exception\CancelledException;
 use Testo\Fiber\Exception\CompositeException;
 use Testo\Fiber\Exception\DeadlockException;
 use Testo\Fiber\Internal\Scheduler;
@@ -170,6 +171,38 @@ final class CoroutineTest
         # The first parked task (here: the body itself) gets the deadlock right at its await() call.
         Assert::instanceOf($caught, DeadlockException::class);
         Assert::string($caught->getMessage())->contains('await');
+    }
+
+    /**
+     * A cancelled coroutine has no result to report: awaiting it from the teardown (a sibling's
+     * `catch`/`finally` unwinding on the same cancellation) rethrows the cancellation instead of
+     * forging a `null` result.
+     */
+    public function awaitOnACancelledCoroutineThrowsTheCancellation(): void
+    {
+        $observed = null;
+        $scheduler = new Scheduler();
+        $body = $scheduler->spawn(static function () use (&$observed): void {
+            $victim = Coroutine::spawn(static fn(): mixed => \Fiber::suspend());
+            Coroutine::spawn(static function () use ($victim, &$observed): void {
+                try {
+                    \Fiber::suspend();
+                } catch (CancelledException) {
+                    try {
+                        $observed = $victim->await();
+                    } catch (CancelledException $e) {
+                        $observed = $e;
+                    }
+                }
+            });
+
+            \Fiber::suspend();
+            throw new \RuntimeException('body died');
+        });
+
+        $scheduler->drive($body);
+
+        Assert::instanceOf($observed, CancelledException::class);
     }
 
     public function unfinishedCoroutinesAreDrivenAfterTheBodyReturns(): void

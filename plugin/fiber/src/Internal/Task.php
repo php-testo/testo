@@ -33,6 +33,12 @@ final class Task
     public bool $errorObserved = false;
 
     /**
+     * The scope cancelled the task while it was still pending — it has no result to report, even if
+     * its fiber swallowed the cancellation and terminated on its own terms.
+     */
+    public bool $cancelled = false;
+
+    /**
      * The task this one is parked on (inside {@see \Testo\Fiber\Coroutine::await()}) —
      * not ready while the target is unfinished.
      */
