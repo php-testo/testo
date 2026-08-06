@@ -100,9 +100,10 @@ final class Scheduler
      *
      * @param null|\Closure(Task): bool $primaryFailed
      *
-     * An await cycle is broken by throwing a {@see DeadlockException} into the first parked task;
-     * the failure then cascades to its awaiters, so the deadlock surfaces as an ordinary task error
-     * with a stack trace pointing at the guilty `await()`.
+     * An await cycle — even one spanning several schedulers' tasks — is broken by throwing a
+     * {@see DeadlockException} into the first task the cycle dooms; the failure then cascades to its
+     * awaiters, so the deadlock surfaces as an ordinary task error with a stack trace pointing at
+     * the guilty `await()`.
      */
     public function drive(?Task $primary = null, ?\Closure $primaryFailed = null): void
     {
@@ -124,17 +125,22 @@ final class Scheduler
                 }
 
                 if ($ready === []) {
-                    // Every unfinished task is parked in an await. If any of them is parked on
-                    // another scheduler's task, the outer schedule may still unpark it — relay and
-                    // retry. Otherwise no step can ever unpark them: an await cycle.
-                    if (\Fiber::getCurrent() !== null && !$this->parkedTasksAreLocal($parked)) {
+                    // Every unfinished task is parked in an await. A task whose await chain runs
+                    // into a cycle — even one spanning other schedulers — can never be unparked by
+                    // any schedule; a chain that ends outside a cycle may still be unparked by the
+                    // outer schedule, so with only those left, relay and retry.
+                    $doomed = $this->deadlocked($parked);
+                    if ($doomed === [] && \Fiber::getCurrent() !== null) {
                         $this->relay($prev);
                         continue;
                     }
 
-                    // Break the cycle: the first parked task gets the deadlock at its await point
+                    // Break the cycle: the first doomed task gets the deadlock at its await point
                     // and unwinds; its awaiters unpark and the failure cascades through the cycle.
-                    $this->throwInto($this->tasks[$parked[0]], new DeadlockException($this->describeDeadlock($parked)));
+                    // With no fiber to relay from, tasks parked on foreign tasks are stuck the same
+                    // way — nobody else will ever drive those.
+                    $stuck = $doomed === [] ? $parked : $doomed;
+                    $this->throwInto($this->tasks[$stuck[0]], new DeadlockException($this->describeDeadlock($stuck)));
                     continue;
                 }
 
@@ -254,17 +260,32 @@ final class Scheduler
     }
 
     /**
+     * Ids of parked tasks whose await chain runs into a cycle, so no schedule can ever unpark them.
+     * The chain follows {@see Task::$awaiting} links across schedulers — a scope's coroutine may
+     * await another scope's — and stops at a finished task or one that is suspended without
+     * awaiting (its own scheduler may still step it).
+     *
      * @param non-empty-list<int> $parked
+     * @return list<int>
      */
-    private function parkedTasksAreLocal(array $parked): bool
+    private function deadlocked(array $parked): array
     {
+        $doomed = [];
         foreach ($parked as $id) {
-            if ($this->tasks[$id]->awaiting?->scheduler !== $this) {
-                return false;
+            $chain = [];
+            $task = $this->tasks[$id];
+            while ($task !== null && !$task->finished) {
+                if (\in_array($task, $chain, true)) {
+                    $doomed[] = $id;
+                    break;
+                }
+
+                $chain[] = $task;
+                $task = $task->awaiting;
             }
         }
 
-        return true;
+        return $doomed;
     }
 
     /**
@@ -310,7 +331,13 @@ final class Scheduler
     {
         $lines = [];
         foreach ($parked as $id) {
-            $lines[] = \sprintf('#%d awaits #%d', $id, $this->tasks[$id]->awaiting?->id ?? -1);
+            $target = $this->tasks[$id]->awaiting;
+            $lines[] = \sprintf(
+                '#%d awaits %s#%d',
+                $id,
+                $target === null || $target->scheduler === $this ? '' : "another scope's ",
+                $target?->id ?? -1,
+            );
         }
 
         return \sprintf(

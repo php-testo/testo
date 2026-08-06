@@ -93,7 +93,7 @@ Rules (verified against `plugin/fiber/src/Coroutine.php`):
 - `spawn()` needs an active scope — outside `#[RunInFiber]` it throws a `LogicException`. Assertions, messages **and coverage** inside a coroutine are attributed to the test that spawned it: the scope runs inside both the scoped-state guards and the test's coverage window.
 - **The scope is structured**: the test is not finished until every coroutine it spawned is. Coroutines still pending when the body returns keep being driven; if the body *fails*, they are cancelled — a `Testo\Fiber\Exception\CancelledException` is thrown into each pending fiber (its `finally` blocks run; don't swallow it).
 - **Coroutine failures always arrive wrapped in `Testo\Fiber\Exception\CompositeException`** — even a single one — whether rethrown by `await()` / `concurrently()` or reported at scope close for a coroutine nobody awaited (that marks the test `Error`). The body's own throw stays unwrapped, so `#[ExpectException]` on it works as usual; expect `CompositeException` when the throw comes from a coroutine.
-- An await cycle is detected and broken with a `Testo\Fiber\Exception\DeadlockException` raised at the first parked `await()`. A bare `\Fiber::suspend()` loop waiting for something that never happens is **not** detected.
+- An await cycle is detected and broken with a `Testo\Fiber\Exception\DeadlockException` raised at the first doomed `await()` — even a cycle spanning several tests' scopes (handles shared under a class-level `#[RunInFiber]`). A bare `\Fiber::suspend()` loop waiting for something that never happens is **not** detected.
 - `concurrently()` waits for *all* its coroutines even after one fails, then bundles every failure into one composite.
 
 ## Pitfalls

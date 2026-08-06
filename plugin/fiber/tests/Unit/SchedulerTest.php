@@ -6,7 +6,9 @@ namespace Tests\Fiber\Unit;
 
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Fiber\Coroutine;
 use Testo\Fiber\Exception\CancelledException;
+use Testo\Fiber\Exception\DeadlockException;
 use Testo\Fiber\Internal\Scheduler;
 use Testo\Fiber\Internal\Task;
 use Testo\Fiber\Schedule;
@@ -210,6 +212,61 @@ final class SchedulerTest
 
         Assert::true($child->finished);
         Assert::same($log, ['caught', 'after']);
+    }
+
+    /**
+     * Two scopes driven by an outer schedule, each with a coroutine awaiting the other scope's
+     * coroutine through shared handles — an await cycle spanning schedulers. Neither scope may spin
+     * relaying forever: the cycle must be detected and broken like a local one. The outer loop is
+     * bounded so a livelock fails the test instead of hanging it.
+     */
+    public function crossSchedulerAwaitCycleIsBrokenAsADeadlock(): void
+    {
+        $handleA = $handleB = null;
+
+        $scopeA = new Scheduler();
+        $bodyA = $scopeA->spawn(static function () use (&$handleA, &$handleB): mixed {
+            $handleA = Coroutine::spawn(static function () use (&$handleB): mixed {
+                while ($handleB === null) {
+                    \Fiber::suspend();
+                }
+
+                return $handleB->await();
+            });
+
+            return $handleA->await();
+        });
+
+        $scopeB = new Scheduler();
+        $bodyB = $scopeB->spawn(static function () use (&$handleA, &$handleB): mixed {
+            $handleB = Coroutine::spawn(static fn(): mixed => $handleA->await());
+
+            return $handleB->await();
+        });
+
+        $fiberA = new \Fiber(static fn() => $scopeA->drive($bodyA));
+        $fiberB = new \Fiber(static fn() => $scopeB->drive($bodyB));
+
+        for ($i = 0; $i < 100 && !($fiberA->isTerminated() && $fiberB->isTerminated()); $i++) {
+            $fiberA->isTerminated() or ($fiberA->isStarted() ? $fiberA->resume() : $fiberA->start());
+            $fiberB->isTerminated() or ($fiberB->isStarted() ? $fiberB->resume() : $fiberB->start());
+        }
+
+        Assert::true(
+            $fiberA->isTerminated() && $fiberB->isTerminated(),
+            'The cross-scheduler await cycle was never broken — the scopes relay forever.',
+        );
+
+        # Both bodies failed, and the deadlock is the root of the cascade in at least one of them.
+        Assert::notNull($bodyA->error);
+        Assert::notNull($bodyB->error);
+        $deadlocked = false;
+        foreach ([$bodyA->error, $bodyB->error] as $error) {
+            for (; $error !== null; $error = $error->getPrevious()) {
+                $error instanceof DeadlockException and $deadlocked = true;
+            }
+        }
+        Assert::true($deadlocked);
     }
 
     public function rejectsAStartedFiber(): void
