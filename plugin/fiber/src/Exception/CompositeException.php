@@ -19,21 +19,27 @@ namespace Testo\Fiber\Exception;
 final class CompositeException extends \RuntimeException
 {
     /**
-     * The collected throwables, keyed by the fiber (task) index that raised each one.
+     * The collected throwables, keyed by whatever names each fiber to the producer: the task id for
+     * scope/batch failures, or the argument key for {@see \Testo\Fiber\Coroutine::concurrently()}.
      *
-     * @var non-empty-array<int, \Throwable>
+     * @var non-empty-array<array-key, \Throwable>
      */
     public readonly array $errors;
 
     /**
-     * @param non-empty-array<int, \Throwable> $errors
+     * @param non-empty-array<array-key, \Throwable> $errors
      */
     public function __construct(array $errors)
     {
         $this->errors = $errors;
 
         $lines = \array_map(
-            static fn(int $i, \Throwable $e): string => \sprintf('  #%d %s: %s', $i, $e::class, $e->getMessage()),
+            static fn(int|string $key, \Throwable $e): string => \sprintf(
+                '  %s %s: %s',
+                \is_int($key) ? "#$key" : $key,
+                $e::class,
+                $e->getMessage(),
+            ),
             \array_keys($errors),
             \array_values($errors),
         );

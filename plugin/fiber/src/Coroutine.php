@@ -68,11 +68,13 @@ final class Coroutine
      * Sugar over {@see spawn()} + {@see await()}: schedules everything into the running scope, parks
      * the caller until every coroutine finished, and returns the results keyed like the arguments
      * (named arguments give string keys). Failures are collected until all coroutines settle, then
-     * bundled into one {@see CompositeException}.
+     * bundled into one {@see CompositeException} — its errors keyed like the arguments too,
+     * symmetric to the results. A coroutine that itself died with a `CompositeException` appears
+     * nested: that whole exception sits under the argument's key, its own structure intact.
      *
      * @return array<array-key, mixed> Results keyed like the arguments.
      *
-     * @throws CompositeException When any of the coroutines threw.
+     * @throws CompositeException When any of the coroutines threw — errors keyed like the arguments.
      * @throws \LogicException When no coroutine scope is active — run the test with `#[RunInFiber]`.
      */
     public static function concurrently(\Closure|\Fiber ...$bodies): array
@@ -84,7 +86,9 @@ final class Coroutine
             try {
                 $results[$key] = $handle->await();
             } catch (CompositeException $e) {
-                $errors += $e->errors;
+                // await() wraps exactly one task's error — unwrap and re-key it by the argument,
+                // so callers never see the scheduler's internal task ids.
+                $errors[$key] = $e->errors[\array_key_first($e->errors)];
             }
         }
 

@@ -146,8 +146,35 @@ final class CoroutineTest
         });
 
         Assert::instanceOf($caught, CompositeException::class);
-        Assert::same(\array_values($caught->errors), [$first, $second]);
+        # Errors are keyed like the arguments, symmetric to the results.
+        Assert::same($caught->errors, [0 => $first, 1 => $second]);
         Assert::same($log, ['slow ran to its end']);
+    }
+
+    public function concurrentlyKeysFailuresLikeTheArguments(): void
+    {
+        $pullError = new \RuntimeException('pull broke');
+        $pushError = new \LogicException('push broke');
+
+        $caught = $this->scope(static function () use ($pullError, $pushError): mixed {
+            try {
+                Coroutine::concurrently(
+                    pull: static fn() => throw $pullError,
+                    ok: static fn(): string => 'fine',
+                    push: static fn() => throw $pushError,
+                );
+            } catch (CompositeException $e) {
+                return $e;
+            }
+
+            return null;
+        });
+
+        Assert::instanceOf($caught, CompositeException::class);
+        Assert::same($caught->errors, ['pull' => $pullError, 'push' => $pushError]);
+        Assert::same($caught->getPrevious(), $pullError);
+        # String keys name the fiber in the message as-is; int keys keep the #N form.
+        Assert::string($caught->getMessage())->contains('pull');
     }
 
     public function awaitCycleIsBrokenAsADeadlock(): void
