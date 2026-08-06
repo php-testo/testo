@@ -191,6 +191,29 @@ final class SchedulerTest
         Assert::same($log, ['cancelled']);
     }
 
+    public function spawnWhileTheScopeIsClosingThrows(): void
+    {
+        $scheduler = new Scheduler();
+        $body = $scheduler->spawn(static function (): void {
+            \Fiber::suspend();
+            throw new \RuntimeException('body died');
+        });
+        $child = $scheduler->spawn(static function () use ($scheduler): void {
+            try {
+                \Fiber::suspend();
+            } finally {
+                $scheduler->spawn(static fn(): string => 'cleanup nobody will ever drive');
+            }
+        });
+
+        $scheduler->drive($body);
+
+        # The late spawn was rejected loudly, not silently added to a schedule nobody drives anymore.
+        Assert::instanceOf($child->error, \LogicException::class);
+        Assert::string($child->error->getMessage())->contains('closing');
+        Assert::same(\count($scheduler->tasks()), 2);
+    }
+
     public function swallowedCancellationIsDrivenToTermination(): void
     {
         $log = [];

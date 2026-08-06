@@ -39,6 +39,11 @@ final class Scheduler
 
     private ?Task $running = null;
 
+    /**
+     * The scope is tearing down ({@see cancelPending()}): nothing will be scheduled anymore.
+     */
+    private bool $closing = false;
+
     public function __construct(
         private readonly Schedule $schedule = Schedule::RoundRobin,
     ) {}
@@ -69,12 +74,16 @@ final class Scheduler
     }
 
     /**
-     * Add a task to the schedule. May be called while the scheduler is driving.
+     * Add a task to the schedule. May be called while the scheduler is driving — but not while the
+     * scope is closing: a task spawned during the teardown (a cancelled coroutine's `finally`) would
+     * silently join a schedule nobody drives anymore.
      *
      * @param \Closure|\Fiber $body An unstarted fiber, or a closure to wrap into one.
      */
     public function spawn(\Closure|\Fiber $body): Task
     {
+        $this->closing and throw new \LogicException('Cannot spawn a coroutine while its scope is closing.');
+
         $fiber = $body instanceof \Fiber ? $body : new \Fiber($body);
         $fiber->isStarted() and throw new \LogicException('Cannot schedule a fiber that has already been started.');
 
@@ -296,6 +305,8 @@ final class Scheduler
      */
     private function cancelPending(): void
     {
+        $this->closing = true;
+
         $pending = [];
         foreach ($this->tasks as $task) {
             if (!$task->finished) {

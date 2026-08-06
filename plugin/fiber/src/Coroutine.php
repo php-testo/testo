@@ -50,7 +50,8 @@ final class Coroutine
      * The coroutine gets its first step in the current scheduling round; from there it runs
      * cooperatively — it holds the floor until it suspends, finishes, or awaits.
      *
-     * @throws \LogicException When no coroutine scope is active — run the test with `#[RunInFiber]`.
+     * @throws \LogicException When no coroutine scope is active — run the test with `#[RunInFiber]` —
+     *         or when the scope is already closing (spawning from a cancelled coroutine's `finally`).
      */
     public static function spawn(\Closure|\Fiber $body): self
     {
