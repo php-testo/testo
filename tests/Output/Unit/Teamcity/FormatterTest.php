@@ -113,6 +113,13 @@ final class FormatterTest
         Assert::string($msg)->contains("status='failed'");
     }
 
+    public function testCountAnnouncesHowManyTestsAreAboutToRun(): void
+    {
+        $msg = Formatter::testCount(42);
+
+        Assert::same($msg, "##teamcity[testCount count='42']");
+    }
+
     public function testFailedWithoutComparisonHasNoExtraAttributes(): void
     {
         $msg = Formatter::testFailed(

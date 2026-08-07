@@ -107,9 +107,20 @@ final class TeamcityLogger
 
     /**
      * Publishes test suite started message using SuiteInfo.
+     *
+     * Announces the suite's size first, so an IDE can size its progress bar before the first test
+     * reports. The count is the number of located tests: a DataProvider test counts once here but
+     * reports one node per data set, so it is a lower bound rather than an exact total.
      */
     public function suiteStartedFromInfo(SuiteInfo $info): void
     {
+        $count = 0;
+        foreach ($info->testCases->getCases() as $case) {
+            $count += \count($case->tests->getTests());
+        }
+
+        $count > 0 and $this->publish(Formatter::testCount($count));
+
         $this->publish(Formatter::suiteStarted($info->name, $info->identity));
     }
 

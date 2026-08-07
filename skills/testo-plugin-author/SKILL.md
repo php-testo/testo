@@ -164,6 +164,11 @@ parsers ignore the attribute. `testFinished` also carries `assertions` — the c
 records under that metric name — omitted entirely when no plugin counted them, which is not the same
 as `assertions='0'` for a test that asserted nothing.
 
+Each suite opens with `##teamcity[testCount count='N']` — the tests located for it, read off
+`SuiteInfo::$testCases` before the first one runs. Counts accumulate across suites in IntelliJ-based
+IDEs (the TeamCity server ignores the message), so one per suite is the intended shape. A DataProvider
+test counts once but reports a node per data set, so the number is a lower bound.
+
 ### Passing state down the pipeline — prefer attributes over mutable fields
 
 `TestInfo`, `CaseInfo`, and `TestResult` use the `Attributed` trait: `withAttribute(string $name,

@@ -10,9 +10,12 @@ use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\Identity\SuiteIdentity;
+use Testo\Core\Context\SuiteInfo;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
+use Testo\Core\Definition\CaseDefinitions;
+use Testo\Core\Definition\TestDefinitions;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
@@ -147,6 +150,35 @@ final class TeamcityLoggerTest
         $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testStartedFromInfo($info));
 
         Assert::string($output)->notContains('metainfo=');
+    }
+
+    public function aStartingSuiteAnnouncesHowManyTestsItHolds(): void
+    {
+        $info = new SuiteInfo(
+            name: 'Output/Unit',
+            testCases: CaseDefinitions::fromArray(
+                self::makeCase('passingTest', 'failingTest'),
+                self::makeCase('describedTest'),
+            ),
+        );
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->suiteStartedFromInfo($info));
+
+        // Counts across every case of the suite, and lands before the suite opens so an IDE can size
+        // its progress bar before the first test reports.
+        Assert::string($output)->contains("##teamcity[testCount count='3']");
+        Assert::true(
+            \strpos($output, 'testCount') < \strpos($output, 'testSuiteStarted'),
+        );
+    }
+
+    public function anEmptySuiteAnnouncesNoCount(): void
+    {
+        $info = new SuiteInfo(name: 'Output/Unit', testCases: CaseDefinitions::fromArray());
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->suiteStartedFromInfo($info));
+
+        Assert::string($output)->notContains('testCount');
     }
 
     public function logEmptyRunEmitsBuildProblem(): void
@@ -313,6 +345,27 @@ final class TeamcityLoggerTest
             status: Status::Failed,
             failure: $failure,
             attributes: ['duration' => 0],
+        );
+    }
+
+    /**
+     * A case of {@see SampleTestClass} holding exactly the named methods as its tests.
+     *
+     * @param non-empty-string ...$methods
+     */
+    private static function makeCase(string ...$methods): CaseDefinition
+    {
+        $tests = new TestDefinitions();
+        foreach ($methods as $method) {
+            $tests->define(new \ReflectionMethod(SampleTestClass::class, $method));
+        }
+
+        return new CaseDefinition(
+            name: SampleTestClass::class,
+            type: 'test',
+            file: Path::create(__FILE__),
+            reflection: new \ReflectionClass(SampleTestClass::class),
+            tests: $tests,
         );
     }
 

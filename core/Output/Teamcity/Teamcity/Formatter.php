@@ -64,6 +64,21 @@ final class Formatter
     }
 
     /**
+     * Formats a message announcing how many tests are about to run.
+     *
+     * Feeds the progress bar of IntelliJ-based IDEs, which is the only consumer — the TeamCity server
+     * ignores it. Counts accumulate rather than replace, so one message per suite is the intended
+     * shape rather than a single total up front.
+     *
+     * @param int<0, max> $count
+     * @return non-empty-string
+     */
+    public static function testCount(int $count): string
+    {
+        return self::formatMessage('testCount', ['count' => (string) $count]);
+    }
+
+    /**
      * Formats a test suite finished message.
      *
      * @param non-empty-string $name Suite name
