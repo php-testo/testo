@@ -86,6 +86,24 @@ final class FormatterTest
         Assert::string($msg)->notContains('status=');
     }
 
+    public function aFinishedMessageCountsTheAssertionsTheTestPerformed(): void
+    {
+        $msg = Formatter::testFinished('itWorks', 12, self::test(), Status::Passed, assertions: 3);
+
+        Assert::string($msg)->contains("assertions='3'");
+    }
+
+    public function aTestThatCountedNoAssertionsSaysSoRatherThanStayingSilent(): void
+    {
+        // Zero is a fact about the test — an unasserted pass — and has to survive as one; only an
+        // uncounted test (no assertion plugin) omits the attribute.
+        $counted = Formatter::testFinished('itWorks', 12, self::test(), Status::Risky, assertions: 0);
+        $uncounted = Formatter::testFinished('itWorks', 12, self::test(), Status::Passed);
+
+        Assert::string($counted)->contains("assertions='0'");
+        Assert::string($uncounted)->notContains('assertions=');
+    }
+
     public function aFinishedSuiteCarriesItsAggregatedStatus(): void
     {
         $suite = new SuiteIdentity('Core/Unit');

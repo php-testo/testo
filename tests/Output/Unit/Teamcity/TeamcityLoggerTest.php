@@ -17,6 +17,7 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
+use Testo\Core\Value\Summary;
 use Testo\Output\Teamcity\Teamcity\TeamcityLogger;
 use Testo\Test;
 use Tests\Output\Stub\Teamcity\ConcreteSampleTestCase;
@@ -206,6 +207,35 @@ final class TeamcityLoggerTest
             Assert::string($output)->contains("##teamcity[testFinished");
             Assert::string($output)->contains("status='{$expected}'");
         }
+    }
+
+    public function aPassedTestReportsHowManyAssertionsItPerformed(): void
+    {
+        $result = new TestResult(
+            info: self::makeInfo('passingTest'),
+            status: Status::Passed,
+            attributes: ['duration' => 0],
+            summary: new Summary(metrics: ['assertions' => 7]),
+        );
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::string($output)->contains("assertions='7'");
+    }
+
+    public function aPassedTestNobodyCountedAssertionsForOmitsTheAttribute(): void
+    {
+        $result = new TestResult(
+            info: self::makeInfo('passingTest'),
+            status: Status::Passed,
+            attributes: ['duration' => 0],
+        );
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        // The count comes from the Assert plugin; without it there is no number to report, and a
+        // fabricated zero would read as an unasserted test.
+        Assert::string($output)->notContains('assertions=');
     }
 
     public function logMessagePlacesTheOutputOnItsTestsNode(): void

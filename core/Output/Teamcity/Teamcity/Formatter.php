@@ -111,6 +111,9 @@ final class Formatter
      * @param int<0, max>|null $duration Duration in milliseconds
      * @param TestIdentity|null $identity Address of the test this message closes. {@see placement()}
      * @param Status|null $status Outcome of the test. {@see status()}
+     * @param int<0, max>|null $assertions Number of assertions the test performed. Null when nothing
+     *        counted them — no assertion plugin is active — which is not the same as a test that
+     *        counted zero.
      * @return non-empty-string
      */
     public static function testFinished(
@@ -118,10 +121,12 @@ final class Formatter
         ?int $duration = null,
         ?TestIdentity $identity = null,
         ?Status $status = null,
+        ?int $assertions = null,
     ): string {
         $attributes = ['name' => $name];
 
         $duration !== null and $attributes['duration'] = (string) $duration;
+        $assertions !== null and $attributes['assertions'] = (string) $assertions;
 
         return self::formatMessage('testFinished', $attributes + self::status($status) + self::placement($identity));
     }

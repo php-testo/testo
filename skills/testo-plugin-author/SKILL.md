@@ -160,7 +160,9 @@ name: `passed`, `failed`, `skipped`, `error`, `risky`, `flaky`, `cancelled`, `ab
 `testFinished`, and the aggregated one on `testSuiteFinished` for a suite, a case and a DataProvider
 batch. The standard protocol collapses those eight into ignored/failed/neither, so a consumer that
 needs `Flaky` apart from `Passed`, or `Risky` apart from a clean pass, reads them there; standard
-parsers ignore the attribute.
+parsers ignore the attribute. `testFinished` also carries `assertions` — the count the Assert plugin
+records under that metric name — omitted entirely when no plugin counted them, which is not the same
+as `assertions='0'` for a test that asserted nothing.
 
 ### Passing state down the pipeline — prefer attributes over mutable fields
 

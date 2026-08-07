@@ -368,6 +368,17 @@ final class TeamcityLogger
         return \implode("\n", $lines);
     }
 
+    /**
+     * How many assertions the test performed, or `null` when nothing counted them — the metric is
+     * contributed by the Assert plugin, and a suite running without it says nothing rather than zero.
+     *
+     * @return int<0, max>|null
+     */
+    private static function assertionsOf(TestResult $result): ?int
+    {
+        return $result->summary->metrics['assertions'] ?? null;
+    }
+
     private static function key(string $name): string
     {
         return "\033[36;1m{$name}:\033[0m ";
@@ -387,7 +398,13 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
 
-        $this->publish(Formatter::testFinished($name, $duration, $result->info->identity, $result->status));
+        $this->publish(Formatter::testFinished(
+            $name,
+            $duration,
+            $result->info->identity,
+            $result->status,
+            self::assertionsOf($result),
+        ));
     }
 
     /**
