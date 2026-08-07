@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Tests\Inline\Unit;
+namespace Tests\Bench\Unit;
 
 use Internal\Path;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Assert;
+use Testo\Bench;
+use Testo\Bench\Internal\Pipeline\BenchInterceptor;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\Identity\SuiteIdentity;
@@ -17,15 +19,13 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
 use Testo\Data\MultipleResult;
 use Testo\Filter\DataPointer;
-use Testo\Inline\Internal\InlineInterceptor;
-use Testo\Inline\TestInline;
 use Testo\Test;
 
 #[Test]
-#[Covers(InlineInterceptor::class)]
-final class InlineInterceptorTest
+#[Covers(BenchInterceptor::class)]
+final class BenchInterceptorTest
 {
-    public function aggregatesEveryInlineCase(): void
+    public function aggregatesEveryBenchmarkCase(): void
     {
         $callCount = 0;
         $next = static function (TestInfo $info) use (&$callCount): TestResult {
@@ -33,15 +33,15 @@ final class InlineInterceptorTest
             return new TestResult(info: $info, status: Status::Passed);
         };
 
-        $result = (new InlineInterceptor(self::createDispatcher()))->runTest(
-            self::createTestInfo([new TestInline([1]), new TestInline([2])]),
+        $result = (new BenchInterceptor(self::createDispatcher()))->runTest(
+            self::createTestInfo([self::bench(), self::bench()]),
             $next,
         );
 
         Assert::same($callCount, 2);
         Assert::same($result->status, Status::Passed);
 
-        # Each inline case counts as a test; the aggregate folds their summaries.
+        # Each benchmark case counts as a test; the aggregate folds their summaries.
         Assert::same($result->summary->total(), 2);
         Assert::same($result->summary->count(Status::Passed), 2);
 
@@ -50,7 +50,7 @@ final class InlineInterceptorTest
         Assert::same(\count($multiple->results), 2);
     }
 
-    public function noMatchingInlineCasesYieldASingleRiskyTest(): void
+    public function noMatchingBenchmarkCasesYieldASingleRiskyTest(): void
     {
         $called = false;
         $next = static function (TestInfo $info) use (&$called): TestResult {
@@ -58,10 +58,10 @@ final class InlineInterceptorTest
             return new TestResult(info: $info, status: Status::Passed);
         };
 
-        # A DataPointer that matches no inline case index leaves the result set empty.
-        $result = (new InlineInterceptor(self::createDispatcher()))->runTest(
+        # A DataPointer that matches no benchmark case index leaves the result set empty.
+        $result = (new BenchInterceptor(self::createDispatcher()))->runTest(
             self::createTestInfo(
-                [new TestInline([1]), new TestInline([2])],
+                [self::bench(), self::bench()],
                 new DataPointer(provider: 99, dataset: null),
             ),
             $next,
@@ -76,7 +76,7 @@ final class InlineInterceptorTest
         Assert::same($result->summary->total(), 0);
     }
 
-    public function theDataSetCoordinateSelectsTheOnlySetAnInlineCaseHas(): void
+    public function theDataSetCoordinateSelectsTheOnlySetABenchmarkCaseHas(): void
     {
         $reached = [];
         $next = static function (TestInfo $info) use (&$reached): TestResult {
@@ -84,12 +84,12 @@ final class InlineInterceptorTest
             return new TestResult(info: $info, status: Status::Passed);
         };
 
-        $interceptor = new InlineInterceptor(self::createDispatcher());
-        $inlines = [new TestInline([1]), new TestInline([2]), new TestInline([3])];
+        $interceptor = new BenchInterceptor(self::createDispatcher());
+        $benches = [self::bench(), self::bench(), self::bench()];
 
-        # An inline case is a provider slot holding a single data set, so `:1:0` names the second case.
+        # A benchmark case is a provider slot holding a single data set, so `:1:0` names the second one.
         $hit = $interceptor->runTest(
-            self::createTestInfo($inlines, new DataPointer(provider: 1, dataset: 0)),
+            self::createTestInfo($benches, new DataPointer(provider: 1, dataset: 0)),
             $next,
         );
 
@@ -99,12 +99,17 @@ final class InlineInterceptorTest
 
         # There is no second data set inside that slot, so `:1:1` names nothing.
         $miss = $interceptor->runTest(
-            self::createTestInfo($inlines, new DataPointer(provider: 1, dataset: 1)),
+            self::createTestInfo($benches, new DataPointer(provider: 1, dataset: 1)),
             $next,
         );
 
         Assert::same($miss->status, Status::Risky);
         Assert::same($reached, [[1, 0]]);
+    }
+
+    private static function bench(): Bench
+    {
+        return new Bench([static fn(): int => 1]);
     }
 
     private static function createDispatcher(): EventDispatcherInterface
@@ -119,17 +124,17 @@ final class InlineInterceptorTest
     }
 
     /**
-     * @param list<TestInline> $inlines
+     * @param list<Bench> $benches
      */
-    private static function createTestInfo(array $inlines, ?DataPointer $dataPointer = null): TestInfo
+    private static function createTestInfo(array $benches, ?DataPointer $dataPointer = null): TestInfo
     {
         $caseInfo = new CaseInfo(
-            definition: new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__)),
-            suiteIdentity: new SuiteIdentity('Inline/Unit')
+            definition: new CaseDefinition(name: 'TestCase', type: 'bench', file: Path::create(__FILE__)),
+            suiteIdentity: new SuiteIdentity('Bench/Unit'),
         );
         $testDefinition = new TestDefinition(reflection: new \ReflectionFunction(static fn() => null));
 
-        $attributes = [TestInline::class => $inlines];
+        $attributes = [Bench::class => $benches];
         $dataPointer === null or $attributes[DataPointer::class] = $dataPointer;
 
         return new TestInfo(

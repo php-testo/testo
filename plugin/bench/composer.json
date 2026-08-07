@@ -22,6 +22,7 @@
     "require": {
         "php": ">=8.2",
         "testo/data": "^0.1.7",
+        "testo/filter": "^0.1.6",
         "testo/inline": "^0.1.7",
         "testo/testo": "0.10.39 - 1"
     },

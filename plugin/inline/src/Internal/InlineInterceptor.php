@@ -63,12 +63,16 @@ final readonly class InlineInterceptor implements TestRunInterceptor
         $status = Status::Passed;
         foreach ($attributes as $index => $inline) {
             # Check Filters
-            if ($dataPointer !== null && $dataPointer->provider !== $index) {
+            if ($dataPointer !== null && (
+                $dataPointer->provider !== $index
+                || ($dataPointer->dataset !== null && $dataPointer->dataset !== 0)
+            )) {
                 continue;
             }
 
-            # Each attribute occupies the provider slot of the address, matching the filter check above
-            # (`--filter=method:2` selects the third one), with a single data set inside it.
+            # Each attribute occupies the provider slot of the address, with a single data set inside
+            # it — matching the filter check above, so `--filter=method:2` and `--filter=method:2:0`
+            # both select the third one.
             $newInfo = $info
                 ->with(arguments: $inline->arguments, identity: $info->identity->toDataSet(dataProvider: $index, dataSet: 0))
                 ->withAttribute(TestInline::class, $inline);

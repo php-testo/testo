@@ -16,6 +16,7 @@ use Testo\Event\Test\TestBatchFinished;
 use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestDataSetStarting;
+use Testo\Filter\DataPointer;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
 use Testo\Pipeline\Policy\ConflictPolicy;
@@ -53,12 +54,24 @@ final readonly class BenchInterceptor implements TestRunInterceptor
         # Dispatch batch starting event
         $this->eventDispatcher->dispatch(new TestBatchStarting($info));
 
+        # Load Filters
+        $dataPointer = $info->getAttribute(DataPointer::class);
+
         # Run the test for each data set
         $results = [];
         $status = Status::Passed;
         foreach ($attributes as $index => $attr) {
+            # Check Filters
+            if ($dataPointer !== null && (
+                $dataPointer->provider !== $index
+                || ($dataPointer->dataset !== null && $dataPointer->dataset !== 0)
+            )) {
+                continue;
+            }
+
             # Each attribute occupies the provider slot of the address, as it does for inline tests,
-            # with a single data set inside it.
+            # with a single data set inside it — matching the filter check above, so
+            # `--filter=method:2` and `--filter=method:2:0` both select the third one.
             $newInfo = $info
                 ->with(arguments: $attr->arguments, identity: $info->identity->toDataSet(dataProvider: $index, dataSet: 0))
                 ->withAttribute(Bench::class, $attr);
@@ -90,17 +103,27 @@ final readonly class BenchInterceptor implements TestRunInterceptor
             $results[] = $result;
         }
 
-        # Each benchmark case counts as a test, so the aggregate is the sum of their summaries,
-        # each stamped with the case's final status.
-        $summary = Summary::combine(\array_map(
-            static fn(TestResult $r): Summary => $r->summary->withStatus($r->status),
-            $results,
-        ));
-        $results = new MultipleResult($results);
-
-        $finalResult = new TestResult(info: $info, status: $status, result: $results, attributes: [
-            MultipleResult::class => $results,
-        ], summary: $summary);
+        if ($results === []) {
+            # No benchmark cases matched the filter — count as a single Risky test; leave counts empty
+            # so the final status is stamped late by the TestRunner.
+            $status->isFailure() or $status = Status::Risky;
+            $finalResult = new TestResult(
+                info: $info,
+                status: $status,
+                result: new \RuntimeException('No benchmark cases were provided.'),
+            );
+        } else {
+            # Each benchmark case counts as a test, so the aggregate is the sum of their summaries,
+            # each stamped with the case's final status.
+            $summary = Summary::combine(\array_map(
+                static fn(TestResult $r): Summary => $r->summary->withStatus($r->status),
+                $results,
+            ));
+            $multiple = new MultipleResult($results);
+            $finalResult = new TestResult(info: $info, status: $status, result: $multiple, attributes: [
+                MultipleResult::class => $multiple,
+            ], summary: $summary);
+        }
 
         # Dispatch batch finished event
         $this->eventDispatcher->dispatch(new TestBatchFinished($info, $finalResult));
