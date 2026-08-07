@@ -505,12 +505,16 @@ final class Formatter
      * php_qn://path/to/BarTest.php::\Ns\BarTest::itWorks        a test, or its DataProvider batch node
      * php_qn://path/to/BarTest.php::\Ns\BarTest::itWorks:0:1    one data set of it
      * php_qn://path/to/functions.php::\Ns\itWorksToo            a free test function
+     * file://path/to/functions.php                             a case of free functions
      * ```
      *
      * The tail is {@see TestIdentity::fqn()} verbatim, so a hint pastes straight back into `--filter`.
      *
-     * Null when there is no code to point at: a suite of the run is a configuration entry, and a case
-     * of free functions has no class of its own.
+     * A case of free functions names no class, and the file it groups holds several functions rather
+     * than one to point at — so it answers with the file itself under `file://`, the scheme IDEs
+     * resolve to a whole file. Clickable all the same, which a hintless node is not.
+     *
+     * Null only for a suite of the run: it is a configuration entry, with no file of its own to name.
      *
      * @return non-empty-string|null
      */
@@ -522,6 +526,6 @@ final class Formatter
 
         $fqn = $identity->fqn();
 
-        return $fqn === null ? null : "php_qn://{$identity->file}::\\{$fqn}";
+        return $fqn === null ? "file://{$identity->file}" : "php_qn://{$identity->file}::\\{$fqn}";
     }
 }

@@ -137,7 +137,8 @@ Two independent things live on it:
   run to run. `dataProvider`/`dataSet` are set only for a data set, and address it by **index** —
   provider keys may repeat, so only the index tells two data sets apart. `fqn()` is the machine-facing
   form: no suite, no type, pastes straight into `--filter`, and is the tail of TeamCity's
-  `locationHint` (`php_qn://<file>::\<fqn>`).
+  `locationHint` (`php_qn://<file>::\<fqn>`). A case of free functions has no `fqn()` — no class to
+  qualify — and is hinted as `file://<file>` instead, so its node stays clickable.
 - **`runtimeId`** says *which run of it* is in flight, **`pipelineId`** which test run that one is part
   of — its own for a test, the batch's for each of its data sets — and **`parentId`** which run it
   opened inside (`null` at a suite). All three are process-local: never persist them or match on them.

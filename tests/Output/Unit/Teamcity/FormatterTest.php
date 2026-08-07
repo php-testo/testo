@@ -113,6 +113,26 @@ final class FormatterTest
         Assert::string($msg)->contains("status='failed'");
     }
 
+    public function aCaseOfFreeFunctionsPointsAtItsFile(): void
+    {
+        $case = (new SuiteIdentity('Core/Unit'))
+            ->toCase(null, 'test', Path::create('/app/tests/functions.php'));
+
+        $msg = Formatter::suiteStarted('functions.php', $case);
+
+        // No class to qualify, and the file holds several functions rather than one to name — so the
+        // hint points at the file. Without it the node is the only one in the tree nobody can click.
+        Assert::string($msg)->contains("locationHint='file:///app/tests/functions.php'");
+    }
+
+    public function aSuiteOfTheRunStillHasNothingToPointAt(): void
+    {
+        $msg = Formatter::suiteStarted('Core/Unit', new SuiteIdentity('Core/Unit'));
+
+        // A configuration entry, with no file of its own.
+        Assert::string($msg)->notContains('locationHint');
+    }
+
     public function anOpeningNodeNamesTheSuiteAndTypeItBelongsTo(): void
     {
         $suite = new SuiteIdentity('Core/Unit');
