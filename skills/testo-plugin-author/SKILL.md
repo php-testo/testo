@@ -164,6 +164,11 @@ parsers ignore the attribute. `testFinished` also carries `assertions` — the c
 records under that metric name — omitted entirely when no plugin counted them, which is not the same
 as `assertions='0'` for a test that asserted nothing.
 
+Every opening message — `testSuiteStarted` for a suite, a case or a DataProvider batch, and
+`testStarted` for a test or a data set — carries `testSuite` and `testType`, the two things `--suite`
+and `--type` select on. A suite of the run states only `testSuite`: it holds cases of several types
+and has none of its own.
+
 Each suite opens with `##teamcity[testCount count='N']` — the tests located for it, read off
 `SuiteInfo::$testCases` before the first one runs. Counts accumulate across suites in IntelliJ-based
 IDEs (the TeamCity server ignores the message), so one per suite is the intended shape. A DataProvider

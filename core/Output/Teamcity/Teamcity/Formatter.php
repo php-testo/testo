@@ -6,6 +6,7 @@ namespace Testo\Output\Teamcity\Teamcity;
 
 use Testo\Core\Context\Identity;
 use Testo\Core\Context\Identity\CaseIdentity;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Value\Status;
 
@@ -60,7 +61,10 @@ final class Formatter
         $locationHint = self::locationHint($identity);
         $locationHint === null or $attributes['locationHint'] = $locationHint;
 
-        return self::formatMessage('testSuiteStarted', $attributes + self::placement($identity));
+        return self::formatMessage(
+            'testSuiteStarted',
+            $attributes + self::taxonomy($identity) + self::placement($identity),
+        );
     }
 
     /**
@@ -116,7 +120,10 @@ final class Formatter
 
         $description !== null and $attributes['metainfo'] = $description;
 
-        return self::formatMessage('testStarted', $attributes + self::placement($identity));
+        return self::formatMessage(
+            'testStarted',
+            $attributes + self::taxonomy($identity) + self::placement($identity),
+        );
     }
 
     /**
@@ -450,6 +457,29 @@ final class Formatter
         $identity instanceof TestIdentity and $placement['flowId'] = self::flowId($identity);
 
         return $placement;
+    }
+
+    /**
+     * Which suite the node belongs to and which kind of test it holds — the two things `--suite` and
+     * `--type` select on, so a consumer can offer the same slicing without parsing anything out of a
+     * name or a path.
+     *
+     * Only stated where the address knows it: a suite of the run has no type of its own, since one
+     * suite can hold cases of several ({@see CaseIdentity::$type}).
+     *
+     * @return array<non-empty-string, non-empty-string>
+     */
+    private static function taxonomy(?Identity $identity): array
+    {
+        return match (true) {
+            $identity instanceof CaseIdentity,
+            $identity instanceof TestIdentity => [
+                'testSuite' => $identity->suite,
+                'testType' => $identity->type,
+            ],
+            $identity instanceof SuiteIdentity => ['testSuite' => $identity->suite],
+            default => [],
+        };
     }
 
     /**

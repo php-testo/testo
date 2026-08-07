@@ -224,7 +224,7 @@ final class AssertTest
     public function stream(): void
     {
         for ($i = 0; $i < 10; ++$i) {
-            \usleep(400_000);
+            \usleep(100_000);
             echo "Foo $i\n";
         }
 

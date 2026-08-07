@@ -113,6 +113,38 @@ final class FormatterTest
         Assert::string($msg)->contains("status='failed'");
     }
 
+    public function anOpeningNodeNamesTheSuiteAndTypeItBelongsTo(): void
+    {
+        $suite = new SuiteIdentity('Core/Unit');
+        $case = $suite->toCase('Tests\Foo\BarTest', 'bench', Path::create('/app/tests/BarTest.php'));
+
+        $caseMsg = Formatter::suiteStarted('BarTest', $case);
+        $testMsg = Formatter::testStarted('itWorks', identity: $case->toTest('itWorks'));
+
+        // What `--suite` and `--type` select on, stated rather than left to be parsed out of a name.
+        Assert::string($caseMsg)->contains("testSuite='Core/Unit'");
+        Assert::string($caseMsg)->contains("testType='bench'");
+        Assert::string($testMsg)->contains("testSuite='Core/Unit'");
+        Assert::string($testMsg)->contains("testType='bench'");
+    }
+
+    public function aSuiteOfTheRunNamesItselfButClaimsNoType(): void
+    {
+        $msg = Formatter::suiteStarted('Core/Unit', new SuiteIdentity('Core/Unit'));
+
+        // One suite holds cases of several types, so it has none of its own to report.
+        Assert::string($msg)->contains("testSuite='Core/Unit'");
+        Assert::string($msg)->notContains('testType=');
+    }
+
+    public function anOpeningNodeWithoutAnAddressClaimsNeither(): void
+    {
+        $msg = Formatter::testStarted('itWorks');
+
+        Assert::string($msg)->notContains('testSuite=');
+        Assert::string($msg)->notContains('testType=');
+    }
+
     public function testCountAnnouncesHowManyTestsAreAboutToRun(): void
     {
         $msg = Formatter::testCount(42);
