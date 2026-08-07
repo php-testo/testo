@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Sandbox\Self;
 
-use Testo;
 use Testo\Assert;
 use Testo\Assert\ExpectException;
 use Testo\Assert\State\Assertion\AssertionException;
@@ -20,7 +19,7 @@ use Testo\Testing\Attribute\Inject;
 use Tests\Fixture\ClassDataProvider;
 
 /**
- * Aassertions sandbox
+ * Assertions sandbox
  */
 #[Group('sandbox')]
 final class AssertTest
@@ -39,6 +38,31 @@ final class AssertTest
         yield 'name' => ['third'];
         yield 'name' => ['conflict'];
         yield 'Any warrior can change the world.' => ['yep'];
+    }
+
+    #[Test]
+    public static function loggerFacade(): void
+    {
+        $r = new \ReflectionMethod(self::class, __FUNCTION__);
+        $code = \array_slice(\file(__FILE__), $r->getStartLine() - 1, $r->getEndLine() - $r->getStartLine() + 1);
+        \Testo::logger('test.log')->emergency(
+            <<<LOG
+                2026-06-10T06:33:17+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
+                2026-06-10T06:33:17+0000        DEBUG   server          worker is allocated     {"pid": 28580, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
+                2026-06-10T06:33:17+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
+                2026-06-10T06:33:17+0000        DEBUG   server          worker is allocated     {"pid": 21924, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
+                2026-06-10T06:33:17+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
+                2026-06-10T06:33:17+0000        DEBUG   server          worker is allocated     {"pid": 11432, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
+                2026-06-10T06:33:17+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
+                2026-06-10T06:33:17+0000        DEBUG   server          worker is allocated     {"pid": 24480, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
+                2026-06-10T06:33:20+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
+                2026-06-10T06:33:20+0000        DEBUG   server          worker is allocated     {"pid": 7180, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
+                2026-06-10T06:33:20+0000        DEBUG   temporal        outgoing message        {"id": 0, "data": "", "context": ""}
+                2026-06-10T06:33:20+0000        DEBUG   server          req-resp mode   {"pid": 7180}
+                2026-06-10T06:33:20+0000        WARN    server          Deadline exceeded
+                LOG,
+        );
+        Assert::true(true);
     }
 
     #[Test]
@@ -193,7 +217,6 @@ final class AssertTest
             // Catching the exception prevents the test from failing
             // But the expectation was set, so this should be marked as Risky
         }
-
         // Test completes successfully despite Assert::fail() being called
     }
 
@@ -221,50 +244,30 @@ final class AssertTest
     {
         echo "This test demonstrates logging to \e[32mmultiple channels\e[0m with different levels.\n";
 
-        $this->messenger->channel('query.sql')->debug(<<<SQL
-            SELECT *
-            FROM user
-            WHERE id = 42
+        $this->messenger->channel('query.sql')->debug(
+            <<<SQL
+                SELECT *
+                FROM user
+                WHERE id = 42
+                SQL,
+        );
 
-            SQL);
+        $this->messenger->channel('response.json')->write(
+            <<<JSON
+                {
+                    "id": 42,
+                    "name": "John Doe"
+                }
+                JSON,
+        );
 
-        $this->messenger->channel('response.json')->write(<<<JSON
-            {
-                "id": 42,
-                "name": "John Doe"
-            }
-
-            JSON);
-
-        $this->messenger->channel('docs.md')->write(<<<MARKDOWN
-            # Foo
-            ## Bar
-            **Baz** `fizz buzz`
-
-            MARKDOWN);
-        Assert::true(true);
-    }
-
-    #[Test]
-    public static function loggerFacade(): void
-    {
-        $r = new \ReflectionMethod(self::class, __FUNCTION__);
-        $code = \array_slice(\file(__FILE__), $r->getStartLine() - 1, $r->getEndLine() - $r->getStartLine() + 1);
-        Testo::logger('test.log')->emergency(<<<LOG
-            2026-06-10T06:33:17+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
-            2026-06-10T06:33:17+0000        DEBUG   server          worker is allocated     {"pid": 28580, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
-            2026-06-10T06:33:17+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
-            2026-06-10T06:33:17+0000        DEBUG   server          worker is allocated     {"pid": 21924, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
-            2026-06-10T06:33:17+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
-            2026-06-10T06:33:17+0000        DEBUG   server          worker is allocated     {"pid": 11432, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
-            2026-06-10T06:33:17+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
-            2026-06-10T06:33:17+0000        DEBUG   server          worker is allocated     {"pid": 24480, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
-            2026-06-10T06:33:20+0000        INFO    server          [php warning] Installed RoadRunner version `2025.1.2` not supported. Requires version `2025.1.3` or higher. []
-            2026-06-10T06:33:20+0000        DEBUG   server          worker is allocated     {"pid": 7180, "max_execs": 0, "internal_event_name": "EventWorkerConstruct"}
-            2026-06-10T06:33:20+0000        DEBUG   temporal        outgoing message        {"id": 0, "data": "", "context": ""}
-            2026-06-10T06:33:20+0000        DEBUG   server          req-resp mode   {"pid": 7180}
-            2026-06-10T06:33:20+0000        WARN    server          Deadline exceeded
-            LOG);
+        $this->messenger->channel('docs.md')->write(
+            <<<MARKDOWN
+                # Foo
+                ## Bar
+                **Baz** `fizz buzz`
+                MARKDOWN,
+        );
         Assert::true(true);
     }
 }
