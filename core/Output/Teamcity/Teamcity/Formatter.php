@@ -7,6 +7,7 @@ namespace Testo\Output\Teamcity\Teamcity;
 use Testo\Core\Context\Identity;
 use Testo\Core\Context\Identity\CaseIdentity;
 use Testo\Core\Context\Identity\TestIdentity;
+use Testo\Core\Value\Status;
 
 /**
  * Formats TeamCity service messages.
@@ -67,11 +68,15 @@ final class Formatter
      *
      * @param non-empty-string $name Suite name
      * @param Identity|null $identity Address of the node this message closes. {@see placement()}
+     * @param Status|null $status Aggregated outcome of the node. {@see status()}
      * @return non-empty-string
      */
-    public static function suiteFinished(string $name, ?Identity $identity = null): string
+    public static function suiteFinished(string $name, ?Identity $identity = null, ?Status $status = null): string
     {
-        return self::formatMessage('testSuiteFinished', ['name' => $name] + self::placement($identity));
+        return self::formatMessage(
+            'testSuiteFinished',
+            ['name' => $name] + self::status($status) + self::placement($identity),
+        );
     }
 
     /**
@@ -105,15 +110,20 @@ final class Formatter
      * @param non-empty-string $name Test name
      * @param int<0, max>|null $duration Duration in milliseconds
      * @param TestIdentity|null $identity Address of the test this message closes. {@see placement()}
+     * @param Status|null $status Outcome of the test. {@see status()}
      * @return non-empty-string
      */
-    public static function testFinished(string $name, ?int $duration = null, ?TestIdentity $identity = null): string
-    {
+    public static function testFinished(
+        string $name,
+        ?int $duration = null,
+        ?TestIdentity $identity = null,
+        ?Status $status = null,
+    ): string {
         $attributes = ['name' => $name];
 
         $duration !== null and $attributes['duration'] = (string) $duration;
 
-        return self::formatMessage('testFinished', $attributes + self::placement($identity));
+        return self::formatMessage('testFinished', $attributes + self::status($status) + self::placement($identity));
     }
 
     /**
@@ -420,6 +430,21 @@ final class Formatter
         $identity instanceof TestIdentity and $placement['flowId'] = self::flowId($identity);
 
         return $placement;
+    }
+
+    /**
+     * The exact outcome, which the standard protocol cannot express: it distinguishes only ignored,
+     * failed and everything else, so `Flaky` is indistinguishable from `Passed` and `Risky` from a
+     * clean pass. Consumers that understand the attribute get the {@see Status} verbatim; standard
+     * parsers ignore it and keep reading the run as before.
+     *
+     * Lowercased case name, the same wire format the JSON report speaks.
+     *
+     * @return array<non-empty-string, non-empty-string>
+     */
+    private static function status(?Status $status): array
+    {
+        return $status === null ? [] : ['status' => \strtolower($status->name)];
     }
 
     /**

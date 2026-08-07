@@ -155,6 +155,13 @@ from `runtimeId` and its parent from `parentId`, the same two fields at every le
 tree off the order events arrive in: concurrent tests interleave, so a consumer that nests by "whatever
 opened last" puts one test's node inside another's.
 
+The built-in TeamCity output carries the **exact** `Status` as a `status` attribute (lowercased case
+name: `passed`, `failed`, `skipped`, `error`, `risky`, `flaky`, `cancelled`, `aborted`) on every
+`testFinished`, and the aggregated one on `testSuiteFinished` for a suite, a case and a DataProvider
+batch. The standard protocol collapses those eight into ignored/failed/neither, so a consumer that
+needs `Flaky` apart from `Passed`, or `Risky` apart from a clean pass, reads them there; standard
+parsers ignore the attribute.
+
 ### Passing state down the pipeline — prefer attributes over mutable fields
 
 `TestInfo`, `CaseInfo`, and `TestResult` use the `Attributed` trait: `withAttribute(string $name,

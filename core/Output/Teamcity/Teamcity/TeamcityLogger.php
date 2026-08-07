@@ -116,9 +116,9 @@ final class TeamcityLogger
     /**
      * Publishes test suite finished message using SuiteInfo.
      */
-    public function suiteFinishedFromInfo(SuiteInfo $info): void
+    public function suiteFinishedFromInfo(SuiteInfo $info, ?Status $status = null): void
     {
-        $this->publish(Formatter::suiteFinished($info->name, $info->identity));
+        $this->publish(Formatter::suiteFinished($info->name, $info->identity, $status));
     }
 
     /**
@@ -132,9 +132,9 @@ final class TeamcityLogger
     /**
      * Publishes test batch finished message (for DataProvider tests).
      */
-    public function batchFinishedFromInfo(TestInfo $info): void
+    public function batchFinishedFromInfo(TestInfo $info, ?Status $status = null): void
     {
-        $this->publish(Formatter::suiteFinished($info->name, $info->identity));
+        $this->publish(Formatter::suiteFinished($info->name, $info->identity, $status));
     }
 
     /**
@@ -156,7 +156,7 @@ final class TeamcityLogger
             );
         }
 
-        $this->suiteFinishedFromInfo($info);
+        $this->suiteFinishedFromInfo($info, $result->status);
     }
 
     /**
@@ -174,9 +174,9 @@ final class TeamcityLogger
      *
      * Test case is treated as a suite in TeamCity (a class containing tests).
      */
-    public function caseFinishedFromInfo(CaseInfo $info): void
+    public function caseFinishedFromInfo(CaseInfo $info, ?Status $status = null): void
     {
-        $this->publish(Formatter::suiteFinished($info->name, $info->identity));
+        $this->publish(Formatter::suiteFinished($info->name, $info->identity, $status));
     }
 
     /**
@@ -200,7 +200,7 @@ final class TeamcityLogger
             );
         }
 
-        $this->caseFinishedFromInfo($caseInfo);
+        $this->caseFinishedFromInfo($caseInfo, $result->status);
     }
 
     /**
@@ -387,7 +387,7 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
 
-        $this->publish(Formatter::testFinished($name, $duration, $result->info->identity));
+        $this->publish(Formatter::testFinished($name, $duration, $result->info->identity, $result->status));
     }
 
     /**
@@ -400,7 +400,7 @@ final class TeamcityLogger
         $name = $overrideName ?? $result->info->name;
         $identity = $result->info->identity;
         $this->publish(Formatter::testIgnored($name, identity: $identity));
-        $this->publish(Formatter::testFinished($name, $duration, $identity));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**
@@ -413,7 +413,7 @@ final class TeamcityLogger
         $name = $overrideName ?? $result->info->name;
         $identity = $result->info->identity;
         $this->publish(Formatter::testIgnored($name, 'Test cancelled', $identity));
-        $this->publish(Formatter::testFinished($name, $duration, $identity));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**
@@ -445,7 +445,7 @@ final class TeamcityLogger
                 identity: $identity,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration, $identity));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**
@@ -470,7 +470,7 @@ final class TeamcityLogger
                 identity: $identity,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration, $identity));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**
@@ -490,7 +490,7 @@ final class TeamcityLogger
                 identity: $identity,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration, $identity));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**

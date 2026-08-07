@@ -187,7 +187,7 @@ final class TeamcityPlugin implements PluginConfigurator
     private function onTestBatchFinished(TestBatchFinished $event): void
     {
         // For DataProvider tests, close the test suite
-        $this->logger->batchFinishedFromInfo($event->testInfo);
+        $this->logger->batchFinishedFromInfo($event->testInfo, $event->testResult->status);
     }
 
     private function onTestDataSetStarting(TestDataSetStarting $event): void

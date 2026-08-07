@@ -8,6 +8,7 @@ use Internal\Path;
 use Testo\Assert;
 use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\Identity\TestIdentity;
+use Testo\Core\Value\Status;
 use Testo\Output\Teamcity\Teamcity\Formatter;
 use Testo\Test;
 
@@ -67,6 +68,31 @@ final class FormatterTest
         // open at once.
         Assert::string($msg)->contains("nodeId='{$test->runtimeId}'");
         Assert::string($msg)->contains("duration='12'");
+    }
+
+    public function aFinishedMessageCarriesTheExactStatus(): void
+    {
+        $msg = Formatter::testFinished('itWorks', 12, self::test(), Status::Flaky);
+
+        // The protocol itself cannot say "flaky" — without the attribute this message is byte-identical
+        // to a clean pass, and a consumer has no way to tell the two apart.
+        Assert::string($msg)->contains("status='flaky'");
+    }
+
+    public function aFinishedMessageWithoutAStatusCarriesNoStatusAttribute(): void
+    {
+        $msg = Formatter::testFinished('itWorks', 12, self::test());
+
+        Assert::string($msg)->notContains('status=');
+    }
+
+    public function aFinishedSuiteCarriesItsAggregatedStatus(): void
+    {
+        $suite = new SuiteIdentity('Core/Unit');
+
+        $msg = Formatter::suiteFinished('Core/Unit', $suite, Status::Failed);
+
+        Assert::string($msg)->contains("status='failed'");
     }
 
     public function testFailedWithoutComparisonHasNoExtraAttributes(): void

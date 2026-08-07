@@ -188,6 +188,26 @@ final class TeamcityLoggerTest
         Assert::same(\substr_count($output, "flowId='{$result->info->identity->pipelineId}'"), 2);
     }
 
+    public function everyStatusReachesTheConsumerOnTheFinishMessage(): void
+    {
+        foreach (Status::cases() as $status) {
+            $result = new TestResult(
+                info: self::makeInfo('passingTest'),
+                status: $status,
+                failure: $status->isFailure() ? new \RuntimeException('boom') : null,
+                attributes: ['duration' => 0],
+            );
+
+            $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+            // The standard messages collapse eight outcomes into three shapes — a consumer that needs the
+            // exact one reads it off `testFinished`, which every branch emits.
+            $expected = \strtolower($status->name);
+            Assert::string($output)->contains("##teamcity[testFinished");
+            Assert::string($output)->contains("status='{$expected}'");
+        }
+    }
+
     public function logMessagePlacesTheOutputOnItsTestsNode(): void
     {
         $info = self::makeInfo('passingTest');
