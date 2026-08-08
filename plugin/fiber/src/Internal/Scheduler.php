@@ -101,18 +101,14 @@ final class Scheduler
      * inside a fiber, control is relayed to the parent scheduler.
      *
      * With `$primary` set (a test's coroutine scope, where `$primary` is the test body), a primary
-     * failure cancels the remaining tasks instead of driving them further: a {@see CancelledException}
-     * is thrown into every pending fiber so its `finally` blocks run; a throwable escaping that unwind
-     * (other than the cancellation itself) is recorded as the task's error. A failure is an error that
-     * escaped the primary fiber, or `$primaryFailed` returning `true` for the settled task — the
-     * caller's chance to recognize failures its pipeline captured into the task's result.
+     * failure cancels the remaining tasks instead of driving them further ({@see cancelPending()}).
+     * A failure is an error that escaped the primary fiber, or `$primaryFailed` returning `true` for
+     * the settled task — the caller's chance to recognize failures its pipeline captured into the
+     * task's result. An await cycle ({@see deadlocked()}) is broken by throwing a
+     * {@see DeadlockException} into the first task the cycle dooms; the failure then cascades to its
+     * awaiters, so the stack trace points at the guilty `await()`.
      *
      * @param null|\Closure(Task): bool $primaryFailed
-     *
-     * An await cycle — even one spanning several schedulers' tasks — is broken by throwing a
-     * {@see DeadlockException} into the first task the cycle dooms; the failure then cascades to its
-     * awaiters, so the deadlock surfaces as an ordinary task error with a stack trace pointing at
-     * the guilty `await()`.
      */
     public function drive(?Task $primary = null, ?\Closure $primaryFailed = null): void
     {
@@ -134,20 +130,16 @@ final class Scheduler
                 }
 
                 if ($ready === []) {
-                    // Every unfinished task is parked in an await. A task whose await chain runs
-                    // into a cycle — even one spanning other schedulers — can never be unparked by
-                    // any schedule; a chain that ends outside a cycle may still be unparked by the
-                    // outer schedule, so with only those left, relay and retry.
+                    // Every unfinished task is parked in an await. A chain that ends outside a
+                    // cycle may still be unparked by the outer schedule — relay and retry.
                     $doomed = $this->deadlocked($parked);
                     if ($doomed === [] && \Fiber::getCurrent() !== null) {
                         $this->relay($prev);
                         continue;
                     }
 
-                    // Break the cycle: the first doomed task gets the deadlock at its await point
-                    // and unwinds; its awaiters unpark and the failure cascades through the cycle.
-                    // With no fiber to relay from, tasks parked on foreign tasks are stuck the same
-                    // way — nobody else will ever drive those.
+                    // With no fiber to relay from, tasks parked on foreign tasks are just as stuck
+                    // as a cycle — nobody else will ever drive those.
                     $stuck = $doomed === [] ? $parked : $doomed;
                     $this->throwInto($this->tasks[$stuck[0]], new DeadlockException($this->describeDeadlock($stuck)));
                     continue;
@@ -344,11 +336,12 @@ final class Scheduler
         $lines = [];
         foreach ($parked as $id) {
             $target = $this->tasks[$id]->awaiting;
+            \assert($target !== null);
             $lines[] = \sprintf(
                 '#%d awaits %s#%d',
                 $id,
-                $target === null || $target->scheduler === $this ? '' : "another scope's ",
-                $target?->id ?? -1,
+                $target->scheduler === $this ? '' : "another scope's ",
+                $target->id,
             );
         }
 

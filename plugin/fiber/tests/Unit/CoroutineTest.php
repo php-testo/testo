@@ -66,7 +66,6 @@ final class CoroutineTest
             return null;
         });
 
-        # Even a single coroutine failure arrives as a composite, so handling code is uniform.
         Assert::instanceOf($caught, CompositeException::class);
         Assert::same(\array_values($caught->errors), [$boom]);
         Assert::same($caught->getPrevious(), $boom);
@@ -122,20 +121,21 @@ final class CoroutineTest
         Assert::same($results, ['first' => 'one', 'second' => 'two']);
     }
 
-    public function concurrentlyBundlesEveryFailureAfterAllSettled(): void
+    public function concurrentlyBundlesEveryFailureKeyedLikeTheArguments(): void
     {
-        $first = new \RuntimeException('first');
-        $second = new \LogicException('second');
+        $first = new \RuntimeException('first broke');
+        $pushError = new \LogicException('push broke');
         $log = [];
 
-        $caught = $this->scope(static function () use ($first, $second, &$log): mixed {
+        $caught = $this->scope(static function () use ($first, $pushError, &$log): mixed {
             try {
                 Coroutine::concurrently(
                     static fn() => throw $first,
-                    static function () use (&$log, $second): void {
+                    ok: static fn(): string => 'fine',
+                    push: static function () use (&$log, $pushError): void {
                         \Fiber::suspend();
                         $log[] = 'slow ran to its end';
-                        throw $second;
+                        throw $pushError;
                     },
                 );
             } catch (CompositeException $e) {
@@ -146,35 +146,13 @@ final class CoroutineTest
         });
 
         Assert::instanceOf($caught, CompositeException::class);
-        # Errors are keyed like the arguments, symmetric to the results.
-        Assert::same($caught->errors, [0 => $first, 1 => $second]);
+        # Every coroutine settled before the bundle was thrown; errors are keyed like the arguments.
+        Assert::same($caught->errors, [0 => $first, 'push' => $pushError]);
+        Assert::same($caught->getPrevious(), $first);
         Assert::same($log, ['slow ran to its end']);
-    }
-
-    public function concurrentlyKeysFailuresLikeTheArguments(): void
-    {
-        $pullError = new \RuntimeException('pull broke');
-        $pushError = new \LogicException('push broke');
-
-        $caught = $this->scope(static function () use ($pullError, $pushError): mixed {
-            try {
-                Coroutine::concurrently(
-                    pull: static fn() => throw $pullError,
-                    ok: static fn(): string => 'fine',
-                    push: static fn() => throw $pushError,
-                );
-            } catch (CompositeException $e) {
-                return $e;
-            }
-
-            return null;
-        });
-
-        Assert::instanceOf($caught, CompositeException::class);
-        Assert::same($caught->errors, ['pull' => $pullError, 'push' => $pushError]);
-        Assert::same($caught->getPrevious(), $pullError);
         # String keys name the fiber in the message as-is; int keys keep the #N form.
-        Assert::string($caught->getMessage())->contains('pull');
+        Assert::string($caught->getMessage())->contains('push');
+        Assert::string($caught->getMessage())->contains('#0');
     }
 
     public function awaitCycleIsBrokenAsADeadlock(): void

@@ -22,19 +22,12 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * relays control upward between rounds, so its coroutines keep interleaving with whatever schedule
  * drives the test — the case batch of a class-level `#[RunInFiber]`, or the single method-level fiber.
  *
- * Sits at {@see InterceptorOptions::ORDER_ASYNC_COROUTINE} — the innermost position, *inside* both the
- * fiber-aware scoped-state guards (assertion collector, messenger scope) and the coverage window,
- * unlike {@see RunInFiberInterceptor} which wraps them. That placement is load-bearing in both
- * directions: coroutines are only ever resumed from this scope's drive frame, so each one runs with
- * its test's state swapped in and inside its coverage window — assertions, messages and executed
- * lines are all attributed to the test that spawned it. Were the scope outer to
- * {@see InterceptorOptions::ORDER_COVERAGE}, the collector's trampoline would close the window every
- * time the body relayed a suspension to us, and everything the coroutines then ran would be measured
- * for nobody.
- *
- * Unlike an event loop at the same order (`testo/bridge-revolt`), this scope drives plain fibers Testo
- * owns and relays suspensions outward, so the trampoline above keeps working: what it must not have
- * above it is a driver that resumes fibers past its wrapper.
+ * Sits at {@see InterceptorOptions::ORDER_ASYNC_COROUTINE} (see the placement contract there) — the
+ * innermost position, *inside* both the fiber-aware scoped-state guards (assertion collector,
+ * messenger scope) and the coverage window, unlike {@see RunInFiberInterceptor} which wraps them.
+ * Coroutines are only ever resumed from this scope's drive frame, so each one runs with its test's
+ * state swapped in and inside its coverage window — assertions, messages and executed lines are all
+ * attributed to the test that spawned it.
  *
  * Coroutine failures nobody awaited fail the test: they are bundled into a {@see CompositeException}
  * (always, even a single one) and attached to the result as its failure with {@see Status::Error}.
@@ -66,8 +59,8 @@ final readonly class CoroutineScopeInterceptor implements TestRunInterceptor
         $scheduler->drive($body, static fn(Task $task): bool =>
             $task->result instanceof TestResult && $task->result->status->isFailure());
 
-        // The pipeline below captures test throwables as results, so a body error is unexpected
-        // infrastructure breakage — let it abort the pipeline.
+        // An error that did escape the body fiber is unexpected infrastructure breakage — let it
+        // abort the pipeline.
         $body->error === null or throw $body->error;
 
         /** @var TestResult $result */

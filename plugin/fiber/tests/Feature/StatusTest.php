@@ -55,7 +55,6 @@ final class StatusTest
         $result = TestRunner::runTest([FiberScenarios::class, 'unawaitedCoroutineFailure']);
 
         Assert::same($result->status, Status::Error);
-        # Coroutine failures always arrive as a composite, even a single one.
         Assert::instanceOf($result->failure, CompositeException::class);
         Assert::instanceOf($result->failure->getPrevious(), \RuntimeException::class);
     }

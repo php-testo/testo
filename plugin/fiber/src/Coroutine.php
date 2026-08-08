@@ -38,10 +38,10 @@ use Testo\Fiber\Internal\Task;
  *
  * @api
  */
-final class Coroutine
+final readonly class Coroutine
 {
     private function __construct(
-        private readonly Task $task,
+        private Task $task,
     ) {}
 
     /**
@@ -108,12 +108,9 @@ final class Coroutine
     /**
      * Park the calling coroutine until this one finishes, and return its result.
      *
-     * Other coroutines — and, through the scope's relay, the case's other tests — keep running while
-     * the caller is parked. A throwable raised by the awaited coroutine is rethrown here wrapped in
-     * a {@see CompositeException}; rethrowing marks the failure as observed, so the scope will not
-     * report it again. Awaiting a cancelled coroutine rethrows the cancellation — unwrapped, it is
-     * the scope's control signal rather than a failure of the coroutine — so a `finally` unwinding
-     * on the same cancellation cannot mistake a torn-down sibling for one that returned `null`.
+     * Other coroutines keep running while the caller is parked. Rethrowing a failure here marks it
+     * as observed, so the scope will not report it again. A cancellation is rethrown unwrapped — it
+     * is the scope's control signal, not a failure of the coroutine.
      *
      * @throws CompositeException When the awaited coroutine threw.
      * @throws CancelledException When the awaited coroutine was cancelled with its scope.
