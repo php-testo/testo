@@ -8,6 +8,8 @@ use Testo\Assert;
 use Testo\Assert\ExpectException;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Common\Messenger;
+use Testo\Core\Exception\CancelTest;
+use Testo\Core\Exception\SkipTest;
 use Testo\Data\DataProvider;
 use Testo\Data\DataSet;
 use Testo\Expect;
@@ -145,6 +147,18 @@ final class AssertTest
         static $attempt = 0;
         ++$attempt;
         Assert::same($attempt, 5);
+    }
+
+    #[Test]
+    public function cancel(): void
+    {
+        throw new CancelTest('cancelled!');
+    }
+
+    #[Test]
+    public function skip(): void
+    {
+        throw new SkipTest('skipped!');
     }
 
     #[Test]
