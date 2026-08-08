@@ -427,7 +427,7 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
         $identity = $result->info->identity;
-        $this->publish(Formatter::testIgnored($name, identity: $identity));
+        $this->publish(Formatter::testIgnored($name, $result->failure?->getMessage() ?? '', $identity));
         $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
@@ -440,7 +440,8 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
         $identity = $result->info->identity;
-        $this->publish(Formatter::testIgnored($name, 'Test cancelled', $identity));
+        $message = $result->failure?->getMessage() ?? '';
+        $this->publish(Formatter::testIgnored($name, $message === '' ? 'Test cancelled' : $message, $identity));
         $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 

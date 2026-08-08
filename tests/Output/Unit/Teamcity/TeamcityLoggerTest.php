@@ -17,6 +17,8 @@ use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\CaseDefinitions;
 use Testo\Core\Definition\TestDefinitions;
 use Testo\Core\Definition\TestDefinition;
+use Testo\Core\Exception\CancelTest;
+use Testo\Core\Exception\SkipTest;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
@@ -241,6 +243,44 @@ final class TeamcityLoggerTest
         }
     }
 
+    public function aCancelledTestCarriesTheReasonFromTheException(): void
+    {
+        $result = self::makeResult(Status::Cancelled, new CancelTest('deadline exceeded while waiting for the queue'));
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        // The reason lives in the thrown exception; a generic stand-in would hide why the run was aborted.
+        Assert::string($output)->contains("message='deadline exceeded while waiting for the queue'");
+    }
+
+    public function aCancelledTestWithoutAReasonFallsBackToAGenericMessage(): void
+    {
+        $result = self::makeResult(Status::Cancelled, new CancelTest());
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::string($output)->contains("message='Test cancelled'");
+    }
+
+    public function aSkippedTestCarriesTheReasonFromTheException(): void
+    {
+        $result = self::makeResult(Status::Skipped, new SkipTest('sqlite extension is missing'));
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::string($output)->contains("message='sqlite extension is missing'");
+    }
+
+    public function aSkippedTestWithoutAReasonOmitsTheMessage(): void
+    {
+        $result = self::makeResult(Status::Skipped, new SkipTest());
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::string($output)->contains('##teamcity[testIgnored');
+        Assert::string($output)->notContains('message=');
+    }
+
     public function aPassedTestReportsHowManyAssertionsItPerformed(): void
     {
         $result = new TestResult(
@@ -343,6 +383,16 @@ final class TeamcityLoggerTest
         return new TestResult(
             info: self::makeInfo('failingTest'),
             status: Status::Failed,
+            failure: $failure,
+            attributes: ['duration' => 0],
+        );
+    }
+
+    private static function makeResult(Status $status, ?\Throwable $failure = null): TestResult
+    {
+        return new TestResult(
+            info: self::makeInfo('passingTest'),
+            status: $status,
             failure: $failure,
             attributes: ['duration' => 0],
         );
