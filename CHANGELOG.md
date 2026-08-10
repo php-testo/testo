@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.40](https://github.com/php-testo/testo/compare/0.10.39...0.10.40) (2026-08-10)
+
+
+### Features
+
+* **bridge-vcr:** add PHP-VCR bridge ([#267](https://github.com/php-testo/testo/issues/267)) ([32ebe04](https://github.com/php-testo/testo/commit/32ebe048520b0126b130af06ac19465452d92681))
+* **fiber:** coroutine scope — Coroutine::spawn()/await()/concurrently() ([#277](https://github.com/php-testo/testo/issues/277)) ([4d7b7ea](https://github.com/php-testo/testo/commit/4d7b7ea48d95af6fdf23f5fd13c6c81849ec7572))
+* **pipeline:** make #[FallbackInterceptor] repeatable ([4d7b7ea](https://github.com/php-testo/testo/commit/4d7b7ea48d95af6fdf23f5fd13c6c81849ec7572))
+* **release-please:** set initial version to 0.1.0 in configuration ([c7ed053](https://github.com/php-testo/testo/commit/c7ed05343c9f2bf0bf5d35556ab9cfaf580fce8c))
+* **teamcity:** report the exact status, assertion count, suite taxonomy and test count ([#278](https://github.com/php-testo/testo/issues/278)) ([d312824](https://github.com/php-testo/testo/commit/d312824ce0768361a707df63cc68d2e3afc9037a))
+
 ## [0.10.39](https://github.com/php-testo/testo/compare/0.10.38...0.10.39) (2026-08-06)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/inline-0.1.7...inline-0.1.8) (2026-08-10)
+
+
+### Features
+
+* **teamcity:** report the exact status, assertion count, suite taxonomy and test count ([#278](https://github.com/php-testo/testo/issues/278)) ([d312824](https://github.com/php-testo/testo/commit/d312824ce0768361a707df63cc68d2e3afc9037a))
+
 ## [0.1.7](https://github.com/php-testo/testo/compare/inline-0.1.6...inline-0.1.7) (2026-08-06)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/php-testo/testo/compare/fiber-0.1.1...fiber-0.1.2) (2026-08-10)
+
+
+### Features
+
+* **fiber:** coroutine scope — Coroutine::spawn()/await()/concurrently() ([#277](https://github.com/php-testo/testo/issues/277)) ([4d7b7ea](https://github.com/php-testo/testo/commit/4d7b7ea48d95af6fdf23f5fd13c6c81849ec7572))
+* **pipeline:** make #[FallbackInterceptor] repeatable ([4d7b7ea](https://github.com/php-testo/testo/commit/4d7b7ea48d95af6fdf23f5fd13c6c81849ec7572))
+
 ## [0.1.1](https://github.com/php-testo/testo/compare/fiber-0.1.0...fiber-0.1.1) (2026-08-06)
 
 

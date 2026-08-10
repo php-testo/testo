@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.2](https://github.com/php-testo/testo/compare/bridge-rector-0.2.1...bridge-rector-0.2.2) (2026-08-10)
+
+
+### Features
+
+* **fiber:** coroutine scope — Coroutine::spawn()/await()/concurrently() ([#277](https://github.com/php-testo/testo/issues/277)) ([4d7b7ea](https://github.com/php-testo/testo/commit/4d7b7ea48d95af6fdf23f5fd13c6c81849ec7572))
+* **pipeline:** make #[FallbackInterceptor] repeatable ([4d7b7ea](https://github.com/php-testo/testo/commit/4d7b7ea48d95af6fdf23f5fd13c6c81849ec7572))
+* **teamcity:** report the exact status, assertion count, suite taxonomy and test count ([#278](https://github.com/php-testo/testo/issues/278)) ([d312824](https://github.com/php-testo/testo/commit/d312824ce0768361a707df63cc68d2e3afc9037a))
+
 ## [0.2.1](https://github.com/php-testo/testo/compare/bridge-rector-0.2.0...bridge-rector-0.2.1) (2026-08-06)
 
 

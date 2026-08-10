@@ -1,5 +1,5 @@
 {
-    ".": "0.10.39",
+    ".": "0.10.40",
     "plugin/repeat": "0.1.9",
     "plugin/convention": "0.1.4",
     "plugin/lifecycle": "0.1.5",
@@ -8,15 +8,15 @@
     "plugin/test": "0.1.6",
     "plugin/assert": "0.1.12",
     "plugin/data": "0.1.7",
-    "plugin/inline": "0.1.7",
-    "plugin/bench": "0.1.7",
+    "plugin/inline": "0.1.8",
+    "plugin/bench": "0.1.8",
     "plugin/codecov": "0.1.12",
     "plugin/facade": "0.1.1",
-    "plugin/fiber": "0.1.1",
+    "plugin/fiber": "0.1.2",
     "bridge/symfony-console": "0.1.8",
     "bridge/infection": "0.1.8",
     "bridge/mockery": "0.1.2",
-    "bridge/rector": "0.2.1",
+    "bridge/rector": "0.2.2",
     "bridge/revolt": "0.1.1",
-    "bridge/vcr": "0.0.0"
+    "bridge/vcr": "0.1.0"
 }
