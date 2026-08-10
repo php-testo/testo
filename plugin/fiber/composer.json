@@ -24,7 +24,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "testo/testo": "0.10.39 - 1"
+        "testo/testo": "0.10.40 - 1"
     },
     "autoload": {
         "psr-4": {
