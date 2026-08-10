@@ -6,6 +6,7 @@ namespace Testo\Codecov\Internal\Driver;
 
 use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\Config\CoverageLevel;
+use Testo\Codecov\Exception\BranchCoverageUnsafeInFiber;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Internal\CoverageDriver;
 use Testo\Inline\TestInline;
@@ -20,6 +21,11 @@ use Testo\Inline\TestInline;
 final readonly class XdebugDriver implements CoverageDriver
 {
     use NormalizePath;
+
+    /**
+     * Lowest XDebug version that survives branch analysis across a fiber switch.
+     */
+    private const BRANCH_IN_FIBER_SINCE = '3.4.5';
 
     /**
      * @param list<non-empty-string> $includes
@@ -73,7 +79,10 @@ final readonly class XdebugDriver implements CoverageDriver
     {
         $flags = \XDEBUG_CC_UNUSED | \XDEBUG_CC_DEAD_CODE;
 
-        $this->level !== CoverageLevel::Line and $flags |= \XDEBUG_CC_BRANCH_CHECK;
+        if ($this->level !== CoverageLevel::Line) {
+            $flags |= \XDEBUG_CC_BRANCH_CHECK;
+            self::assertBranchSafeHere($this->level);
+        }
 
         \xdebug_start_code_coverage($flags);
     }
@@ -104,6 +113,40 @@ final readonly class XdebugDriver implements CoverageDriver
     public function clear(): void
     {
         # XDebug clears data on \xdebug_stop_code_coverage() by default.
+    }
+
+    /**
+     * Refuse to open a branch-analysing window inside a fiber on an XDebug build that faults on it.
+     *
+     * Branch analysis and fibers corrupt memory in XDebug before {@see self::BRANCH_IN_FIBER_SINCE}:
+     * the process dies with no PHP-level error and no report. A loud exception is the only way to keep
+     * the failure diagnosable, so the caller learns what to change instead of losing the run.
+     */
+    private static function assertBranchSafeHere(CoverageLevel $level): void
+    {
+        if (\Fiber::getCurrent() === null) {
+            return;
+        }
+
+        $version = \phpversion('xdebug');
+
+        $version === false || self::isBranchSafeInFiber($version)
+            or throw new BranchCoverageUnsafeInFiber($level, $version, self::BRANCH_IN_FIBER_SINCE);
+    }
+
+    /**
+     * @param non-empty-string $version
+     */
+    #[TestInline(['3.4.5'], result: true)]
+    #[TestInline(['3.4.6'], result: true)]
+    #[TestInline(['3.5.3'], result: true)]
+    #[TestInline(['4.0.0'], result: true)]
+    #[TestInline(['3.4.4'], result: false)]
+    #[TestInline(['3.4.0'], result: false)]
+    #[TestInline(['3.3.2'], result: false)]
+    private static function isBranchSafeInFiber(string $version): bool
+    {
+        return \version_compare($version, self::BRANCH_IN_FIBER_SINCE, '>=');
     }
 
     /**

@@ -17,10 +17,12 @@ on:  # yamllint disable-line rule:truthy
   push:
     tags:
       - 'assert-[0-9]*'
+      - 'fiber-[0-9]*'
       - 'bench-[0-9]*'
       - 'bridge-infection-[0-9]*'
       - 'bridge-mockery-[0-9]*'
       - 'bridge-rector-[0-9]*'
+      - 'bridge-revolt-[0-9]*'
       - 'bridge-symfony-console-[0-9]*'
       - 'bridge-vcr-[0-9]*'
       - 'codecov-[0-9]*'

@@ -21,10 +21,10 @@
     ],
     "require": {
         "php": ">=8.2",
-        "testo/assert": "^0.1.10",
-        "testo/data": "^0.1.6",
-        "testo/filter": "^0.1.5",
-        "testo/testo": "0.10.34 - 1"
+        "testo/assert": "^0.1.12",
+        "testo/data": "^0.1.7",
+        "testo/filter": "^0.1.6",
+        "testo/testo": "0.10.39 - 1"
     },
     "autoload": {
         "psr-4": {

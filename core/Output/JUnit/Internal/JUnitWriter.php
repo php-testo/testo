@@ -255,29 +255,15 @@ final class JUnitWriter
      */
     private static function classnameFor(TestInfo $info): string
     {
-        $reflection = $info->testDefinition->reflection;
-
-        // Class-bound tests: use the concrete (runtime) case class, not the
-        // method's declaring class. For a `#[Test]` inherited from an abstract
-        // base, getDeclaringClass() names the base — but the enclosing
-        // <testsuite> is named after the concrete subclass (see JUnitPlugin),
-        // and Infection joins coverage to a test file by matching this classname
-        // against that suite name. Diverging the two breaks the lookup.
-        $caseReflection = $info->caseInfo->definition->reflection;
-        if ($caseReflection !== null) {
-            return $caseReflection->getName();
-        }
-
-        if ($reflection instanceof \ReflectionMethod) {
-            return $reflection->getDeclaringClass()->getName();
-        }
-
-        // Free-function test: use the function's FQN, matching the per-function
-        // synthetic <testsuite name="..."> opened by JUnitPlugin. Keeps the
-        // testcase's classname aligned with the wrapping suite so Infection
-        // and CI tools can match the two unambiguously.
-        $name = $reflection->getName();
-        return $name === '' ? '<global>' : $name;
+        // Class-bound tests: the address already names the concrete (runtime) case class rather than
+        // the method's declaring class. For a `#[Test]` inherited from an abstract base,
+        // getDeclaringClass() would name the base — but the enclosing <testsuite> is named after the
+        // concrete subclass (see JUnitPlugin), and Infection joins coverage to a test file by matching
+        // this classname against that suite name. Diverging the two breaks the lookup.
+        //
+        // Free-function test: no class to name, so the function's own FQN stands in, matching the
+        // per-function synthetic <testsuite name="..."> opened by JUnitPlugin.
+        return $info->identity->case ?? $info->identity->qualifiedName();
     }
 
     private static function outcomeFor(TestResult $result): ?JUnitCaseOutcome

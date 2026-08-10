@@ -35,7 +35,6 @@ final readonly class CaseRunner
 
     public function runCase(CaseInfo $info, Filter $filter): CaseResult
     {
-        # TODO handle async tests
         # TODO handle random order
 
         /**
@@ -64,34 +63,41 @@ final readonly class CaseRunner
     {
         $this->eventDispatcher->dispatch(new TestCaseStarting($info));
 
-        $results = [];
-        $status = Status::Passed;
+        $infos = [];
         foreach ($info->definition->tests->getTests() as $name => $testDefinition) {
-            try {
-                $testInfo = new TestInfo(
-                    name: $name,
-                    caseInfo: $info,
-                    testDefinition: $testDefinition,
-                );
+            $infos[] = new TestInfo(
+                name: $name,
+                caseInfo: $info,
+                testDefinition: $testDefinition,
+            );
+        }
 
-                $result = $this->testRunner->runTest($testInfo);
-                # A test aborted by a critical interceptor failure has an unknown verdict — treat it as
-                # a case failure so it propagates up to the suite/run status and the process exit code
-                # (every reporter already renders an abort as a failure). Deliberately broader than
-                # Status::isFailure(), which must keep Aborted out so retry/repeat don't retry an abort.
-                ($result->status->isFailure() || $result->status === Status::Aborted)
-                    and $status = Status::Failed;
-
-                $results[] = $result;
-            } catch (\Throwable $throwable) {
-                $status = Status::Error;
-                isset($testInfo) and $results[] = new TestResult(
-                    info: $testInfo,
-                    status: Status::Error,
-                    failure: $throwable,
-                    summary: Summary::forTest(Status::Error),
-                );
+        $runner = $info->batchRunner;
+        if ($runner === null) {
+            # Default: run each test to completion, in order — inline, without a runner/handler call
+            # frame so the stack stays shallow for deeply-recursive tests.
+            $results = [];
+            foreach ($infos as $testInfo) {
+                $results[] = $this->testRunner->runTest($testInfo);
             }
+        } else {
+            # A case-level interceptor (e.g. testo/fiber's #[RunInFiber]) set a custom runner: hand it
+            # the per-test handlers to drive (e.g. wrapped in fibers).
+            $handlers = [];
+            foreach ($infos as $testInfo) {
+                $handlers[] = fn(): TestResult => $this->testRunner->runTest($testInfo);
+            }
+            $results = $runner($handlers);
+        }
+
+        # A test aborted by a critical interceptor failure has an unknown verdict — treat it as a case
+        # failure so it propagates up to the suite/run status and the process exit code (every reporter
+        # already renders an abort as a failure). Deliberately broader than Status::isFailure(), which
+        # must keep Aborted out so retry/repeat don't retry an abort.
+        $status = Status::Passed;
+        foreach ($results as $result) {
+            ($result->status->isFailure() || $result->status === Status::Aborted)
+                and $status = Status::Failed;
         }
 
         $result = new CaseResult(

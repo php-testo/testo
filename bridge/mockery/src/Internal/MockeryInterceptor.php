@@ -106,8 +106,7 @@ final readonly class MockeryInterceptor implements TestRunInterceptor
      *
      * The container is process-global static state, so under concurrent (fiber-based) execution
      * sibling tests would clobber each other's mocks. On every suspension we save this test's
-     * container and reset the global one; on resumption we restore it — the same scope-guarding
-     * dance as {@see \Testo\Application\Internal\MessengerHub::scope()}.
+     * container and reset the global one; on resumption we restore it.
      *
      * @param callable(TestInfo): TestResult $next
      */

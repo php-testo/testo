@@ -27,27 +27,33 @@ use Testo\Output\Teamcity\Teamcity\TeamcityLogger;
 final class TeamcityPlugin implements PluginConfigurator
 {
     /**
-     * Tracks whether we're inside a DataProvider batch.
+     * Ids of the tests currently inside a DataProvider batch.
      *
-     * @var array<non-empty-string, bool>
+     * Keyed by {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId} so concurrently running
+     * tests are tracked independently — a single scalar would be clobbered the moment two tests
+     * interleave — and so a batch's data sets, whose own runs differ, find the batch's entry.
+     *
+     * @var array<int, bool>
      */
     private array $isBatch = [];
 
     /**
-     * Name of the in-flight test/data set that streamed {@see MessageReceived} output is attributed
-     * to. `null` when no test is running (output between tests is dropped).
+     * Name of the in-flight test/data set that streamed {@see MessageReceived} output is attributed to,
+     * per running test id. A test with no entry is not running (its output is dropped).
      *
-     * @var non-empty-string|null
+     * @var array<int, non-empty-string>
      */
-    private ?string $currentName = null;
+    private array $currentName = [];
 
     /**
-     * A regular (non-DataProvider) test whose `testStarted` has not been emitted yet. It is emitted
-     * lazily on the first message (so output can stream in real time), or at pipeline finish if the
-     * test produced no output. `null` once `testStarted` has been emitted (or for data sets, which
-     * emit it eagerly).
+     * Regular (non-DataProvider) tests whose `testStarted` has not been emitted yet, per test id. Emitted
+     * lazily on the first message (so output streams in real time), or at pipeline finish if the test
+     * produced no output. Dropped once `testStarted` has been emitted (or for data sets, which emit it
+     * eagerly).
+     *
+     * @var array<int, TestInfo>
      */
-    private ?TestInfo $pendingStart = null;
+    private array $pendingStart = [];
 
     private readonly TeamcityLogger $logger;
 
@@ -89,18 +95,12 @@ final class TeamcityPlugin implements PluginConfigurator
         $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
     }
 
-    private static function getId(TestInfo $testInfo): string
-    {
-        return \spl_object_hash($testInfo->testDefinition);
-    }
-
     /**
-     * Clears the current-test attribution so output emitted outside any test is dropped.
+     * Clears one test's attribution once it is done, so later output outside any test is dropped.
      */
-    private function resetCurrent(): void
+    private function resetCurrent(int $id): void
     {
-        $this->currentName = null;
-        $this->pendingStart = null;
+        unset($this->currentName[$id], $this->pendingStart[$id]);
     }
 
     private function onSessionStarting(SessionStarting $event): void
@@ -117,62 +117,68 @@ final class TeamcityPlugin implements PluginConfigurator
 
     private function onMessageReceived(MessageReceived $event): void
     {
-        // No test in flight — output between tests is not attributable, so drop it. Internal errors on
-        // the dedicated stderr channel are the exception: surface them as a standalone message instead.
-        if ($this->currentName === null) {
+        $identity = $event->identity;
+
+        // No attributable test — the message belongs to none (suite/case setup, output between tests),
+        // or its test is not tracked here. Drop it; internal errors on the dedicated stderr channel are
+        // the exception and are surfaced as a standalone message instead.
+        if ($identity === null || !isset($this->currentName[$identity->pipelineId])) {
             $event->message->channel === Messenger::CHANNEL_STDERR
                 and $this->logger->logStandaloneMessage($event->message);
             return;
         }
 
+        $id = $identity->pipelineId;
+
         // Lazily emit testStarted for a regular test on its first output, so it streams in real time.
-        if ($this->pendingStart !== null) {
-            $this->logger->testStartedFromInfo($this->pendingStart);
-            $this->pendingStart = null;
+        if (isset($this->pendingStart[$id])) {
+            $this->logger->testStartedFromInfo($this->pendingStart[$id]);
+            unset($this->pendingStart[$id]);
         }
 
-        $this->logger->logMessage($this->currentName, $event->message);
+        $this->logger->logMessage($this->currentName[$id], $event->message, $identity);
     }
 
     private function onTestPipelineStarting(TestPipelineStarting $event): void
     {
         // Assume a regular test: attribute output to it and keep testStarted pending until output
         // arrives. If it turns out to be a DataProvider batch, onTestBatchStarting clears this.
-        $this->currentName = $event->testInfo->name;
-        $this->pendingStart = $event->testInfo;
+        $id = $event->testInfo->identity->pipelineId;
+        $this->currentName[$id] = $event->testInfo->name;
+        $this->pendingStart[$id] = $event->testInfo;
     }
 
     private function onTestPipelineFinished(TestPipelineFinished $event): void
     {
         // Check if this test was inside a DataProvider batch
-        $id = self::getId($event->testInfo);
+        $id = $event->testInfo->identity->pipelineId;
         if (isset($this->isBatch[$id])) {
             // DataProvider test - already handled in batch events
             unset($this->isBatch[$id]);
-            $this->resetCurrent();
+            $this->resetCurrent($id);
             return;
         }
 
         // Regular test: testStarted was emitted lazily on first output; if there was none, emit now.
-        if ($this->pendingStart !== null) {
-            $this->logger->testStartedFromInfo($this->pendingStart);
-            $this->pendingStart = null;
+        if (isset($this->pendingStart[$id])) {
+            $this->logger->testStartedFromInfo($this->pendingStart[$id]);
+            unset($this->pendingStart[$id]);
         }
 
         $duration = (int) $event->testResult->getAttribute('duration');
         $this->logger->handleSingleTestResult($event->testResult, $duration);
-        $this->resetCurrent();
+        $this->resetCurrent($id);
     }
 
     private function onTestBatchStarting(TestBatchStarting $event): void
     {
         // Mark that we're inside a batch
-        $id = self::getId($event->testInfo);
+        $id = $event->testInfo->identity->pipelineId;
         $this->isBatch[$id] = true;
 
         // It's a DataProvider, not a single test: drop the pending single-test start; data sets
         // emit their own testStarted and own the current attribution.
-        $this->resetCurrent();
+        $this->resetCurrent($id);
 
         // For DataProvider tests, start a test suite (wraps all data sets)
         $this->logger->batchStartedFromInfo($event->testInfo);
@@ -181,26 +187,25 @@ final class TeamcityPlugin implements PluginConfigurator
     private function onTestBatchFinished(TestBatchFinished $event): void
     {
         // For DataProvider tests, close the test suite
-        $this->logger->batchFinishedFromInfo($event->testInfo);
+        $this->logger->batchFinishedFromInfo($event->testInfo, $event->testResult->status);
     }
 
     private function onTestDataSetStarting(TestDataSetStarting $event): void
     {
         // Send testStarted for individual dataset within DataProvider
         $prefix = $event->providerIndex === null ? '' : "$event->providerIndex:";
-        $locationSuffix = $event->providerIndex !== null
-            ? ":$event->dataSetKey:$event->providerIndex"
-            : ":$event->dataSetKey";
         $name = "Dataset #{$prefix}{$event->datasetIndex} [$event->dataSetKey]";
-        $this->logger->testStartedFromInfo(
-            $event->testInfo,
-            overrideName: $name,
-            locationSuffix: $locationSuffix,
-        );
 
-        // testStarted already emitted eagerly; stream this data set's output to it in real time.
-        $this->currentName = $name;
-        $this->pendingStart = null;
+        # The info's address already points at the data set, so the location hint carries the same
+        # coordinates `--filter` takes.
+        $this->logger->testStartedFromInfo($event->testInfo, overrideName: $name);
+
+        // testStarted already emitted eagerly; stream this data set's output to it in real time. Data
+        // sets of one batch share its run and go one at a time, so one current-name entry per run is
+        // unambiguous — this one replaces the previous data set's.
+        $id = $event->testInfo->identity->pipelineId;
+        $this->currentName[$id] = $name;
+        unset($this->pendingStart[$id]);
     }
 
     private function onTestDataSetFinished(TestDataSetFinished $event): void
@@ -211,7 +216,7 @@ final class TeamcityPlugin implements PluginConfigurator
         $name = "Dataset #{$prefix}{$event->datasetIndex} [$event->datasetKey]";
 
         $this->logger->handleSingleTestResult($event->testResult, $duration, overrideName: $name);
-        $this->resetCurrent();
+        $this->resetCurrent($event->testInfo->identity->pipelineId);
     }
 
     private function onTestCaseStarting(TestCaseStarting $event): void
@@ -222,6 +227,12 @@ final class TeamcityPlugin implements PluginConfigurator
     private function onTestCaseFinished(TestCaseFinished $event): void
     {
         $this->logger->handleCaseResult($event->caseInfo, $event->caseResult);
+
+        // No test spans a case boundary, so anything still tracked belongs to a test the runner never
+        // finished (a hang, an abort) — dropped here so a long session does not accumulate it.
+        $this->isBatch = [];
+        $this->currentName = [];
+        $this->pendingStart = [];
     }
 
     private function onTestSuiteStarting(TestSuiteStarting $event): void

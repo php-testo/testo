@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Core\Definition;
 
+use Internal\Path;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Value\TestType;
 
@@ -20,6 +21,7 @@ final readonly class CaseDefinition
          * @see TestType
          */
         public string $type,
+        public Path $file,
         public ?\ReflectionClass $reflection = null,
         public TestDefinitions $tests = new TestDefinitions(),
 
@@ -37,6 +39,7 @@ final readonly class CaseDefinition
         return new self(
             $name ?? $this->name,
             $this->type,
+            $this->file,
             $this->reflection,
             $tests ?? $this->tests,
             $handler ?? $this->handler,

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\Terminal;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -22,7 +24,6 @@ use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Core\Value\Verbosity;
 use Testo\Output\Terminal\Renderer\OutputFormat;
-use Testo\Output\Terminal\Renderer\Style;
 use Testo\Output\Terminal\Renderer\TerminalLogger;
 use Testo\Test;
 use Tests\Output\Stub\JUnit\SampleTestClass;
@@ -132,7 +133,14 @@ final class TerminalLoggerTest
         // once under the batch node and never repeat under the individual datasets.
         $description = 'Sample description line.';
         $first = self::test('describedTest', Status::Passed, attributes: ['description' => $description]);
-        $second = self::test('describedTest', Status::Passed, attributes: ['description' => $description]);
+        // Data sets of one batch are derived with TestInfo::with(), so they share the batch's info —
+        // and its identity, which is what the logger keys the batch indentation by.
+        $second = self::test(
+            'describedTest',
+            Status::Passed,
+            attributes: ['description' => $description],
+            info: $first->info,
+        );
 
         $output = self::renderBatch($first->info, [
             'Dataset #0 [0]' => $first,
@@ -154,15 +162,80 @@ final class TerminalLoggerTest
         Assert::string($output)->contains($description);
     }
 
-    protected function setUp(): void
+    public function interleavedBatchesEachReportUnderTheirOwnDataSetName(): void
     {
-        // Strip ANSI styling so assertions match raw text regardless of TTY config.
-        Style::setColorsEnabled(false);
+        $first = self::test('passingTest', Status::Passed);
+        $second = self::test('failingTest', Status::Passed);
+
+        $output = self::capture(static function (TerminalLogger $logger) use ($first, $second): void {
+            $logger->batchStartedFromInfo($first->info);
+            $logger->batchStartedFromInfo($second->info);
+            $logger->testStartedFromInfo($first->info, 'Dataset #0 [a]');
+            $logger->testStartedFromInfo($second->info, 'Dataset #0 [b]');
+            // Out of order on purpose: the second batch's data set reports first.
+            $logger->handleTestResult($second, 0);
+            $logger->handleTestResult($first, 0);
+            $logger->closeTest($first->info);
+            $logger->closeTest($second->info);
+        });
+
+        // A single "current test" slot would give both data sets the name of whichever batch announced
+        // its data set last, and lose the other one entirely.
+        Assert::string($output)->contains('Dataset #0 [a]');
+        Assert::string($output)->contains('Dataset #0 [b]');
     }
 
-    protected function tearDown(): void
+    public function aTestIsNotIndentedByAnInterleavedBatch(): void
     {
-        Style::setColorsEnabled(true);
+        $batch = self::test('passingTest', Status::Passed);
+        $regular = self::test('failingTest', Status::Passed);
+
+        $alone = self::capture(static fn(TerminalLogger $logger) => $logger->handleTestResult($regular, 0));
+        $besideBatch = self::capture(static function (TerminalLogger $logger) use ($batch, $regular): void {
+            $logger->batchStartedFromInfo($batch->info);
+            $logger->handleTestResult($regular, 0);
+            $logger->closeTest($batch->info);
+            $logger->closeTest($regular->info);
+        });
+
+        // The batch's indentation belongs to the batch. A test finishing while someone else's batch is
+        // open must render exactly as it would on its own — compared line-for-line, since the indented
+        // form merely *contains* the unindented one.
+        Assert::same(self::lastLine($besideBatch), self::lastLine($alone));
+    }
+
+    /**
+     * Last non-empty line of the rendered output, for comparing one report line exactly.
+     */
+    private static function lastLine(string $output): string
+    {
+        $lines = \array_filter(\explode("\n", $output), static fn(string $line): bool => $line !== '');
+        \assert($lines !== []);
+
+        return (string) \end($lines);
+    }
+
+    /**
+     * Drives the callback against a logger writing to an in-memory stream and returns what it wrote.
+     * For scenarios whose event order matters — {@see render()} and {@see renderBatch()} cover the
+     * fixed sequential ones.
+     *
+     * @param \Closure(TerminalLogger): void $scenario
+     */
+    private static function capture(\Closure $scenario): string
+    {
+        $stream = \fopen('php://memory', 'rb+');
+        \assert($stream !== false);
+
+        try {
+            $scenario(new TerminalLogger(OutputFormat::Compact, Verbosity::Normal, $stream));
+            \rewind($stream);
+            $output = \stream_get_contents($stream);
+        } finally {
+            \fclose($stream);
+        }
+
+        return $output === false ? '' : $output;
     }
 
     /**
@@ -247,13 +320,16 @@ final class TerminalLoggerTest
         ?\Throwable $failure = null,
         ?MessageLog $messages = null,
         array $attributes = [],
+        ?TestInfo $info = null,
     ): TestResult {
-        $info = new TestInfo(
+        $info ??= new TestInfo(
             name: $method,
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: SampleTestClass::class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: new \ReflectionClass(SampleTestClass::class),
                 ),
             ),

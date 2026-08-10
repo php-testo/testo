@@ -24,11 +24,11 @@
     "require": {
         "php": ">=8.2",
         "mockery/mockery": "^1.6",
-        "testo/testo": "0.10.36 - 1"
+        "testo/testo": "0.10.39 - 1"
     },
     "require-dev": {
-        "testo/assert": "^0.1.11",
-        "testo/codecov": "^0.1.11",
+        "testo/assert": "^0.1.12",
+        "testo/codecov": "^0.1.12",
         "testo/test": "^0.1.6"
     },
     "autoload": {

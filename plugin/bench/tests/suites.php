@@ -16,6 +16,12 @@ return [
         ),
     ),
     new SuiteConfig(
+        name: 'Bench/Unit',
+        location: new FinderConfig(
+            include: [__DIR__ . '/Unit'],
+        ),
+    ),
+    new SuiteConfig(
         name: 'Bench/Inline',
         location: new FinderConfig(
             include: [__DIR__ . '/../src'],

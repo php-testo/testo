@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.10.39](https://github.com/php-testo/testo/compare/0.10.38...0.10.39) (2026-08-06)
+
+
+### Features
+
+* **bridge-revolt:** add bridge for async tests using Revolt loop ([#269](https://github.com/php-testo/testo/issues/269)) ([b109c63](https://github.com/php-testo/testo/commit/b109c6322b4f0cc99bf375cd77db7434e47890fc))
+* **core:** Add `Identity` to test context ([#271](https://github.com/php-testo/testo/issues/271)) ([f17f4ed](https://github.com/php-testo/testo/commit/f17f4ed347986f4ea857f5def3c7425bb02683db))
+* **fiber:** new testo/fiber plugin — #[RunInFiber] cooperative-fiber tests ([#268](https://github.com/php-testo/testo/issues/268)) ([a109282](https://github.com/php-testo/testo/commit/a109282c0fbd50374826bdec60715db507e637c9))
+* new internal/fiber package with the `FiberLocal` WeakMap primitive (draft) ([b109c63](https://github.com/php-testo/testo/commit/b109c6322b4f0cc99bf375cd77db7434e47890fc))
+* **runner:** drive a test case's batch via an optional runner on CaseInfo ([17cf2b8](https://github.com/php-testo/testo/commit/17cf2b8647d70c069f7fea2329a21183b65c433a))
+
+
+### Bug Fixes
+
+* **codecov:** make per-test coverage fiber-aware ([#276](https://github.com/php-testo/testo/issues/276)) ([8d6f46d](https://github.com/php-testo/testo/commit/8d6f46d640c9befbda619831e35f14557c7eade8))
+* **ObjectContainer:** pass current instance to fiber scope callback ([5358b3a](https://github.com/php-testo/testo/commit/5358b3a8fb9a62f743c64784b022c8cd154d447a))
+* **plugin-fiber:** move the method-level fiber outside the per-test pipeline so the scoped-state guards run inside it ([b109c63](https://github.com/php-testo/testo/commit/b109c6322b4f0cc99bf375cd77db7434e47890fc))
+* **release-please:** keep path-repo dev-aliases in sync with released versions ([24fa0c4](https://github.com/php-testo/testo/commit/24fa0c4c4d0186aafd2c063dcb92a67a6f502029))
+
+
+### Documentation
+
+* add contributing guide ([a5f11e7](https://github.com/php-testo/testo/commit/a5f11e7fc86b4268bd23edb7c3774be000a7b9ee))
+
+
+### Code Refactoring
+
+* **assert:** read the assertion state in `AssertJson` through `StaticState::current()` ([b109c63](https://github.com/php-testo/testo/commit/b109c6322b4f0cc99bf375cd77db7434e47890fc))
+
 ## [0.10.38](https://github.com/php-testo/testo/compare/0.10.37...0.10.38) (2026-07-03)
 
 

@@ -116,7 +116,8 @@ final readonly class AssertJson implements JsonAbstract
             "at path \"{$path}\"",
             '',
         );
-        StaticState::$state === null or StaticState::$state->history[] = $subParent;
+        $state = StaticState::current();
+        $state === null or $state->history[] = $subParent;
 
         $callback(new self($resolved, $subParent));
 

@@ -15,11 +15,14 @@ namespace Testo\Pipeline\Attribute;
  *  final class RetryPolicy {}
  * ```
  *
+ * Repeatable: an attribute may wire several interceptors, each with its own pipeline position
+ * ({@see InterceptorOptions}); every one of them is instantiated with the attribute instance.
+ *
  * Makes sense only for interceptors that are executed during tests execution.
  *
  * @api
  */
-#[\Attribute(\Attribute::TARGET_CLASS)]
+#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
 final class FallbackInterceptor
 {
     public function __construct(

@@ -7,6 +7,12 @@ use Testo\Application\Config\SuiteConfig;
 
 return [
     new SuiteConfig(
+        name: 'Core/Context',
+        location: new FinderConfig(
+            include: [__DIR__ . '/Context'],
+        ),
+    ),
+    new SuiteConfig(
         name: 'Core/Log',
         location: new FinderConfig(
             include: [__DIR__ . '/Log'],

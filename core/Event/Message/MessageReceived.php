@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Event\Message;
 
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Message;
 
 /**
@@ -18,7 +19,13 @@ use Testo\Core\Log\Message;
  */
 final readonly class MessageReceived
 {
+    /**
+     * @param TestIdentity|null $identity Identity of the test the message was recorded for, or `null`
+     *        when it belongs to no test (suite/case setup, output between tests). Lets consumers
+     *        attribute interleaved output to the right test instead of guessing from ordering.
+     */
     public function __construct(
         public Message $message,
+        public ?TestIdentity $identity = null,
     ) {}
 }

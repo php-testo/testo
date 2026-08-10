@@ -41,6 +41,10 @@ namespace Testo\Codecov\Config;
  * - **XDebug** — supports all three levels. Branch and Path require XDebug's
  *   `XDEBUG_CC_BRANCH_CHECK` flag, which adds analysis overhead.
  *
+ * Collecting {@see Branch} or {@see Path} inside a fiber (a test under `#[RunInFiber]`) needs XDebug
+ * 3.4.5 or newer; older builds corrupt memory and kill the process, so the run is stopped with
+ * {@see \Testo\Codecov\Exception\BranchCoverageUnsafeInFiber} instead.
+ *
  * @api
  */
 enum CoverageLevel

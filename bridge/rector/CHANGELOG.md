@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/php-testo/testo/compare/bridge-rector-0.2.0...bridge-rector-0.2.1) (2026-08-06)
+
+
+### Features
+
+* **fiber:** new testo/fiber plugin — #[RunInFiber] cooperative-fiber tests ([#268](https://github.com/php-testo/testo/issues/268)) ([a109282](https://github.com/php-testo/testo/commit/a109282c0fbd50374826bdec60715db507e637c9))
+
 ## [0.2.0](https://github.com/php-testo/testo/compare/bridge-rector-0.1.2...bridge-rector-0.2.0) (2026-07-03)
 
 

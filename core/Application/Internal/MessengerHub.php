@@ -9,6 +9,7 @@ use Testo\Application\Internal\Messenger\State;
 use Testo\Application\Internal\Messenger\MutableContainer;
 use Testo\Common\Messenger;
 use Testo\Common\Messenger\Channel;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
@@ -48,10 +49,14 @@ final readonly class MessengerHub implements Messenger
     }
 
     #[\Override]
-    public function scope(\Closure $scope): mixed
+    public function scope(\Closure $scope, ?TestIdentity $identity = null): mixed
     {
         $old = $this->state->state;
-        $new = new State($this->eventDispatcher);
+        // A test scope carries the test's identity, so every MessageReceived dispatched from within it
+        // is stamped with that test — the seam that keeps interleaving tests' output attributable.
+        // With no identity given the ambient one carries over, like in fork(): a nested scope opened
+        // mid-test still belongs to that test, and stamping null would silently strip attribution.
+        $new = new State($this->eventDispatcher, identity: $identity ?? $old->identity);
         try {
             $this->state->state = $new;
             if (\Fiber::getCurrent() === null) {

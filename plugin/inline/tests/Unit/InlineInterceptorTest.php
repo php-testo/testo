@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Inline\Unit;
 
+use Internal\Path;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -74,6 +76,37 @@ final class InlineInterceptorTest
         Assert::same($result->summary->total(), 0);
     }
 
+    public function theDataSetCoordinateSelectsTheOnlySetAnInlineCaseHas(): void
+    {
+        $reached = [];
+        $next = static function (TestInfo $info) use (&$reached): TestResult {
+            $reached[] = [$info->identity->dataProvider, $info->identity->dataSet];
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $interceptor = new InlineInterceptor(self::createDispatcher());
+        $inlines = [new TestInline([1]), new TestInline([2]), new TestInline([3])];
+
+        # An inline case is a provider slot holding a single data set, so `:1:0` names the second case.
+        $hit = $interceptor->runTest(
+            self::createTestInfo($inlines, new DataPointer(provider: 1, dataset: 0)),
+            $next,
+        );
+
+        Assert::same($hit->status, Status::Passed);
+        Assert::same($hit->summary->total(), 1);
+        Assert::same($reached, [[1, 0]]);
+
+        # There is no second data set inside that slot, so `:1:1` names nothing.
+        $miss = $interceptor->runTest(
+            self::createTestInfo($inlines, new DataPointer(provider: 1, dataset: 1)),
+            $next,
+        );
+
+        Assert::same($miss->status, Status::Risky);
+        Assert::same($reached, [[1, 0]]);
+    }
+
     private static function createDispatcher(): EventDispatcherInterface
     {
         return new class implements EventDispatcherInterface {
@@ -90,7 +123,10 @@ final class InlineInterceptorTest
      */
     private static function createTestInfo(array $inlines, ?DataPointer $dataPointer = null): TestInfo
     {
-        $caseInfo = new CaseInfo(definition: new CaseDefinition(name: 'TestCase', type: 'test'));
+        $caseInfo = new CaseInfo(
+            definition: new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__)),
+            suiteIdentity: new SuiteIdentity('Inline/Unit')
+        );
         $testDefinition = new TestDefinition(reflection: new \ReflectionFunction(static fn() => null));
 
         $attributes = [TestInline::class => $inlines];

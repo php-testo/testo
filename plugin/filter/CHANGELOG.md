@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/php-testo/testo/compare/filter-0.1.5...filter-0.1.6) (2026-08-06)
+
+
+### Features
+
+* **core:** Add `Identity` to test context ([#271](https://github.com/php-testo/testo/issues/271)) ([f17f4ed](https://github.com/php-testo/testo/commit/f17f4ed347986f4ea857f5def3c7425bb02683db))
+
 ## [0.1.5](https://github.com/php-testo/testo/compare/filter-0.1.4...filter-0.1.5) (2026-06-29)
 
 

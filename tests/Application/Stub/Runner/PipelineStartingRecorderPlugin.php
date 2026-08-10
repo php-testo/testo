@@ -10,8 +10,7 @@ use Testo\Common\PluginConfigurator;
 use Testo\Event\Test\TestPipelineStarting;
 
 /**
- * Records every {@see TestPipelineStarting} event the suite dispatches, so a feature test can
- * assert that {@see \Testo\Application\Internal\Runner\TestRunner::runTest()} emits it.
+ * Records every {@see TestPipelineStarting} event the suite dispatches.
  */
 final class PipelineStartingRecorderPlugin implements PluginConfigurator
 {
