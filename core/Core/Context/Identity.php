@@ -43,6 +43,10 @@ abstract readonly class Identity
     public int $runtimeId;
 
     /**
+     * @param int<1, max>|null $parentId Run this one opens inside; the step-down factories pass it, and
+     *        a suite has none. {@see $parentId}
+     */
+    public function __construct(/**
      * {@see $runtimeId} of the run this one opened inside — the suite for a case, the case for a test,
      * the test for a data set — and `null` at a suite, which opens inside the run itself.
      *
@@ -55,19 +59,10 @@ abstract readonly class Identity
      * {@see Identity\TestIdentity::$pipelineId}. The two still answer different questions — *whose
      * child is this* and *which test run is this part of* — and part company at every other level:
      * a test's parent is its case, while its `pipelineId` is itself.
-     *
-     * @var int<1, max>|null
      */
-    public ?int $parentId;
-
-    /**
-     * @param int<1, max>|null $parentId Run this one opens inside; the step-down factories pass it, and
-     *        a suite has none. {@see $parentId}
-     */
-    public function __construct(?int $parentId = null)
+    public ?int $parentId = null)
     {
         $this->runtimeId = RuntimeSequence::next();
-        $this->parentId = $parentId;
     }
 
     /**

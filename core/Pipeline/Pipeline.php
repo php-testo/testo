@@ -28,7 +28,7 @@ final class Pipeline
     private mixed $last;
 
     /** @var list<TInterceptor> */
-    private array $interceptors = [];
+    private array $interceptors;
 
     /** @var int<0, max> Current interceptor key */
     private int $current = 0;
