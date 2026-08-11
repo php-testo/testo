@@ -60,8 +60,8 @@ abstract readonly class Identity
      * child is this* and *which test run is this part of* — and part company at every other level:
      * a test's parent is its case, while its `pipelineId` is itself.
      */
-    public ?int $parentId = null)
-    {
+        public ?int $parentId = null,
+    ) {
         $this->runtimeId = RuntimeSequence::next();
     }
 

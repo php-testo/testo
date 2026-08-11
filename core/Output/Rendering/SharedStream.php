@@ -53,9 +53,7 @@ final class SharedStream
     /**
      * @param resource $stream
      */
-    public function __construct(private $stream)
-    {
-    }
+    public function __construct(private $stream) {}
 
     /**
      * Write on behalf of `$owner`, or with no owner at all.
