@@ -116,6 +116,20 @@ final class ChannelRendererTest
         );
     }
 
+    public function formatTimeFallsBackToManualCalculationWhenDateTimeParsingFails(): void
+    {
+        $renderer = new ChannelRenderer();
+
+        // INF formats as the literal string "INF", which DateTimeImmutable::createFromFormat('U.u', ...)
+        // cannot parse ("U" expects digits) -> exercises the manual-arithmetic fallback branch.
+        $out = self::stripAnsi($renderer->render(self::message('sql', 'q', \INF)));
+
+        Assert::true(
+            \preg_match('/^\[sql] \d{2}:\d{2}:\d{2}\.\d{3}\n/', $out) === 1,
+            "Fallback path did not produce a HH:MM:SS.mmm header: {$out}",
+        );
+    }
+
     public function aChannelAlwaysGetsTheSameHeaderColor(): void
     {
         // Derived from the name, so it survives across renderers — that is what lets a reader track one
