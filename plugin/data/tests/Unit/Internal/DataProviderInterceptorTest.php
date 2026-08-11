@@ -94,8 +94,8 @@ final class DataProviderInterceptorTest
 
         // CaseInfo with no instance — the null coalescing throw should fire.
         $reflection = new \ReflectionMethod(NonStaticProviderTarget::class, 'target');
-        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test');
-        $caseInfo = new CaseInfo(definition: $caseDefinition, instance: null);
+        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__));
+        $caseInfo = new CaseInfo(suiteIdentity: new SuiteIdentity('Data/Unit'), definition: $caseDefinition, instance: null);
         $testDefinition = new TestDefinition(reflection: $reflection);
         $info = new TestInfo(name: 'target', caseInfo: $caseInfo, testDefinition: $testDefinition);
 
@@ -134,8 +134,8 @@ final class DataProviderInterceptorTest
     private static function createTestInfoWithInstance(CaseInstance $instance): TestInfo
     {
         $reflection = new \ReflectionMethod(NonStaticProviderTarget::class, 'target');
-        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test');
-        $caseInfo = new CaseInfo(definition: $caseDefinition, instance: $instance);
+        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__));
+        $caseInfo = new CaseInfo(suiteIdentity: new SuiteIdentity('Data/Unit'), definition: $caseDefinition, instance: $instance);
         $testDefinition = new TestDefinition(reflection: $reflection);
 
         return new TestInfo(
