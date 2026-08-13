@@ -50,14 +50,6 @@ return RectorConfig::configure()
         __DIR__ . '/core/Application/Config/ApplicationConfig.php',
         __DIR__ . '/core/Application/Internal/Messenger/State.php',
 
-        // Useless-tag removal (RemoveUselessVarTagRector / RemoveUselessParamTagRector /
-        // RemoveUselessReturnTagRector / RemoveNonExistingVarAnnotationRector)
-        __DIR__ . '/core/Application/Config/Internal/ConfigInflector.php',
-        __DIR__ . '/core/Common/Info.php',
-        __DIR__ . '/plugin/fiber/src/Internal/RunInFiberInterceptor.php',
-        __DIR__ . '/plugin/filter/src/Internal/FilterInterceptor.php',
-        __DIR__ . '/core/Pipeline/Pipeline.php',
-
         // Dead code: unused private methods / vars / params
         __DIR__ . '/plugin/bench/src/Internal/Renderer.php',
         __DIR__ . '/plugin/bench/src/Internal/BenchHandler.php',

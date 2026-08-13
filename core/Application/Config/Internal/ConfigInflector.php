@@ -114,7 +114,6 @@ final class ConfigInflector implements Inflector
                 // Cast value to the property type
                 $type = $property->getType();
 
-                /** @var mixed $result */
                 $result = match (true) {
                     !$type instanceof \ReflectionNamedType => $value,
                     $type->allowsNull() && $value === '' => null,
