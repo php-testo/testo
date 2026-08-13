@@ -23,9 +23,6 @@ namespace Testo\Output\Rendering;
  */
 final class SharedStream
 {
-    /** @var resource */
-    private $stream;
-
     /**
      * Test currently writing live; `null` when the stream is free.
      */
@@ -56,10 +53,7 @@ final class SharedStream
     /**
      * @param resource $stream
      */
-    public function __construct($stream)
-    {
-        $this->stream = $stream;
-    }
+    public function __construct(private $stream) {}
 
     /**
      * Write on behalf of `$owner`, or with no owner at all.

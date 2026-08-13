@@ -43,31 +43,25 @@ abstract readonly class Identity
     public int $runtimeId;
 
     /**
-     * {@see $runtimeId} of the run this one opened inside — the suite for a case, the case for a test,
-     * the test for a data set — and `null` at a suite, which opens inside the run itself.
+     * @param int<1, max>|null $parentId {@see $runtimeId} of the run this one opened inside — the suite
+     *        for a case, the case for a test, the test for a data set — and `null` at a suite, which
+     *        opens inside the run itself. The step-down factories pass it.
      *
-     * The one thing an address says about the level above it, and a number rather than a reference:
-     * reading it stays a field access, and a consumer building a tree of the run (an IDE's
-     * `parentNodeId`, say) reads the same field at every level instead of knowing which type it holds
-     * and where that type keeps its parent. Process-local, like the number it points at.
+     *        The one thing an address says about the level above it, and a number rather than a
+     *        reference: reading it stays a field access, and a consumer building a tree of the run
+     *        (an IDE's `parentNodeId`, say) reads the same field at every level instead of knowing
+     *        which type it holds and where that type keeps its parent. Process-local, like the number
+     *        it points at.
      *
-     * A data set's parent is its test, so there it holds the same number as
-     * {@see Identity\TestIdentity::$pipelineId}. The two still answer different questions — *whose
-     * child is this* and *which test run is this part of* — and part company at every other level:
-     * a test's parent is its case, while its `pipelineId` is itself.
-     *
-     * @var int<1, max>|null
+     *        A data set's parent is its test, so there it holds the same number as
+     *        {@see Identity\TestIdentity::$pipelineId}. The two still answer different questions —
+     *        *whose child is this* and *which test run is this part of* — and part company at every
+     *        other level: a test's parent is its case, while its `pipelineId` is itself.
      */
-    public ?int $parentId;
-
-    /**
-     * @param int<1, max>|null $parentId Run this one opens inside; the step-down factories pass it, and
-     *        a suite has none. {@see $parentId}
-     */
-    public function __construct(?int $parentId = null)
-    {
+    public function __construct(
+        public ?int $parentId = null,
+    ) {
         $this->runtimeId = RuntimeSequence::next();
-        $this->parentId = $parentId;
     }
 
     /**

@@ -34,16 +34,6 @@ return RectorConfig::configure()
         // DefinitionLocator::functionReflection() looks unused today but is kept intentionally —
         // don't remove "unused" functions from core (#263).
         __DIR__ . '/core/Tokenizer/DefinitionLocator.php',
-
-        // --- Everything below is applied gradually in small follow-up PRs, one rule (or one
-        // closely-related cluster of rules) at a time — see #263 review discussion. Each file is
-        // removed from this list by the PR that applies its fix. ---
-
-        // ClassPropertyAssignToConstructorPromotionRector
-        __DIR__ . '/core/Output/Json/JsonPlugin.php',
-        __DIR__ . '/core/Output/Rendering/SharedStream.php',
-        __DIR__ . '/core/Testing/Attribute/TestingSuite.php',
-        __DIR__ . '/core/Core/Context/Identity.php',
     ])
     ->withPhpSets(php82: true)
     ->withPreparedSets(
