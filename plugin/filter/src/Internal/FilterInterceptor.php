@@ -232,7 +232,6 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
      *
      * Also records {@see DataPointer}s for matched tests so Stage 3 can inject them.
      *
-     * @param CaseDefinition $case
      *
      * @return array<string, TestDefinition> Matched tests keyed by name
      */

@@ -44,41 +44,6 @@ return RectorConfig::configure()
         __DIR__ . '/core/Output/Rendering/SharedStream.php',
         __DIR__ . '/core/Testing/Attribute/TestingSuite.php',
         __DIR__ . '/core/Core/Context/Identity.php',
-
-        // AddArrowFunctionReturnTypeRector
-        __DIR__ . '/bridge/symfony-console/src/Command/Init.php',
-        __DIR__ . '/core/Application/Config/ApplicationConfig.php',
-        __DIR__ . '/core/Application/Internal/Messenger/State.php',
-
-        // Useless-tag removal (RemoveUselessVarTagRector / RemoveUselessParamTagRector /
-        // RemoveUselessReturnTagRector / RemoveNonExistingVarAnnotationRector)
-        __DIR__ . '/core/Application/Config/Internal/ConfigInflector.php',
-        __DIR__ . '/core/Common/Info.php',
-        __DIR__ . '/plugin/fiber/src/Internal/RunInFiberInterceptor.php',
-        __DIR__ . '/plugin/filter/src/Internal/FilterInterceptor.php',
-        __DIR__ . '/core/Pipeline/Pipeline.php',
-
-        // Dead code: unused private methods / vars / params
-        __DIR__ . '/plugin/bench/src/Internal/Renderer.php',
-        __DIR__ . '/plugin/bench/src/Internal/BenchHandler.php',
-        __DIR__ . '/core/Output/Teamcity/Teamcity/TeamcityLogger.php',
-        __DIR__ . '/core/Application/Internal/SuiteFactory.php',
-        __DIR__ . '/core/Output/Terminal/Renderer/TerminalLogger.php',
-
-        // ArrowFunctionDelegatingCallToFirstClassCallableRector
-        __DIR__ . '/plugin/assert/src/Internal/Expectation/NotLeaks.php',
-
-        // MakePropertyReadonlyRector + misc single-file simplifications
-        __DIR__ . '/core/Tokenizer/Reflection/TokenizedFile.php',
-        __DIR__ . '/core/Application/Application.php',
-        __DIR__ . '/plugin/assert/src/Internal/Assertion/AssertJson.php',
-        __DIR__ . '/plugin/assert/src/Internal/Assertion/Traits/IterableTrait.php',
-        __DIR__ . '/core/Output/Terminal/Renderer/Formatter.php',
-        __DIR__ . '/core/Core/Internal/RuntimeSequence.php',
-
-        // Standalone bugfixes (not mechanical Rector output — Rector separately flags an
-        // unrelated tag/type finding in these same files; resolved as part of each bugfix PR)
-        __DIR__ . '/core/Output/Rendering/ChannelRenderer.php',
     ])
     ->withPhpSets(php82: true)
     ->withPreparedSets(

@@ -14,6 +14,7 @@ namespace Testo\Core\Internal;
  */
 final class RuntimeSequence
 {
+    /** @var int<0, max> */
     private static int $last = 0;
 
     /**
@@ -21,7 +22,6 @@ final class RuntimeSequence
      */
     public static function next(): int
     {
-        /** @var int<1, max> */
         return ++self::$last;
     }
 }

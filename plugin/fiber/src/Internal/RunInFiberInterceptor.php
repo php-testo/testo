@@ -70,7 +70,6 @@ final readonly class RunInFiberInterceptor implements TestCaseRunInterceptor, Te
 
         $task->error === null or throw $task->error;
 
-        /** @var TestResult */
         return $task->result;
     }
 }

@@ -143,7 +143,7 @@ final class State implements Destroyable
         if ($this->holdEvents) {
             $this->heldEvents = \array_merge($this->heldEvents, $events);
             # Keep held events in time order so they are released chronologically on commit.
-            \usort($this->heldEvents, static fn(Message $a, Message $b) => $a->time <=> $b->time);
+            \usort($this->heldEvents, static fn(Message $a, Message $b): int => $a->time <=> $b->time);
             return;
         }
 
@@ -176,7 +176,7 @@ final class State implements Destroyable
 
         # Out-of-order (clock skew / interleaving): combine and stable-sort by time.
         $merged = \array_merge($this->messages, $state->messages);
-        \usort($merged, static fn(Message $a, Message $b) => $a->time <=> $b->time);
+        \usort($merged, static fn(Message $a, Message $b): int => $a->time <=> $b->time);
         $this->messages = $merged;
     }
 }
