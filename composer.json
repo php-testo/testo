@@ -177,6 +177,8 @@
         "post-update-cmd": "dload get --no-interaction -v || \"echo can't dload binaries\"",
         "cs:diff": "php-cs-fixer fix --dry-run -v --diff",
         "cs:fix": "php-cs-fixer fix -v",
+        "rector": "rector",
+        "rector:ci": "rector --dry-run --clear-cache",
         "infect": [
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",
