@@ -16,9 +16,6 @@ use Testo\Common\PluginConfigurator;
 #[\Attribute(\Attribute::TARGET_CLASS | \Attribute::TARGET_METHOD | \Attribute::TARGET_FUNCTION)]
 final readonly class TestingSuite
 {
-    /** @var list<class-string<PluginConfigurator>|PluginConfigurator> */
-    public array $plugins;
-
     /**
      * @param non-empty-string|Path $path Stub directory or file path.
      * @param list<class-string<PluginConfigurator>|PluginConfigurator> $plugins Extra plugins to load
@@ -34,11 +31,9 @@ final readonly class TestingSuite
      */
     public function __construct(
         public string|Path $path,
-        array $plugins = [],
+        public array $plugins = [],
         public array $options = [],
         public array $arguments = [],
         public array $env = [],
-    ) {
-        $this->plugins = $plugins;
-    }
+    ) {}
 }

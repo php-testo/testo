@@ -39,12 +39,6 @@ return RectorConfig::configure()
         // closely-related cluster of rules) at a time — see #263 review discussion. Each file is
         // removed from this list by the PR that applies its fix. ---
 
-        // ClassPropertyAssignToConstructorPromotionRector
-        __DIR__ . '/core/Output/Json/JsonPlugin.php',
-        __DIR__ . '/core/Output/Rendering/SharedStream.php',
-        __DIR__ . '/core/Testing/Attribute/TestingSuite.php',
-        __DIR__ . '/core/Core/Context/Identity.php',
-
         // AddArrowFunctionReturnTypeRector
         __DIR__ . '/bridge/symfony-console/src/Command/Init.php',
         __DIR__ . '/core/Application/Config/ApplicationConfig.php',

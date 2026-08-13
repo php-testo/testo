@@ -46,9 +46,6 @@ final class JsonPlugin implements PluginConfigurator
      */
     private readonly ?Path $path;
 
-    /** @var resource|null Stream used in stdout mode; resolved to {@see \STDOUT} on write. */
-    private $stream;
-
     private readonly JsonReport $report;
 
     /**
@@ -59,10 +56,9 @@ final class JsonPlugin implements PluginConfigurator
      * @param resource|null $stream Stream for stdout mode; defaults to {@see \STDOUT}. Ignored
      *        when a file path is set.
      */
-    public function __construct(?string $outputPath = null, $stream = null)
+    public function __construct(?string $outputPath = null, private $stream = null)
     {
         $this->path = $outputPath !== null && $outputPath !== '' ? Path::create($outputPath) : null;
-        $this->stream = $stream;
         $this->report = new JsonReport();
     }
 
