@@ -236,6 +236,17 @@ final class PhpUnitXmlReportTest
         return $dir;
     }
 
+    public function statesTheIndexInsideItsDirectoryRatherThanTheDirectory(): void
+    {
+        $info = (new PhpUnitXmlReport('build/coverage-xml'))->info();
+
+        // A directory is not something a consumer can open; the overview file is, and the per-file
+        // documents hang off it.
+        Assert::notNull($info);
+        Assert::same($info->format, 'phpunit-xml');
+        Assert::same((string) $info->path, 'build/coverage-xml/index.xml');
+    }
+
     private static function loadXml(string $path): \SimpleXMLElement|false
     {
         // Drop the namespace so `$xml->file` etc. work without `children('p', true)`.

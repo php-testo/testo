@@ -8,6 +8,7 @@ use Internal\Path;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineStatus;
+use Testo\Core\Report\ReportInfo;
 
 /**
  * Generates a directory-based XML coverage report (a.k.a. "coverage XML").
@@ -75,6 +76,16 @@ final readonly class PhpUnitXmlReport implements CoverageReport
         foreach ($entries as $entry) {
             $this->writeFile($entry);
         }
+    }
+
+    #[\Override]
+    public function info(): ReportInfo
+    {
+        return new ReportInfo(
+            'phpunit-xml',
+            'PHPUnit XML coverage',
+            Path::create($this->outputDir)->join('index.xml'),
+        );
     }
 
     /**

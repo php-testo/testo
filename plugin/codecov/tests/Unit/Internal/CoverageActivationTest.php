@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Codecov\Unit\Internal;
 
 use Internal\Container\Container;
+use Internal\Path;
 use Testo\Application\Config\ApplicationConfig;
 use Testo\Assert;
 use Testo\Codecov\Config\CoverageLevel;
@@ -15,7 +16,9 @@ use Testo\Codecov\Internal\CoverageActivation;
 use Testo\Codecov\Internal\CoverageInput;
 use Testo\Codecov\Report\CloverReport;
 use Testo\Codecov\Report\CoverageReport;
+use Testo\Codecov\Result\CoverageResult;
 use Testo\Common\EventListenerCollector;
+use Testo\Core\Report\ReportInfo;
 use Testo\Expect;
 use Testo\Test;
 use Tests\Codecov\Stub\SpyDriver;
@@ -156,7 +159,13 @@ final class CoverageActivationTest
     {
         return new class() implements CoverageReport {
             #[\Override]
-            public function generate(\Testo\Codecov\Result\CoverageResult $result): void {}
+            public function generate(CoverageResult $result): void {}
+
+            #[\Override]
+            public function info(): ReportInfo
+            {
+                return new ReportInfo('stub', 'Stub coverage', Path::create('/tmp/stub/index.xml'));
+            }
         };
     }
 

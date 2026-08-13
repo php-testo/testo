@@ -5,17 +5,19 @@ declare(strict_types=1);
 namespace Testo\Codecov\Internal;
 
 use Internal\Destroy\Destroyable;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Core\Context\SuiteResult;
 use Testo\Core\Context\TestResult;
 use Testo\Data\MultipleResult;
+use Testo\Event\Report\ReportFileGenerated;
 
 /**
  * Mutable aggregate that collects coverage data across test suites.
  *
  * Merges per-test coverage from suite results as they finish.
- * On destruction, generates all configured reports.
+ * On destruction, generates all configured reports and announces each written file.
  *
  * @internal
  */
@@ -25,10 +27,12 @@ final readonly class CoverageCollector implements Destroyable
 
     /**
      * @param list<CoverageReport> $reports
+     * @param EventDispatcherInterface|null $dispatcher Null keeps written reports unannounced.
      */
     public function __construct(
         private array $reports,
         private ?string $sourceRoot = null,
+        private ?EventDispatcherInterface $dispatcher = null,
     ) {
         $this->cache = new Cache(new CoverageResult());
     }
@@ -78,6 +82,7 @@ final readonly class CoverageCollector implements Destroyable
 
         foreach ($this->reports as $report) {
             $report->generate($result);
+            $this->dispatcher?->dispatch(new ReportFileGenerated($report->info()));
         }
     }
 }

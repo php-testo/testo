@@ -178,7 +178,7 @@
         "cs:diff": "php-cs-fixer fix --dry-run -v --diff",
         "cs:fix": "php-cs-fixer fix -v",
         "rector": "rector",
-        "rector:ci": "rector --dry-run --clear-cache",
+        "rector:ci": "rector --dry-run --clear-cache --no-progress-bar",
         "infect": [
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",
