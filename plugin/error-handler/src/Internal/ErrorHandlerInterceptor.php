@@ -58,7 +58,7 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
 
         $result = $result->withAttribute(CapturedErrors::class, new CapturedErrors($errors));
 
-        if ($this->failOnError && !$result->status->isFailure()) {
+        if ($this->failOnError && $result->status === Status::Passed) {
             $first = $errors[0];
             $result = $result
                 ->with(status: Status::Failed)
