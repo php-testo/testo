@@ -97,16 +97,34 @@ final class ChannelRenderer
     }
 
     /**
-     * Formats a {@see \microtime()} timestamp as `HH:MM:SS.mmm` wall-clock time.
+     * Formats a {@see \microtime()} timestamp as `HH:MM:SS.mmm` wall-clock time
+     * in the current PHP timezone.
      *
-     * @return non-empty-string
+     * The input is a float returned by {@see \microtime(true)}, so it represents an
+     * epoch timestamp with fractional seconds. We construct a timezone-aware
+     * {@see \DateTimeImmutable} from that epoch using `U.u` and then format it
+     * in the configured PHP timezone. This makes the header show local wall-clock
+     * time rather than UTC-based time derived by modulo arithmetic.
      */
     private static function formatTime(float $time): string
     {
-        $seconds = (int) $time;
-        $millis = \min(999, (int) \round(($time - (float) $seconds) * 1000.0));
+        $date = \DateTimeImmutable::createFromFormat(
+            'U.u',
+            \sprintf('%.6F', $time),
+        );
 
-        /** @var non-empty-string */
-        return \date('H:i:s', $seconds) . \sprintf('.%03d', $millis);
+        if ($date === false) {
+            $totalSeconds = (int) $time;
+            $millis = \min(999, (int) \round(($time - (float) $totalSeconds) * 1000.0));
+            $s = $totalSeconds % 60;
+            $m = (int) ($totalSeconds / 60) % 60;
+            $h = (int) ($totalSeconds / 3600) % 24;
+
+            return \sprintf('%02d:%02d:%02d.%03d', $h, $m, $s, $millis);
+        }
+
+        return $date
+            ->setTimezone(new \DateTimeZone(\date_default_timezone_get()))
+            ->format('H:i:s.v');
     }
 }
