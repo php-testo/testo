@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Core\Testing\Unit;
 
+use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -199,8 +201,8 @@ final class ExpectInterceptorTest
     private static function createTestInfoFor(string $method): TestInfo
     {
         $reflection = new \ReflectionMethod(self::class, $method);
-        $caseDefinition = new CaseDefinition(name: 'ExpectInterceptorTest', type: 'test');
-        $caseInfo = new CaseInfo(definition: $caseDefinition);
+        $caseDefinition = new CaseDefinition(name: 'ExpectInterceptorTest', type: 'test', file: Path::create(__FILE__));
+        $caseInfo = new CaseInfo(definition: $caseDefinition, suiteIdentity: new SuiteIdentity('Core/Testing/Unit'));
         $testDefinition = new TestDefinition(reflection: $reflection);
 
         return new TestInfo(
