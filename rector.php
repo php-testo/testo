@@ -45,14 +45,6 @@ return RectorConfig::configure()
         __DIR__ . '/core/Testing/Attribute/TestingSuite.php',
         __DIR__ . '/core/Core/Context/Identity.php',
 
-        // MakePropertyReadonlyRector + misc single-file simplifications
-        __DIR__ . '/core/Tokenizer/Reflection/TokenizedFile.php',
-        __DIR__ . '/core/Application/Application.php',
-        __DIR__ . '/plugin/assert/src/Internal/Assertion/AssertJson.php',
-        __DIR__ . '/plugin/assert/src/Internal/Assertion/Traits/IterableTrait.php',
-        __DIR__ . '/core/Output/Terminal/Renderer/Formatter.php',
-        __DIR__ . '/core/Core/Internal/RuntimeSequence.php',
-
         // Standalone bugfix (not mechanical Rector output — Rector separately flags an
         // unrelated tag/type finding in this file; resolved as part of the bugfix PR)
         __DIR__ . '/plugin/data/src/Internal/DataProviderInterceptor.php',

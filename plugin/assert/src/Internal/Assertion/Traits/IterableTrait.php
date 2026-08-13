@@ -159,7 +159,7 @@ trait IterableTrait
     private static function countIterable(iterable $value): int
     {
         // if Countable
-        if (\is_array($value) || $value instanceof \Countable) {
+        if (is_countable($value)) {
             return \count($value);
         }
 

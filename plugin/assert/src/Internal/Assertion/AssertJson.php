@@ -410,7 +410,7 @@ final readonly class AssertJson implements JsonAbstract
                 }
 
                 // Numeric key
-                if (\is_string($key) && \ctype_digit($key)) {
+                if (\ctype_digit($key)) {
                     $key = (int) $key;
                 }
 

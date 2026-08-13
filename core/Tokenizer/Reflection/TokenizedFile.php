@@ -76,7 +76,7 @@ final class TokenizedFile
      *
      * @internal
      */
-    private int $countTokens = 0;
+    private readonly int $countTokens;
 
     /**
      * Namespaces used in file and their token positions.
