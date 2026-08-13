@@ -79,7 +79,6 @@ return RectorConfig::configure()
         // Standalone bugfixes (not mechanical Rector output — Rector separately flags an
         // unrelated tag/type finding in these same files; resolved as part of each bugfix PR)
         __DIR__ . '/core/Output/Rendering/ChannelRenderer.php',
-        __DIR__ . '/plugin/data/src/Internal/DataProviderInterceptor.php',
     ])
     ->withPhpSets(php82: true)
     ->withPreparedSets(
