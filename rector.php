@@ -29,10 +29,6 @@ return RectorConfig::configure()
         // CompositeException: constructor-promoting $errors makes the constructor's own
         // doc comment awkward to place. Not promoting for now (see #263 review).
         __DIR__ . '/plugin/fiber/src/Exception/CompositeException.php',
-        // Identity: promoting $parentId hides its assignment inside the parameter list —
-        // an explicit `$this->parentId = $parentId;` in the constructor body, like its
-        // sibling $runtimeId in the same class, keeps the assignment visible (see #283 review).
-        __DIR__ . '/core/Core/Context/Identity.php',
         // Filter.php: large refactor surface, deferred until it can be reviewed on its own (#263).
         __DIR__ . '/plugin/filter/Filter.php',
         // DefinitionLocator::functionReflection() looks unused today but is kept intentionally —
