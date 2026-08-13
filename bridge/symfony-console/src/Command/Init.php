@@ -250,7 +250,7 @@ final class Init extends Command
         $runHints = $composerKeys === []
             ? ['   <comment>$ vendor/bin/testo</comment>']
             : \array_map(
-                static fn(string $key) => \sprintf('   <comment>$ composer %s</comment>', $key),
+                static fn(string $key): string => \sprintf('   <comment>$ composer %s</comment>', $key),
                 $composerKeys,
             );
 
