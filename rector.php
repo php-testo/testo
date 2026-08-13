@@ -39,16 +39,6 @@ return RectorConfig::configure()
         // closely-related cluster of rules) at a time — see #263 review discussion. Each file is
         // removed from this list by the PR that applies its fix. ---
 
-        // ReadOnlyClassRector + RemoveReadonlyPropertyVisibilityOnReadonlyClassRector
-        __DIR__ . '/bridge/infection/src/TestoAdapter.php',
-        __DIR__ . '/core/Output/Rendering/Diff/PatienceDiffer.php',
-        __DIR__ . '/core/Output/Rendering/Diff/PrefixSuffixDiffer.php',
-        __DIR__ . '/core/Output/Rendering/Diff/RatcliffObershelpDiffer.php',
-        __DIR__ . '/core/Output/Terminal/Renderer/FormattedItem.php',
-        __DIR__ . '/core/Pipeline/Attribute/FallbackInterceptor.php',
-        __DIR__ . '/core/Pipeline/Attribute/InterceptorOptions.php',
-        __DIR__ . '/plugin/assert/src/Internal/Assertion/AssertNumeric.php',
-
         // ClassPropertyAssignToConstructorPromotionRector
         __DIR__ . '/core/Output/Json/JsonPlugin.php',
         __DIR__ . '/core/Output/Rendering/SharedStream.php',

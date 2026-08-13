@@ -11,29 +11,29 @@ use Testo\Core\Value\Status;
  *
  * @internal
  */
-final class FormattedItem
+final readonly class FormattedItem
 {
     public function __construct(
         /**
          * @var non-empty-string
          */
-        public readonly string $name,
-        public readonly Status $status,
+        public string $name,
+        public Status $status,
         /**
          * @var int<0, max>|null Duration in milliseconds
          */
-        public readonly ?int $duration = null,
+        public ?int $duration = null,
         /**
          * @var int<0, max> Indentation level (0 = no indent)
          */
-        public readonly int $indentLevel = 0,
+        public int $indentLevel = 0,
         /**
          * @var int<1, max>|null Index in collection (for numbered items)
          */
-        public readonly ?int $index = null,
+        public ?int $index = null,
         /**
          * @var non-empty-string|null Additional description (e.g., data provider key)
          */
-        public readonly string $description = '',
+        public string $description = '',
     ) {}
 }
