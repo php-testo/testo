@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Output\Teamcity\Teamcity;
 
+use Internal\Path;
 use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Common\Environment;
 use Testo\Common\Info;
@@ -12,10 +13,12 @@ use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\SuiteInfo;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
+use Testo\Core\Report\ReportInfo;
 use Testo\Output\Rendering\StackTrace;
 
 /**
@@ -106,18 +109,29 @@ final class TeamcityLogger
 
     /**
      * Publishes test suite started message using SuiteInfo.
+     *
+     * Announces the suite's size first, so an IDE can size its progress bar before the first test
+     * reports. The count is the number of located tests: a DataProvider test counts once here but
+     * reports one node per data set, so it is a lower bound rather than an exact total.
      */
     public function suiteStartedFromInfo(SuiteInfo $info): void
     {
-        $this->publish(Formatter::suiteStarted($info->name));
+        $count = 0;
+        foreach ($info->testCases->getCases() as $case) {
+            $count += \count($case->tests->getTests());
+        }
+
+        $count > 0 and $this->publish(Formatter::testCount($count));
+
+        $this->publish(Formatter::suiteStarted($info->name, $info->identity));
     }
 
     /**
      * Publishes test suite finished message using SuiteInfo.
      */
-    public function suiteFinishedFromInfo(SuiteInfo $info): void
+    public function suiteFinishedFromInfo(SuiteInfo $info, ?Status $status = null): void
     {
-        $this->publish(Formatter::suiteFinished($info->name));
+        $this->publish(Formatter::suiteFinished($info->name, $info->identity, $status));
     }
 
     /**
@@ -125,15 +139,15 @@ final class TeamcityLogger
      */
     public function batchStartedFromInfo(TestInfo $info): void
     {
-        $this->publish(Formatter::suiteStarted($info->name, $info->testDefinition->reflection, $info->caseInfo->definition->reflection));
+        $this->publish(Formatter::suiteStarted($info->name, $info->identity));
     }
 
     /**
      * Publishes test batch finished message (for DataProvider tests).
      */
-    public function batchFinishedFromInfo(TestInfo $info): void
+    public function batchFinishedFromInfo(TestInfo $info, ?Status $status = null): void
     {
-        $this->publish(Formatter::suiteFinished($info->name));
+        $this->publish(Formatter::suiteFinished($info->name, $info->identity, $status));
     }
 
     /**
@@ -150,11 +164,12 @@ final class TeamcityLogger
                 Formatter::testStdErr(
                     $info->name,
                     "Test suite failed: {$failedCount} test(s) failed",
+                    identity: $info->identity,
                 ),
             );
         }
 
-        $this->suiteFinishedFromInfo($info);
+        $this->suiteFinishedFromInfo($info, $result->status);
     }
 
     /**
@@ -164,7 +179,7 @@ final class TeamcityLogger
      */
     public function caseStartedFromInfo(CaseInfo $info): void
     {
-        $this->publish(Formatter::suiteStarted($info->name, $info->definition->reflection));
+        $this->publish(Formatter::suiteStarted($info->name, $info->identity));
     }
 
     /**
@@ -172,9 +187,9 @@ final class TeamcityLogger
      *
      * Test case is treated as a suite in TeamCity (a class containing tests).
      */
-    public function caseFinishedFromInfo(CaseInfo $info): void
+    public function caseFinishedFromInfo(CaseInfo $info, ?Status $status = null): void
     {
-        $this->publish(Formatter::suiteFinished($info->name));
+        $this->publish(Formatter::suiteFinished($info->name, $info->identity, $status));
     }
 
     /**
@@ -193,11 +208,12 @@ final class TeamcityLogger
                 Formatter::testStdErr(
                     $caseInfo->name,
                     "Test case failed: {$failedCount} test(s) failed",
+                    identity: $caseInfo->identity,
                 ),
             );
         }
 
-        $this->caseFinishedFromInfo($caseInfo);
+        $this->caseFinishedFromInfo($caseInfo, $result->status);
     }
 
     /**
@@ -205,7 +221,7 @@ final class TeamcityLogger
      *
      * If the test has DataProvider (MultipleResult), starts it as a test suite.
      */
-    public function testStartedFromInfo(TestInfo $info, bool $captureStandardOutput = false, ?string $overrideName = null, ?string $locationSuffix = null): void
+    public function testStartedFromInfo(TestInfo $info, bool $captureStandardOutput = false, ?string $overrideName = null): void
     {
         $description = $info->testDefinition->getDescription();
         $description === '' and $description = null;
@@ -213,10 +229,8 @@ final class TeamcityLogger
         $this->publish(Formatter::testStarted(
             $overrideName ?? $info->name,
             $captureStandardOutput,
-            $info->testDefinition->reflection,
-            $locationSuffix,
+            $info->identity,
             $description,
-            $info->caseInfo->definition->reflection,
         ));
     }
 
@@ -227,7 +241,7 @@ final class TeamcityLogger
      */
     public function testFinishedFromInfo(TestInfo $info, ?int $duration = null): void
     {
-        $this->publish(Formatter::testFinished($info->name, $duration));
+        $this->publish(Formatter::testFinished($info->name, $duration, $info->identity));
     }
 
     /**
@@ -252,6 +266,7 @@ final class TeamcityLogger
                 type: $isComparison ? 'comparisonFailure' : null,
                 expected: $isComparison ? $failure->getExpectedAsString() : null,
                 actual: $isComparison ? $failure->getActualAsString() : null,
+                identity: $result->info->identity,
             ),
         );
     }
@@ -263,7 +278,7 @@ final class TeamcityLogger
      */
     public function testIgnoredFromInfo(TestInfo $info, string $message = ''): void
     {
-        $this->publish(Formatter::testIgnored($info->name, $message));
+        $this->publish(Formatter::testIgnored($info->name, $message, $info->identity));
     }
 
     /**
@@ -276,8 +291,10 @@ final class TeamcityLogger
      * `testFinished` to nest correctly.
      *
      * @param non-empty-string $name Test name the message belongs to.
+     * @param TestIdentity|null $identity Address of the test the output came from, so interleaved output
+     *        lands on the right node instead of wherever the stream happens to be.
      */
-    public function logMessage(string $name, Message $message): void
+    public function logMessage(string $name, Message $message, ?TestIdentity $identity = null): void
     {
         if ($message->content === '') {
             return;
@@ -291,8 +308,8 @@ final class TeamcityLogger
         ];
 
         $this->publish($message->channel === self::CHANNEL_STDERR
-            ? Formatter::testStdErr($name, $message->content, $attributes)
-            : Formatter::testStdOut($name, $message->content, $attributes));
+            ? Formatter::testStdErr($name, $message->content, $attributes, $identity)
+            : Formatter::testStdOut($name, $message->content, $attributes, $identity));
     }
 
     /**
@@ -324,6 +341,32 @@ final class TeamcityLogger
         $this->publish(Formatter::buildProblem('No tests were executed', 'testo.noTests'));
     }
 
+    public function logReport(ReportInfo $report): void
+    {
+        # A file report states a `Path` and gets both forms of it; any other location is announced as it
+        # stands, since resolving a URL against the working directory would name nothing.
+        $location = $report->path;
+
+        /**
+         * @var \Stringable $absolute Absolute path or URL
+         * @var Path|null $relative Relative path or null
+         */
+        [$absolute, $relative] = match (true) {
+            !$location instanceof Path => [$location, null],
+            $location->isAbsolute() => [$location, $location->tryRelative(Path::create(\getcwd() ?: ''))],
+            default => [$location->absolute(), $location],
+        };
+
+        $relative === null or $relative->isWithin() or $relative = null;
+
+        $this->publish(Formatter::testoReport(
+            format: $report->format,
+            path: $absolute,
+            relativePath: $relative,
+            name: $report->name,
+        ));
+    }
+
     /**
      * Handles single test result based on status.
      *
@@ -332,8 +375,6 @@ final class TeamcityLogger
      */
     public function handleSingleTestResult(TestResult $result, ?int $duration = null, ?string $overrideName = null): void
     {
-        $name = $overrideName ?? $result->info->name;
-
         match ($result->status) {
             Status::Passed, Status::Flaky => $this->handlePassedTest($result, $duration, $overrideName),
             Status::Failed, Status::Error => $this->handleFailedTest($result, $duration, $overrideName),
@@ -364,6 +405,17 @@ final class TeamcityLogger
         return \implode("\n", $lines);
     }
 
+    /**
+     * How many assertions the test performed, or `null` when nothing counted them — the metric is
+     * contributed by the Assert plugin, and a suite running without it says nothing rather than zero.
+     *
+     * @return int<0, max>|null
+     */
+    private static function assertionsOf(TestResult $result): ?int
+    {
+        return $result->summary->metrics['assertions'] ?? null;
+    }
+
     private static function key(string $name): string
     {
         return "\033[36;1m{$name}:\033[0m ";
@@ -383,7 +435,13 @@ final class TeamcityLogger
     {
         $name = $overrideName ?? $result->info->name;
 
-        $this->publish(Formatter::testFinished($name, $duration));
+        $this->publish(Formatter::testFinished(
+            $name,
+            $duration,
+            $result->info->identity,
+            $result->status,
+            self::assertionsOf($result),
+        ));
     }
 
     /**
@@ -394,8 +452,9 @@ final class TeamcityLogger
     private function handleSkippedTest(TestResult $result, ?int $duration, ?string $overrideName = null): void
     {
         $name = $overrideName ?? $result->info->name;
-        $this->publish(Formatter::testIgnored($name));
-        $this->publish(Formatter::testFinished($name, $duration));
+        $identity = $result->info->identity;
+        $this->publish(Formatter::testIgnored($name, $result->failure?->getMessage() ?? '', $identity));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**
@@ -406,8 +465,10 @@ final class TeamcityLogger
     private function handleCancelledTest(TestResult $result, ?int $duration, ?string $overrideName = null): void
     {
         $name = $overrideName ?? $result->info->name;
-        $this->publish(Formatter::testIgnored($name, 'Test cancelled'));
-        $this->publish(Formatter::testFinished($name, $duration));
+        $identity = $result->info->identity;
+        $message = $result->failure?->getMessage() ?? '';
+        $this->publish(Formatter::testIgnored($name, $message === '' ? 'Test cancelled' : $message, $identity));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**
@@ -426,6 +487,7 @@ final class TeamcityLogger
             : '';
 
         $isComparison = $failure instanceof ComparisonFailure;
+        $identity = $result->info->identity;
 
         $this->publish(
             Formatter::testFailed(
@@ -435,9 +497,10 @@ final class TeamcityLogger
                 type: $isComparison ? 'comparisonFailure' : null,
                 expected: $isComparison ? $failure->getExpectedAsString() : null,
                 actual: $isComparison ? $failure->getActualAsString() : null,
+                identity: $identity,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**
@@ -452,15 +515,17 @@ final class TeamcityLogger
         $details = $result->failure !== null
             ? self::formatThrowable($result->failure, $result->info->testDefinition->reflection)
             : '';
+        $identity = $result->info->identity;
 
         $this->publish(
             Formatter::testFailed(
                 $name,
                 'Test aborted',
                 $details,
+                identity: $identity,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**
@@ -471,14 +536,16 @@ final class TeamcityLogger
     private function handleRiskyTest(TestResult $result, ?int $duration, ?string $overrideName = null): void
     {
         $name = $overrideName ?? $result->info->name;
+        $identity = $result->info->identity;
 
         $this->publish(
             Formatter::testStdOut(
                 $name,
                 "\nWarning: This test has been marked as risky",
+                identity: $identity,
             ),
         );
-        $this->publish(Formatter::testFinished($name, $duration));
+        $this->publish(Formatter::testFinished($name, $duration, $identity, $result->status));
     }
 
     /**

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.12](https://github.com/php-testo/testo/compare/codecov-0.1.11...codecov-0.1.12) (2026-08-06)
+
+
+### Features
+
+* **core:** Add `Identity` to test context ([#271](https://github.com/php-testo/testo/issues/271)) ([f17f4ed](https://github.com/php-testo/testo/commit/f17f4ed347986f4ea857f5def3c7425bb02683db))
+
+
+### Bug Fixes
+
+* **codecov:** make per-test coverage fiber-aware ([#276](https://github.com/php-testo/testo/issues/276)) ([8d6f46d](https://github.com/php-testo/testo/commit/8d6f46d640c9befbda619831e35f14557c7eade8))
+
 ## [0.1.11](https://github.com/php-testo/testo/compare/codecov-0.1.10...codecov-0.1.11) (2026-06-21)
 
 

@@ -16,10 +16,10 @@ namespace Testo\Output\Rendering\Diff;
  *
  * @internal
  */
-final class PatienceDiffer implements Differ
+final readonly class PatienceDiffer implements Differ
 {
     public function __construct(
-        private readonly Differ $fallback = new MyersDiffer(),
+        private Differ $fallback = new MyersDiffer(),
     ) {}
 
     #[\Override]

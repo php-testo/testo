@@ -1,0 +1,13 @@
+-
+    request:
+        method: GET
+        url: 'https://api.example.test/other'
+        headers:
+            Host: api.example.test
+    response:
+        status:
+            code: 200
+            message: OK
+        headers:
+            Content-Type: application/json
+        body: '{"message":"override"}'

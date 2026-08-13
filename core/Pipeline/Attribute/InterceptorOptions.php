@@ -12,7 +12,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * @api
  */
 #[\Attribute(\Attribute::TARGET_CLASS)]
-final class InterceptorOptions
+final readonly class InterceptorOptions
 {
     /**
      * Handles {@see Interceptable} attributes
@@ -42,6 +42,24 @@ final class InterceptorOptions
      */
     public const ORDER_RIGHT_BEFORE_TEST = 300_000_000_000;
 
+    /**
+     * Collects code coverage for the test.
+     *
+     * Outer to {@see ORDER_ASYNC_COROUTINE} on purpose: a collector has to close its window around
+     * every fiber switch it can see, and it can only do that for fibers Testo drives itself.
+     */
+    public const ORDER_COVERAGE = 300_000_100_000;
+
+    /**
+     * Hands the test body to a coroutine — an event loop, a coroutine scope — that owns the fiber it
+     * runs in and resumes it directly.
+     *
+     * Nothing that suspends may be scheduled outer to such an interceptor and inner to
+     * {@see ORDER_COVERAGE}: a suspension relayed out of a fiber the interceptor does not drive is
+     * never resumed.
+     */
+    public const ORDER_ASYNC_COROUTINE = 300_000_300_000;
+
     public function __construct(
         /**
          * The priority of the interceptor.
@@ -49,13 +67,13 @@ final class InterceptorOptions
          * Lower priority interceptors are applied first in the interceptor chain.
          * Higher priority interceptors are closer to the test function in the interceptor chain.
          */
-        public readonly int $order = self::ORDER_DEFAULT,
-        public readonly ConflictPolicy $onConflict = ConflictPolicy::First,
+        public int $order = self::ORDER_DEFAULT,
+        public ConflictPolicy $onConflict = ConflictPolicy::First,
 
         /**
          * @var list<non-empty-string|\BackedEnum>|non-empty-string|\BackedEnum Type(s) of tests to which
          *      the interceptor should be applied. If empty, the interceptor is applied to all tests.
          */
-        public readonly \BackedEnum|array|string $testType = [],
+        public \BackedEnum|array|string $testType = [],
     ) {}
 }

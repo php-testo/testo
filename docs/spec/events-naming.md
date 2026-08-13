@@ -184,6 +184,7 @@ Event\TestSuite\     → TestSuite*
 Event\TestCase\      → TestCase*
 Event\Test\          → TestPipeline*, TestBatch*, TestDataSet*, Test*
 Event\Message\       → Message*  (messages recorded during a run; cross-cutting, not a hierarchy level)
+Event\Report\        → Report*   (artifacts a reporter writes; cross-cutting, not a hierarchy level)
 ```
 
 ## Examples from Testo
@@ -226,3 +227,24 @@ TestStarting           // Before each test execution
 TestFinished           // After each test execution
 TestRetrying           // When retry is triggered
 ```
+
+### Report Events (`Event\Report`)
+
+A pair around one write, both extending `ReportEvent` and carrying the same payload. The verb stays the
+one the reader knows — a report is *generated*, not started and finished — so the pair is the present and
+past participle of it rather than `ReportStarting`/`ReportFinished`.
+
+```php
+ReportFileGenerating   // Before the first byte; the path is where the file will be
+ReportFileGenerated    // After the file is written and closed
+```
+
+The name states the kind of report as well as the moment, so a consumer subscribes to the kind it can act
+on — a file it opens, a URL it would follow — and a kind that is not a file arrives as its own pair beside
+this one. The payload is the same card for all of them: `Testo\Core\Report\ReportInfo`, read off the event
+as `$event->info`, holding the format, the label and a `Stringable` location — a `Path` for a file, a URL
+for a report published to a service.
+
+Any reporter dispatches them — JUnit XML and the `--log-json` file — and the renderer that owns stdout
+decides how to state them. A reporter that printed its own path instead would have to know which
+renderer is active.

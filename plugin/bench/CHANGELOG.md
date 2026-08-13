@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/bench-0.1.7...bench-0.1.8) (2026-08-10)
+
+
+### Features
+
+* **teamcity:** report the exact status, assertion count, suite taxonomy and test count ([#278](https://github.com/php-testo/testo/issues/278)) ([d312824](https://github.com/php-testo/testo/commit/d312824ce0768361a707df63cc68d2e3afc9037a))
+
+## [0.1.7](https://github.com/php-testo/testo/compare/bench-0.1.6...bench-0.1.7) (2026-08-06)
+
+
+### Features
+
+* **core:** Add `Identity` to test context ([#271](https://github.com/php-testo/testo/issues/271)) ([f17f4ed](https://github.com/php-testo/testo/commit/f17f4ed347986f4ea857f5def3c7425bb02683db))
+
 ## [0.1.6](https://github.com/php-testo/testo/compare/bench-0.1.5...bench-0.1.6) (2026-07-01)
 
 

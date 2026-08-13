@@ -1,0 +1,41 @@
+{
+    "name": "testo/fiber",
+    "description": "Fiber/coroutine execution plugin for the Testo testing framework: run tests as cooperatively-scheduled plain fibers.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "fiber",
+        "coroutine",
+        "concurrency",
+        "scheduler"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "testo/testo": "0.10.40 - 1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Fiber\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}

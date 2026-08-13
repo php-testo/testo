@@ -19,6 +19,7 @@ use Testo\Event\Test\TestBatchFinished;
 use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestDataSetStarting;
+use Testo\Filter\DataPointer;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
 
@@ -61,10 +62,26 @@ final readonly class RectorFixtureInterceptor implements TestRunInterceptor
             if ($reflection !== null && $fixtures !== []) {
                 $runner = new RectorRunner($this->messenger, [$reflection->getName()]);
 
+                # A fixture occupies the data set slot of the address, so `--filter=Rule::fixture:0:2`
+                # selects the third fixture — the coordinates the IDE sends back for one data set.
+                $dataPointer = $info->getAttribute(DataPointer::class);
+
                 $num = -1;
                 foreach ($fixtures as $label => $path) {
                     ++$num;
-                    $dsInfo = $info->with(arguments: [$runner, $path]);
+                    if ($dataPointer !== null && (
+                        ($dataPointer->provider !== 0)
+                        || ($dataPointer->dataset !== null && $dataPointer->dataset !== $num)
+                    )) {
+                        continue;
+                    }
+
+                    # Each fixture needs its own address, or consumers that key on it collide: TeamCity
+                    # would reuse the batch's node for every data set and nest none of them under it.
+                    $dsInfo = $info->with(
+                        arguments: [$runner, $path],
+                        identity: $info->identity->toDataSet(dataProvider: 0, dataSet: $num),
+                    );
 
                     $this->eventDispatcher->dispatch(new TestDataSetStarting($dsInfo, $label, null, $num));
                     try {

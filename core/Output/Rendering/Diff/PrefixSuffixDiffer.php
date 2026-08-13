@@ -14,10 +14,10 @@ namespace Testo\Output\Rendering\Diff;
  *
  * @internal
  */
-final class PrefixSuffixDiffer implements Differ
+final readonly class PrefixSuffixDiffer implements Differ
 {
     public function __construct(
-        private readonly Differ $inner = new MyersDiffer(),
+        private Differ $inner = new MyersDiffer(),
     ) {}
 
     #[\Override]

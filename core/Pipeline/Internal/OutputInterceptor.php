@@ -45,7 +45,8 @@ final readonly class OutputInterceptor implements TestRunInterceptor
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
-        # Fork the messenger: everything written during this test lands in an isolated buffer.
+        # Fork the messenger: everything written during this test lands in an isolated buffer, and
+        # every MessageReceived it dispatches is stamped with this test's identity.
         return $this->messenger->scope(static function (Messenger $messenger) use ($info, $next): TestResult {
             $result = $next($info);
 
@@ -54,6 +55,6 @@ final readonly class OutputInterceptor implements TestRunInterceptor
             return $messages->isEmpty()
                 ? $result
                 : $result->withMessages($messages);
-        });
+        }, $info->identity);
     }
 }

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Application\Unit\Messenger;
 
+use Internal\Path;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Internal\MessengerHub;
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Core\Context\Identity\SuiteIdentity;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
 use Testo\Event\Message\MessageReceived;
@@ -176,6 +179,61 @@ final class MessengerHubTest
         $contents = $this->contents($hub->getMessages());
         \sort($contents);
         Assert::same($contents, ['after', 'before', 'root', 'while-suspended']);
+    }
+
+    public function aNestedScopeInheritsTheEnclosingTestIdentity(): void
+    {
+        $dispatcher = new class implements EventDispatcherInterface {
+            /** @var list<TestIdentity|null> */
+            public array $identities = [];
+
+            public function dispatch(object $event): object
+            {
+                $event instanceof MessageReceived and $this->identities[] = $event->identity;
+                return $event;
+            }
+        };
+        $hub = new MessengerHub($dispatcher);
+        $identity = self::identity();
+
+        $hub->scope(static function () use ($hub): void {
+            // A plugin isolating output mid-test opens a scope of its own; what is written inside
+            // still originates from the running test, so it must stay attributed to that test.
+            $hub->scope(static fn() => $hub->log('c', 'inner'));
+        }, $identity);
+
+        Assert::same($dispatcher->identities, [$identity]);
+    }
+
+    public function aNestedScopeMayStillSetAnIdentityOfItsOwn(): void
+    {
+        $dispatcher = new class implements EventDispatcherInterface {
+            /** @var list<TestIdentity|null> */
+            public array $identities = [];
+
+            public function dispatch(object $event): object
+            {
+                $event instanceof MessageReceived and $this->identities[] = $event->identity;
+                return $event;
+            }
+        };
+        $hub = new MessengerHub($dispatcher);
+        $outer = self::identity();
+        $inner = $outer->toDataSet(dataProvider: 0, dataSet: 1);
+
+        $hub->scope(static function () use ($hub, $inner): void {
+            $hub->scope(static fn() => $hub->log('c', 'inner'), $inner);
+        }, $outer);
+
+        // Inheritance is only the default: the per-data-set scope narrows the batch's address.
+        Assert::same($dispatcher->identities, [$inner]);
+    }
+
+    private static function identity(): TestIdentity
+    {
+        return (new SuiteIdentity('Application/Unit'))
+            ->toCase('Tests\Foo\BarTest', 'test', Path::create('/app/tests/BarTest.php'))
+            ->toTest('itWorks');
     }
 
     private function nullDispatcher(): EventDispatcherInterface

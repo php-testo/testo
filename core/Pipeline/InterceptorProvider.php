@@ -90,12 +90,15 @@ final class InterceptorProvider implements InterceptorCollector
         $result = [];
 
         foreach ($attributes as $attribute) {
-            # Get alias interceptor
-            $iClass = Cache::resolveAlias($attribute::class) ?? throw new \RuntimeException(
+            # Get alias interceptors
+            $iClasses = Cache::resolveAliases($attribute::class);
+            $iClasses === [] and throw new \RuntimeException(
                 \sprintf('No interceptor found for attribute %s.', $attribute::class),
             );
 
-            \is_a($iClass, $class, true) and $result[] = $this->createInstance($iClass, [$attribute]);
+            foreach ($iClasses as $iClass) {
+                \is_a($iClass, $class, true) and $result[] = $this->createInstance($iClass, [$attribute]);
+            }
         }
 
         return $result;

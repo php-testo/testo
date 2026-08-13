@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Internal\Middleware;
 
+use Testo\Codecov\Config\CoverageLevel;
 use Testo\Codecov\Covers;
 use Testo\Codecov\CoversNothing;
 use Testo\Codecov\Internal\CoverageAttribute;
@@ -25,9 +26,26 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * Tests marked with {@see CoversNothing} are executed without coverage collection.
  * Tests marked with {@see Covers} have their coverage filtered to the specified targets.
  *
+ * A test's window stays bound to it across fiber suspensions. The driver collects process-wide and its
+ * window cannot nest — a `collect()` from any fiber ends collection for all of them — so a test running
+ * in a fiber is driven through a trampoline: on every suspension the window is closed and what it holds
+ * is banked, on resumption a fresh one is opened. Lines a sibling test executes while this one is parked
+ * therefore never land here, and the banked slices add up to exactly this test's coverage.
+ *
+ * Keeping no window open across a switch is also what keeps the process alive: with
+ * `XDEBUG_CC_BRANCH_CHECK` (any {@see CoverageLevel} above {@see CoverageLevel::Line}) a window that
+ * spans a fiber switch corrupts memory inside XDebug and kills the run outright.
+ *
+ * The trampoline is why this sits at {@see InterceptorOptions::ORDER_COVERAGE}, outer to
+ * {@see InterceptorOptions::ORDER_ASYNC_COROUTINE} rather than innermost: an interceptor there hands the
+ * test to a fiber it owns and resumes directly — `testo/bridge-revolt` dispatches the body onto the
+ * Revolt event loop — and a suspension relayed out of such a fiber is never resumed. From here the
+ * trampoline only ever relays through fibers Testo drives, and a coroutine-dispatched test is measured
+ * in one window, which is enough because the loop runs one test at a time.
+ *
  * @internal
  */
-#[InterceptorOptions(order: \PHP_INT_MAX)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_COVERAGE)]
 final readonly class CoverageTestInterceptor implements TestRunInterceptor
 {
     /**
@@ -63,12 +81,40 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
             return $next($info);
         }
 
+        $banked = new CoverageResult();
+
         $this->driver->start();
 
         try {
-            $result = $next($info);
+            if (\Fiber::getCurrent() === null) {
+                $result = $next($info);
+            } else {
+                # Trampoline the test so its window can be closed around every suspension it relays —
+                # inlined rather than delegated to keep the test's own stack as shallow as it would be
+                # without coverage.
+                $fiber = new \Fiber(static fn(): TestResult => $next($info));
+                $value = $fiber->start();
+                while (!$fiber->isTerminated()) {
+                    # Leaving our slice: bank it and close the window before anyone else gets to run.
+                    $banked = $banked->merge($this->driver->collect());
+                    try {
+                        $resume = \Fiber::suspend($value);
+                    } catch (\Throwable $e) {
+                        $this->driver->start();
+                        $value = $fiber->throw($e);
+                        continue;
+                    }
+
+                    $this->driver->start();
+                    $value = $fiber->resume($resume);
+                }
+
+                /** @var TestResult $result */
+                $result = $fiber->getReturn();
+            }
         } finally {
-            $coverage = $this->driver->collect();
+            # Every exit path leaves the window open, so it holds this test's last slice.
+            $coverage = $banked->merge($this->driver->collect());
         }
 
         /**
@@ -78,44 +124,14 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
         $coversTargets = \array_filter($attributes, static fn(CoverageAttribute $a): bool => $a instanceof Covers);
         $coversTargets === [] or $coverage = CoverageFilter::apply($coverage, \array_values($coversTargets));
 
-        $method = self::buildMethodId($info);
-        $method === null or $coverage = $coverage->withTestMethod($method);
+        # The address names the concrete case class, not the method's declaring class, so a `#[Test]`
+        # inherited from an abstract base is attributed to the subclass — which is what keeps
+        # `<covered by="Concrete::method">` aligned with the JUnit `<testsuite name="Concrete">` that
+        # Infection joins on. Data sets deliberately share one identifier: `qualifiedName()` carries no
+        # coordinates, and per-data-set granularity would break that join rather than sharpen it.
+        $coverage = $coverage->withTestMethod($info->identity->qualifiedName());
 
         return $result->withAttribute(CoverageResult::class, $coverage);
-    }
-
-    /**
-     * Builds a PHPUnit-style identifier for the test method.
-     *
-     * - Class methods: `Tests\\FooTest::testBar`.
-     * - Free functions: `Tests\\testFooBar` (FQN, no leading backslash).
-     *
-     * For inherited tests the concrete (runtime) case class is used, NOT the
-     * declaring class: a `#[Test]` method declared on an abstract base and run
-     * through a subclass is attributed to the subclass. This keeps the coverage
-     * `<covered by="Concrete::method">` aligned with the JUnit `<testsuite
-     * name="Concrete">`, which Infection joins on by class name — `getDeclaringClass()`
-     * would name the abstract base, which has no testsuite, and the lookup would fail.
-     *
-     * Data-set entries within data providers reuse the same identifier — Testo's
-     * `--filter` selects by method, not by individual dataset, so per-dataset granularity
-     * isn't useful for downstream consumers (e.g. Infection).
-     *
-     * @return non-empty-string|null
-     */
-    private static function buildMethodId(TestInfo $info): ?string
-    {
-        $reflection = $info->testDefinition->reflection;
-
-        if ($reflection instanceof \ReflectionMethod) {
-            $class = $info->caseInfo->definition->reflection;
-            $className = $class?->getName() ?? $reflection->getDeclaringClass()->getName();
-            $name = $className . '::' . $reflection->getName();
-            return $name === '' ? null : $name;
-        }
-
-        $name = $reflection->getName();
-        return $name === '' ? null : $name;
     }
 
     /**

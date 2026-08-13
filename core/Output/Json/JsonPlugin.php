@@ -6,9 +6,14 @@ namespace Testo\Output\Json;
 
 use Internal\Container\Container;
 use Internal\Path;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
+use Testo\Core\Report\ReportInfo;
 use Testo\Event\Framework\SessionFinished;
+use Testo\Event\Framework\SessionStarting;
+use Testo\Event\Report\ReportFileGenerated;
+use Testo\Event\Report\ReportFileGenerating;
 use Testo\Output\Json\Internal\JsonReport;
 
 /**
@@ -41,9 +46,6 @@ final class JsonPlugin implements PluginConfigurator
      */
     private readonly ?Path $path;
 
-    /** @var resource|null Stream used in stdout mode; resolved to {@see \STDOUT} on write. */
-    private $stream;
-
     private readonly JsonReport $report;
 
     /**
@@ -54,18 +56,33 @@ final class JsonPlugin implements PluginConfigurator
      * @param resource|null $stream Stream for stdout mode; defaults to {@see \STDOUT}. Ignored
      *        when a file path is set.
      */
-    public function __construct(?string $outputPath = null, $stream = null)
+    public function __construct(?string $outputPath = null, private $stream = null)
     {
         $this->path = $outputPath !== null && $outputPath !== '' ? Path::create($outputPath) : null;
-        $this->stream = $stream;
         $this->report = new JsonReport();
     }
 
     #[\Override]
     public function configure(Container $container): void
     {
-        $container->get(EventListenerCollector::class)
-            ->addListener(SessionFinished::class, $this->onSessionFinished(...));
+        $listeners = $container->get(EventListenerCollector::class);
+        $listeners->addListener(SessionFinished::class, $this->onSessionFinished(...));
+
+        $path = $this->path;
+        if ($path === null) {
+            return;
+        }
+
+        $info = new ReportInfo('json', 'JSON report', $path);
+        $dispatcher = $container->get(EventDispatcherInterface::class);
+        $listeners->addListener(
+            SessionStarting::class,
+            static fn(): mixed => $dispatcher->dispatch(new ReportFileGenerating($info)),
+        );
+        $listeners->addListener(
+            SessionFinished::class,
+            static fn(): mixed => $dispatcher->dispatch(new ReportFileGenerated($info)),
+        );
     }
 
     private function onSessionFinished(SessionFinished $event): void

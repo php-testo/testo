@@ -6,6 +6,7 @@ namespace Testo\Output\JUnit;
 
 use Internal\Container\Container;
 use Internal\Path;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
 use Testo\Core\Context\CaseInfo;
@@ -13,6 +14,9 @@ use Testo\Core\Context\TestInfo;
 use Testo\Core\Value\TestType;
 use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
+use Testo\Core\Report\ReportInfo;
+use Testo\Event\Report\ReportFileGenerated;
+use Testo\Event\Report\ReportFileGenerating;
 use Testo\Event\Test\TestBatchFinished;
 use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
@@ -77,11 +81,12 @@ use Testo\Output\JUnit\Internal\JUnitWriter;
 final class JUnitPlugin implements PluginConfigurator
 {
     /**
-     * Tracks whether we're inside a DataProvider batch, keyed by test
-     * definition object hash. Same guard `TeamcityPlugin` uses to avoid
-     * emitting both the per-dataset and the rolled-up `<testcase>`.
+     * Tracks whether we're inside a DataProvider batch, keyed by
+     * {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}. Same guard `TeamcityPlugin`
+     * uses to avoid emitting both the per-dataset and the rolled-up `<testcase>`;
+     * keyed per running test, so concurrently running tests are tracked independently.
      *
-     * @var array<non-empty-string, bool>
+     * @var array<int, bool>
      */
     private array $isBatch = [];
 
@@ -183,14 +188,18 @@ final class JUnitPlugin implements PluginConfigurator
 
         // Test Pipeline events (final event in the test lifecycle)
         $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
-    }
 
-    /**
-     * @return non-empty-string
-     */
-    private static function getId(TestInfo $testInfo): string
-    {
-        return \spl_object_hash($testInfo->testDefinition);
+        // Registered after the listener that writes the file, so the late announcement follows the write.
+        $info = new ReportInfo('junit', 'JUnit report', $this->resolvedPath);
+        $dispatcher = $container->get(EventDispatcherInterface::class);
+        $listeners->addListener(
+            SessionStarting::class,
+            static fn(): mixed => $dispatcher->dispatch(new ReportFileGenerating($info)),
+        );
+        $listeners->addListener(
+            SessionFinished::class,
+            static fn(): mixed => $dispatcher->dispatch(new ReportFileGenerated($info)),
+        );
     }
 
     private static function formatDatasetSuffix(string|int $datasetKey, ?int $providerIndex): string
@@ -288,8 +297,7 @@ final class JUnitPlugin implements PluginConfigurator
         // Closed in onTestBatchFinished.
         $caseInfo->definition->reflection === null and $this->openFunctionSuite($event->testInfo);
 
-        $id = self::getId($event->testInfo);
-        $this->isBatch[$id] = true;
+        $this->isBatch[$event->testInfo->identity->pipelineId] = true;
     }
 
     private function onTestBatchFinished(TestBatchFinished $event): void
@@ -331,7 +339,7 @@ final class JUnitPlugin implements PluginConfigurator
             return;
         }
 
-        $id = self::getId($event->testInfo);
+        $id = $event->testInfo->identity->pipelineId;
         if (isset($this->isBatch[$id])) {
             // DataProvider/multi-inline test — individual datasets were already emitted.
             unset($this->isBatch[$id]);

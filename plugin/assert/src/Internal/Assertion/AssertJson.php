@@ -116,7 +116,8 @@ final readonly class AssertJson implements JsonAbstract
             "at path \"{$path}\"",
             '',
         );
-        StaticState::$state === null or StaticState::$state->history[] = $subParent;
+        $state = StaticState::current();
+        $state === null or $state->history[] = $subParent;
 
         $callback(new self($resolved, $subParent));
 
@@ -409,7 +410,7 @@ final readonly class AssertJson implements JsonAbstract
                 }
 
                 // Numeric key
-                if (\is_string($key) && \ctype_digit($key)) {
+                if (\ctype_digit($key)) {
                     $key = (int) $key;
                 }
 

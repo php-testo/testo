@@ -20,6 +20,6 @@ final readonly class AssertNumeric implements IntType
 
     public function __construct(
         public int|float $value,
-        private readonly AssertionComposite $parent,
+        private AssertionComposite $parent,
     ) {}
 }

@@ -6,6 +6,7 @@ namespace Testo\Application\Internal\Messenger;
 
 use Internal\Destroy\Destroyable;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Message;
 use Testo\Event\Message\MessageReceived;
 
@@ -40,10 +41,15 @@ final class State implements Destroyable
 
     private bool $suspended = false;
 
+    /**
+     * @param TestIdentity|null $identity Test whose {@see MessageReceived} events this state stamps;
+     *        `null` when the state belongs to no test. Read by the hub so a nested scope can inherit it.
+     */
     public function __construct(
         private readonly EventDispatcherInterface $dispatcher,
         private readonly ?self $parent = null,
         private readonly bool $holdEvents = false,
+        public readonly ?TestIdentity $identity = null,
     ) {}
 
     /**
@@ -77,7 +83,8 @@ final class State implements Destroyable
 
     public function fork(bool $holdEvents = false): self
     {
-        return new self($this->dispatcher, $this, $holdEvents);
+        # A fork belongs to the same test as its parent, so it inherits the parent's identity.
+        return new self($this->dispatcher, $this, $holdEvents, $this->identity);
     }
 
     #[\Override]
@@ -114,7 +121,7 @@ final class State implements Destroyable
     {
         $this->suspended = true;
         try {
-            $this->dispatcher->dispatch(new MessageReceived($message));
+            $this->dispatcher->dispatch(new MessageReceived($message, $this->identity));
         } finally {
             $this->suspended = false;
         }
@@ -136,7 +143,7 @@ final class State implements Destroyable
         if ($this->holdEvents) {
             $this->heldEvents = \array_merge($this->heldEvents, $events);
             # Keep held events in time order so they are released chronologically on commit.
-            \usort($this->heldEvents, static fn(Message $a, Message $b) => $a->time <=> $b->time);
+            \usort($this->heldEvents, static fn(Message $a, Message $b): int => $a->time <=> $b->time);
             return;
         }
 
@@ -169,7 +176,7 @@ final class State implements Destroyable
 
         # Out-of-order (clock skew / interleaving): combine and stable-sort by time.
         $merged = \array_merge($this->messages, $state->messages);
-        \usort($merged, static fn(Message $a, Message $b) => $a->time <=> $b->time);
+        \usort($merged, static fn(Message $a, Message $b): int => $a->time <=> $b->time);
         $this->messages = $merged;
     }
 }

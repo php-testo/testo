@@ -31,23 +31,24 @@
         "php": ">=8.2",
         "ext-tokenizer": "*",
         "internal/destroy": "^1.0",
-        "internal/path": "^1.2",
+        "internal/path": "^1.3",
         "psr/container": "1 - 2",
         "psr/event-dispatcher": "^1.0",
         "psr/log": "^2.0 || ^3.0",
         "symfony/console": "^6.4 || ^7 || ^8.0",
         "symfony/finder": "^6.4 || ^7 || ^8.0",
-        "testo/assert": "^0.1.11",
-        "testo/bench": "^0.1.6",
+        "testo/assert": "^0.1.12",
+        "testo/fiber": "^0.1.2",
+        "testo/bench": "^0.1.8",
         "testo/bridge-symfony-console": "^0.1.8",
-        "testo/codecov": "^0.1.11",
+        "testo/codecov": "^0.1.12",
         "testo/convention": "^0.1.4",
-        "testo/data": "^0.1.6",
-        "testo/filter": "^0.1.5",
-        "testo/inline": "^0.1.6",
+        "testo/data": "^0.1.7",
+        "testo/filter": "^0.1.6",
+        "testo/inline": "^0.1.8",
         "testo/lifecycle": "^0.1.5",
-        "testo/repeat": "^0.1.8",
-        "testo/retry": "^0.1.4",
+        "testo/repeat": "^0.1.9",
+        "testo/retry": "^0.1.5",
         "testo/test": "^0.1.6",
         "yiisoft/injector": "^1.2"
     },
@@ -56,11 +57,14 @@
         "buggregator/trap": "^1.10",
         "internal/dload": "^1.6",
         "llm/skills": "^1.3",
+        "php-vcr/php-vcr": "^1.6",
         "roxblnfk/unpoly": "1.8.2",
         "rector/rector": "^2.5.2",
         "testo/bridge-infection": "^0.1.8",
-        "testo/bridge-mockery": "^0.1.1",
-        "testo/bridge-rector": "^0.2.0",
+        "testo/bridge-mockery": "^0.1.2",
+        "testo/bridge-rector": "^0.2.2",
+        "testo/bridge-revolt": "^0.1.1",
+        "testo/bridge-vcr": "^0.1.0",
         "testo/facade": "^0.1.1"
     },
     "suggest": {
@@ -73,21 +77,28 @@
     "autoload": {
         "psr-4": {
             "Testo\\": "core/",
-            "Internal\\Container\\": "internal/container/src"
+            "Internal\\Container\\": "internal/container/src",
+            "Internal\\Fiber\\": "internal/fiber/src"
         }
     },
     "replace": {
-        "internal/container": "*"
+        "internal/container": "*",
+        "internal/fiber": "*"
     },
     "autoload-dev": {
         "psr-4": {
+            "Internal\\Container\\Tests\\": "internal/container/tests/",
+            "Internal\\Fiber\\Tests\\": "internal/fiber/tests/",
             "Tests\\PhpUnit\\": "tests/PhpUnit/",
             "Tests\\": "tests/",
             "Tests\\Assert\\": "plugin/assert/tests/",
+            "Tests\\Fiber\\": "plugin/fiber/tests/",
             "Tests\\Bench\\": "plugin/bench/tests/",
             "Tests\\Bridge\\Mockery\\": "bridge/mockery/tests/",
             "Tests\\Bridge\\Rector\\": "bridge/rector/tests/",
+            "Tests\\Bridge\\Revolt\\": "bridge/revolt/tests/",
             "Tests\\Bridge\\SymfonyConsole\\": "bridge/symfony-console/tests/",
+            "Tests\\Bridge\\VCR\\": "bridge/vcr/tests/",
             "Tests\\Codecov\\": "plugin/codecov/tests/",
             "Tests\\Convention\\": "plugin/convention/tests/",
             "Tests\\Data\\": "plugin/data/tests/",
@@ -110,6 +121,7 @@
                 "symlink": true,
                 "versions": {
                     "testo/assert": "0.1.x-dev",
+                    "testo/fiber": "0.1.x-dev",
                     "testo/bench": "0.1.x-dev",
                     "testo/codecov": "0.1.x-dev",
                     "testo/convention": "0.1.x-dev",
@@ -133,7 +145,9 @@
                     "testo/bridge-infection": "0.1.x-dev",
                     "testo/bridge-mockery": "0.1.x-dev",
                     "testo/bridge-rector": "0.2.x-dev",
-                    "testo/bridge-symfony-console": "0.1.x-dev"
+                    "testo/bridge-revolt": "0.1.x-dev",
+                    "testo/bridge-symfony-console": "0.1.x-dev",
+                    "testo/bridge-vcr": "0.1.x-dev"
                 }
             }
         }
@@ -163,6 +177,8 @@
         "post-update-cmd": "dload get --no-interaction -v || \"echo can't dload binaries\"",
         "cs:diff": "php-cs-fixer fix --dry-run -v --diff",
         "cs:fix": "php-cs-fixer fix -v",
+        "rector": "rector",
+        "rector:ci": "rector --dry-run --clear-cache --no-progress-bar",
         "infect": [
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",

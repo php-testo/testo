@@ -12,17 +12,17 @@ use Infection\StreamWrapper\IncludeInterceptor;
  *
  * @internal
  */
-final class TestoAdapter implements TestFrameworkAdapter
+final readonly class TestoAdapter implements TestFrameworkAdapter
 {
     /** @var non-empty-string Path to the Testo PHP entry script. */
-    private readonly string $testFrameworkExecutable;
+    private string $testFrameworkExecutable;
 
     public function __construct(
         string $testFrameworkExecutable,
         /** @var non-empty-string Absolute path to the project directory. */
-        private readonly string $projectDir,
+        private string $projectDir,
         /** @var non-empty-string Infection's tmp directory; safe to drop per-mutant bootstrap files in. */
-        private readonly string $tmpDir,
+        private string $tmpDir,
         /**
          * @var non-empty-string Path where Infection expects the JUnit XML
          *      report. We pass it back to Testo via `--log-junit=<path>` and
@@ -30,14 +30,14 @@ final class TestoAdapter implements TestFrameworkAdapter
          *      whether to use JUnit-driven test mapping or fall back to
          *      reflection-based resolution.
          */
-        private readonly string $jUnitFilePath,
+        private string $jUnitFilePath,
         /**
          * @var non-empty-string Directory where Infection expects the PHPUnit-style coverage XML
          *      (it reads `<dir>/index.xml`). We pass it back to Testo via `--coverage-xml=<dir>`,
          *      which activates the default (shadow) `CodecovPlugin` — so the coverage report is
          *      produced even when the user's `testo.php` declares no coverage plugin.
          */
-        private readonly string $coverageXmlPath = '',
+        private string $coverageXmlPath = '',
     ) {
         # On Windows, Infection's TestFrameworkFinder may hand us `bin/testo.bat`.
         # We can't `php testo.bat` — strip the `.bat` and run the sibling PHP script directly.

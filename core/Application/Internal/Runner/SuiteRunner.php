@@ -87,6 +87,7 @@ final readonly class SuiteRunner
             try {
                 $caseInfo = new CaseInfo(
                     definition: $caseDefinition,
+                    suiteIdentity: $suite->identity,
                     instance: $caseDefinition->reflection === null
                         ? null
                         : new SimpleCaseInstantiator($caseDefinition->reflection),

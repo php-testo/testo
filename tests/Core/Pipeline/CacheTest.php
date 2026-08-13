@@ -17,32 +17,42 @@ use Testo\Test;
 final class CacheTest
 {
     /**
-     * When resolveAlias is called with a class that has a FallbackInterceptor attribute,
-     * it should cache and return the interceptor class.
+     * When resolveAliases is called with a class that has a FallbackInterceptor attribute,
+     * it should cache and return the interceptor classes.
      */
-    public function resolveAliasWithFallbackInterceptorAttribute(): void
+    public function resolveAliasesWithFallbackInterceptorAttribute(): void
     {
-        $result = Cache::resolveAlias(AttributeWithFallback::class);
+        $result = Cache::resolveAliases(AttributeWithFallback::class);
 
-        Assert::same(MockInterceptor::class, $result);
+        Assert::same($result, [MockInterceptor::class]);
     }
 
     /**
-     * When resolveAlias is called with a class that has no FallbackInterceptor attribute,
-     * it should return null.
+     * A repeated FallbackInterceptor attribute wires every listed interceptor, in declaration order.
      */
-    public function resolveAliasWithoutFallbackInterceptorAttribute(): void
+    public function resolveAliasesCollectsRepeatedFallbacks(): void
     {
-        $result = Cache::resolveAlias(AttributeWithoutFallback::class);
+        $result = Cache::resolveAliases(AttributeWithSeveralFallbacks::class);
 
-        Assert::null($result);
+        Assert::same($result, [MockInterceptor::class, SecondMockInterceptor::class]);
     }
 
     /**
-     * The first resolveAlias call memoises the resolved value in the private static map,
+     * When resolveAliases is called with a class that has no FallbackInterceptor attribute,
+     * it should return an empty list.
+     */
+    public function resolveAliasesWithoutFallbackInterceptorAttribute(): void
+    {
+        $result = Cache::resolveAliases(AttributeWithoutFallback::class);
+
+        Assert::same($result, []);
+    }
+
+    /**
+     * The first resolveAliases call memoises the resolved value in the private static map,
      * so the key must be present (with the resolved value) afterwards.
      */
-    public function resolveAliasMemoisesResultInMap(): void
+    public function resolveAliasesMemoisesResultInMap(): void
     {
         $map = self::mapProperty();
         $orig = $map->getValue();
@@ -50,12 +60,12 @@ final class CacheTest
         try {
             $map->setValue(null, []);
 
-            $result = Cache::resolveAlias(AttributeWithFallbackForCache::class);
-            Assert::same(MockInterceptor::class, $result);
+            $result = Cache::resolveAliases(AttributeWithFallbackForCache::class);
+            Assert::same($result, [MockInterceptor::class]);
 
             $stored = $map->getValue();
             Assert::true(\array_key_exists(AttributeWithFallbackForCache::class, $stored));
-            Assert::same(MockInterceptor::class, $stored[AttributeWithFallbackForCache::class]);
+            Assert::same($stored[AttributeWithFallbackForCache::class], [MockInterceptor::class]);
         } finally {
             $map->setValue(null, $orig);
         }
@@ -65,7 +75,7 @@ final class CacheTest
      * Once a parent class is memoised in the map, resolving a child class walks up the
      * cached map (the do/while loop) and returns the parent's stored value.
      */
-    public function resolveAliasWalksCachedParentInMap(): void
+    public function resolveAliasesWalksCachedParentInMap(): void
     {
         $map = self::mapProperty();
         $orig = $map->getValue();
@@ -73,25 +83,25 @@ final class CacheTest
         try {
             $map->setValue(null, []);
 
-            $parent = Cache::resolveAlias(ParentAttributeForMapWalk::class);
-            Assert::same(MockInterceptor::class, $parent);
+            $parent = Cache::resolveAliases(ParentAttributeForMapWalk::class);
+            Assert::same($parent, [MockInterceptor::class]);
 
             $stored = $map->getValue();
             Assert::true(\array_key_exists(ParentAttributeForMapWalk::class, $stored));
             Assert::false(\array_key_exists(ChildAttributeForMapWalk::class, $stored));
 
-            $child = Cache::resolveAlias(ChildAttributeForMapWalk::class);
-            Assert::same(MockInterceptor::class, $child);
+            $child = Cache::resolveAliases(ChildAttributeForMapWalk::class);
+            Assert::same($child, [MockInterceptor::class]);
         } finally {
             $map->setValue(null, $orig);
         }
     }
 
     /**
-     * A class without a FallbackInterceptor caches null via `??=`; the lookup uses
-     * array_key_exists, so the stored null is a cache hit on subsequent calls.
+     * A class without a FallbackInterceptor caches an empty list; the lookup uses
+     * array_key_exists, so the stored empty list is a cache hit on subsequent calls.
      */
-    public function resolveAliasCachesNullAsHit(): void
+    public function resolveAliasesCachesEmptyAsHit(): void
     {
         $map = self::mapProperty();
         $orig = $map->getValue();
@@ -99,29 +109,29 @@ final class CacheTest
         try {
             $map->setValue(null, []);
 
-            $first = Cache::resolveAlias(NoFallbackForNullCache::class);
-            Assert::null($first);
+            $first = Cache::resolveAliases(NoFallbackForNullCache::class);
+            Assert::same($first, []);
 
             $stored = $map->getValue();
             Assert::true(\array_key_exists(NoFallbackForNullCache::class, $stored));
-            Assert::null($stored[NoFallbackForNullCache::class]);
+            Assert::same($stored[NoFallbackForNullCache::class], []);
 
-            $second = Cache::resolveAlias(NoFallbackForNullCache::class);
-            Assert::null($second);
+            $second = Cache::resolveAliases(NoFallbackForNullCache::class);
+            Assert::same($second, []);
         } finally {
             $map->setValue(null, $orig);
         }
     }
 
     /**
-     * When resolveAlias is called with a class that inherits from a class with FallbackInterceptor,
+     * When resolveAliases is called with a class that inherits from a class with FallbackInterceptor,
      * it should walk up the parent class chain (reflection fallback) and find the interceptor.
      */
-    public function resolveAliasWalksParentClassHierarchy(): void
+    public function resolveAliasesWalksParentClassHierarchy(): void
     {
-        $result = Cache::resolveAlias(ChildAttributeOfFallback::class);
+        $result = Cache::resolveAliases(ChildAttributeOfFallback::class);
 
-        Assert::same(MockInterceptor::class, $result);
+        Assert::same($result, [MockInterceptor::class]);
     }
 
     private static function mapProperty(): \ReflectionProperty
@@ -136,6 +146,13 @@ final class CacheTest
 #[\Attribute(\Attribute::TARGET_CLASS)]
 #[FallbackInterceptor(MockInterceptor::class)]
 class AttributeWithFallback implements Interceptable
+{
+}
+
+#[\Attribute(\Attribute::TARGET_CLASS)]
+#[FallbackInterceptor(MockInterceptor::class)]
+#[FallbackInterceptor(SecondMockInterceptor::class)]
+final class AttributeWithSeveralFallbacks implements Interceptable
 {
 }
 
@@ -172,5 +189,9 @@ final class ChildAttributeOfFallback extends AttributeWithFallback
 }
 
 final class MockInterceptor implements Interceptor
+{
+}
+
+final class SecondMockInterceptor implements Interceptor
 {
 }

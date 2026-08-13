@@ -8,6 +8,7 @@ use Internal\Path;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineStatus;
+use Testo\Core\Report\ReportInfo;
 
 /**
  * Generates a Cobertura XML coverage report.
@@ -83,6 +84,12 @@ final readonly class CoberturaReport implements CoverageReport
         $dir = \dirname($this->outputPath);
         \is_dir($dir) or \mkdir($dir, 0o755, true);
         \file_put_contents($this->outputPath, $xml->outputMemory());
+    }
+
+    #[\Override]
+    public function info(): ReportInfo
+    {
+        return new ReportInfo('cobertura', 'Cobertura coverage', Path::create($this->outputPath));
     }
 
     /**

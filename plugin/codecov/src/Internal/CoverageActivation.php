@@ -6,6 +6,7 @@ namespace Testo\Codecov\Internal;
 
 use Internal\Container\Container;
 use Internal\Path;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Config\ApplicationConfig;
 use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\Config\CoverageLevel;
@@ -17,6 +18,7 @@ use Testo\Codecov\Internal\Middleware\CoverageTestInterceptor;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Common\EventListenerCollector;
 use Testo\Event\Framework\SessionStarting;
+use Testo\Event\Report\ReportFileGenerating;
 use Testo\Event\TestSuite\TestSuiteFinished;
 use Testo\Pipeline\InterceptorCollector;
 
@@ -172,8 +174,15 @@ final class CoverageActivation
         $this->container->get(InterceptorCollector::class)
             ->addInterceptor(new CoverageTestInterceptor($driver, \array_keys($this->testTypes)));
 
+        # Not in `configure()`: only here is a driver known, and an `IfAvailable` run without one would
+        # have promised files it never writes.
+        $dispatcher = $this->container->get(EventDispatcherInterface::class);
+        foreach ($this->reports as $report) {
+            $dispatcher->dispatch(new ReportFileGenerating($report->info()));
+        }
+
         $src = $this->container->get(ApplicationConfig::class)->src;
-        $collector = new CoverageCollector($this->reports, self::resolveSourceRoot($src));
+        $collector = new CoverageCollector($this->reports, self::resolveSourceRoot($src), $dispatcher);
         $this->container->set($collector, destroy: true);
 
         $this->container->get(EventListenerCollector::class)

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Output\Unit\Json;
 
+use Internal\Path;
 use Internal\Container\ObjectContainer;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
 use Testo\Codecov\Covers;
@@ -13,6 +15,7 @@ use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -20,6 +23,9 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Event\Framework\SessionFinished;
+use Testo\Event\Framework\SessionStarting;
+use Testo\Event\Report\ReportFileGenerated;
+use Testo\Event\Report\ReportFileGenerating;
 use Testo\Output\Json\JsonPlugin;
 use Testo\Test;
 use Tests\Output\Stub\JUnit\SampleTestClass;
@@ -74,11 +80,63 @@ final class JsonPluginTest
         Assert::same($report['status'], 'failed');
     }
 
+    public function fileModeAnnouncesTheFileAndStdoutModeAnnouncesNothing(): void
+    {
+        $path = self::tmpPath();
+        $stream = \fopen('php://memory', 'rb+');
+        \assert($stream !== false);
+
+        try {
+            $toFile = self::announcements(new JsonPlugin($path));
+            $toStdout = self::announcements(new JsonPlugin(null, $stream));
+
+            Assert::same(\array_map(
+                static fn(object $event): string => $event::class,
+                $toFile,
+            ), [ReportFileGenerating::class, ReportFileGenerated::class]);
+            Assert::same($toFile[0]->info->format, 'json');
+            Assert::same((string) $toFile[1]->info->path, (string) Path::create($path));
+
+            // Stdout mode has no artifact beside the output: the report *is* the output.
+            Assert::same($toStdout, []);
+        } finally {
+            \fclose($stream);
+            \is_file($path) and \unlink($path);
+        }
+    }
+
+    /**
+     * Runs the shortest session there is through the plugin and returns what it announced.
+     *
+     * @return list<ReportFileGenerating|ReportFileGenerated>
+     */
+    private static function announcements(JsonPlugin $plugin): array
+    {
+        $dispatcher = new EventDispatcher();
+        $container = new ObjectContainer();
+        $container->set($dispatcher, EventListenerCollector::class);
+        $container->set($dispatcher, EventDispatcherInterface::class);
+        $plugin->configure($container);
+
+        $seen = [];
+        $record = static function (ReportFileGenerating|ReportFileGenerated $event) use (&$seen): void {
+            $seen[] = $event;
+        };
+        $dispatcher->addListener(ReportFileGenerating::class, $record);
+        $dispatcher->addListener(ReportFileGenerated::class, $record);
+
+        $dispatcher->dispatch(new SessionStarting());
+        $dispatcher->dispatch(new SessionFinished(self::failedRun()));
+
+        return $seen;
+    }
+
     private static function dispatch(JsonPlugin $plugin, RunResult $result): void
     {
         $dispatcher = new EventDispatcher();
         $container = new ObjectContainer();
         $container->set($dispatcher, EventListenerCollector::class);
+        $container->set($dispatcher, EventDispatcherInterface::class);
         $plugin->configure($container);
 
         $dispatcher->dispatch(new SessionFinished($result));
@@ -89,9 +147,11 @@ final class JsonPluginTest
         $info = new TestInfo(
             name: 'failingTest',
             caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: SampleTestClass::class,
                     type: 'test',
+                    file: Path::create(__FILE__),
                     reflection: new \ReflectionClass(SampleTestClass::class),
                 ),
             ),

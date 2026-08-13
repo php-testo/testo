@@ -1,0 +1,50 @@
+name: Rector
+
+on:
+  push:
+    paths:
+      - 'core/**'
+      - 'plugin/**'
+      - 'bridge/**'
+      - 'rector.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/rector.yml'
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'plugin/**'
+      - 'bridge/**'
+      - 'rector.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/rector.yml'
+
+jobs:
+  rector:
+    runs-on: ubuntu-latest
+    name: Rector
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The split sub-packages pin testo/testo; in CI the root is a detached
+      # commit (dev-<sha>), so its version must be declared explicitly.
+      - name: Resolve root package version
+        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: highest
+
+      - name: Run Rector
+        run: composer rector:ci

@@ -83,6 +83,12 @@
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
+        "plugin/fiber": {
+            "package-name": "testo/fiber",
+            "component": "fiber",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
         "bridge/symfony-console": {
             "package-name": "testo/bridge-symfony-console",
             "component": "bridge-symfony-console",
@@ -106,10 +112,23 @@
             "component": "bridge-rector",
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/revolt": {
+            "package-name": "testo/bridge-revolt",
+            "component": "bridge-revolt",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/vcr": {
+            "package-name": "testo/bridge-vcr",
+            "component": "bridge-vcr",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
         }
     },
     "bump-patch-for-minor-pre-major": true,
     "bump-minor-pre-major": true,
+    "initial-version": "0.1.0",
     "include-component-in-tag": false,
     "include-v-in-tag": false,
     "changelog-type": "default",

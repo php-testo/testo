@@ -18,17 +18,17 @@ use Testo\Pipeline\Interceptor;
 final class Cache
 {
     /**
-     * @var array<class-string<Interceptable>, null|class-string<Interceptor>>
+     * @var array<class-string<Interceptable>, list<class-string<Interceptor>>>
      */
     private static array $map = [];
 
     /**
-     * Resolve alias interceptor for the given attribute class.
+     * Resolve alias interceptors for the given attribute class.
      *
      * @param class-string<Interceptable> $class The attribute class.
-     * @return class-string<Interceptor>|null The interceptor class or null if not found.
+     * @return list<class-string<Interceptor>> The interceptor classes; empty if none found.
      */
-    public static function resolveAlias(string $class): ?string
+    public static function resolveAliases(string $class): array
     {
         $c = $class;
         do {
@@ -40,11 +40,14 @@ final class Cache
         } while ($c);
 
         /**
-         * Resolve fallback handler from the {@see FallbackInterceptor} attribute
+         * Resolve fallback handlers from the repeatable {@see FallbackInterceptor} attribute
          * @var list<\ReflectionAttribute<FallbackInterceptor>> $attrs
          */
         $attrs = Reflection::fetchClassAttributes($class, attributeClass: FallbackInterceptor::class);
 
-        return self::$map[$class] ??= $attrs === [] ? null : $attrs[0]->newInstance()->class;
+        return self::$map[$class] ??= \array_map(
+            static fn(\ReflectionAttribute $attr): string => $attr->newInstance()->class,
+            $attrs,
+        );
     }
 }

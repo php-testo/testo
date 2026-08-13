@@ -95,6 +95,16 @@ final class CloverReportTest
         \unlink($path);
     }
 
+    public function statesItsFormatAndTheFileItWrites(): void
+    {
+        $info = (new CloverReport('build/logs/clover.xml'))->info();
+
+        // `.xml` alone would not tell Clover apart from Cobertura or the PHPUnit coverage XML.
+        Assert::notNull($info);
+        Assert::same($info->format, 'clover');
+        Assert::same((string) $info->path, 'build/logs/clover.xml');
+    }
+
     /**
      * Git-ignored scratch path inside this module's tests. Avoids
      * `sys_get_temp_dir()`, whose value can be a non-Windows path under some

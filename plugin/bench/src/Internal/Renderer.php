@@ -241,31 +241,11 @@ final class Renderer
     /**
      * @param list<string> $headers
      * @param list<list<string>> $rows
-     */
-    private static function renderTable(array $headers, array $rows): string
-    {
-        $widths = self::calculateWidths($headers, $rows);
-
-        $separator = self::separator($widths);
-        $lines = [$separator, self::row($headers, $widths), $separator];
-
-        foreach ($rows as $r) {
-            $lines[] = self::row($r, $widths);
-        }
-
-        $lines[] = $separator;
-
-        return \implode("\n", $lines);
-    }
-
-    /**
-     * @param list<string> $headers
-     * @param list<list<string>> $rows
      * @return list<int>
      */
     private static function calculateWidths(array $headers, array $rows): array
     {
-        $widths = \array_map(static fn(string $h): int => \mb_strlen($h), $headers);
+        $widths = \array_map(\mb_strlen(...), $headers);
 
         foreach ($rows as $row) {
             foreach ($row as $i => $cell) {
@@ -300,20 +280,6 @@ final class Renderer
             $parts[] = isset($rightAlign[$i])
                 ? ' ' . $pad . $cell . ' '
                 : ' ' . $cell . $pad . ' ';
-        }
-
-        return '|' . \implode('|', $parts) . '|';
-    }
-
-    /**
-     * @param list<string> $cells
-     * @param list<int> $widths
-     */
-    private static function centeredRow(array $cells, array $widths): string
-    {
-        $parts = [];
-        foreach ($cells as $i => $cell) {
-            $parts[] = ' ' . self::centerPad($cell, $widths[$i]) . ' ';
         }
 
         return '|' . \implode('|', $parts) . '|';
@@ -424,18 +390,5 @@ final class Renderer
         }
 
         return \implode('. ', $reasons);
-    }
-
-    private static function centerPad(string $text, int $width): string
-    {
-        $len = \mb_strlen($text);
-        if ($len >= $width) {
-            return $text;
-        }
-
-        $left = (int) (($width - $len) / 2);
-        $right = $width - $len - $left;
-
-        return \str_repeat(' ', $left) . $text . \str_repeat(' ', $right);
     }
 }

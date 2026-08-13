@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Retry\Unit;
 
+use Internal\Path;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Common\Messenger;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -263,8 +265,8 @@ final class RetryPolicyRunInterceptorTest
     private static function createTestInfo(): TestInfo
     {
         $reflection = new \ReflectionMethod(self::class, 'createTestInfo');
-        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test');
-        $caseInfo = new CaseInfo(definition: $caseDefinition);
+        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__));
+        $caseInfo = new CaseInfo(suiteIdentity: new SuiteIdentity('Retry/Unit'), definition: $caseDefinition);
         $testDefinition = new TestDefinition(reflection: $reflection);
 
         return new TestInfo(

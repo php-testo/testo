@@ -267,9 +267,8 @@ final class Formatter
         $result = "\n\n " . Style::bold('Summary') . "\n\n";
         $result .= self::statRow('Time', Style::dim("{$testsTime} tests · {$overheadTime} overhead"));
         $result .= self::statRow('Total', "{$total} tests · {$assertions} assertions");
-        $result .= self::statRow('', $breakdown);
 
-        return $result;
+        return $result . self::statRow('', $breakdown);
     }
 
     /**
@@ -390,9 +389,8 @@ final class Formatter
             : '';
 
         $result = "{$indent}{$symbol} {$item->name}{$durationStr}\n";
-        $result .= self::description($item->description, $item->indentLevel, $format);
 
-        return $result;
+        return $result . self::description($item->description, $item->indentLevel, $format);
     }
 
     /**
@@ -400,7 +398,7 @@ final class Formatter
      */
     private static function formatDotRun(FormattedItem $item): string
     {
-        $symbol = match ($item->status) {
+        return match ($item->status) {
             Status::Passed => DotSymbol::Passed->value,
             Status::Failed => Style::error(DotSymbol::Failed->value),
             Status::Skipped => Style::warning(DotSymbol::Skipped->value),
@@ -410,8 +408,6 @@ final class Formatter
             Status::Flaky => Style::info(DotSymbol::Passed->value),
             Status::Cancelled => Style::dim(DotSymbol::Skipped->value),
         };
-
-        return $symbol;
     }
 
     /**

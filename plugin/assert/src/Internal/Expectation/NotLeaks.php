@@ -27,7 +27,7 @@ final class NotLeaks
     public function __construct(
         object ...$objects,
     ) {
-        $this->map = \array_map(static fn(object $object): \WeakReference => \WeakReference::create($object), $objects);
+        $this->map = \array_map(\WeakReference::create(...), $objects);
     }
 
     /**

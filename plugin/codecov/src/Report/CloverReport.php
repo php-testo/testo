@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Report;
 
+use Internal\Path;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineStatus;
+use Testo\Core\Report\ReportInfo;
 
 /**
  * Generates a Clover XML coverage report.
@@ -71,6 +73,12 @@ final readonly class CloverReport implements CoverageReport
         $dir = \dirname($this->outputPath);
         \is_dir($dir) or \mkdir($dir, 0o755, true);
         \file_put_contents($this->outputPath, $xml->outputMemory());
+    }
+
+    #[\Override]
+    public function info(): ReportInfo
+    {
+        return new ReportInfo('clover', 'Clover coverage', Path::create($this->outputPath));
     }
 
     /**
