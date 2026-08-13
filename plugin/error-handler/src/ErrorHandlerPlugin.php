@@ -12,7 +12,7 @@ use Testo\Pipeline\InterceptorCollector;
 /**
  * Plugin that captures PHP errors raised during test execution.
  *
- * By default errors are collected and stored as a {@see Internal\CapturedErrors} attribute
+ * By default errors are collected and stored as a {@see CapturedErrors} attribute
  * on the {@see \Testo\Core\Context\TestResult}, but the test still passes. Pass
  * {@see $failOnError}: true to make any captured error fail the test instead.
  *

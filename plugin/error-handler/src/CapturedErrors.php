@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\ErrorHandler\Internal;
-
-use Testo\ErrorHandler\CapturedError;
+namespace Testo\ErrorHandler;
 
 /**
  * Collection of PHP errors accumulated during test execution.
@@ -12,8 +10,7 @@ use Testo\ErrorHandler\CapturedError;
  * Stored as a {@see \Testo\Core\Context\TestResult} attribute under the key {@see CapturedErrors::class}.
  * Renderers that wish to display collected errors should retrieve it from the result.
  *
- * @internal
- * @psalm-internal Testo\ErrorHandler
+ * @api
  */
 final readonly class CapturedErrors
 {
