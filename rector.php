@@ -45,11 +45,6 @@ return RectorConfig::configure()
         __DIR__ . '/core/Testing/Attribute/TestingSuite.php',
         __DIR__ . '/core/Core/Context/Identity.php',
 
-        // AddArrowFunctionReturnTypeRector
-        __DIR__ . '/bridge/symfony-console/src/Command/Init.php',
-        __DIR__ . '/core/Application/Config/ApplicationConfig.php',
-        __DIR__ . '/core/Application/Internal/Messenger/State.php',
-
         // ArrowFunctionDelegatingCallToFirstClassCallableRector
         __DIR__ . '/plugin/assert/src/Internal/Expectation/NotLeaks.php',
 
