@@ -50,13 +50,6 @@ return RectorConfig::configure()
         __DIR__ . '/core/Application/Config/ApplicationConfig.php',
         __DIR__ . '/core/Application/Internal/Messenger/State.php',
 
-        // Dead code: unused private methods / vars / params
-        __DIR__ . '/plugin/bench/src/Internal/Renderer.php',
-        __DIR__ . '/plugin/bench/src/Internal/BenchHandler.php',
-        __DIR__ . '/core/Output/Teamcity/Teamcity/TeamcityLogger.php',
-        __DIR__ . '/core/Application/Internal/SuiteFactory.php',
-        __DIR__ . '/core/Output/Terminal/Renderer/TerminalLogger.php',
-
         // ArrowFunctionDelegatingCallToFirstClassCallableRector
         __DIR__ . '/plugin/assert/src/Internal/Expectation/NotLeaks.php',
 

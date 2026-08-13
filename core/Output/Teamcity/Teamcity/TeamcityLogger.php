@@ -375,8 +375,6 @@ final class TeamcityLogger
      */
     public function handleSingleTestResult(TestResult $result, ?int $duration = null, ?string $overrideName = null): void
     {
-        $name = $overrideName ?? $result->info->name;
-
         match ($result->status) {
             Status::Passed, Status::Flaky => $this->handlePassedTest($result, $duration, $overrideName),
             Status::Failed, Status::Error => $this->handleFailedTest($result, $duration, $overrideName),

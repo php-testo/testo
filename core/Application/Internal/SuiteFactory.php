@@ -34,7 +34,7 @@ final readonly class SuiteFactory
     public function create(SuiteConfig $config, Filter $filter): SuiteInfo
     {
         $files = $this->getFilesIterator($config, $filter);
-        $definitions = $this->getCaseDefinitions($config, $files, $filter);
+        $definitions = $this->getCaseDefinitions($files, $filter);
 
         $cases = [];
         foreach ($definitions as $definition) {
@@ -89,7 +89,7 @@ final readonly class SuiteFactory
      * @param iterable<TokenizedFile> $files
      * @return list<CaseDefinition>
      */
-    private function getCaseDefinitions(SuiteConfig $config, iterable $files, Filter $filter): array
+    private function getCaseDefinitions(iterable $files, Filter $filter): array
     {
         $cases = [];
         # Prepare interceptors pipeline
