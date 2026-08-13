@@ -8,6 +8,7 @@ use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
 use Testo\ErrorHandler\CapturedError;
+use Testo\ErrorHandler\CapturedErrors;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
 
@@ -39,18 +40,12 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
         /** @var list<CapturedError> $errors */
         $errors = [];
 
-        \set_error_handler(
-            static function (int $severity, string $message, string $file, int $line) use (&$errors): bool {
-                $errors[] = new CapturedError($severity, $message, $file, $line);
-                return true;
-            },
-        );
+        $handler = static function (int $severity, string $message, string $file, int $line) use (&$errors): bool {
+            $errors[] = new CapturedError($severity, $message, $file, $line);
+            return true;
+        };
 
-        try {
-            $result = $next($info);
-        } finally {
-            \restore_error_handler();
-        }
+        $result = $this->run($info, $next, $handler);
 
         if ($errors === []) {
             return $result;
@@ -66,5 +61,52 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
         }
 
         return $result;
+    }
+
+    /**
+     * Runs the test with {@see $handler} installed via {@see \set_error_handler()}, keeping it
+     * bound to this test across fiber suspensions.
+     *
+     * set_error_handler()/restore_error_handler() operate on one process-global stack, so under
+     * concurrent (fiber-based) execution — where sibling tests interleave with this one — a plain
+     * install-before/restore-after around $next() would leak errors into the wrong test's
+     * CapturedErrors, and an interleaved resume could pop a sibling's handler instead of ours. On
+     * every suspension we restore whichever handler was active before this test installed its own
+     * (the native stack does that for free); on resumption we re-install this test's handler.
+     * Mirrors {@see \Testo\Bridge\Mockery\Internal\MockeryInterceptor::run()} and
+     * {@see \Testo\Application\Internal\MessengerHub::scope()}.
+     *
+     * @param callable(TestInfo): TestResult $next
+     */
+    private function run(TestInfo $info, callable $next, \Closure $handler): TestResult
+    {
+        \set_error_handler($handler);
+        try {
+            if (\Fiber::getCurrent() === null) {
+                return $next($info);
+            }
+
+            $fiber = new \Fiber(static fn(): TestResult => $next($info));
+            $value = $fiber->start();
+            while (!$fiber->isTerminated()) {
+                \restore_error_handler();
+                try {
+                    $resume = \Fiber::suspend($value);
+                } catch (\Throwable $e) {
+                    \set_error_handler($handler);
+                    $value = $fiber->throw($e);
+                    continue;
+                }
+
+                \set_error_handler($handler);
+                $value = $fiber->resume($resume);
+            }
+
+            /** @var TestResult $result */
+            $result = $fiber->getReturn();
+            return $result;
+        } finally {
+            \restore_error_handler();
+        }
     }
 }
