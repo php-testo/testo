@@ -45,9 +45,6 @@ return RectorConfig::configure()
         __DIR__ . '/core/Testing/Attribute/TestingSuite.php',
         __DIR__ . '/core/Core/Context/Identity.php',
 
-        // ArrowFunctionDelegatingCallToFirstClassCallableRector
-        __DIR__ . '/plugin/assert/src/Internal/Expectation/NotLeaks.php',
-
         // MakePropertyReadonlyRector + misc single-file simplifications
         __DIR__ . '/core/Tokenizer/Reflection/TokenizedFile.php',
         __DIR__ . '/core/Application/Application.php',
