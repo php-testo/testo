@@ -7,6 +7,7 @@ namespace Testo\Application\Config\Plugin;
 use Testo\Codecov\CodecovPlugin;
 use Testo\Common\PluginConfigurator;
 use Testo\Filter\FilterPlugin;
+use Testo\Output\Html\HtmlPlugin;
 use Testo\Output\JUnit\JUnitPlugin;
 
 $_ = [];
@@ -16,6 +17,8 @@ $_ = [];
 \class_exists(JUnitPlugin::class) and $_[] = new JUnitPlugin();
 # Inert shadow: stays dormant unless a `--coverage-*` report flag activates it.
 \class_exists(CodecovPlugin::class) and $_[] = new CodecovPlugin();
+# Inert shadow: stays dormant unless `--log-html` or `--log-report` activates it.
+\class_exists(HtmlPlugin::class) and $_[] = HtmlPlugin::inert();
 
 \define([__NAMESPACE__ . '\DEFAULT_APPLICATION_PLUGINS'][0], $_);
 unset($_);

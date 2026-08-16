@@ -152,6 +152,21 @@ final class Run extends Base
             . 'Flag name mirrors PHPUnit / Pest / ParaTest.',
         );
         $this->addOption(
+            'log-html',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'Write a self-contained HTML report. A path ending in ".html" produces that single file; '
+            . 'anything else is a directory to fill with index.html and its assets. '
+            . 'The report opens over file:// with no server.',
+        );
+        // $this->addOption(
+        //     'log-report',
+        //     null,
+        //     InputOption::VALUE_REQUIRED,
+        //     'Write the full run as a versioned JSON document to the given path. '
+        //     . 'The data behind the HTML report, on its own, for CI and external tooling.',
+        // );
+        $this->addOption(
             'coverage-clover',
             null,
             InputOption::VALUE_REQUIRED,
