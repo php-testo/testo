@@ -11,6 +11,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Config\ApplicationConfig;
 use Testo\Application\Config\DefaultServicesConfig;
 use Testo\Application\Config\Internal\ConfigInflector;
+use Testo\Application\Config\RunConfiguration;
 use Testo\Application\Config\Plugin\ApplicationPlugins;
 use Testo\Application\Config\Plugin\PluginCollection;
 use Testo\Application\Config\Plugin\SuitePlugins;
@@ -67,6 +68,9 @@ final readonly class Application
             'inputArguments' => $inputArguments,
             'inputOptions' => $inputOptions,
         ];
+
+        # What was asked of this run, for reporters that describe it. Environment stays out of it.
+        $container->set(new RunConfiguration($configFile, $inputOptions, $inputArguments));
 
         # Bind reading provided config file
         $configFile === null or $container
