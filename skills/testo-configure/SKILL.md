@@ -135,6 +135,27 @@ Notes on the example:
 - `CodecovPlugin` is application-wide → it applies to every suite.
 - Names are arbitrary; keep them short — they appear in CI logs and in `--suite=`.
 
+## Reports on every run
+
+Output plugins are application-wide. Add them to `plugins:` when a report should be produced by every run
+rather than only when a flag asks for it:
+
+```php
+use Testo\Output\Html\HtmlPlugin;
+use Testo\Output\JUnit\JUnitPlugin;
+
+plugins: [
+    // runtime/report/index.html; a path ending in .html inlines everything into that one file instead
+    new HtmlPlugin(),
+    new JUnitPlugin(__DIR__ . '/build/junit.xml'),
+],
+```
+
+`HtmlPlugin` takes a second path for the report's own JSON document
+(`new HtmlPlugin('runtime/report', 'runtime/report.json')`) — the HTML is a view over that
+document, and CI or external tooling can consume it on its own. The HTML report opens over `file://`
+with no server and reaches no network.
+
 ## Conditional / dynamic config
 
 Because `testo.php` is real PHP, conditional logic is fine:
@@ -176,6 +197,9 @@ vendor/bin/testo --coverage-xml=build/coverage-xml         # write coverage XML 
 vendor/bin/testo --teamcity            # TeamCity output (CI/IDE)
 vendor/bin/testo --json                # minimal JSON on stdout: run summary + failed tests (for LLM agents / CI scripts)
 vendor/bin/testo --log-json=build/report.json  # same JSON to a file, keeps the terminal output (like --log-junit)
+vendor/bin/testo --log-html=runtime/report        # self-contained HTML report: directory with index.html + assets
+vendor/bin/testo --log-html=build/report.html     # ...or a single inlined file, chosen by the .html extension
+vendor/bin/testo --log-report=build/report.json   # the full run as a versioned JSON document (data behind the HTML)
 vendor/bin/testo --config=path/to/testo.php
 ```
 

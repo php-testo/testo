@@ -13,6 +13,10 @@ integrating the Assert module tests into the overall Testo testing process.
 Tests must be isolated from other tests, meaning each module should have
 its own fixtures, mock objects, etc.
 
+Every run writes an HTML report of itself to `runtime/report/index.html` — open it in a browser to inspect
+what ran, with channel output, failures and timings. It is configured in `testo.php` and overwritten by the
+next run.
+
 ## Self Tests
 
 In addition to the commonly known types of tests (unit tests, integration tests, etc.),
