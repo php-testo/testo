@@ -71,6 +71,18 @@
         'retry': '#fab219'
     };
 
+    /**
+     * Channels whose messages are chunks of one byte stream, not discrete records. Output capture writes
+     * a chunk per flush, so a bare `echo` is not a "message": giving each its own row, timestamp and level
+     * shreds a single line of output across the log. A streaming channel is reassembled instead —
+     * consecutive chunks join into a continuous run, a chunk ending in a newline closes the block the next
+     * one opens after, and any other channel wedging in splits the run where it lands. Each chunk stays a
+     * hoverable element carrying its own arrival time and level.
+     */
+    var STREAMING_CHANNELS = {'stdout': true, 'stderr': true};
+
+    function isStreaming(name) { return STREAMING_CHANNELS[name] === true; }
+
     /* ------------------------------------------------------------------ helpers */
 
     function el(id) { return document.getElementById(id); }
@@ -861,20 +873,115 @@
     }
 
     function logHtml(lines, withTest) {
-        return '<div class="log">' + lines.map(function (m) {
-            var ch = channelOf(m.channel);
-            return '<div class="line" data-ch="' + esc(m.channel) + '">'
-                + '<span class="t">+' + m.time.toFixed(3) + '</span>'
-                + '<span class="ch"><span class="swatch" style="background:' + esc(ch.color) + '"></span>'
-                + '<span style="color:' + esc(ch.color) + '">' + ch.icon + '</span>'
-                + '<span>' + esc(m.channel) + '</span>'
-                + '<span class="lv lv-' + esc(m.level) + '">' + esc(m.level) + '</span></span>'
-                + '<span class="content">' + esc(m.content.replace(/\n$/, ''))
-                + (withTest && m.test ? '<span class="from">  ← <a href="'
-                    + href('tests', {}, m.test.id) + '">' + esc(m.test.name)
-                    + (m.attempt ? ' #' + m.attempt : '') + '</a></span>' : '')
-                + '</span></div>';
+        // Group the ordered run: a maximal run of one streaming channel becomes a single reassembled row,
+        // everything else stays one row per message. A message of any other channel ends the run in
+        // progress, so the next chunk of the stream opens a fresh row where the interruption landed.
+        var groups = [];
+        var stream = null;
+        lines.forEach(function (m) {
+            if (isStreaming(m.channel) && stream && stream.channel === m.channel) {
+                stream.chunks.push(m);
+                return;
+            }
+            if (isStreaming(m.channel)) {
+                stream = {channel: m.channel, chunks: [m]};
+                groups.push({stream: stream});
+                return;
+            }
+            stream = null;
+            groups.push({line: m});
+        });
+
+        return '<div class="log">' + groups.map(function (g) {
+            return g.stream ? streamHtml(g.stream, withTest) : lineHtml(g.line, withTest);
         }).join('') + '</div>';
+    }
+
+    /** The source-test suffix a merged view appends: which test, and which retry, wrote the message. */
+    function fromHtml(m) {
+        return '<span class="from">  ← <a href="' + href('tests', {}, m.test.id) + '">'
+            + esc(m.test.name) + (m.attempt ? ' #' + m.attempt : '') + '</a></span>';
+    }
+
+    /** One discrete message: a row of time · channel · level · content. */
+    function lineHtml(m, withTest) {
+        var ch = channelOf(m.channel);
+        return '<div class="line" data-ch="' + esc(m.channel) + '" data-copy="' + esc(m.content) + '">'
+            + '<span class="t">+' + m.time.toFixed(3) + '</span>'
+            + '<span class="ch"><span class="swatch" style="background:' + esc(ch.color) + '"></span>'
+            + '<span style="color:' + esc(ch.color) + '">' + ch.icon + '</span>'
+            + '<span>' + esc(m.channel) + '</span>'
+            + '<span class="lv lv-' + esc(m.level) + '">' + esc(m.level) + '</span></span>'
+            + '<span class="content">' + esc(m.content.replace(/\n$/, ''))
+            + (withTest && m.test ? fromHtml(m) : '')
+            + '</span>' + copyBtn() + '</div>';
+    }
+
+    /**
+     * A streaming channel's run reassembled into one row. The left columns carry the run's start and its
+     * channel; the content is the stream rebuilt — chunks concatenated in place, broken into blocks at the
+     * newlines that ended a chunk, each chunk its own hoverable span. No level badge: a run has no single
+     * level, so each chunk keeps its own in its hover hint. No whitespace may sit between chunk spans in
+     * the markup, or `pre-wrap` would render it as output that was never there.
+     */
+    function streamHtml(stream, withTest) {
+        var ch = channelOf(stream.channel);
+        var first = stream.chunks[0];
+        // The message copies whole: the raw stream this row rebuilt, every chunk in order, newlines kept.
+        var copy = stream.chunks.map(function (m) { return m.content; }).join('');
+        // A lone chunk is the whole message — nothing to tell apart within it, so it gets no per-chunk tip.
+        var multi = stream.chunks.length > 1;
+
+        var blocks = [[]];
+        stream.chunks.forEach(function (m) {
+            blocks[blocks.length - 1].push(m);
+            /\n$/.test(m.content) && blocks.push([]);
+        });
+        blocks[blocks.length - 1].length || blocks.pop();
+
+        var body = blocks.map(function (chunks) {
+            return '<span class="stream-block">' + chunks.map(function (m) {
+                return chunkHtml(m, withTest, multi);
+            }).join('') + '</span>';
+        }).join('');
+
+        // A merged view still names the source when the whole run came from one test; a run that spans
+        // several leaves the attribution to each chunk's hover hint rather than picking one to show.
+        var sameTest = withTest && first.test && stream.chunks.every(function (m) {
+            return m.test === first.test && m.attempt === first.attempt;
+        });
+
+        return '<div class="line stream" data-ch="' + esc(stream.channel) + '" data-copy="' + esc(copy) + '">'
+            + '<span class="t">+' + first.time.toFixed(3) + '</span>'
+            + '<span class="ch"><span class="swatch" style="background:' + esc(ch.color) + '"></span>'
+            + '<span style="color:' + esc(ch.color) + '">' + ch.icon + '</span>'
+            + '<span>' + esc(stream.channel) + '</span></span>'
+            + '<span class="content stream-body">' + body + (sameTest ? fromHtml(first) : '')
+            + '</span>' + copyBtn() + '</div>';
+    }
+
+    /**
+     * One chunk of a stream: an inline span holding its raw content, with its channel, arrival, level and
+     * source composed into the shared hover tip (see {@see bindTips}). A native `title` is too slow to
+     * surface and cannot be styled, so the scripted tip carries the detail a chunk is too small to show.
+     *
+     * A sole chunk (`multi` false) keeps its level colour but drops the tip and the hover: it is the whole
+     * message, and the row's copy button already offers what a hover would.
+     */
+    function chunkHtml(m, withTest, multi) {
+        var content = esc(m.content.replace(/\n$/, ''));
+        if (!multi) {
+            return '<span class="chunk lv-' + esc(m.level) + '">' + content + '</span>';
+        }
+
+        var from = withTest && m.test ? ' · ← ' + m.test.name + (m.attempt ? ' #' + m.attempt : '') : '';
+        var tip = m.channel + ' · +' + m.time.toFixed(3) + 's · ' + m.level + from;
+        return '<span class="chunk lv-' + esc(m.level) + '" data-tip="' + esc(tip) + '">' + content + '</span>';
+    }
+
+    /** The hover-revealed copy button every log row carries; the row holds the exact text in `data-copy`. */
+    function copyBtn() {
+        return '<button class="copy-btn" type="button" data-tip="Copy" aria-label="Copy message">⧉</button>';
     }
 
     /* --------------------------------------------------------------- tab: channels */
@@ -1132,6 +1239,8 @@
         route = parseHash();
         // A real navigation supersedes whatever was being typed; replaceState never gets here.
         liveQuery = null;
+        // The hovered element is about to be replaced; drop any tip anchored to it before it vanishes.
+        hideTip();
         renderChrome();
 
         var body = el('view');
@@ -1346,6 +1455,131 @@
         });
     }
 
+    /* ----------------------------------------------------------------------- tip */
+
+    // One floating tooltip shared by the whole report: any element carrying a `data-tip` attribute shows
+    // it on hover, faster and better-styled than a native `title`. The tip is text, never markup — a
+    // producer composes what it wants to say (see `chunkHtml`) and the mechanism stays a plain lookup.
+    var tipEl = null;
+    var tipHost = null;
+
+    function ensureTip() {
+        if (tipEl) { return tipEl; }
+        tipEl = document.createElement('div');
+        tipEl.className = 'tip';
+        tipEl.setAttribute('role', 'tooltip');
+        document.body.appendChild(tipEl);
+        return tipEl;
+    }
+
+    function showTip(text, x, y) {
+        var tip = ensureTip();
+        tip.textContent = text;
+        tip.classList.add('on');
+        moveTip(x, y);
+    }
+
+    function hideTip() {
+        tipHost = null;
+        tipEl && tipEl.classList.remove('on');
+    }
+
+    /** Follows the cursor, flipping to the other side of it near a viewport edge so it never clips. */
+    function moveTip(x, y) {
+        if (!tipEl) { return; }
+        var pad = 10;
+        var w = tipEl.offsetWidth;
+        var h = tipEl.offsetHeight;
+        var left = x + 14;
+        var top = y + 16;
+        left + w + pad > window.innerWidth && (left = x - w - 14);
+        top + h + pad > window.innerHeight && (top = y - h - 16);
+        tipEl.style.left = Math.max(pad, left) + 'px';
+        tipEl.style.top = Math.max(pad, top) + 'px';
+    }
+
+    /**
+     * Delegated once, for good: views re-render on every navigation, so binding per element (or per
+     * render) would pile up listeners on pages the user reopens all day. `mouseout` consults where the
+     * pointer went so moving between a host's own children never flickers the tip.
+     */
+    function bindTips() {
+        document.addEventListener('mouseover', function (e) {
+            var host = e.target.closest && e.target.closest('[data-tip]');
+            if (host && host !== tipHost) {
+                tipHost = host;
+                showTip(host.getAttribute('data-tip'), e.clientX, e.clientY);
+            }
+        });
+        document.addEventListener('mousemove', function (e) {
+            tipHost && moveTip(e.clientX, e.clientY);
+        });
+        document.addEventListener('mouseout', function (e) {
+            var to = e.relatedTarget;
+            tipHost && (!to || !tipHost.contains(to)) && hideTip();
+        });
+    }
+
+    /* ---------------------------------------------------------------------- copy */
+
+    /**
+     * Copies text, favouring the async Clipboard API and falling back to a hidden textarea — a report
+     * opened over `file://` is not a secure context, so `navigator.clipboard` is often absent there.
+     */
+    function copyText(text, done) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(
+                function () { done(true); },
+                function () { done(fallbackCopy(text)); },
+            );
+            return;
+        }
+        done(fallbackCopy(text));
+    }
+
+    function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+
+        var ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+
+        return ok;
+    }
+
+    /** Brief acknowledgement on the button itself — a tick that took, a cross that did not. */
+    function flashCopied(btn, ok) {
+        if (btn.classList.contains('copied') || btn.classList.contains('failed')) { return; }
+        var glyph = btn.textContent;
+        btn.textContent = ok ? '✓' : '✗';
+        btn.classList.add(ok ? 'copied' : 'failed');
+        setTimeout(function () {
+            btn.textContent = glyph;
+            btn.classList.remove('copied', 'failed');
+        }, 1100);
+    }
+
+    /** Delegated once: every log row's copy button hands its row's `data-copy` to the clipboard. */
+    function bindCopy() {
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest && e.target.closest('.copy-btn');
+            if (!btn) { return; }
+            e.preventDefault();
+
+            var line = btn.closest('.line');
+            copyText(line ? (line.getAttribute('data-copy') || '') : '', function (ok) {
+                flashCopied(btn, ok);
+            });
+        });
+    }
+
     /* ----------------------------------------------------------------------- boot */
 
     function boot() {
@@ -1360,6 +1594,8 @@
 
         indexModel();
         initTheme();
+        bindTips();
+        bindCopy();
         window.addEventListener('hashchange', render);
         // The tick step is measured in pixels, so a resized window needs a fresh axis.
         window.addEventListener('resize', debounce(drawTimelineAxis, 150));

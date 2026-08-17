@@ -867,6 +867,8 @@ details.fold > summary:hover { color: var(--ink); }
     padding: 2px 0;
     /* Multi-line content must not drag the timestamp and the channel badge to its middle. */
     align-items: start;
+    /* Anchors the hover-revealed copy button. */
+    position: relative;
 }
 
 .log .line:hover { background: var(--surface-2); }
@@ -894,6 +896,69 @@ details.fold > summary:hover { color: var(--ink); }
 .log .lv-debug { color: var(--muted); }
 .log .from { color: var(--muted); }
 .log .from a { color: var(--muted); }
+
+/* A streaming channel (stdout/stderr) is one row of reassembled output, not a row per chunk. */
+.log .line.stream .stream-body { white-space: normal; }
+.stream-block {
+    display: block;
+    white-space: pre-wrap;
+    word-break: break-word;
+    /* An empty block is a blank line the output actually held; keep it visible. */
+    min-height: 1.6em;
+}
+/* Only a chunk that carries a tip (one of several in its message) is interactive; a sole chunk is inert. */
+.chunk[data-tip] { border-radius: 2px; cursor: help; }
+.chunk[data-tip]:hover {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.chunk.lv-warning { color: var(--st-flaky); }
+.chunk.lv-error, .chunk.lv-critical { color: var(--st-failed); }
+.chunk.lv-debug { color: var(--muted); }
+
+/* Copy button: hidden until the row is hovered, anchored to its top-right. */
+.copy-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: none;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    font: 12px/1 var(--sans);
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    cursor: pointer;
+}
+.log .line:hover .copy-btn { display: grid; }
+.copy-btn:hover { color: var(--ink); border-color: var(--ink); }
+/* Feedback stays put while the tick or cross shows, so it does not vanish with the pointer. */
+.copy-btn.copied { display: grid; color: var(--st-passed); border-color: currentColor; }
+.copy-btn.failed { display: grid; color: var(--st-failed); border-color: currentColor; }
+
+/* Shared scripted hover tip: what a native title would say, but shown at once and styled. Any element
+   with a `data-tip` attribute drives it (see report.js). */
+.tip {
+    position: fixed;
+    z-index: 60;
+    display: none;
+    max-width: 460px;
+    padding: 6px 9px;
+    font: 11px/1.5 var(--mono);
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    box-shadow: 0 6px 22px rgba(11, 11, 11, .16);
+    /* Honour newlines a producer put in the text, and wrap the rest at the max width. */
+    white-space: pre-line;
+    word-break: break-word;
+    pointer-events: none;
+}
+.tip.on { display: block; }
 
 .channel-picker { display: grid; gap: 2px; padding: 6px; }
 
