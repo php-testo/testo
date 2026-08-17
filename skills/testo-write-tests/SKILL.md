@@ -67,6 +67,7 @@ Assert::true($flag);
 Assert::false($flag);
 Assert::null($value);
 Assert::blank($value);                // null, '', [], or 0-count
+Assert::notBlank($value);             // inverse of blank(); false/0/'0' count as non-blank
 Assert::contains($collection, $needle);
 Assert::count($collection, 3);
 Assert::instanceOf($object, MyClass::class);
@@ -78,7 +79,9 @@ Typed chains (use when you want a fluent series of checks on one value):
 ```php
 Assert::string($s)->contains('foo')->notContains('bar');
 Assert::int($n)->greaterThan(0)->lessThanOrEqual(100);
-Assert::array($a)->hasKeys(['id', 'name'])->isList()->hasCount(3)->contains('x')->notContains('y');
+Assert::numeric($n)->between(1, 100);  // int, float, or numeric string
+Assert::array($a)->hasKeys('id', 'name')->isList()->hasCount(3)->contains('x')->notContains('y');
+Assert::array($a)->sameElementsAs([3, 2, 1]);  // order-insensitive, like assertEqualsCanonicalizing
 Assert::object($o)->instanceOf(Foo::class)->hasProperty('id');
 Assert::json($s)->isObject()->hasKeys(['data', 'meta'])->assertPath('$.data.id', 42);
 ```

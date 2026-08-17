@@ -7,8 +7,6 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
 
 - **`MemoryLeakExpectationRector`** — `Expect::notLeaks()/leaks()`: PHPUnit has no
   memory-leak assertion or post-test object-liveness hook.
-- **`RepeatRetryRector`** — `#[Repeat]`/`#[Retry]`: PHPUnit core has no repeat/retry
-  attribute or loop.
 - **`CancelTestRector`** — `CancelTest` is an external interruption signal with no
   PHPUnit equivalent (not the same as skip/incomplete).
 
@@ -73,11 +71,20 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   changes.
 - **`TypedAssertChainRector`** (registered) — decomposes fluent typed assertions
   (`Assert::string()->contains()`, `Assert::int()->between()`, `Assert::array()->hasKeys()`,
-  `Assert::array()->isList()`→`assertIsList`, …) into separate `assert*` statements, expanding 1→N
-  where needed. A non-variable subject (e.g. `Assert::array($log->all())->isList()`) is hoisted into
-  a scope-safe `$value` local so it is evaluated once. Matchers with no faithful PHPUnit line (JSON
-  path/structure, `every`, `sameSizeAs`, custom) leave the whole chain untouched rather than
-  half-converting.
+  `Assert::array()->isList()`→`assertIsList`, `Assert::array()->sameElementsAs()`→`assertEqualsCanonicalizing`,
+  …) into separate `assert*` statements, expanding 1→N where needed. A non-variable subject (e.g.
+  `Assert::array($log->all())->isList()`) is hoisted into a scope-safe `$value` local so it is
+  evaluated once. Matchers with no faithful PHPUnit line (JSON path/structure, `every`, `sameSizeAs`,
+  custom) leave the whole chain untouched rather than half-converting.
+- **`RepeatRetryRector`** (registered) — converts **method-level** `#[\Testo\Repeat]` /
+  `#[\Testo\Retry]` into PHPUnit's `#[Repeat]` / `#[Retry]` (available since PHPUnit 13.3). Testo's
+  `maxFailures` (tolerated failures, default 0) maps to PHPUnit's `failureThreshold` (aborting failure
+  count, default 1) as `failureThreshold = maxFailures + 1`; the Testo default 0 folds back to the
+  PHPUnit default 1 and is omitted. Testo's defaults are made explicit where PHPUnit lacks a matching
+  drop (`times`→2, `maxAttempts`→3), and the emitted arguments are positional (PHPUnit's attributes are
+  `@no-named-arguments`). **Residuals:** Testo's `markFlaky` flag is dropped (no PHPUnit equivalent),
+  and only method-level attributes convert — PHPUnit's `Repeat`/`Retry` are `TARGET_METHOD` only, so a
+  class- or function-level Testo attribute is left untouched.
 
 All four imperative body rules — `AssertCallToPhpUnitRector`, `TypedAssertChainRector`,
 `ExpectExceptionToPhpUnitRector`, `ThrowSkipTestToPhpUnitRector` — now fire **only inside a class**

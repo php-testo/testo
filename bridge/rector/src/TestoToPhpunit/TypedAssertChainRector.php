@@ -226,6 +226,7 @@ final class TypedAssertChainRector extends AbstractRector
             $type === 'array' && $matcher === 'isList' => [$this->assertStmt('assertIsList', [$this->arg($value)])],
             $type === 'array' && $matcher === 'hasKeys' => $this->keys('assertArrayHasKey', $args, $value),
             $type === 'array' && $matcher === 'doesNotHaveKeys' => $this->keys('assertArrayNotHasKey', $args, $value),
+            $type === 'array' && $matcher === 'sameElementsAs' => $needleFirst('assertEqualsCanonicalizing'),
 
             $type === 'object' && $matcher === 'instanceOf' => $needleFirst('assertInstanceOf'),
             $type === 'object' && $matcher === 'hasProperty' => $needleFirst('assertObjectHasProperty'),
