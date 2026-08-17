@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.10.41](https://github.com/php-testo/testo/compare/0.10.40...0.10.41) (2026-08-17)
+
+
+### Features
+
+* **codecov:** add --coverage-level=line|branch|path ([addbb76](https://github.com/php-testo/testo/commit/addbb76016ac5fc0b8d5473084887ab5182a967c))
+* **core:** describe a run's time with a `RunTiming` DTO instead of a bare duration ([75c2472](https://github.com/php-testo/testo/commit/75c2472c740e51c416f7d875a4d552276b828541))
+* **report:** add a self-contained HTML report ([#291](https://github.com/php-testo/testo/issues/291)) ([d850a8c](https://github.com/php-testo/testo/commit/d850a8c71352312053ee4e27b4eaab0d5b5f2e88))
+* **report:** introduce `ReportEvent` and related classes for report generation events ([83deaba](https://github.com/php-testo/testo/commit/83deabaa27d226de5ec326228489f2d0879532b2))
+
+
+### Bug Fixes
+
+* **codecov:** keep the configured level when CLI report flags activate coverage ([addbb76](https://github.com/php-testo/testo/commit/addbb76016ac5fc0b8d5473084887ab5182a967c))
+* **data:** correctly bind non-static DataProvider methods to their instance ([#289](https://github.com/php-testo/testo/issues/289)) ([bab863d](https://github.com/php-testo/testo/commit/bab863d436f01fe3077b47194265408ea33e2aa3))
+
+
+### Documentation
+
+* **report:** add HTML report spec and document report format ids ([4757b36](https://github.com/php-testo/testo/commit/4757b3617584d7b63c861811a612954048dace08))
+
 ## [0.10.40](https://github.com/php-testo/testo/compare/0.10.39...0.10.40) (2026-08-10)
 
 

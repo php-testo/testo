@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/php-testo/testo/compare/bridge-rector-0.2.2...bridge-rector-0.2.3) (2026-08-17)
+
+
+### Features
+
+* **report:** add a self-contained HTML report ([#291](https://github.com/php-testo/testo/issues/291)) ([d850a8c](https://github.com/php-testo/testo/commit/d850a8c71352312053ee4e27b4eaab0d5b5f2e88))
+
 ## [0.2.2](https://github.com/php-testo/testo/compare/bridge-rector-0.2.1...bridge-rector-0.2.2) (2026-08-10)
 
 

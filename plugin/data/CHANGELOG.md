@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/data-0.1.7...data-0.1.8) (2026-08-17)
+
+
+### Bug Fixes
+
+* **data:** correctly bind non-static DataProvider methods to their instance ([#289](https://github.com/php-testo/testo/issues/289)) ([bab863d](https://github.com/php-testo/testo/commit/bab863d436f01fe3077b47194265408ea33e2aa3))
+
 ## [0.1.7](https://github.com/php-testo/testo/compare/data-0.1.6...data-0.1.7) (2026-08-06)
 
 

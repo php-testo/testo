@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.9](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.8...bridge-symfony-console-0.1.9) (2026-08-17)
+
+
+### Features
+
+* **codecov:** add --coverage-level=line|branch|path ([addbb76](https://github.com/php-testo/testo/commit/addbb76016ac5fc0b8d5473084887ab5182a967c))
+* **report:** add a self-contained HTML report ([#291](https://github.com/php-testo/testo/issues/291)) ([d850a8c](https://github.com/php-testo/testo/commit/d850a8c71352312053ee4e27b4eaab0d5b5f2e88))
+
+
+### Bug Fixes
+
+* **codecov:** keep the configured level when CLI report flags activate coverage ([addbb76](https://github.com/php-testo/testo/commit/addbb76016ac5fc0b8d5473084887ab5182a967c))
+
 ## [0.1.8](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.7...bridge-symfony-console-0.1.8) (2026-06-29)
 
 
