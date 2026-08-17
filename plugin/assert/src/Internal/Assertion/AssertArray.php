@@ -7,6 +7,7 @@ namespace Testo\Assert\Internal\Assertion;
 use Testo\Assert\Api\Builtin\ArrayType;
 use Testo\Assert\Internal\Assertion\Traits\IterableTrait;
 use Testo\Assert\Internal\StaticState;
+use Testo\Assert\Internal\Support;
 use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Common\Attribute\AssertMethod;
@@ -119,5 +120,42 @@ final readonly class AssertArray implements ArrayType
             reason: 'array keys are not sequential integers starting from 0',
             context: $message,
         );
+    }
+
+    #[AssertMethod]
+    #[\Override]
+    public function sameElementsAs(iterable $expected, string $message = ''): static
+    {
+        $expected = \is_array($expected) ? $expected : \iterator_to_array($expected);
+
+        $str = 'has the same elements as `' . Support::stringify($expected) . '`';
+        if (self::canonicalize($this->value) == self::canonicalize($expected)) {
+            $this->parent->success($str);
+            return $this;
+        }
+
+        throw $this->parent->fail(
+            assertion: $str,
+            reason: 'the elements differ regardless of order',
+            context: $message,
+        );
+    }
+
+    /**
+     * Recursively sorts an array by value and discards keys, so two arrays holding the same
+     * elements in any order (and under any keys) canonicalize to an identical shape. Mirrors the
+     * canonicalization PHPUnit applies for `assertEqualsCanonicalizing`.
+     */
+    private static function canonicalize(array $value): array
+    {
+        foreach ($value as &$item) {
+            if (\is_array($item)) {
+                $item = self::canonicalize($item);
+            }
+        }
+        unset($item);
+
+        \sort($value);
+        return $value;
     }
 }

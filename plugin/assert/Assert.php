@@ -17,6 +17,7 @@ use Testo\Assert\Internal\Assertion\AssertFloat;
 use Testo\Assert\Internal\Assertion\AssertInt;
 use Testo\Assert\Internal\Assertion\AssertIterable;
 use Testo\Assert\Internal\Assertion\AssertJson;
+use Testo\Assert\Internal\Assertion\AssertNumeric;
 use Testo\Assert\Internal\Assertion\AssertObject;
 use Testo\Assert\Internal\Assertion\AssertString;
 use Testo\Assert\Internal\StaticState;
@@ -313,6 +314,34 @@ final class Assert
     }
 
     /**
+     * Asserts that the value is not blank.
+     *
+     * The inverse of {@see self::blank()}: fails only for values representing absence of data —
+     * null, empty string, empty array or a Countable object with no elements. As with blank(),
+     * false, 0 and "0" count as valid (non-blank) data, unlike PHP's empty().
+     *
+     * @param mixed $actual The actual value to check for non-blank.
+     * @param string $message Short description about what exactly is being asserted.
+     * @throws AssertionException when the assertion fails.
+     */
+    #[AssertMethod]
+    public static function notBlank(
+        mixed $actual,
+        string $message = '',
+    ): void {
+        $actual === null || $actual === '' || $actual === [] || ($actual instanceof \Countable && \count($actual) === 0)
+            and StaticState::fail(new AssertionException(
+                value: Support::stringify($actual),
+                assertion: 'is not blank',
+                context: $message,
+                reason: 'value is blank',
+                details: '',
+            ));
+
+        StaticState::success($actual, 'is not blank', $message);
+    }
+
+    /**
      * Asserts that the given value has the expected count.
      *
      * @param \Countable|iterable $actual The actual value to check for count.
@@ -390,11 +419,12 @@ final class Assert
      *
      * @throws AssertionException
      *
-     * @deprecated To be implemented
+     * @psalm-assert int|float|numeric-string $actual
+     * @phpstan-assert int|float|numeric-string $actual
      */
     public static function numeric(mixed $actual): NumericType
     {
-        throw new \LogicException('Not implemented yet');
+        return AssertNumeric::validateAndCreate($actual);
     }
 
     /**

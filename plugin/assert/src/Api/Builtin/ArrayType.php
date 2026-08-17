@@ -42,4 +42,16 @@ interface ArrayType extends IterableType
      * @throws AssertionException when the assertion fails.
      */
     public function isList(string $message = ''): static;
+
+    /**
+     * Asserts that the array holds the same elements as the expected iterable, regardless of order.
+     *
+     * Both sides are canonicalized (recursively sorted, keys discarded) and then compared loosely,
+     * matching PHPUnit's {@see \PHPUnit\Framework\Assert::assertEqualsCanonicalizing()} semantics.
+     *
+     * @param iterable $expected The expected elements, in any order.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    public function sameElementsAs(iterable $expected, string $message = ''): static;
 }

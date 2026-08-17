@@ -131,6 +131,33 @@ final class AssertArray
         Assert::array([])->isList();
     }
 
+    public function sameElementsAs(): void
+    {
+        Assert::array([1, 2, 3])->sameElementsAs([3, 2, 1]);
+        Assert::array([])->sameElementsAs([]);
+        // keys are discarded during canonicalization
+        Assert::array(['a' => 1, 'b' => 2])->sameElementsAs([2, 1]);
+        // nested arrays are canonicalized recursively
+        Assert::array([[3, 2], [1]])->sameElementsAs([[1], [2, 3]]);
+        // loose comparison, as with assertEqualsCanonicalizing
+        Assert::array([1, 2])->sameElementsAs(['2', '1']);
+        // accepts any iterable as the expected side
+        Assert::array([1, 2, 3])->sameElementsAs(new \ArrayIterator([3, 1, 2]));
+    }
+
+    /**
+     * @param array<mixed> $value
+     * @param array<mixed> $expected
+     */
+    #[DataSet([[1, 2, 3], [1, 2]], 'different size')]
+    #[DataSet([[1, 2, 3], [1, 2, 4]], 'different elements')]
+    public function sameElementsAsFails(array $value, array $expected): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('my wonderful message');
+        Assert::array($value)->sameElementsAs($expected, 'my wonderful message');
+    }
+
     /**
      * @param array<mixed> $value
      */
