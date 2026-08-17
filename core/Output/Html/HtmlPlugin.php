@@ -6,21 +6,11 @@ namespace Testo\Output\Html;
 
 use Internal\Container\Container;
 use Internal\Path;
-use Psr\EventDispatcher\EventDispatcherInterface;
-use Testo\Application\Config\ApplicationConfig;
-use Testo\Application\Config\RunConfiguration;
-use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
-use Testo\Core\Context\RunResult;
-use Testo\Core\Report\ReportInfo;
-use Testo\Event\Report\ReportFileGenerated;
-use Testo\Event\Report\ReportFileGenerating;
-use Testo\Event\Framework\SessionFinished;
-use Testo\Event\Framework\SessionStarting;
-use Testo\Output\Html\Internal\DocumentBuilder;
-use Testo\Output\Html\Internal\Recorder;
+use Testo\Output\Html\Internal\Destination;
+use Testo\Output\Html\Internal\HtmlReportSink;
 use Testo\Output\Html\Internal\ReportInput;
-use Testo\Output\Html\Internal\Writer;
+use Testo\Output\Html\Internal\ReportKind;
 
 /**
  * Writes the run as a self-contained HTML report, and the document behind it as a standalone artifact.
@@ -50,11 +40,12 @@ use Testo\Output\Html\Internal\Writer;
  * ```
  *
  * An inert copy — {@see inert()} — is part of the application defaults, so the `--log-html=<path>` and
- * `--log-report=<path>` flags have something to activate without any change to `testo.php`. Instances are
- * independent, and an instance configured in code ignores the flags entirely: as with the JUnit reporter,
- * adding `--log-html` to a run whose config already registers this plugin yields two reports rather than a
- * redirected one. Drop the default first to pin the report to a single path:
- * `ApplicationPlugins::without(HtmlPlugin::class)->with(new HtmlPlugin('build/report'))`.
+ * `--log-report=<path>` flags have something to activate without any change to `testo.php`. An instance
+ * configured in code owns its slots and ignores the flags; only an instance with no destination of its
+ * own reads them, which is how the inert default gets activated. Every destination a run collects — from
+ * configured plugins and from flags — feeds a single {@see HtmlReportSink}: the document is built once
+ * and written to each, and a path named twice is written once. Drop the default to keep the report to a
+ * single configured path: `ApplicationPlugins::without(HtmlPlugin::class)->with(new HtmlPlugin('build/report'))`.
  *
  * @api
  */
@@ -62,24 +53,6 @@ final class HtmlPlugin implements PluginConfigurator
 {
     /** Where a report goes when nothing says otherwise: under the project's runtime directory. */
     public const DEFAULT_PATH = 'runtime/report';
-
-    /**
-     * Format id of the standalone document. Not plain `json`, which is what
-     * {@see \Testo\Output\Json\JsonPlugin} writes: both files are JSON and neither is the other's schema,
-     * so the id names the schema rather than the encoding.
-     */
-    private const DATA_FORMAT = 'testo-report';
-
-    /**
-     * The report is written from a `SessionFinished` listener, and so is the final summary. A lower
-     * priority runs later, which puts the write — and the announcement that follows it — after the
-     * summary: the reader gets the verdict without waiting for a large document to be serialized, and the
-     * path lands with every other artifact path a run states at its end.
-     */
-    private const LISTENER_PRIORITY = -100;
-
-    private readonly Recorder $recorder;
-    private readonly Writer $writer;
 
     /** Destination of the page, or null when no page was asked for. */
     private ?Path $htmlPath;
@@ -90,14 +63,9 @@ final class HtmlPlugin implements PluginConfigurator
     /**
      * Single-shot guard, matching {@see \Testo\Output\JUnit\JUnitPlugin}: one instance is shared by every
      * top-level run and by every nested {@see \Testo\Testing\Helper\TestRunner::runTest()} sub-run, and
-     * attaching twice would have an inner session overwrite the outer session's report.
+     * contributing twice would have an inner session write over the outer session's report.
      */
     private bool $configured = false;
-
-    private ?RunConfiguration $runConfiguration = null;
-
-    /** @var list<non-empty-string> */
-    private array $suiteNames = [];
 
     /**
      * @param non-empty-string|null $outputPath Directory to fill, or a `.html` file to write everything
@@ -118,8 +86,6 @@ final class HtmlPlugin implements PluginConfigurator
     ) {
         $this->htmlPath = self::path($outputPath);
         $this->dataPath = self::path($dataPath);
-        $this->recorder = new Recorder();
-        $this->writer = new Writer();
     }
 
     /**
@@ -141,45 +107,25 @@ final class HtmlPlugin implements PluginConfigurator
         }
         $this->configured = true;
 
-        # Constructor paths win, the same way the JUnit reporter resolves its own: the flags are consulted
-        # only for an instance given no destination at all, which is how the inert default gets activated.
-        # A reporter configured in code owns both of its slots — a flag filling the empty one would add an
-        # output behind the config's back, and the inert default is already writing that file.
-        if ($this->htmlPath === null && $this->dataPath === null) {
-            $input = $container->get(ReportInput::class);
-            $this->htmlPath = self::path($input->htmlPath);
-            $this->dataPath = self::path($input->dataPath);
-
-            if ($this->htmlPath === null && $this->dataPath === null) {
-                return;
-            }
+        $destinations = $this->destinations($container);
+        if ($destinations === []) {
+            return;
         }
 
-        $this->runConfiguration = $container->get(RunConfiguration::class);
-        $this->suiteNames = self::suiteNames($container);
+        # First contributor creates the run's sink and wires it; the rest add their destinations to it.
+        $sink = $container->has(HtmlReportSink::class)
+            ? $container->get(HtmlReportSink::class)
+            : self::createSink($container);
 
-        $listeners = $container->get(EventListenerCollector::class);
-        $this->recorder->configure($listeners);
-        $listeners->addListener(
-            SessionFinished::class,
-            $this->onSessionFinished(...),
-            self::LISTENER_PRIORITY,
-        );
+        $sink->contribute($this->messageLimit, ...$destinations);
+    }
 
-        # Registered after the listener that writes the files, so the late announcement follows the write.
-        $dispatcher = $container->get(EventDispatcherInterface::class);
-        foreach ($this->announced() as $info) {
-            $listeners->addListener(
-                SessionStarting::class,
-                static fn(): mixed => $dispatcher->dispatch(new ReportFileGenerating($info)),
-                self::LISTENER_PRIORITY,
-            );
-            $listeners->addListener(
-                SessionFinished::class,
-                static fn(): mixed => $dispatcher->dispatch(new ReportFileGenerated($info)),
-                self::LISTENER_PRIORITY,
-            );
-        }
+    private static function createSink(Container $container): HtmlReportSink
+    {
+        $sink = new HtmlReportSink($container);
+        $container->set($sink);
+
+        return $sink;
     }
 
     private static function path(?string $path): ?Path
@@ -188,57 +134,30 @@ final class HtmlPlugin implements PluginConfigurator
     }
 
     /**
-     * Every configured suite, including the ones that ran nothing: a suite filtered down to zero tests
-     * leaves no trace in the results, and a report that omitted it would read as "no such suite".
+     * This instance's destinations: its own if it was given any, otherwise whatever the CLI flags name.
      *
-     * @return list<non-empty-string>
+     * Constructor paths win — an instance configured in code never reads the flags, so a flag filling an
+     * empty slot cannot add an output behind the config's back. Only an instance with no destination of
+     * its own (the inert default) falls through to the flags.
+     *
+     * @return list<Destination>
      */
-    private static function suiteNames(Container $container): array
+    private function destinations(Container $container): array
     {
-        $names = [];
-        foreach ($container->get(ApplicationConfig::class)->suites as $suite) {
-            $names[] = $suite->name;
+        $destinations = [];
+        $this->htmlPath === null or $destinations[] = new Destination($this->htmlPath, ReportKind::Html, $this->name);
+        $this->dataPath === null or $destinations[] = new Destination($this->dataPath, ReportKind::Data, $this->name);
+
+        if ($destinations !== []) {
+            return $destinations;
         }
 
-        return $names;
-    }
+        $input = $container->get(ReportInput::class);
+        $html = self::path($input->htmlPath);
+        $data = self::path($input->dataPath);
+        $html === null or $destinations[] = new Destination($html, ReportKind::Html, $this->name);
+        $data === null or $destinations[] = new Destination($data, ReportKind::Data, $this->name);
 
-    /**
-     * The cards for whatever this instance was asked to write: the standalone document, the page, or both.
-     *
-     * @return list<ReportInfo>
-     */
-    private function announced(): array
-    {
-        $cards = [];
-        $this->dataPath === null or $cards[] = new ReportInfo(self::DATA_FORMAT, $this->name, $this->dataPath);
-        $this->htmlPath === null or $cards[] = new ReportInfo(
-            'html',
-            $this->name,
-            Writer::entryFile($this->htmlPath),
-        );
-
-        return $cards;
-    }
-
-    private function onSessionFinished(SessionFinished $event): void
-    {
-        $document = $this->build($event->result);
-
-        $this->dataPath === null or $this->writer->writeData($this->dataPath, $document);
-        $this->htmlPath === null or $this->writer->writeHtml($this->htmlPath, $document);
-    }
-
-    /**
-     * @return array<non-empty-string, mixed>
-     */
-    private function build(RunResult $result): array
-    {
-        return (new DocumentBuilder(
-            recorder: $this->recorder,
-            config: $this->runConfiguration ?? new RunConfiguration(),
-            messageLimit: $this->messageLimit,
-            suiteNames: $this->suiteNames,
-        ))->build($result);
+        return $destinations;
     }
 }

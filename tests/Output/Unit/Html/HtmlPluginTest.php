@@ -15,8 +15,10 @@ use Testo\Codecov\Covers;
 use Testo\Common\EventListenerCollector;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Value\Status;
+use Testo\Core\Report\ReportInfo;
 use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
+use Testo\Event\Report\ReportFileGenerated;
 use Testo\Output\Html\HtmlPlugin;
 use Testo\Output\Html\Internal\ReportInput;
 use Testo\Test;
@@ -68,6 +70,45 @@ final class HtmlPluginTest
         });
     }
 
+    public function aPathNamedByBothAConfiguredPluginAndAFlagIsWrittenOnce(): void
+    {
+        self::inDirectory(static function (string $directory): void {
+            $input = new ReportInput();
+            $input->htmlPath = $directory . '/report';   // the flag names the configured path
+
+            $generated = self::generatedBy(
+                $input,
+                new HtmlPlugin($directory . '/report'),   // configured
+                HtmlPlugin::inert(),                       // serves the flag
+            );
+
+            // Two instances, one sink: the same destination is deduplicated, so the file is written and
+            // announced once rather than twice with a second, identical IDE button.
+            Assert::count($generated, 1);
+            Assert::same($generated[0]->format, 'html');
+            Assert::true(\is_file($directory . '/report/index.html'));
+        });
+    }
+
+    public function distinctDestinationsAcrossInstancesAreAllServedFromOneRun(): void
+    {
+        self::inDirectory(static function (string $directory): void {
+            $input = new ReportInput();
+            $input->dataPath = $directory . '/flag.json';
+
+            $generated = self::generatedBy(
+                $input,
+                new HtmlPlugin($directory . '/report.html'),   // configured page
+                HtmlPlugin::inert(),                            // flag document
+            );
+
+            // Both land, each announced under its own format — the configured page and the flag's document.
+            Assert::same(\array_map(static fn(ReportInfo $i): string => $i->format, $generated), ['html', 'testo-report']);
+            Assert::true(\is_file($directory . '/report.html'));
+            Assert::true(\is_file($directory . '/flag.json'));
+        });
+    }
+
     /**
      * Configures the reporter against a container holding the given CLI input, then plays the shortest run
      * there is: a session that starts and finishes with no tests in it.
@@ -89,6 +130,42 @@ final class HtmlPluginTest
         $dispatcher->dispatch(new SessionFinished(new RunResult([], Status::Passed)));
 
         return $dispatcher;
+    }
+
+    /**
+     * Configures several plugins against one container — as the application does when the inert default
+     * and a configured instance coexist — plays the shortest run, and returns every report announced as
+     * written, in the order the run stated them.
+     *
+     * @return list<ReportInfo>
+     */
+    private static function generatedBy(ReportInput $input, HtmlPlugin ...$plugins): array
+    {
+        $dispatcher = new EventDispatcher();
+
+        $container = new ObjectContainer();
+        $container->set($dispatcher, EventListenerCollector::class);
+        $container->set($dispatcher, EventDispatcherInterface::class);
+        $container->set($input, ReportInput::class);
+        $container->set(new RunConfiguration(), RunConfiguration::class);
+        $container->set(new ApplicationConfig(), ApplicationConfig::class);
+
+        $generated = [];
+        $dispatcher->addListener(
+            ReportFileGenerated::class,
+            static function (ReportFileGenerated $event) use (&$generated): void {
+                $generated[] = $event->info;
+            },
+        );
+
+        foreach ($plugins as $plugin) {
+            $plugin->configure($container);
+        }
+
+        $dispatcher->dispatch(new SessionStarting());
+        $dispatcher->dispatch(new SessionFinished(new RunResult([], Status::Passed)));
+
+        return $generated;
     }
 
     /**
