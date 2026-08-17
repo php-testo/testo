@@ -42,7 +42,7 @@ use Testo\Retry;
  *
  * @internal
  */
-final class DocumentBuilder
+final readonly class DocumentBuilder
 {
     /**
      * Major version of the document. The renderer refuses a major it does not know rather than drawing a
@@ -50,7 +50,7 @@ final class DocumentBuilder
      */
     public const SCHEMA_VERSION = 1;
 
-    private readonly FailureMapper $failures;
+    private FailureMapper $failures;
 
     /**
      * @param int<0, max> $messageLimit Bytes of channel output kept per test; the rest is dropped and
@@ -61,10 +61,10 @@ final class DocumentBuilder
      *        from the report would read as "there is no such suite".
      */
     public function __construct(
-        private readonly Recorder $recorder,
-        private readonly RunConfiguration $config = new RunConfiguration(),
-        private readonly int $messageLimit = 65536,
-        private readonly array $suiteNames = [],
+        private Recorder $recorder,
+        private RunConfiguration $config = new RunConfiguration(),
+        private int $messageLimit = 65536,
+        private array $suiteNames = [],
     ) {
         $this->failures = new FailureMapper();
     }

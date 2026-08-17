@@ -55,10 +55,10 @@ final class HtmlPlugin implements PluginConfigurator
     public const DEFAULT_PATH = 'runtime/report';
 
     /** Destination of the page, or null when no page was asked for. */
-    private ?Path $htmlPath;
+    private readonly ?Path $htmlPath;
 
     /** Destination of the standalone document, or null when it was not asked for. */
-    private ?Path $dataPath;
+    private readonly ?Path $dataPath;
 
     /**
      * Single-shot guard, matching {@see \Testo\Output\JUnit\JUnitPlugin}: one instance is shared by every

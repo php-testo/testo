@@ -31,7 +31,7 @@ final class ValuePrinter
      */
     public static function type(mixed $value): string
     {
-        return \is_object($value) ? $value::class : \get_debug_type($value);
+        return \get_debug_type($value);
     }
 
     public static function print(mixed $value, int $depth = 0): string

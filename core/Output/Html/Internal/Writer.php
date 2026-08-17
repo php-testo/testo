@@ -20,12 +20,12 @@ use Internal\Path;
  *
  * @internal
  */
-final class Writer
+final readonly class Writer
 {
     private const STYLES_PLACEHOLDER = '{{styles}}';
     private const SCRIPTS_PLACEHOLDER = '{{scripts}}';
 
-    private readonly string $resources;
+    private string $resources;
 
     public function __construct(?string $resources = null)
     {
