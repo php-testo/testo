@@ -7,6 +7,7 @@ namespace Testo\PhpUnitBuild\Rector;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
@@ -213,9 +214,28 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
             return 'uses a composite data source (Testo\\Data\\DataCross/DataZip/DataUnion) with no PHPUnit equivalent';
         }
 
+        // A surviving `Testo\Expect::` call means the conversion could not translate the expectation
+        // (e.g. the substring matcher `withMessageContaining`, which has no PHPUnit counterpart, aborts
+        // the whole chain). It needs the Testo runtime state absent under PHPUnit, so the method would
+        // fatal with StateNotFound — skip it instead.
+        if ($this->hasLeftoverExpect($method)) {
+            return 'calls Testo\\Expect (a runtime expectation the conversion could not translate, e.g. withMessageContaining) with no PHPUnit form';
+        }
+
         $shortClass = $fqcn === null ? '' : \substr($fqcn, (int) \strrpos($fqcn, '\\') + 1);
 
         return self::SKIP_METHODS[$shortClass . '::' . $this->getName($method)] ?? null;
+    }
+
+    /** Whether the method body still contains a `Testo\Expect::` static call after conversion. */
+    private function hasLeftoverExpect(ClassMethod $method): bool
+    {
+        $found = (new \PhpParser\NodeFinder())->findFirst(
+            $method->stmts ?? [],
+            fn(Node $n): bool => $n instanceof StaticCall && $this->isName($n->class, 'Testo\\Expect'),
+        );
+
+        return $found !== null;
     }
 
     private function skip(ClassMethod $method, string $reason): void
