@@ -22,9 +22,9 @@
     "require": {
         "php": ">=8.2",
         "ext-xmlwriter": "*",
-        "testo/data": "^0.1.7",
-        "testo/inline": "^0.1.7",
-        "testo/testo": "0.10.39 - 1"
+        "testo/data": "^0.1.8",
+        "testo/inline": "^0.1.8",
+        "testo/testo": "0.10.41 - 1"
     },
     "autoload": {
         "psr-4": {
