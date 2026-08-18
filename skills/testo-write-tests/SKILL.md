@@ -5,8 +5,8 @@ description: Write or modify tests in a project that uses the Testo PHP testing 
 
 # Writing tests with Testo
 
-Testo is **not PHPUnit**. The attribute set, assertion facade, exception expectations, and lifecycle
-hooks are Testo's own — do not transliterate PHPUnit idioms.
+The attribute set, assertion facade, exception expectations, and lifecycle hooks are Testo's own.
+Write them the Testo way described below — don't transliterate idioms from other test frameworks.
 
 ## Before you write code
 
@@ -81,7 +81,7 @@ Assert::string($s)->contains('foo')->notContains('bar');
 Assert::int($n)->greaterThan(0)->lessThanOrEqual(100);
 Assert::numeric($n)->between(1, 100);  // int, float, or numeric string
 Assert::array($a)->hasKeys('id', 'name')->isList()->hasCount(3)->contains('x')->notContains('y');
-Assert::array($a)->sameElementsAs([3, 2, 1]);  // order-insensitive, like assertEqualsCanonicalizing
+Assert::array($a)->sameElementsAs([3, 2, 1]);  // order-insensitive, keys ignored
 Assert::object($o)->instanceOf(Foo::class)->hasProperty('id');
 Assert::json($s)->isObject()->hasKeys(['data', 'meta'])->assertPath('$.data.id', 42);
 ```
@@ -241,7 +241,7 @@ Always pass `--json` (as above) for a compact, machine-readable report that's ch
 summary plus the failed tests. Use `--log-json=build/report.json` to write it to a file while keeping
 the terminal output.
 
-Use the Testo CLI, **never** `phpunit`.
+Always run tests through the Testo CLI (`vendor/bin/testo`).
 
 ## Pitfalls
 
