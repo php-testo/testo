@@ -143,8 +143,7 @@ final readonly class AssertArray implements ArrayType
 
     /**
      * Recursively sorts an array by value and discards keys, so two arrays holding the same
-     * elements in any order (and under any keys) canonicalize to an identical shape. Mirrors the
-     * canonicalization PHPUnit applies for `assertEqualsCanonicalizing`.
+     * elements in any order (and under any keys) canonicalize to an identical shape.
      */
     private static function canonicalize(array $value): array
     {
