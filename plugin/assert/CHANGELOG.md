@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/php-testo/testo/compare/assert-0.1.13...assert-0.1.14) (2026-08-18)
+
+
+### Documentation
+
+* **assert:** drop the PHPUnit reference from sameElementsAs and show an example ([5a000e6](https://github.com/php-testo/testo/commit/5a000e6c8e8aa7fe1e64fda49b15199acf53bde0))
+
 ## [0.1.13](https://github.com/php-testo/testo/compare/assert-0.1.12...assert-0.1.13) (2026-08-18)
 
 

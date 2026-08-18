@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.43](https://github.com/php-testo/testo/compare/0.10.42...0.10.43) (2026-08-18)
+
+
+### Documentation
+
+* **skills:** drop cross-framework comparisons from non-migration skills ([e976692](https://github.com/php-testo/testo/commit/e9766922e9de526b8bb153b92dc83f9b041d32c5))
+
 ## [0.10.42](https://github.com/php-testo/testo/compare/0.10.41...0.10.42) (2026-08-18)
 
 
