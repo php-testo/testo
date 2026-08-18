@@ -2,7 +2,7 @@
 
 class SomeTest
 {
-    #[\PHPUnit\Framework\Attributes\Group('slow')]
+    #[\PHPUnit\Framework\Attributes\Small]
     public function test()
     {
     }

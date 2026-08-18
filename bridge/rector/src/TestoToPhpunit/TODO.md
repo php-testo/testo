@@ -82,9 +82,14 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   count, default 1) as `failureThreshold = maxFailures + 1`; the Testo default 0 folds back to the
   PHPUnit default 1 and is omitted. Testo's defaults are made explicit where PHPUnit lacks a matching
   drop (`times`→2, `maxAttempts`→3), and the emitted arguments are positional (PHPUnit's attributes are
-  `@no-named-arguments`). **Residuals:** Testo's `markFlaky` flag is dropped (no PHPUnit equivalent),
-  and only method-level attributes convert — PHPUnit's `Repeat`/`Retry` are `TARGET_METHOD` only, so a
-  class- or function-level Testo attribute is left untouched.
+  `@no-named-arguments`). PHPUnit's `Repeat`/`Retry` are `TARGET_METHOD` only, so a **class-level** Testo
+  attribute is fanned out onto each test method (mirroring how Testo applies it to every test in the
+  class) and removed from the class; a method carrying its own attribute of the same kind keeps it
+  (method-level overrides the class default, not doubled). Test methods are found as in
+  `TestClassToTestCaseRector` — the `#[Test]`-marked methods, or under a class-level `#[\Testo\Test]`
+  every public non-static `void`/`never` non-lifecycle method. **Residual:** Testo's `markFlaky` flag is
+  dropped (no PHPUnit equivalent); a function-level attribute (a free-function test) has no PHPUnit
+  target and is left untouched.
 
 All four imperative body rules — `AssertCallToPhpUnitRector`, `TypedAssertChainRector`,
 `ExpectExceptionToPhpUnitRector`, `ThrowSkipTestToPhpUnitRector` — now fire **only inside a class**
