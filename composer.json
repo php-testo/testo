@@ -37,7 +37,7 @@
         "psr/log": "^2.0 || ^3.0",
         "symfony/console": "^6.4 || ^7 || ^8.0",
         "symfony/finder": "^6.4 || ^7 || ^8.0",
-        "testo/assert": "^0.1.12",
+        "testo/assert": "^0.1.13",
         "testo/fiber": "^0.1.2",
         "testo/bench": "^0.1.8",
         "testo/bridge-symfony-console": "^0.1.9",
@@ -62,7 +62,7 @@
         "rector/rector": "^2.5.2",
         "testo/bridge-infection": "^0.1.8",
         "testo/bridge-mockery": "^0.1.2",
-        "testo/bridge-rector": "^0.2.3",
+        "testo/bridge-rector": "^0.2.4",
         "testo/bridge-revolt": "^0.1.1",
         "testo/bridge-vcr": "^0.1.0",
         "testo/facade": "^0.1.1"
