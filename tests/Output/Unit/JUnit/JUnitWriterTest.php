@@ -215,6 +215,27 @@ final class JUnitWriterTest
         Assert::count($xml->testsuite->testcase->properties, 0);
     }
 
+    #[Covers(JUnitWriter::class)]
+    public function aDataSetBenchmarkStillCarriesItsMeasurements(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(
+            self::makeBenchResult('shiftVsPush'),
+            overrideName: 'shiftVsPush#0',
+            providerIndex: 0,
+            datasetIndex: 1,
+        );
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+        $case = $xml->testsuite->testcase;
+
+        // The measurements ride on the data-set entry itself, under its own name, not on an umbrella case.
+        Assert::same((string) $case['name'], 'shiftVsPush#0');
+        Assert::count($case->properties, 1);
+    }
+
     public function abortedTestCountsAsError(): void
     {
         // Arrange

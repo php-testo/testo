@@ -102,6 +102,20 @@ final class TeamcityLoggerTest
         Assert::string($output)->notContains('testMetadata');
     }
 
+    public function handleSingleTestResultAttachesDataSetBenchMetricsToTheOverriddenName(): void
+    {
+        $result = self::makeResult(Status::Passed)->withResult(self::benchResult());
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result, null, 'shiftVsPush#0:1'),
+        );
+
+        // A data-set run reports under the set's name, so its metadata has to carry that name too, not the
+        // bare method's.
+        Assert::string($output)->contains('##teamcity[testMetadata');
+        Assert::string($output)->contains("testName='shiftVsPush#0:1'");
+    }
+
     public function handleFailedTestRendersPreviousThrowableMessageInDetails(): void
     {
         $failure = new \RuntimeException(
