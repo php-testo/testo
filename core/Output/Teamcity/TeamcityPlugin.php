@@ -24,6 +24,8 @@ use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
 use Testo\Event\TestSuite\TestSuiteStarting;
 use Testo\Output\Teamcity\Teamcity\TeamcityLogger;
+use Testo\Output\Terminal\Renderer\ColorMode;
+use Testo\Output\Terminal\Renderer\Style;
 
 final class TeamcityPlugin implements PluginConfigurator
 {
@@ -58,8 +60,12 @@ final class TeamcityPlugin implements PluginConfigurator
 
     private readonly TeamcityLogger $logger;
 
-    public function __construct()
+    public function __construct(ColorMode $colorMode = ColorMode::Always)
     {
+        // Service messages are parsed by the CI server, but the human-readable lines around them go
+        // through the same styling as the terminal renderer's — so the color decision has to be made
+        // here too, or `--no-ansi` would leave ANSI in a machine-read stream.
+        Style::setColorsEnabled($colorMode->shouldUseColors());
         $this->logger = new TeamcityLogger();
     }
 

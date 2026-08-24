@@ -14,6 +14,7 @@ use Symfony\Component\Console\Style\StyleInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Testo\Application\Application;
 use Testo\Core\Value\Verbosity;
+use Testo\Output\Terminal\Renderer\ColorMode;
 use Yiisoft\Injector\Injector;
 
 /**
@@ -85,6 +86,7 @@ abstract class Base extends Command
         $this->container->set($output, OutputInterface::class);
         $this->container->set(new SymfonyStyle($input, $output), StyleInterface::class);
         $this->container->set(self::resolveVerbosity($output), Verbosity::class);
+        $this->container->set(self::resolveColorMode($input), ColorMode::class);
 
         return $this->container->get(Injector::class)->invoke($this) ?? Command::SUCCESS;
     }
@@ -127,5 +129,23 @@ abstract class Base extends Command
             OutputInterface::VERBOSITY_DEBUG => Verbosity::Debug,
             default => Verbosity::Normal,
         };
+    }
+
+    /**
+     * Colors stay on unless they are turned off explicitly — by `--no-ansi` or by the `NO_COLOR`
+     * convention (<https://no-color.org/>). A redirected stdout keeps them: piping into a file or a
+     * pager is not by itself a request for plain text, and a caller who wants plain text has a flag
+     * to say so.
+     *
+     * This deliberately does not go through {@see OutputInterface::isDecorated()}, which folds the
+     * explicit request together with TTY detection and so cannot tell "the user asked for no color"
+     * apart from "stdout is not a terminal".
+     */
+    private static function resolveColorMode(InputInterface $input): ColorMode
+    {
+        $disabled = $input->hasParameterOption('--no-ansi', true)
+            || ($_SERVER['NO_COLOR'] ?? $_ENV['NO_COLOR'] ?? '') !== '';
+
+        return $disabled ? ColorMode::Never : ColorMode::Always;
     }
 }
