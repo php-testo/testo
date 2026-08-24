@@ -37,17 +37,17 @@ final readonly class StoreRegistry implements Stores
     #[\Override]
     public function open(StoreDefinition $definition): Store
     {
-        if (!$this->config->enabled) {
-            return new NullStore();
-        }
-
+        # Scope validation is a programming-error check — it must fire regardless of configuration,
+        # or a plugin bug would surface only for users who happen to have stores enabled.
         $base = $this->baseDir();
         $file = match ($definition->scope) {
             StoreScope::Application => $base->join('app', $definition->name . '.json'),
             StoreScope::Suite => $this->suiteDir($base)->join($definition->name . '.json'),
         };
 
-        return new FileStore($base, $file, $definition, $this->messenger);
+        return $this->config->enabled
+            ? new FileStore($base, $file, $definition, $this->messenger)
+            : new NullStore();
     }
 
     private function baseDir(): Path

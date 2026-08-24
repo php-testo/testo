@@ -6,6 +6,7 @@ namespace Tests\Common\Unit\Store;
 
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Common\Store\FingerprintContributor;
 use Testo\Common\Store\StoreDefinition;
 use Testo\Common\Store\StoreScope;
 use Testo\Expect;
@@ -34,11 +35,57 @@ final class StoreDefinitionTest
     }
 
     #[Test]
+    public function acceptsDashesInEverySegment(): void
+    {
+        $definition = new StoreDefinition('symfony-console.command-cache', 1);
+
+        Assert::same($definition->name, 'symfony-console.command-cache');
+    }
+
+    #[Test]
     public function rejectsANameThatIsNotDottedLowercase(): never
     {
         Expect::exception(\InvalidArgumentException::class);
 
         new StoreDefinition('Impact_Index', 1);
+    }
+
+    #[Test]
+    public function rejectsADanglingDash(): never
+    {
+        Expect::exception(\InvalidArgumentException::class);
+
+        new StoreDefinition('retry.flaky-', 1);
+    }
+
+    #[Test]
+    public function rejectsDuplicateFingerprintKeys(): never
+    {
+        Expect::exception(\InvalidArgumentException::class);
+
+        new StoreDefinition('impact.index', 1, fingerprint: [
+            self::contributor('php'),
+            self::contributor('php'),
+        ]);
+    }
+
+    private static function contributor(string $key): FingerprintContributor
+    {
+        return new class ($key) implements FingerprintContributor {
+            public function __construct(
+                private readonly string $key,
+            ) {}
+
+            public function key(): string
+            {
+                return $this->key;
+            }
+
+            public function value(): string
+            {
+                return 'v';
+            }
+        };
     }
 
     #[Test]

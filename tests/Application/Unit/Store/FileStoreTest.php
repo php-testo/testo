@@ -70,13 +70,15 @@ final class FileStoreTest
     {
         $this->inTempDir(function (string $dir): void {
             $fingerprint = $this->mutableContributor();
-            $messenger = $this->messenger();
-            $store = $this->store($dir, fingerprint: [$fingerprint], messenger: $messenger);
-            $store->save(['v' => 1]);
+            $this->store($dir, fingerprint: [$fingerprint])->save(['v' => 1]);
 
+            # The fingerprint is captured once per opened store, so drift is observable only by the
+            # next run — modeled here as a fresh instance over the same file.
             $fingerprint->current = 'changed';
+            $messenger = $this->messenger();
+            $nextRun = $this->store($dir, fingerprint: [$fingerprint], messenger: $messenger);
 
-            Assert::null($store->load());
+            Assert::null($nextRun->load());
             Assert::true($this->warned($messenger, 'fingerprint drift'));
         });
     }
@@ -104,6 +106,63 @@ final class FileStoreTest
 
             Assert::null($store->load());
             Assert::true($this->warned($messenger, 'corrupted'));
+        });
+    }
+
+    #[Test]
+    public function aForeignEnvelopeLayoutReadsAsAbsent(): void
+    {
+        $this->inTempDir(function (string $dir): void {
+            $store = $this->store($dir);
+            $store->save(['v' => 1]);
+
+            $this->mutateEnvelope($dir, static fn(array $e): array => ['layout' => 99] + $e);
+
+            Assert::null($store->load());
+        });
+    }
+
+    #[Test]
+    public function anEnvelopeOfAnotherStoreReadsAsAbsent(): void
+    {
+        $this->inTempDir(function (string $dir): void {
+            $store = $this->store($dir);
+            $store->save(['v' => 1]);
+
+            $this->mutateEnvelope($dir, static fn(array $e): array => ['name' => 'other.store'] + $e);
+
+            Assert::null($store->load());
+        });
+    }
+
+    #[Test]
+    public function aNonArrayPayloadReadsAsAbsentWithADiagnostic(): void
+    {
+        $this->inTempDir(function (string $dir): void {
+            $messenger = $this->messenger();
+            $store = $this->store($dir, messenger: $messenger);
+            $store->save(['v' => 1]);
+
+            $this->mutateEnvelope($dir, static fn(array $e): array => ['payload' => 'scalar'] + $e);
+
+            Assert::null($store->load());
+            Assert::true($this->warned($messenger, 'corrupted'));
+        });
+    }
+
+    #[Test]
+    public function aRepeatedProblemIsDiagnosedOnce(): void
+    {
+        $this->inTempDir(function (string $dir): void {
+            $messenger = $this->messenger();
+            $store = $this->store($dir, messenger: $messenger);
+            $store->save(['v' => 1]);
+            \file_put_contents($this->file($dir), '{not valid json');
+
+            $store->load();
+            $store->load();
+
+            Assert::count($messenger->getMessages()->all(), 1);
         });
     }
 
@@ -138,6 +197,47 @@ final class FileStoreTest
     }
 
     #[Test]
+    public function updateReturningNullLeavesTheStoreUntouched(): void
+    {
+        $this->inTempDir(function (string $dir): void {
+            $store = $this->store($dir);
+            $store->save(['v' => 1]);
+            $before = \file_get_contents($this->file($dir));
+
+            $store->update(static fn(?array $current): ?array => null);
+
+            Assert::same(\file_get_contents($this->file($dir)), $before);
+        });
+    }
+
+    #[Test]
+    public function updateSkipsTheClosureWhenTheLockIsHeld(): void
+    {
+        $this->inTempDir(function (string $dir): void {
+            $messenger = $this->messenger();
+            $store = $this->store($dir, messenger: $messenger, lockTimeout: 0.05);
+            $store->save(['v' => 1]);
+            $called = false;
+
+            $foreign = \fopen($this->file($dir) . '.lock', 'c');
+            \flock($foreign, \LOCK_EX);
+            try {
+                $store->update(static function () use (&$called): array {
+                    $called = true;
+                    return [];
+                });
+            } finally {
+                \flock($foreign, \LOCK_UN);
+                \fclose($foreign);
+            }
+
+            Assert::false($called);
+            Assert::same($store->load(), ['v' => 1]);
+            Assert::true($this->warned($messenger, 'lock timeout'));
+        });
+    }
+
+    #[Test]
     public function deleteRemovesTheFileAndIsIdempotent(): void
     {
         $this->inTempDir(function (string $dir): void {
@@ -149,6 +249,19 @@ final class FileStoreTest
 
             Assert::null($store->load());
             Assert::false(\is_file($this->file($dir)));
+        });
+    }
+
+    #[Test]
+    public function deleteAlsoRemovesTheLockFile(): void
+    {
+        $this->inTempDir(function (string $dir): void {
+            $store = $this->store($dir);
+            $store->update(static fn(?array $current): array => ['v' => 1]);
+
+            $store->delete();
+
+            Assert::false(\is_file($this->file($dir) . '.lock'));
         });
     }
 
@@ -197,6 +310,7 @@ final class FileStoreTest
         int $schema = 1,
         array $fingerprint = [],
         ?Messenger $messenger = null,
+        float $lockTimeout = 5.0,
     ): FileStore {
         $definition = new StoreDefinition('impact.index', $schema, fingerprint: $fingerprint);
 
@@ -205,12 +319,25 @@ final class FileStoreTest
             Path::create($this->file($base)),
             $definition,
             $messenger ?? $this->messenger(),
+            $lockTimeout,
         );
     }
 
     private function file(string $base): string
     {
         return Path::create($base)->join('app', 'impact.index.json')->__toString();
+    }
+
+    /**
+     * Rewrite a saved envelope with the given transformation — for forging foreign/broken files.
+     *
+     * @param \Closure(array): array $mutate
+     */
+    private function mutateEnvelope(string $base, \Closure $mutate): void
+    {
+        $file = $this->file($base);
+        $envelope = \json_decode((string) \file_get_contents($file), true, flags: \JSON_THROW_ON_ERROR);
+        \file_put_contents($file, \json_encode($mutate($envelope), \JSON_THROW_ON_ERROR));
     }
 
     private function mutableContributor(): FingerprintContributor

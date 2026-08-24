@@ -38,10 +38,12 @@ interface Store
 
     /**
      * Read-modify-write under an exclusive lock: `$fn` receives the current payload (or `null`) and
-     * returns the next one, which is then written atomically. Use for incremental updates — merging a
-     * run's outcomes, bumping counters. `$fn` is not invoked when the lock cannot be acquired.
+     * returns the next one, which is then written atomically — or `null` to leave the store untouched.
+     * Use for incremental updates — merging a run's outcomes, bumping counters. `$fn` is not invoked
+     * when the lock cannot be acquired. Not reentrant: a nested `update()` of the same store stalls
+     * until the lock attempt times out, and the inner write is skipped.
      *
-     * @param \Closure(array<array-key, mixed>|null): array<array-key, mixed> $fn
+     * @param \Closure(array<array-key, mixed>|null): (array<array-key, mixed>|null) $fn
      */
     public function update(\Closure $fn): void;
 

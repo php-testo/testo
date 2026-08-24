@@ -76,6 +76,20 @@ final class StoreRegistryTest
     }
 
     #[Test]
+    public function theScopeCheckFiresEvenWhenStoresAreDisabled(): never
+    {
+        $this->inTempDir(function (string $dir): void {
+            # A misplaced open() is a plugin bug; it must not stay hidden on configurations
+            # that happen to have stores turned off.
+            $registry = $this->registry($dir, suite: null, enabled: false);
+
+            Expect::exception(\LogicException::class);
+
+            $registry->open(new StoreDefinition('impact.index', 1, StoreScope::Suite));
+        });
+    }
+
+    #[Test]
     public function disabledSubsystemHandsOutANoDataStore(): void
     {
         $this->inTempDir(function (string $dir): void {

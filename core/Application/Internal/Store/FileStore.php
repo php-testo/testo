@@ -21,7 +21,7 @@ use Testo\Core\Log\Level;
  *
  * @internal
  */
-final readonly class FileStore implements Store
+final class FileStore implements Store
 {
     /**
      * Envelope format version, owned by the framework. An unfamiliar layout makes the file count as
@@ -30,15 +30,30 @@ final readonly class FileStore implements Store
     private const LAYOUT = 1;
 
     /**
-     * Seconds to wait for the update lock before giving up and skipping the write.
+     * Fingerprint values, captured once per opened store: contributors describe the environment,
+     * which is stable within a run, and re-evaluating them per call would re-hash files repeatedly.
+     *
+     * @var array<string, string>|null
      */
-    private const LOCK_TIMEOUT = 5.0;
+    private ?array $fingerprint = null;
 
+    /**
+     * Reasons already reported, so a repeatedly touched store diagnoses each problem once.
+     *
+     * @var array<string, true>
+     */
+    private array $warned = [];
+
+    /**
+     * @param float $lockTimeout Seconds to wait for the update lock before giving up and skipping
+     *        the write.
+     */
     public function __construct(
-        private Path $baseDir,
-        private Path $path,
-        private StoreDefinition $definition,
-        private Messenger $messenger,
+        private readonly Path $baseDir,
+        private readonly Path $path,
+        private readonly StoreDefinition $definition,
+        private readonly Messenger $messenger,
+        private readonly float $lockTimeout = 5.0,
     ) {}
 
     #[\Override]
@@ -83,7 +98,8 @@ final readonly class FileStore implements Store
                 return;
             }
 
-            $this->writeAtomic($this->envelope($fn($this->load())));
+            $next = $fn($this->load());
+            $next === null or $this->writeAtomic($this->envelope($next));
         } finally {
             @\flock($handle, \LOCK_UN);
             @\fclose($handle);
@@ -94,6 +110,7 @@ final readonly class FileStore implements Store
     public function delete(): void
     {
         @\unlink((string) $this->path);
+        @\unlink((string) $this->path . '.lock');
     }
 
     /**
@@ -133,8 +150,12 @@ final readonly class FileStore implements Store
         }
 
         $payload = $data['payload'] ?? null;
+        if (!\is_array($payload)) {
+            $this->warn('corrupted');
+            return null;
+        }
 
-        return \is_array($payload) ? $payload : null;
+        return $payload;
     }
 
     /**
@@ -158,12 +179,16 @@ final readonly class FileStore implements Store
      */
     private function fingerprint(): array
     {
+        if ($this->fingerprint !== null) {
+            return $this->fingerprint;
+        }
+
         $result = [];
         foreach ($this->definition->fingerprint as $contributor) {
             $result[$contributor->key()] = $contributor->value();
         }
 
-        return $result;
+        return $this->fingerprint = $result;
     }
 
     /**
@@ -229,7 +254,7 @@ final readonly class FileStore implements Store
      */
     private function acquire($handle): bool
     {
-        $deadline = \microtime(true) + self::LOCK_TIMEOUT;
+        $deadline = \microtime(true) + $this->lockTimeout;
         do {
             if (@\flock($handle, \LOCK_EX | \LOCK_NB)) {
                 return true;
@@ -242,6 +267,11 @@ final readonly class FileStore implements Store
 
     private function warn(string $reason): void
     {
+        if (isset($this->warned[$reason])) {
+            return;
+        }
+
+        $this->warned[$reason] = true;
         $this->messenger->log(
             Messenger::CHANNEL_STDERR,
             \sprintf('Store "%s" skipped: %s (%s).', $this->definition->name, $reason, $this->path),

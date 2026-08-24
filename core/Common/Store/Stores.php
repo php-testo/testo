@@ -21,6 +21,10 @@ interface Stores
      * Open the store described by the definition. Cheap — resolves paths, does no I/O until the
      * returned {@see Store} is read or written.
      *
+     * A {@see StoreScope::Suite} store is bound to the suite that is active at this call: it stays
+     * valid only within that suite. Do not cache it across suites — reopen instead, or the handle
+     * keeps addressing the previous suite's data.
+     *
      * @throws \LogicException When a {@see StoreScope::Suite} store is opened outside a suite scope.
      */
     public function open(StoreDefinition $definition): Store;
