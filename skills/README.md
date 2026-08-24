@@ -6,6 +6,7 @@ that an AI coding agent can load on demand.
 
 | Skill | Use when… |
 |---|---|
+| [`testo-run-tests`](testo-run-tests/SKILL.md) | Running the suite or a subset from the CLI — the `--json` report, filters (`--suite`/`--filter`/`--path`/`--group`/`--type`), exit semantics. |
 | [`testo-write-tests`](testo-write-tests/SKILL.md) | Writing or modifying a normal test class — covers `#[Test]`, `Assert`, `Expect`, lifecycle hooks. |
 | [`testo-data-driven`](testo-data-driven/SKILL.md) | Parameterizing a test — `#[DataSet]`, `#[DataProvider]`, `#[DataZip]`, `#[DataCross]`. |
 | [`testo-flaky-tests`](testo-flaky-tests/SKILL.md) | Stabilizing flaky tests with `#[Retry]` or stress-testing with `#[Repeat]`. |

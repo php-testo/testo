@@ -62,7 +62,7 @@ vendor/bin/testo --type=!bench   # everything except benches
 vendor/bin/testo --type=bench    # only benches
 ```
 
-`--type` is repeatable and `!`-prefixed values exclude (exclusion wins). Putting benches in their own `SuiteConfig` (with `BenchmarkPlugin`, enabled per suite) and running `--suite=Bench` works too.
+Filter semantics live in the `testo-run-tests` skill. Putting benches in their own `SuiteConfig` (with `BenchmarkPlugin`, enabled per suite) and running `--suite=Bench` works too.
 
 ## Writing a clean benchmark
 

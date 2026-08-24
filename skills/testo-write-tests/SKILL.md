@@ -223,25 +223,19 @@ final class MysqlConnectionTest
 ```
 
 A test's group set is the union of all groups reachable from it: its own method (and any overridden
-parent method), the test class, its parent classes, and traits. Select with `--group` (OR across
-values); prefix with `!` to exclude. Group filters AND with name/path/suite filters.
+parent method), the test class, its parent classes, and traits. Groups are selected at run time with
+`--group` — see the `testo-run-tests` skill.
 
 ## Running
 
+Run the test you just wrote through the Testo CLI, always with `--json`:
+
 ```
-vendor/bin/testo --json                                # all suites
-vendor/bin/testo --json --suite=Unit                   # one suite
-vendor/bin/testo --json --filter='UserServiceTest'     # by name
-vendor/bin/testo --json --path=tests/Unit/UserService  # by path
-vendor/bin/testo --json --group=integration            # only the "integration" group
-vendor/bin/testo --json --group=!slow                  # everything except the "slow" group
+vendor/bin/testo --json --filter='UserServiceTest'
 ```
 
-Always pass `--json` (as above) for a compact, machine-readable report that's cheap to parse — a run
-summary plus the failed tests. Use `--log-json=build/report.json` to write it to a file while keeping
-the terminal output.
-
-Always run tests through the Testo CLI (`vendor/bin/testo`).
+Filter selection (`--suite`/`--filter`/`--path`/`--group`/`--type`), the JSON report shape, and exit
+semantics are covered by the `testo-run-tests` skill — escalate there before adding other flags.
 
 ## Pitfalls
 
