@@ -27,6 +27,7 @@ final readonly class ApplicationConfig
      * @param iterable<PluginConfigurator> $plugins List of plugins to load at the application level (applied to all suites).
      *        An array of plugin instances is treated as {@see ApplicationPlugins::with()}.
      *        Use {@see ApplicationPlugins} facade for advanced configuration.
+     * @param StoreConfig $stores Persistent cross-run storage settings.
      * @see DefaultServicesConfig for default services bindings, which can be overridden.
      */
     public function __construct(
@@ -38,6 +39,7 @@ final readonly class ApplicationConfig
             ),
         ],
         public iterable $plugins = [],
+        public StoreConfig $stores = new StoreConfig(),
     ) {
         $this->src = $src instanceof FinderConfig
             ? $src
