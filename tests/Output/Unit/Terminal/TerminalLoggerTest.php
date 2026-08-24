@@ -20,6 +20,7 @@ use Testo\Common\Messenger;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
+use Testo\Core\Value\RunTiming;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Core\Value\Verbosity;
@@ -185,6 +186,43 @@ final class TerminalLoggerTest
         Assert::string($output)->contains('Dataset #0 [b]');
     }
 
+    public function sequentialRunReportsThePipelineOverheadAroundTheTests(): void
+    {
+        $test = self::test('passingTest', Status::Passed);
+        $run = self::run(
+            [$test],
+            Status::Passed,
+            summary: new Summary(['Passed' => 1], duration: 1.0),
+            // Discovery is deliberately the largest phase: it is a phase of its own and must not be
+            // counted as overhead, which is what subtracting from the whole loop used to do.
+            timing: new RunTiming(startup: 0.5, discovery: 4.0, tests: 1.5, teardown: 0.5),
+        );
+
+        $output = self::render($run, handled: [$test]);
+
+        // 1.5 s in the tests phase against 1.00 s declared by the tests themselves.
+        Assert::string($output)->contains('1.00s tests · 500ms overhead · 6.50s total');
+    }
+
+    public function concurrentRunStatesTheWallItTookInsteadOfAZeroOverhead(): void
+    {
+        $test = self::test('passingTest', Status::Passed);
+        $run = self::run(
+            [$test],
+            Status::Passed,
+            summary: new Summary(['Passed' => 1], duration: 8.0),
+            timing: new RunTiming(startup: 0.5, discovery: 1.0, tests: 4.0, teardown: 0.5),
+        );
+
+        $output = self::render($run, handled: [$test]);
+
+        // Overlapping tests declare more time than the wall they ran on, so the difference is not
+        // overhead — separating the two needs interval data the terminal never recorded. It states the
+        // wall rather than reporting an overhead of zero, which is what clamping at zero used to print.
+        Assert::string($output)->contains('8.00s tests · 4.00s wall · 6.00s total');
+        Assert::string($output)->notContains('overhead');
+    }
+
     public function aTestIsNotIndentedByAnInterleavedBatch(): void
     {
         $batch = self::test('passingTest', Status::Passed);
@@ -302,13 +340,17 @@ final class TerminalLoggerTest
      *
      * @param list<TestResult> $results
      */
-    private static function run(array $results, Status $status, ?Summary $summary = null): RunResult
-    {
+    private static function run(
+        array $results,
+        Status $status,
+        ?Summary $summary = null,
+        RunTiming $timing = new RunTiming(),
+    ): RunResult {
         $summary ??= new Summary(['Passed' => 1]);
         $case = new CaseResult($results, $status, $summary);
         $suite = new SuiteResult([$case], $status, $summary);
 
-        return new RunResult([$suite], $status, 0.0, $summary);
+        return new RunResult([$suite], $status, $summary, $timing);
     }
 
     /**

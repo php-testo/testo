@@ -19,6 +19,7 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
+use Testo\Core\Value\RunTiming;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Output\Json\Internal\JsonReport;
@@ -186,7 +187,7 @@ final class JsonReportTest
 
     public function emptyRunReportsRiskyStatusAndZeroTotal(): void
     {
-        $run = new RunResult([], Status::Risky, 0.0, new Summary());
+        $run = new RunResult([], Status::Risky, new Summary());
 
         $report = self::decode((new JsonReport())->generate($run));
 
@@ -218,7 +219,7 @@ final class JsonReportTest
         $summary ??= new Summary();
         $case = new CaseResult($results, $status, $summary);
         $suite = new SuiteResult([$case], $status, $summary);
-        $run = new RunResult([$suite], $status, $duration, $summary);
+        $run = new RunResult([$suite], $status, $summary, new RunTiming(tests: $duration));
 
         return (new JsonReport())->generate($run);
     }

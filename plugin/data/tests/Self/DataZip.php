@@ -15,6 +15,7 @@ use Testo\Test;
 /**
  * @see DataZipImpl
  */
+#[Test]
 #[Covers(DataZipImpl::class)]
 #[Covers(DataProviderInterceptor::class)]
 final class DataZip
@@ -44,7 +45,6 @@ final class DataZip
     /**
      * Two equal-length providers are paired by index, one row from each per iteration.
      */
-    #[Test]
     #[\Testo\Data\DataZip(
         new DataProvider('numbersProvider'),
         new DataProvider('lettersProvider'),
@@ -61,7 +61,6 @@ final class DataZip
     /**
      * When providers differ in length, zipping stops at the shortest axis (2 rows here).
      */
-    #[Test]
     #[\Testo\Data\DataZip(
         new DataProvider('numbersProvider'),
         new DataProvider('aFewLettersProvider'),
@@ -77,7 +76,6 @@ final class DataZip
     /**
      * A single-row DataSet axis caps the zip after one iteration regardless of longer axes.
      */
-    #[Test]
     #[\Testo\Data\DataZip(
         new DataSet([true], 'yes'),
         new DataProvider('lettersProvider'),

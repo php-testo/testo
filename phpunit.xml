@@ -5,12 +5,17 @@
     engine with a runner that shares no code with the mutated `core/` (see
     bridge/rector/README.md "Why Testo -> PHPUnit"). Not the primary test runner —
     `composer test` (Testo) is.
+
+    executionOrder must NOT include `defects`: Infection disables test-run-history recording for its
+    initial coverage run (it injects cacheResult="false"), and since PHPUnit 13.3 defect ordering
+    requires that history — with it off the runner orders by nothing and executes zero tests, so
+    Infection collects empty coverage and aborts with "No source code was executed".
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="tools/phpunit/vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          cacheDirectory="runtime/.phpunit.cache"
-         executionOrder="depends,defects"
+         executionOrder="depends"
          failOnRisky="false"
          failOnWarning="false"
          failOnPhpunitWarning="false"

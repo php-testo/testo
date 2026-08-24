@@ -18,7 +18,9 @@ use Testo\Test;
  * cleanly between sequential VCR tests.
  */
 #[Test]
-#[Covers(VcrPlugin::class, VcrInterceptor::class, VCR::class)]
+#[Covers(VcrPlugin::class)]
+#[Covers(VcrInterceptor::class)]
+#[Covers(VCR::class)]
 #[VCR('hello.yml', mode: RecordMode::None)]
 final class ClassLevelCassetteTest
 {

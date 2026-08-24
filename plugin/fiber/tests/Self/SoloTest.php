@@ -9,6 +9,7 @@ use Testo\Codecov\Covers;
 use Testo\Fiber\Internal\RunInFiberInterceptor;
 use Testo\Fiber\RunInFiber;
 use Testo\Fiber\Schedule;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -18,6 +19,7 @@ use Testo\Test;
  */
 #[Test]
 #[RunInFiber(Schedule::Solo)]
+#[Group('async')]
 #[Covers(RunInFiber::class)]
 #[Covers(RunInFiberInterceptor::class)]
 final class SoloTest

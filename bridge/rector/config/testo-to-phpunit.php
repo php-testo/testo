@@ -13,6 +13,7 @@ use Testo\Bridge\Rector\TestoToPhpunit\ExpectNoAssertionsToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\GroupInheritanceToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\GroupToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\LifecycleAttributesToPhpUnitRector;
+use Testo\Bridge\Rector\TestoToPhpunit\RepeatRetryRector;
 use Testo\Bridge\Rector\TestoToPhpunit\TestClassToTestCaseRector;
 use Testo\Bridge\Rector\TestoToPhpunit\ThrowSkipTestToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\TypedAssertChainRector;
@@ -36,6 +37,9 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->rule(GroupInheritanceToPhpUnitRector::class);
     $rectorConfig->rule(ExpectNoAssertionsToPhpUnitRector::class);
     $rectorConfig->rule(DataProviderToPhpUnitRector::class);
+
+    # Repeat/Retry method attributes map onto PHPUnit's #[Repeat]/#[Retry] (PHPUnit 13.3+).
+    $rectorConfig->rule(RepeatRetryRector::class);
 
     # Structural: attach PHPUnit's TestCase base class and convert #[\Testo\Test] discovery.
     $rectorConfig->rule(TestClassToTestCaseRector::class);

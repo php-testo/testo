@@ -73,6 +73,29 @@ exist for each so the intent and blockers are discoverable in code.
   (`same`/`true`/`count`/…) are `void` static calls or would need a typed head that turns a `TypeError`
   into an `AssertionException`, changing the failure status; so converted PHPUnit `assert*` runs stay
   as separate flat lines. This rule only tidies pre-existing typed pipes.
+- **TypedAssertCallToTestoRector** (registered) — the sibling of `AssertCallToTestoRector` for the
+  assertions whose faithful Testo form is a **typed head + matcher** rather than a flat facade call.
+  The subject moves from an argument to the head argument (evaluated once, no hoisting needed):
+  comparisons (`assertGreaterThan($e, $a)`→`Assert::numeric($a)->greaterThan($e)`, plus
+  `GreaterThanOrEqual`/`LessThan`/`LessThanOrEqual`), array keys (`assertArrayHasKey($k, $a)`→
+  `Assert::array($a)->hasKeys($k)`, and `assertArrayNotHasKey`→`doesNotHaveKeys`), and
+  `assertEqualsCanonicalizing($e, $a)`→`Assert::array($a)->sameElementsAs($e)`. `assertEmpty`/
+  `assertNotEmpty` map to the flat `Assert::blank()`/`notBlank()` **only for an array subject** (via
+  PHPStan type inference): `blank()` treats `false`/`0`/`'0'` as valid data, so those notions coincide
+  with PHP's `empty()` only where the subject can never be one of them — an array. A non-array (or
+  statically-unknown) subject is left untouched. Same "only inside a class" gate as
+  `AssertCallToTestoRector`. **Message residual (by design):** the numeric matchers,
+  `sameElementsAs()`, `blank()`/`notBlank()` all keep a trailing `$message` — but the array-key
+  matchers (`hasKeys`/`doesNotHaveKeys`) are variadic with no message parameter, so a PHPUnit message
+  on `assertArrayHasKey`/`assertArrayNotHasKey` is dropped (mirrors the reverse direction, which emits
+  keyed assertions without a message). `assertNotEqualsCanonicalizing` has no counterpart (there is no
+  `notSameElementsAs`) and is left untouched.
+- **RepeatRetryToTestoRector** (registered) — converts PHPUnit's `#[Repeat]` / `#[Retry]` method
+  attributes (PHPUnit 13.3+) into `#[\Testo\Repeat]` / `#[\Testo\Retry]`. `times`/`maxAttempts` carry
+  over verbatim; PHPUnit's `failureThreshold` (aborting failure count, default 1) maps to Testo's
+  `maxFailures` (tolerated failures, default 0) as `maxFailures = failureThreshold - 1`, and the
+  PHPUnit default 1 folds to the Testo default 0 (omitted). Faithful with no target reconciliation —
+  PHPUnit's attributes are method-only and Testo's accept a strict superset of targets.
 
 The imperative body rules — `AssertCallToTestoRector`, `ExpectExceptionToTestoRector`,
 `MarkTestSkippedToTestoRector`, `MarkTestIncompleteRector`, `MergeAssertChainRector` — fire **only

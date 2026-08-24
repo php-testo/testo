@@ -14,6 +14,7 @@ use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
 use Testo\Event\Message\MessageReceived;
+use Testo\Filter\Group;
 use Testo\Test;
 
 #[Test]
@@ -157,6 +158,7 @@ final class MessengerHubTest
         Assert::same($dispatcher->seen, []);
     }
 
+    #[Group('async')]
     public function forkIsFiberSafeAcrossSuspension(): void
     {
         $hub = new MessengerHub($this->nullDispatcher());

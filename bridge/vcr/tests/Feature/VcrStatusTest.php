@@ -21,7 +21,9 @@ use Tests\Bridge\VCR\Stub\VcrScenarios;
  * resulting {@see Status}.
  */
 #[Test]
-#[Covers(VcrPlugin::class, VcrInterceptor::class, VCR::class)]
+#[Covers(VcrPlugin::class)]
+#[Covers(VcrInterceptor::class)]
+#[Covers(VCR::class)]
 #[TestingSuite(path: __DIR__ . '/../Stub', plugins: [new VcrPlugin(cassettePath: __DIR__ . '/../fixtures')])]
 final class VcrStatusTest
 {

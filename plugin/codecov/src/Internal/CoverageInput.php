@@ -6,6 +6,7 @@ namespace Testo\Codecov\Internal;
 
 use Testo\Application\Config\Internal\Attribute\InflectableConfig;
 use Testo\Application\Config\Internal\Attribute\InputOption;
+use Testo\Codecov\Config\CoverageLevel;
 use Testo\Codecov\Config\CoverageMode;
 use Testo\Codecov\Report\CloverReport;
 use Testo\Codecov\Report\CoberturaReport;
@@ -39,12 +40,39 @@ final class CoverageInput
     #[InputOption('coverage-xml')]
     public ?string $xml = null;
 
+    /** Requested depth of the analysis (`--coverage-level=line|branch|path`). */
+    #[InputOption('coverage-level')]
+    public ?string $level = null;
+
     public function resolveMode(): ?CoverageMode
     {
         return match (true) {
             $this->coverage => CoverageMode::Always,
             $this->noCoverage => CoverageMode::Never,
             default => null,
+        };
+    }
+
+    /**
+     * The level pinned on the CLI, or null when the flag is absent — the caller then keeps its own
+     * configured level.
+     *
+     * @throws \InvalidArgumentException When the flag carries a value that names no level.
+     */
+    public function resolveLevel(): ?CoverageLevel
+    {
+        if ($this->level === null || $this->level === '') {
+            return null;
+        }
+
+        return match (\strtolower($this->level)) {
+            'line' => CoverageLevel::Line,
+            'branch' => CoverageLevel::Branch,
+            'path' => CoverageLevel::Path,
+            default => throw new \InvalidArgumentException(\sprintf(
+                'Unknown coverage level `%s` in `--coverage-level`. Expected one of: line, branch, path.',
+                $this->level,
+            )),
         };
     }
 

@@ -1,6 +1,6 @@
 ---
 name: testo-coverage
-description: Configure code coverage in Testo via CodecovPlugin, choose coverage level (Line/Branch/Path), wire up reports (Clover/Cobertura/PHPUnit XML), and use #[Covers] / #[CoversNothing] on tests. Use when the user asks about "code coverage", "clover", "cobertura", "infection coverage XML", or `#[Covers]`.
+description: 'Configure code coverage in Testo via CodecovPlugin, choose coverage level (Line/Branch/Path), wire up reports (Clover/Cobertura/PHPUnit XML), and use #[Covers] / #[CoversNothing] on tests. Use when the user asks about "code coverage", "clover", "cobertura", "infection coverage XML", or `#[Covers]`.'
 ---
 
 # Code coverage with Testo
@@ -71,6 +71,20 @@ vendor/bin/testo --coverage-xml=build/coverage-xml      # directory, for Infecti
   wins, test-type filters are unioned, and every report (yours + the CLI ones) is emitted.
 - The shadow stays fully inert when no report flag is present, so default behavior is unchanged.
 
+## Choosing the level on the CLI
+
+```
+vendor/bin/testo --coverage-level=branch --coverage-clover=build/clover.xml
+```
+
+`--coverage-level` takes `line`, `branch` or `path` (case-insensitive) and **pins** the depth for the
+whole run — it wins over every `CodecovPlugin(level: …)`, including when it asks for less. An unknown
+value aborts the run rather than falling back.
+
+Without the flag the configured levels are merged and the deepest wins, so a
+`new CodecovPlugin(level: CoverageLevel::Branch)` in `testo.php` still applies to a run that only the
+CLI report flags activated.
+
 ## Picking the coverage level
 
 | Level | Cost | When |
@@ -81,11 +95,11 @@ vendor/bin/testo --coverage-xml=build/coverage-xml      # directory, for Infecti
 
 Don't ship `Path` on every CI run — it's the slowest. Reserve it for mutation testing or scheduled jobs.
 
-**`Branch` / `Path` with fibers needs Xdebug ≥ 3.4.5.** Both levels enable Xdebug's branch analysis,
-which corrupts memory in older builds when a test runs inside a fiber (`#[RunInFiber]`) — the process
-dies with no PHP error and no report. On Xdebug < 3.4.5 Testo stops such a test with
-`BranchCoverageUnsafeInFiber` rather than letting it crash; upgrade Xdebug or use `Line`. PCOV is
-unaffected (it only does `Line` anyway).
+**With fibers (`#[RunInFiber]`), use `Line` only.** `Branch` and `Path` enable Xdebug's branch
+analysis, which corrupts memory and crashes the process when it runs inside a fiber — no PHP error, no
+report. The bug persists in current Xdebug builds (reproduced on 3.5.3). Testo tries to stop such a
+test with `BranchCoverageUnsafeInFiber`, but the guard is tied to the Xdebug version and doesn't fire
+on every build — don't rely on it. PCOV is unaffected (it only does `Line` anyway).
 
 ## `#[Covers]` and `#[CoversNothing]`
 
@@ -117,13 +131,38 @@ Rules (this is project policy in many Testo codebases — confirm before changin
 
 ## Reports cheat-sheet
 
-| Report | Format | Typical consumer |
+| Report | Format id | Typical consumer |
 |---|---|---|
-| `CloverReport` | Clover XML | Codecov, Coveralls, GitHub coverage diffs. |
-| `CoberturaReport` | Cobertura XML | GitLab/Jenkins coverage UI. |
-| `PhpUnitXmlReport` | PHPUnit-style coverage XML | **Infection** (mutation testing). |
+| `CloverReport` | `clover` | Codecov, Coveralls, GitHub coverage diffs. |
+| `CoberturaReport` | `cobertura` | GitLab/Jenkins coverage UI. |
+| `PhpUnitXmlReport` | `coverage-xml` | **Infection** (mutation testing). |
 
 For Infection, point `infection.json`'s `coverage.path` at the directory you gave to `PhpUnitXmlReport`.
+
+Every written report is announced, not printed: the run dispatches
+`Testo\Event\Report\ReportFileGenerating` once it knows coverage will be collected and
+`ReportFileGenerated` after the file is written, and whichever renderer owns stdout states it — a plain
+line in a terminal, a `##teamcity[testoReport …]` service message under `--teamcity`. The format id in
+the table is what a consumer switches on.
+
+`CoverageReport` therefore has two methods: `generate()` and `info(): ReportInfo`
+(`Testo\Core\Report\ReportInfo` — format, label, and a `Stringable` location). The location is what a
+consumer opens: for a report that fills a directory, the index inside it rather than the directory; for
+one that uploads its data, whatever URL it lands on.
+
+```php
+final readonly class MyReport implements CoverageReport
+{
+    public function __construct(private string $path) {}
+
+    public function generate(CoverageResult $result): void { /* write $this->path */ }
+
+    public function info(): ReportInfo
+    {
+        return new ReportInfo('my-format', 'My coverage', Path::create($this->path));
+    }
+}
+```
 
 ## Pitfalls
 

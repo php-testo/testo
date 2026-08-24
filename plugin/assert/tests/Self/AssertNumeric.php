@@ -7,6 +7,7 @@ namespace Tests\Assert\Self;
 use Testo\Assert;
 use Testo\Assert\Internal\Assertion\AssertFloat as AssertFloatImpl;
 use Testo\Assert\Internal\Assertion\AssertInt as AssertIntImpl;
+use Testo\Assert\Internal\Assertion\AssertNumeric as AssertNumericImpl;
 use Testo\Assert\Internal\Assertion\Traits\NumericTrait;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Codecov\Covers;
@@ -17,12 +18,15 @@ use Testo\Test;
 /**
  * @see Assert::int()
  * @see Assert::float()
+ * @see Assert::numeric()
  */
 #[Test]
 #[Covers(Assert::class, 'int')]
 #[Covers(Assert::class, 'float')]
+#[Covers(Assert::class, 'numeric')]
 #[Covers(AssertIntImpl::class)]
 #[Covers(AssertFloatImpl::class)]
+#[Covers(AssertNumericImpl::class)]
 #[Covers(NumericTrait::class)]
 final class AssertNumeric
 {
@@ -31,6 +35,28 @@ final class AssertNumeric
         // These assertions check incoming data type
         Assert::int(42);
         Assert::float(42.1);
+    }
+
+    public function checkNumericDataType(): void
+    {
+        // numeric accepts integers, floats and numeric strings
+        Assert::numeric(42);
+        Assert::numeric(42.1);
+        Assert::numeric('42');
+        Assert::numeric('42.1');
+        // a numeric string is normalised to a real number for comparisons
+        Assert::numeric('42')->greaterThan(41)->lessThan(43);
+    }
+
+    #[DataSet(['abc'], 'non-numeric string')]
+    #[DataSet([true], 'boolean')]
+    #[DataSet([null], 'null')]
+    #[DataSet([[1]], 'array')]
+    public function checkNumericFails(mixed $value): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('is numeric');
+        Assert::numeric($value);
     }
 
     public function greaterThan(): void

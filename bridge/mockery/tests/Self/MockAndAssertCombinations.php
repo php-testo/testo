@@ -19,7 +19,8 @@ use Testo\Test;
  * surfaces from `close()` after the method returns and cannot be observed with `Expect`.
  */
 #[Test]
-#[Covers(MockeryPlugin::class, MockeryInterceptor::class)]
+#[Covers(MockeryPlugin::class)]
+#[Covers(MockeryInterceptor::class)]
 final class MockAndAssertCombinations
 {
     public function assertOnly(): void

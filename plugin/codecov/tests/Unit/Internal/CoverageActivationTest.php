@@ -57,6 +57,24 @@ final class CoverageActivationTest
         Assert::same(self::read($activation, 'level'), CoverageLevel::Path);
     }
 
+    /**
+     * A depth request on its own must not activate anything: no report, no driver resolution — only
+     * the level the activating instance will later collect at.
+     */
+    public function requestLevelRaisesDepthWithoutActivating(): void
+    {
+        $container = self::container();
+        $activation = new CoverageActivation($container);
+
+        $activation->requestLevel(CoverageLevel::Branch);
+        $activation->requestLevel(CoverageLevel::Line);
+
+        Assert::same(self::read($activation, 'level'), CoverageLevel::Branch);
+        Assert::array(self::read($activation, 'reports'))->hasCount(0);
+        Assert::false(self::read($activation, 'driverResolved'));
+        Assert::same($container->appConfigLookups, 0);
+    }
+
     public function contributeKeepsStrongestMode(): void
     {
         $activation = self::createActivation();

@@ -245,6 +245,6 @@ this one. The payload is the same card for all of them: `Testo\Core\Report\Repor
 as `$event->info`, holding the format, the label and a `Stringable` location — a `Path` for a file, a URL
 for a report published to a service.
 
-Any reporter dispatches them — JUnit XML and the `--log-json` file — and the renderer that owns stdout
-decides how to state them. A reporter that printed its own path instead would have to know which
-renderer is active.
+Any reporter dispatches them — the HTML report, JUnit XML, the `--log-json` file, each coverage report —
+and the renderer that owns stdout decides how to state them. A reporter that printed its own path
+instead would have to know which renderer is active.

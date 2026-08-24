@@ -39,46 +39,56 @@ $ignored = 0;
 foreach ($roots as $srcRoot) {
     $srcRoot = \str_replace('\\', '/', $srcRoot);
 
+    // The mirror base this whole root maps to: $dest for the core `tests/` root (its layout already
+    // mirrors `Tests\PhpUnit\`), or the base derived from a sample test file's namespace for a
+    // plugin/bridge root (e.g. bridge/vcr/tests -> $dest/Bridge/VCR). Support data is mirrored
+    // relative to it so a fixture read by `__DIR__/../fixtures` still resolves.
+    $rootBase = mirrorBaseDir($srcRoot, $coreTestsRoot, $dest);
+
     /** @var \SplFileInfo $file */
     foreach (new \RecursiveIteratorIterator(
         new \RecursiveDirectoryIterator($srcRoot, \FilesystemIterator::SKIP_DOTS),
     ) as $file) {
-        if (!$file->isFile() || $file->getExtension() !== 'php') {
+        if (!$file->isFile()) {
             continue;
         }
 
         $path = \str_replace('\\', '/', $file->getPathname());
 
+        // Never re-scan our own output.
+        if (\str_starts_with($path, $dest . '/')) {
+            continue;
+        }
         // Skip Self-tests: framework fixtures driven by meta-tests, not standalone unit tests.
         if (\str_contains($path, '/Self/')) {
             ++$ignored;
             continue;
         }
-        // Never re-scan our own output.
-        if (\str_starts_with($path, $dest . '/')) {
+
+        // Support data (a Stub/Fixture/fixtures directory): the tests that use it tokenize it — and
+        // often `require` it — by RELATIVE PATH, so it must be mirrored verbatim next to the relocated
+        // tests, under its original filename. This covers every root for NON-PHP support files (a
+        // fixture, a VCR cassette, a `*.php.inc`, and a `.gitkeep` keeping an intentionally EMPTY stub
+        // dir — e.g. an empty suite location — alive), plus PHP stubs in the core `tests/` root, which
+        // are read/`require`d by path so must keep their name (the namespace-based placement below
+        // would rename them via soleTypeName()). A PHP stub CLASS in a plugin/bridge root instead
+        // falls through to the namespace-based placement, which its PSR-4 autoload relies on.
+        $isSupport = \preg_match('#/(?:stub|fixture)s?/#i', $path) === 1;
+        if ($isSupport && ($file->getExtension() !== 'php' || $srcRoot === $coreTestsRoot)) {
+            $relative = \ltrim(\substr($path, \strlen($srcRoot)), '/');
+            $targetFile = $rootBase . '/' . $relative;
+            @\mkdir(\dirname($targetFile), 0777, true);
+            \copy($path, $targetFile);
+            ++$copied;
+            continue;
+        }
+
+        // Beyond support data, only namespaced PHP test/helper files are placed.
+        if ($file->getExtension() !== 'php') {
             continue;
         }
 
         $code = \file_get_contents($path);
-
-        // Support data (Stub/ or Fixture/ directory) in the core `tests/` root: the tests that use it
-        // tokenize it — and often `require` it — by RELATIVE PATH, so it must be mirrored verbatim at
-        // the same relative location under $dest, with its original filename. The namespace-based
-        // placement below would misplace it: its namespace may be irregular (braced, repeated,
-        // sub-namespaced or global) or its filename may differ from its sole class, and soleTypeName()
-        // would rename it out from under the `require`/read. Copied as-is; the rename Rector pass still
-        // relocates any `Tests\` namespace it carries. Restricted to the core `tests/` root, whose
-        // layout already mirrors the `Tests\PhpUnit\` PSR-4 path (so autoloading a well-behaved stub
-        // still resolves); plugin/bridge roots, where source layout and namespace diverge, keep the
-        // namespace-based placement below.
-        if ($srcRoot === $coreTestsRoot && \preg_match('#/(?:Stub|Fixture)s?/#', $path) === 1) {
-            $relative = \ltrim(\substr($path, \strlen($srcRoot)), '/');
-            $targetFile = $dest . '/' . $relative;
-            @\mkdir(\dirname($targetFile), 0777, true);
-            \file_put_contents($targetFile, $code);
-            ++$copied;
-            continue;
-        }
 
         $namespace = extractNamespace($code);
 
@@ -115,6 +125,50 @@ foreach ($roots as $srcRoot) {
 
 echo "Copied: {$copied}, ignored (Self/helpers): {$ignored}\n";
 echo "Next: rector + composer dump-autoload (run by the composer script).\n";
+
+/**
+ * The mirror base directory a whole source root maps to. The core `tests/` root maps straight to
+ * $dest; a plugin/bridge root's base is read off a sample namespaced test file — its `Tests\…`
+ * namespace maps to a `$dest/…` path, and stripping the file's own subdirectory within the root
+ * leaves the base the root maps to (e.g. bridge/vcr/tests -> $dest/Bridge/VCR). Falls back to $dest
+ * when the root holds no namespaced test file.
+ */
+function mirrorBaseDir(string $srcRoot, string $coreTestsRoot, string $dest): string
+{
+    if ($srcRoot === $coreTestsRoot) {
+        return $dest;
+    }
+
+    /** @var \SplFileInfo $file */
+    foreach (new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($srcRoot, \FilesystemIterator::SKIP_DOTS),
+    ) as $file) {
+        if (!$file->isFile() || $file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $namespace = extractNamespace((string) \file_get_contents($file->getPathname()));
+        if ($namespace === null) {
+            continue;
+        }
+
+        $nsPath = \trim(\substr($namespace, \strlen('Tests')), '\\');
+        $nsPath = $nsPath === '' ? '' : \str_replace('\\', '/', $nsPath);
+
+        $filePath = \str_replace('\\', '/', $file->getPathname());
+        $fileRelDir = \trim(\substr(\dirname($filePath), \strlen($srcRoot)), '/');
+
+        // The namespace path ends with the file's own subdirectory when the layout is regular; strip
+        // it to leave what the root itself maps to.
+        if ($fileRelDir !== '' && \str_ends_with($nsPath, $fileRelDir)) {
+            $nsPath = \rtrim(\substr($nsPath, 0, -\strlen($fileRelDir)), '/');
+        }
+
+        return $nsPath === '' ? $dest : $dest . '/' . $nsPath;
+    }
+
+    return $dest;
+}
 
 /** Extract the file's namespace (expected to start with `Tests`), or null when there is none. */
 function extractNamespace(string $code): ?string
