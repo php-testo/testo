@@ -11,6 +11,7 @@ return new ApplicationConfig(
     src: new FinderConfig(
         ['core', 'plugin', 'bridge'],
         [
+            'bridge/double/tests',
             'bridge/mockery/tests',
             'bridge/rector/tests',
             'bridge/revolt/tests',
@@ -50,6 +51,7 @@ return new ApplicationConfig(
             ),
         ],
         require 'internal/fiber/tests/suites.php',
+        require 'bridge/double/tests/suites.php',
         require 'bridge/mockery/tests/suites.php',
         require 'bridge/rector/tests/suites.php',
         require 'bridge/revolt/tests/suites.php',

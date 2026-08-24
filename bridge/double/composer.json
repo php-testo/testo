@@ -1,0 +1,55 @@
+{
+    "name": "testo/bridge-double",
+    "description": "Double bridge for the Testo testing framework.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "double",
+        "mock",
+        "stub",
+        "spy",
+        "testing"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.3",
+        "jasonmccreary/double": "^0.6.1",
+        "testo/testo": "0.10.39 - 1"
+    },
+    "require-dev": {
+        "testo/assert": "^0.1.13",
+        "testo/bridge-revolt": "^0.1.1",
+        "testo/codecov": "^0.1.12",
+        "testo/fiber": "^0.1.2",
+        "testo/test": "^0.1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Bridge\\Double\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\Bridge\\Double\\": "tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}
