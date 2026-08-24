@@ -36,15 +36,15 @@ final class JsonReport
             'failures' => self::failures($result),
         ];
 
-        // Benchmarks are the one test kind whose result *is* data: a green status says nothing about
-        // what was measured. Omitted entirely when the run had none, so an ordinary run's payload is
-        // unchanged.
+        # Benchmarks are the one test kind whose result *is* data: a green status says nothing about
+        # what was measured. Omitted entirely when the run had none, so an ordinary run's payload is
+        # unchanged.
         $benchmarks = self::benchmarks($result);
         $benchmarks === [] or $payload['benchmarks'] = $benchmarks;
 
-        // JSON_INVALID_UTF8_SUBSTITUTE: failure messages, traces and captured output are raw strings
-        // from user code and may contain malformed UTF-8 (binary stdout, non-UTF-8 encodings). Without
-        // it JSON_THROW_ON_ERROR would abort the whole report; instead bad bytes become U+FFFD.
+        # JSON_INVALID_UTF8_SUBSTITUTE: failure messages, traces and captured output are raw strings
+        # from user code and may contain malformed UTF-8 (binary stdout, non-UTF-8 encodings). Without
+        # it JSON_THROW_ON_ERROR would abort the whole report; instead bad bytes become U+FFFD.
         return \json_encode(
             $payload,
             \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE
@@ -265,8 +265,8 @@ final class JsonReport
             $output[] = ['channel' => $message->channel, 'content' => $message->content];
         }
 
-        // array_values: in-place content mutation above makes Psalm widen the list back to a
-        // keyed array; the keys are already 0..n, this just restores the list<> shape.
+        # array_values: in-place content mutation above makes Psalm widen the list back to a
+        # keyed array; the keys are already 0..n, this just restores the list<> shape.
         return \array_values($output);
     }
 
