@@ -20,6 +20,7 @@ use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
 use Testo\Core\Report\ReportInfo;
 use Testo\Output\Rendering\StackTrace;
+use Testo\Output\Terminal\Renderer\Style;
 
 /**
  * TeamCity logger for test reporting using DTO objects.
@@ -77,7 +78,7 @@ final class TeamcityLogger
      */
     public function logEnvironment(): void
     {
-        $this->publish("\033[1m" . Info::NAME . "\033[0m" . self::dim(' v' . Info::version()));
+        $this->publish(Style::bold(Info::NAME) . self::dim(' v' . Info::version()));
 
         $this->publish(Formatter::blockOpened('Environment'));
 
@@ -418,12 +419,14 @@ final class TeamcityLogger
 
     private static function key(string $name): string
     {
-        return "\033[36;1m{$name}:\033[0m ";
+        return Style::areColorsEnabled()
+            ? "\033[36;1m{$name}:\033[0m "
+            : "{$name}: ";
     }
 
     private static function dim(string $text): string
     {
-        return "\033[2m{$text}\033[0m";
+        return Style::dim($text);
     }
 
     /**
