@@ -20,6 +20,7 @@ use Testo\Common\Info;
 use Testo\Common\Reflection;
 use Testo\Data\MultipleResult;
 use Testo\Filter\Group;
+use Testo\Output\Rendering\BenchMapper;
 use Testo\Retry;
 
 /**

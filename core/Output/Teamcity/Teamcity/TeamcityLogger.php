@@ -19,6 +19,7 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
 use Testo\Core\Report\ReportInfo;
+use Testo\Output\Rendering\BenchMapper;
 use Testo\Output\Rendering\StackTrace;
 
 /**
@@ -375,6 +376,10 @@ final class TeamcityLogger
      */
     public function handleSingleTestResult(TestResult $result, ?int $duration = null, ?string $overrideName = null): void
     {
+        // Before the status handler, which closes the test with testFinished — metadata after that
+        // point has no test left to attach to.
+        $this->logBenchMetrics($result, $overrideName);
+
         match ($result->status) {
             Status::Passed, Status::Flaky => $this->handlePassedTest($result, $duration, $overrideName),
             Status::Failed, Status::Error => $this->handleFailedTest($result, $duration, $overrideName),
@@ -424,6 +429,30 @@ final class TeamcityLogger
     private static function dim(string $text): string
     {
         return "\033[2m{$text}\033[0m";
+    }
+
+    /**
+     * Publishes a benchmark's measurements as `testMetadata`, one message per counter.
+     *
+     * Nothing happens for an ordinary test: `testo/bench` is a soft dependency, and the check is on the
+     * result's type, so a project without the plugin never reaches this.
+     *
+     * @param non-empty-string|null $overrideName
+     */
+    private function logBenchMetrics(TestResult $result, ?string $overrideName = null): void
+    {
+        if (!BenchMapper::supports($result->result)) {
+            return;
+        }
+
+        $name = $overrideName ?? $result->info->name;
+        $identity = $result->info->identity;
+
+        foreach (BenchMapper::metrics($result->result) as $key => $value) {
+            $this->publish(
+                Formatter::testMetadata($name, $key, BenchMapper::formatMetric($value), identity: $identity),
+            );
+        }
     }
 
     /**
