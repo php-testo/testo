@@ -19,7 +19,8 @@ use Testo\Test;
  * expectations are verified on teardown and the container is reset between tests.
  */
 #[Test]
-#[Covers(MockeryPlugin::class, MockeryInterceptor::class)]
+#[Covers(MockeryPlugin::class)]
+#[Covers(MockeryInterceptor::class)]
 final class MockeryBridgeTest
 {
     public function mockCreatedAndExpectationFulfilled(): void

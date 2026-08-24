@@ -10,6 +10,7 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Fiber\RunInFiber;
 use Testo\Fiber\Schedule;
+use Testo\Filter\Group;
 use Testo\Lifecycle\BeforeClass;
 use Testo\Test;
 
@@ -24,6 +25,7 @@ use Testo\Test;
  */
 #[Test]
 #[RunInFiber(Schedule::RoundRobin)]
+#[Group('async')]
 #[Covers(ObjectContainer::class)]
 final class ScopeUnderFiberTest
 {

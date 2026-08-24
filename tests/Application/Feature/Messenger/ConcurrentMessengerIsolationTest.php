@@ -10,6 +10,7 @@ use Testo\Codecov\Covers;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
+use Testo\Filter\Group;
 use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner;
@@ -27,6 +28,7 @@ use Tests\Application\Stub\Messenger\Concurrency\RoundRobinMessengerScenarios;
  * a leak in either direction shows up in what is read back off the {@see TestResult}.
  */
 #[Test]
+#[Group('async')]
 #[Covers(MessengerHub::class)]
 #[TestingSuite(
     path: __DIR__ . '/../../Stub/Messenger/Concurrency',

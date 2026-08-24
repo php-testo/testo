@@ -10,6 +10,7 @@ use Internal\Container\Tests\Unit\Stub\ContainerScopeService;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Expect;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -20,6 +21,7 @@ use Testo\Test;
  * or returned out of the driven fibers, keeping the hand-driven fibers free of framework calls.
  */
 #[Test]
+#[Group('async')]
 #[Covers(ObjectContainer::class)]
 final class FiberScopeTest
 {

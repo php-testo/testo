@@ -9,6 +9,7 @@ use Internal\Container\Tests\Testo\Loop;
 use Internal\Container\Tests\Unit\Stub\ContainerScopeService;
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -23,6 +24,7 @@ use Testo\Test;
  * there, and the Revolt driver resumes that child directly, bypassing the guard.
  */
 #[Test]
+#[Group('async')]
 #[Covers(ObjectContainer::class)]
 final class ScopesRevoltTest
 {

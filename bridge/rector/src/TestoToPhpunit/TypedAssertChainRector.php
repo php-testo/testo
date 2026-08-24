@@ -12,6 +12,7 @@ use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\VariadicPlaceholder;
 use PHPStan\Analyser\Scope;
@@ -129,6 +130,11 @@ final class TypedAssertChainRector extends AbstractRector
             return null;
         }
 
+        # Emit `$this->assert*` where `$this` is bound, but `self::assert*` where it is not — a static
+        # method, a static closure or a data provider — since PHPUnit's assertions are static and
+        # `$this` there is a fatal "using $this when not in object context".
+        $useThis = $this->isThisAvailable($node);
+
         $headArg = $cursor->args[0] ?? null;
         if (!$headArg instanceof Arg) {
             return null;
@@ -145,11 +151,11 @@ final class TypedAssertChainRector extends AbstractRector
             $subject = $variable;
         }
 
-        $stmts = [...$prefix, $this->assertStmt($assertIs, [$this->arg($subject)])];
+        $stmts = [...$prefix, $this->assertStmt($assertIs, [$this->arg($subject)], $useThis)];
 
         foreach (\array_reverse($links) as $link) {
             $matcher = $this->getName($link->name);
-            $mapped = $matcher === null ? null : $this->mapMatcher($type, $matcher, $link->args, $subject);
+            $mapped = $matcher === null ? null : $this->mapMatcher($type, $matcher, $link->args, $subject, $useThis);
             if ($mapped === null) {
                 # Any unmapped matcher aborts the whole conversion — never half-convert.
                 return null;
@@ -192,6 +198,17 @@ final class TypedAssertChainRector extends AbstractRector
     }
 
     /**
+     * Whether `$this` is bound in the scope of $node — false inside a static method, a static closure
+     * or a data provider, where the assertions must be emitted as `self::assert*` instead.
+     */
+    private function isThisAvailable(Expression $node): bool
+    {
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+
+        return $scope instanceof Scope && $scope->hasVariableType('this')->yes();
+    }
+
+    /**
      * Maps one Testo matcher (with its arguments) to one or more PHPUnit assertion statements,
      * or null when the matcher has no faithful PHPUnit equivalent.
      *
@@ -200,21 +217,21 @@ final class TypedAssertChainRector extends AbstractRector
      * @param array<int, Arg|VariadicPlaceholder> $args
      * @return list<Expression>|null
      */
-    private function mapMatcher(string $type, string $matcher, array $args, Expr $value): ?array
+    private function mapMatcher(string $type, string $matcher, array $args, Expr $value, bool $useThis): ?array
     {
         $first = ($args[0] ?? null) instanceof Arg ? $args[0]->value : null;
 
         # `assertX($needle, $value)` — the common "subject is the last argument" shape.
         $needleFirst = fn(string $assert): ?array => $first === null
             ? null
-            : [$this->assertStmt($assert, [$this->arg($first), $this->arg($value)])];
+            : [$this->assertStmt($assert, [$this->arg($first), $this->arg($value)], $useThis)];
 
         return match (true) {
             ($type === 'int' || $type === 'float') && $matcher === 'greaterThan' => $needleFirst('assertGreaterThan'),
             ($type === 'int' || $type === 'float') && $matcher === 'greaterThanOrEqual' => $needleFirst('assertGreaterThanOrEqual'),
             ($type === 'int' || $type === 'float') && $matcher === 'lessThan' => $needleFirst('assertLessThan'),
             ($type === 'int' || $type === 'float') && $matcher === 'lessThanOrEqual' => $needleFirst('assertLessThanOrEqual'),
-            ($type === 'int' || $type === 'float') && $matcher === 'between' => $this->between($args, $value),
+            ($type === 'int' || $type === 'float') && $matcher === 'between' => $this->between($args, $value, $useThis),
 
             $type === 'string' && $matcher === 'contains' => $needleFirst('assertStringContainsString'),
             $type === 'string' && $matcher === 'notContains' => $needleFirst('assertStringNotContainsString'),
@@ -222,10 +239,11 @@ final class TypedAssertChainRector extends AbstractRector
             $type === 'array' && $matcher === 'contains' => $needleFirst('assertContains'),
             $type === 'array' && $matcher === 'notContains' => $needleFirst('assertNotContains'),
             $type === 'array' && $matcher === 'hasCount' => $needleFirst('assertCount'),
-            $type === 'array' && $matcher === 'notEmpty' => [$this->assertStmt('assertNotEmpty', [$this->arg($value)])],
-            $type === 'array' && $matcher === 'isList' => [$this->assertStmt('assertIsList', [$this->arg($value)])],
-            $type === 'array' && $matcher === 'hasKeys' => $this->keys('assertArrayHasKey', $args, $value),
-            $type === 'array' && $matcher === 'doesNotHaveKeys' => $this->keys('assertArrayNotHasKey', $args, $value),
+            $type === 'array' && $matcher === 'notEmpty' => [$this->assertStmt('assertNotEmpty', [$this->arg($value)], $useThis)],
+            $type === 'array' && $matcher === 'isList' => [$this->assertStmt('assertIsList', [$this->arg($value)], $useThis)],
+            $type === 'array' && $matcher === 'hasKeys' => $this->keys('assertArrayHasKey', $args, $value, $useThis),
+            $type === 'array' && $matcher === 'doesNotHaveKeys' => $this->keys('assertArrayNotHasKey', $args, $value, $useThis),
+            $type === 'array' && $matcher === 'sameElementsAs' => $needleFirst('assertEqualsCanonicalizing'),
 
             $type === 'object' && $matcher === 'instanceOf' => $needleFirst('assertInstanceOf'),
             $type === 'object' && $matcher === 'hasProperty' => $needleFirst('assertObjectHasProperty'),
@@ -240,7 +258,7 @@ final class TypedAssertChainRector extends AbstractRector
      * @param array<int, Arg|VariadicPlaceholder> $args
      * @return list<Expression>|null
      */
-    private function between(array $args, Expr $value): ?array
+    private function between(array $args, Expr $value, bool $useThis): ?array
     {
         $lo = ($args[0] ?? null) instanceof Arg ? $args[0]->value : null;
         $hi = ($args[1] ?? null) instanceof Arg ? $args[1]->value : null;
@@ -249,8 +267,8 @@ final class TypedAssertChainRector extends AbstractRector
         }
 
         return [
-            $this->assertStmt('assertGreaterThanOrEqual', [$this->arg($lo), $this->arg($value)]),
-            $this->assertStmt('assertLessThanOrEqual', [$this->arg($hi), $this->arg($value)]),
+            $this->assertStmt('assertGreaterThanOrEqual', [$this->arg($lo), $this->arg($value)], $useThis),
+            $this->assertStmt('assertLessThanOrEqual', [$this->arg($hi), $this->arg($value)], $useThis),
         ];
     }
 
@@ -261,26 +279,32 @@ final class TypedAssertChainRector extends AbstractRector
      * @param array<int, Arg|VariadicPlaceholder> $args
      * @return list<Expression>|null
      */
-    private function keys(string $assert, array $args, Expr $value): ?array
+    private function keys(string $assert, array $args, Expr $value, bool $useThis): ?array
     {
         $stmts = [];
         foreach ($args as $arg) {
             if (!$arg instanceof Arg) {
                 return null;
             }
-            $stmts[] = $this->assertStmt($assert, [$this->arg($arg->value), $this->arg($value)]);
+            $stmts[] = $this->assertStmt($assert, [$this->arg($arg->value), $this->arg($value)], $useThis);
         }
 
         return $stmts === [] ? null : $stmts;
     }
 
     /**
+     * One `$this->assert*()` (or `self::assert*()` where `$this` is unavailable) statement.
+     *
      * @param non-empty-string $method
      * @param list<Arg> $args
      */
-    private function assertStmt(string $method, array $args): Expression
+    private function assertStmt(string $method, array $args, bool $useThis): Expression
     {
-        return new Expression(new MethodCall(new Variable('this'), new Identifier($method), $args));
+        $call = $useThis
+            ? new MethodCall(new Variable('this'), new Identifier($method), $args)
+            : new StaticCall(new Name('self'), new Identifier($method), $args);
+
+        return new Expression($call);
     }
 
     /**

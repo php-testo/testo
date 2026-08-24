@@ -11,6 +11,7 @@ use Testo\Fiber\Internal\CoroutineScopeInterceptor;
 use Testo\Fiber\Internal\Scheduler;
 use Testo\Fiber\RunInFiber;
 use Testo\Fiber\Schedule;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -21,6 +22,7 @@ use Testo\Test;
  */
 #[Test]
 #[RunInFiber(Schedule::RoundRobin)]
+#[Group('async')]
 #[Covers(Coroutine::class)]
 #[Covers(CoroutineScopeInterceptor::class)]
 #[Covers(Scheduler::class)]

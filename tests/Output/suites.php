@@ -24,6 +24,12 @@ return [
         ),
     ),
     new SuiteConfig(
+        name: 'Output/Feature',
+        location: new FinderConfig(
+            include: [__DIR__ . '/Feature'],
+        ),
+    ),
+    new SuiteConfig(
         name: 'Output/Bench',
         location: new FinderConfig(
             include: [__DIR__ . '/Bench'],

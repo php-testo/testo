@@ -11,6 +11,7 @@ use Testo\Bridge\Mockery\MockeryPlugin;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
+use Testo\Filter\Group;
 use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner;
@@ -26,7 +27,9 @@ use Tests\Bridge\Mockery\Stub\MockeryExpectConcurrencyScenarios;
  * Each case runs a RoundRobin stub pair through {@see TestRunner} and inspects the per-test results.
  */
 #[Test]
-#[Covers(MockeryPlugin::class, MockeryInterceptor::class)]
+#[Group('async')]
+#[Covers(MockeryPlugin::class)]
+#[Covers(MockeryInterceptor::class)]
 #[TestingSuite(path: __DIR__ . '/../Stub', plugins: [MockeryPlugin::class])]
 final class MockeryInterleaveAttributionTest
 {

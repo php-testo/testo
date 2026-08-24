@@ -1,16 +1,16 @@
 ---
 name: testo-write-tests
-description: Write or modify tests in a project that uses the Testo PHP testing framework. Use when adding a #[Test] class, writing assertions with the Assert facade, expecting exceptions with Expect, or adding lifecycle hooks (#[BeforeTest], #[AfterTest], #[BeforeClass], #[AfterClass]). Trigger when the user says "write a test", "add a test for X", "test this class", or edits a file under `tests/`.
+description: 'Write or modify tests in a project that uses the Testo PHP testing framework. Use when adding a #[Test] class, writing assertions with the Assert facade, expecting exceptions with Expect, or adding lifecycle hooks (#[BeforeTest], #[AfterTest], #[BeforeClass], #[AfterClass]). Trigger when the user says "write a test", "add a test for X", "test this class", or edits a file under `tests/`.'
 ---
 
 # Writing tests with Testo
 
-Testo is **not PHPUnit**. The attribute set, assertion facade, exception expectations, and lifecycle
-hooks are Testo's own — do not transliterate PHPUnit idioms.
+The attribute set, assertion facade, exception expectations, and lifecycle hooks are Testo's own.
+Write them the Testo way described below — don't transliterate idioms from other test frameworks.
 
 ## Before you write code
 
-Fetch the canonical API surface (cached for 15 min):
+Fetch the canonical API surface:
 
 - `https://php-testo.github.io/llms.txt` — concise index. Always start here.
 - `https://php-testo.github.io/llms-full.txt` — escalate when `llms.txt` doesn't answer the question.
@@ -67,6 +67,7 @@ Assert::true($flag);
 Assert::false($flag);
 Assert::null($value);
 Assert::blank($value);                // null, '', [], or 0-count
+Assert::notBlank($value);             // inverse of blank(); false/0/'0' count as non-blank
 Assert::contains($collection, $needle);
 Assert::count($collection, 3);
 Assert::instanceOf($object, MyClass::class);
@@ -78,7 +79,9 @@ Typed chains (use when you want a fluent series of checks on one value):
 ```php
 Assert::string($s)->contains('foo')->notContains('bar');
 Assert::int($n)->greaterThan(0)->lessThanOrEqual(100);
-Assert::array($a)->hasKeys(['id', 'name'])->isList()->hasCount(3)->contains('x')->notContains('y');
+Assert::numeric($n)->between(1, 100);  // int, float, or numeric string
+Assert::array($a)->hasKeys('id', 'name')->isList()->hasCount(3)->contains('x')->notContains('y');
+Assert::array($a)->sameElementsAs([3, 2, 1]);  // order-insensitive, keys ignored
 Assert::object($o)->instanceOf(Foo::class)->hasProperty('id');
 Assert::json($s)->isObject()->hasKeys(['data', 'meta'])->assertPath('$.data.id', 42);
 ```
@@ -220,25 +223,19 @@ final class MysqlConnectionTest
 ```
 
 A test's group set is the union of all groups reachable from it: its own method (and any overridden
-parent method), the test class, its parent classes, and traits. Select with `--group` (OR across
-values); prefix with `!` to exclude. Group filters AND with name/path/suite filters.
+parent method), the test class, its parent classes, and traits. Groups are selected at run time with
+`--group` — see the `testo-run-tests` skill.
 
 ## Running
 
+Run the test you just wrote through the Testo CLI, always with `--json`:
+
 ```
-vendor/bin/testo --json                                # all suites
-vendor/bin/testo --json --suite=Unit                   # one suite
-vendor/bin/testo --json --filter='UserServiceTest'     # by name
-vendor/bin/testo --json --path=tests/Unit/UserService  # by path
-vendor/bin/testo --json --group=integration            # only the "integration" group
-vendor/bin/testo --json --group=!slow                  # everything except the "slow" group
+vendor/bin/testo --json --filter='UserServiceTest'
 ```
 
-Always pass `--json` (as above) for a compact, machine-readable report that's cheap to parse — a run
-summary plus the failed tests. Use `--log-json=build/report.json` to write it to a file while keeping
-the terminal output.
-
-Use the Testo CLI, **never** `phpunit`.
+Filter selection (`--suite`/`--filter`/`--path`/`--group`/`--type`), the JSON report shape, and exit
+semantics are covered by the `testo-run-tests` skill — escalate there before adding other flags.
 
 ## Pitfalls
 
@@ -247,4 +244,5 @@ Use the Testo CLI, **never** `phpunit`.
 - Do not write `setUp`/`tearDown` — use the lifecycle attributes above.
 - For parameterized tests, escalate to the `testo-data-driven` skill.
 - For flaky-test handling, escalate to the `testo-flaky-tests` skill.
+- For fiber/coroutine or async I/O tests (`\Fiber::suspend()`, amphp, Revolt, `Future::await()`), escalate to the `testo-async` skill.
 - For exception assertions, **always** use `Expect::exception(...)` before the throwing call — never wrap in try/catch.

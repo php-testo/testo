@@ -243,7 +243,7 @@ final class PhpUnitXmlReportTest
         // A directory is not something a consumer can open; the overview file is, and the per-file
         // documents hang off it.
         Assert::notNull($info);
-        Assert::same($info->format, 'phpunit-xml');
+        Assert::same($info->format, 'coverage-xml');
         Assert::same((string) $info->path, 'build/coverage-xml/index.xml');
     }
 

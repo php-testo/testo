@@ -35,6 +35,10 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertCount(3, $coll)` | `Assert::count($coll, 3)` — count goes second. |
 | `$this->assertContains($needle, $hay)` | `Assert::contains($hay, $needle)` — haystack first. |
 | `$this->assertInstanceOf(Foo::class, $o)` | `Assert::instanceOf($o, Foo::class)`. |
+| `$this->assertGreaterThan($e, $a)` (+`GreaterThanOrEqual`/`LessThan`/`LessThanOrEqual`) | `Assert::numeric($a)->greaterThan($e)` — subject first, threshold in the matcher. |
+| `$this->assertArrayHasKey($k, $a)` / `assertArrayNotHasKey` | `Assert::array($a)->hasKeys($k)` / `->doesNotHaveKeys($k)`. Variadic — no `$message` arg. |
+| `$this->assertEqualsCanonicalizing($e, $a)` | `Assert::array($a)->sameElementsAs($e)` — order-insensitive, loose comparison. |
+| `$this->assertEmpty($a)` / `assertNotEmpty($a)` | `Assert::blank($a)` / `Assert::notBlank($a)` **only when `$a` is an array** — `blank()` treats `false`/`0`/`'0'` as valid data, so for other types port by hand. |
 | `$this->expectException(X::class)` before Act | `Expect::exception(X::class)->withMessage(...)->withCode(...)` before Act. Method return type becomes `never`. |
 | `$this->expectExceptionMessageMatches('/.../')` | `withMessageContaining('substring')` if a literal substring suffices; otherwise catch and assert manually. No PCRE. |
 | `$this->markTestSkipped('reason')` | `throw new \Testo\Core\Exception\SkipTest('reason')` from the test body. |
@@ -43,6 +47,8 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->createMock(Foo::class)` | Testo core ships no mocking. Bring your own (Mockery, Prophecy) or — preferred — a hand-rolled fake. Keeping Mockery? Add `testo/bridge-mockery`: it verifies expectations and isolates mocks after every test (drops the `tearDown()` / `MockeryPHPUnitIntegration` boilerplate) and counts a fulfilled expectation as an assertion, so a mock-only test stays out of `Status::Risky`. **Never** mock `final` classes or enums. |
 | `assertThat($v, $constraint)` | No constraint objects. Decompose into concrete `Assert::*` calls. |
 | `@group slow` / `#[Group('slow')]` | `#[Group('slow')]` from **`Testo\Filter\Group`**. Not repeatable — merge: `#[Group('slow','db')]`. Class-level groups are inherited (union with the method's). Select `--group=slow`, exclude `--group=!slow`. |
+| `#[Repeat($times, $threshold)]` (PHPUnit 13.3+) | `#[\Testo\Repeat(times: $times, maxFailures: $threshold - 1)]` — `failureThreshold` (aborting count) → `maxFailures` (tolerated count), off by one; default `1` → omitted. |
+| `#[Retry($maxAttempts)]` (PHPUnit 13.3+) | `#[\Testo\Retry(maxAttempts: $maxAttempts)]`. |
 | `@requires ext` | Suite separation in `testo.php` via `SuiteConfig` + finder excludes. |
 | `phpunit.xml` | `testo.php` (a real PHP file returning `ApplicationConfig`). Generate it with `vendor/bin/testo init` (scans `tests/` for suite folders); hand-tune per `testo-configure`. |
 

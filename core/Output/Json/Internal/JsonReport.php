@@ -29,7 +29,7 @@ final class JsonReport
     {
         $payload = [
             'status' => self::statusName($result->status),
-            'duration' => $result->duration,
+            'duration' => $result->duration(),
             'totals' => self::totals($result->summary),
             'failures' => self::failures($result),
         ];

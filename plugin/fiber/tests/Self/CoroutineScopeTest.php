@@ -8,6 +8,7 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Fiber\Coroutine;
 use Testo\Fiber\RunInFiber;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -15,6 +16,7 @@ use Testo\Test;
  * spawn/await round-trips, `concurrently()` result keying, and fiber handles as spawn bodies.
  */
 #[Test]
+#[Group('async')]
 #[Covers(Coroutine::class)]
 final class CoroutineScopeTest
 {

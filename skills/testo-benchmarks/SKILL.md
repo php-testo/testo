@@ -1,6 +1,6 @@
 ---
 name: testo-benchmarks
-description: Write or tune Testo performance benchmarks with #[Bench]. Use when the user asks for "benchmark", "measure performance", "compare two implementations", "micro-benchmark", or mentions Mean/Median/RStDev metrics in a Testo context.
+description: 'Write or tune Testo performance benchmarks with #[Bench]. Use when the user asks for "benchmark", "measure performance", "compare two implementations", "micro-benchmark", or mentions Mean/Median/RStDev metrics in a Testo context.'
 ---
 
 # Benchmarks in Testo (`#[Bench]`)
@@ -62,7 +62,7 @@ vendor/bin/testo --type=!bench   # everything except benches
 vendor/bin/testo --type=bench    # only benches
 ```
 
-`--type` is repeatable and `!`-prefixed values exclude (exclusion wins). Putting benches in their own `SuiteConfig` (with `BenchmarkPlugin`, enabled per suite) and running `--suite=Bench` works too.
+Filter semantics live in the `testo-run-tests` skill. Putting benches in their own `SuiteConfig` (with `BenchmarkPlugin`, enabled per suite) and running `--suite=Bench` works too.
 
 ## Writing a clean benchmark
 

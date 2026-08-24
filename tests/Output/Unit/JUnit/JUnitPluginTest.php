@@ -596,7 +596,7 @@ final class JUnitPluginTest
 
     private static function sessionFinished(): SessionFinished
     {
-        return new SessionFinished(new RunResult([], Status::Passed, 0.0));
+        return new SessionFinished(new RunResult([], Status::Passed));
     }
 
     /**

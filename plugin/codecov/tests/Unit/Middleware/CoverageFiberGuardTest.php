@@ -17,6 +17,7 @@ use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
 use Testo\Codecov\Covers;
+use Testo\Filter\Group;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Test;
 use Tests\Codecov\Stub\InterleavedCase;
@@ -41,6 +42,7 @@ final class CoverageFiberGuardTest
      * finishes first must not absorb its sibling's, and the one that finishes later must not come back
      * empty.
      */
+    #[Group('async')]
     public function banksEachTestsOwnLinesWhenTestsInterleave(): void
     {
         $driver = new WindowDriver();
@@ -73,6 +75,7 @@ final class CoverageFiberGuardTest
      * Every line a test executed has to survive, however many suspensions split it up: the slices are
      * banked on the way out and merged, not overwritten.
      */
+    #[Group('async')]
     public function keepsEveryLineOfAnInterleavedTest(): void
     {
         $driver = new WindowDriver();
@@ -95,6 +98,7 @@ final class CoverageFiberGuardTest
      * The invariant that keeps XDebug alive: with branch analysis on, a window left open across a
      * fiber switch corrupts memory and kills the process. No window may be open while a test is parked.
      */
+    #[Group('async')]
     public function leavesNoWindowOpenWhileATestIsParked(): void
     {
         $driver = new WindowDriver();

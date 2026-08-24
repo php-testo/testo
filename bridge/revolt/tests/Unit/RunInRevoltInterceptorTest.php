@@ -17,6 +17,7 @@ use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
 use Testo\Expect;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -28,6 +29,7 @@ use Testo\Test;
 #[Covers(RunInRevoltInterceptor::class)]
 final class RunInRevoltInterceptorTest
 {
+    #[Group('async')]
     public function theTestBodyRunsInALoopFiber(): void
     {
         $onLoop = null;

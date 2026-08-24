@@ -18,7 +18,9 @@ use Testo\Test;
  * committed cassette instead of touching the network.
  */
 #[Test]
-#[Covers(VcrPlugin::class, VcrInterceptor::class, VCR::class)]
+#[Covers(VcrPlugin::class)]
+#[Covers(VcrInterceptor::class)]
+#[Covers(VCR::class)]
 final class VcrReplayTest
 {
     /**

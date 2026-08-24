@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Sandbox\Pipeline;
 
 use Testo\Assert;
+use Testo\Filter\Group;
 use Testo\Test;
 use Tests\Application\Stub\Pipeline\FailPipeline;
 use Tests\Application\Stub\Pipeline\FailStage;
@@ -23,6 +24,7 @@ use Tests\Application\Stub\Pipeline\FailStage;
  * case keeps running. Both marked tests end up Aborted; `passesCleanly` stays green.
  */
 #[Test]
+#[Group('sandbox')]
 final class TestLevelPipelineFailure
 {
     #[FailPipeline(FailStage::TestBefore)]
@@ -66,6 +68,7 @@ final class CaseBeforePipelineFailure
  * the throw unwinds the pipeline — watch them disappear from the summary.
  */
 #[Test]
+#[Group('sandbox')]
 #[FailPipeline(FailStage::CaseAfter)]
 final class CaseAfterPipelineFailure
 {

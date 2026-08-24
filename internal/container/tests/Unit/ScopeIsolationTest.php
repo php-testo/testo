@@ -11,6 +11,7 @@ use Internal\Container\Tests\Unit\Stub\GreeterInterface;
 use Internal\Container\Tests\Unit\Stub\ReadonlyTag;
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -162,6 +163,7 @@ final class ScopeIsolationTest
      * Two fibers each enter their own scope, park, then resume: each must still resolve its own scoped
      * instance across the switch — the isolation invariant a real event loop relies on.
      */
+    #[Group('async')]
     public function interleavedScopesKeepSeparateInstances(): void
     {
         $container = new ObjectContainer();
