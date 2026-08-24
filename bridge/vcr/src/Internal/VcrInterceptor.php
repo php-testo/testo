@@ -78,11 +78,9 @@ final class VcrInterceptor implements TestRunInterceptor
             PhpVcr::insertCassette($this->options->name);
             return self::runToCompletion($info, $next);
         } finally {
-            # Releasing the guard first, and closing through turnOff() alone: it ejects the cassette
-            # itself and is a no-op when VCR never came on, so a failure inside turnOn() unwinds with
-            # its own exception. A bare eject() here would assert that VCR is running and replace the
-            # real cause with "Please turn on VCR before ejecting a cassette" — and, throwing before
-            # the guard was released, would leave every later #[VCR] test refusing to start.
+            # turnOff() ejects the cassette itself and is a no-op when VCR never came on, so a failure
+            # inside turnOn() unwinds with its own cause. The guard is released first: a throw here
+            # must not leave every later #[VCR] test refusing to start.
             self::$active = false;
             PhpVcr::turnOff();
         }
@@ -98,7 +96,7 @@ final class VcrInterceptor implements TestRunInterceptor
      *
      * Hence the set is stated explicitly, with `soap` added only when it can actually be constructed —
      * the same pair of classes `\VCR\LibraryHooks\SoapHook` checks. HTTP recording keeps working
-     * everywhere; SOAP recording keeps working wherever it could work before.
+     * everywhere; SOAP recording stays available wherever `ext-soap` is installed.
      *
      * @return list<non-empty-string>
      */
@@ -114,11 +112,10 @@ final class VcrInterceptor implements TestRunInterceptor
     /**
      * Run the test to completion without letting a suspension escape the VCR window.
      *
-     * With no surrounding fiber (Testo's current, synchronous mode) the test runs inline. When Testo
-     * runs the test inside a fiber, `$next` is wrapped in a private fiber and resumed here until it
-     * terminates instead of re-suspending to the parent scheduler — keeping the process-global cassette
-     * window atomic. A `#[VCR]` test is therefore expected to be synchronous; awaiting real async work
-     * inside the window is unsupported by design.
+     * With no surrounding fiber the test runs inline. When Testo runs the test inside a fiber, `$next`
+     * is wrapped in a private fiber and resumed here until it terminates instead of re-suspending to the
+     * parent scheduler — keeping the process-global cassette window atomic. A `#[VCR]` test is therefore
+     * expected to be synchronous; awaiting real async work inside the window is unsupported by design.
      *
      * @param callable(TestInfo): TestResult $next
      */
