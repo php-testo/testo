@@ -32,7 +32,8 @@ use Testo\Pipeline\InterceptorCollector;
  * user-declared plugin in `testo.php`. Running two independent collectors would double the
  * interception overhead and could corrupt the data, so this coordinator funnels them into one:
  *
- * - the **deepest** requested {@see CoverageLevel} wins (so every report gets the data it needs);
+ * - the **deepest** requested {@see CoverageLevel} wins (so every report gets the data it needs),
+ *   including the request of a plugin that contributes nothing else (see {@see requestLevel()});
  * - the {@see CoverageMode} is the **strongest** (`Always` over `IfAvailable`);
  * - `testTypes` are **unioned** (an empty contribution means "all" and widens the set to all);
  * - every contributed report runs — user reports and CLI-flag reports side by side.
@@ -99,6 +100,21 @@ final class CoverageActivation
     }
 
     /**
+     * Raises the merged analysis depth without activating collection. The deepest request wins; a
+     * shallower one is ignored.
+     *
+     * Kept apart from {@see contribute()} so that a plugin which stays inert — one with no reports of
+     * its own, e.g. `new CodecovPlugin(level: CoverageLevel::Branch)` in `testo.php` under a
+     * `--coverage-clover` run — still has a say in the depth. The CLI-flag reports are claimed by
+     * whichever instance configures first, which is normally the shadow default sitting on the `Line`
+     * constructor default; without this the configured depth would be lost to that race.
+     */
+    public function requestLevel(CoverageLevel $level): void
+    {
+        self::rank($level) > self::rank($this->level) and $this->level = $level;
+    }
+
+    /**
      * Merges one plugin's coverage configuration into the shared collection.
      *
      * @param list<non-empty-string> $testTypes Empty means "all types".
@@ -106,7 +122,7 @@ final class CoverageActivation
      */
     public function contribute(CoverageLevel $level, array $testTypes, array $reports, CoverageMode $mode): void
     {
-        self::rank($level) > self::rank($this->level) and $this->level = $level;
+        $this->requestLevel($level);
         $mode === CoverageMode::Always and $this->mode = CoverageMode::Always;
 
         if ($testTypes === []) {

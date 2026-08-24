@@ -15,6 +15,7 @@ use Testo\Test;
  * @see DataProvider
  * @see DataSet
  */
+#[Test]
 #[Covers(DataProvider::class)]
 #[Covers(DataSet::class)]
 #[Covers(DataProviderInterceptor::class)]
@@ -33,7 +34,6 @@ final class DataProviders
      * Several DataProvider and DataSet attributes on one method are all collected:
      * a public provider, a private provider, a labeled DataSet and a named-arguments DataSet.
      */
-    #[Test]
     #[DataProvider('numbersProvider')]
     #[DataProvider('bigNumbersProvider')]
     #[DataSet([7, 8], 'seven-eight')]

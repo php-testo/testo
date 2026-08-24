@@ -7,6 +7,7 @@ namespace Internal\Fiber\Tests\Unit;
 use Internal\Fiber\FiberLocal;
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -22,6 +23,7 @@ use Testo\Test;
  * The strict per-fiber binding semantics live in {@see FiberLocalTest}; this covers only the fallback.
  */
 #[Test]
+#[Group('async')]
 #[Covers(FiberLocal::class)]
 final class InheritanceTest
 {

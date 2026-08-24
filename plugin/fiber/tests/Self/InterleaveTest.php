@@ -10,6 +10,7 @@ use Testo\Fiber\Internal\RunInFiberInterceptor;
 use Testo\Fiber\Internal\Scheduler;
 use Testo\Fiber\RunInFiber;
 use Testo\Fiber\Schedule;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -19,6 +20,7 @@ use Testo\Test;
  */
 #[Test]
 #[RunInFiber(Schedule::RoundRobin)]
+#[Group('async')]
 #[Covers(RunInFiber::class)]
 #[Covers(RunInFiberInterceptor::class)]
 #[Covers(Scheduler::class)]

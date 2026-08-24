@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.0](https://github.com/php-testo/testo/compare/codecov-0.1.12...codecov-0.2.0) (2026-08-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **codecov:** announce every coverage report that states where it wrote; added a new method `CoverageReport::info()`
+
+### Features
+
+* **codecov:** add --coverage-level=line|branch|path ([addbb76](https://github.com/php-testo/testo/commit/addbb76016ac5fc0b8d5473084887ab5182a967c))
+* **codecov:** announce every coverage report that states where it wrote; added a new method `CoverageReport::info()` ([509aa6f](https://github.com/php-testo/testo/commit/509aa6fd942bd8018e63dd8cb45baae169a04102))
+* **core:** describe a run's time with a `RunTiming` DTO instead of a bare duration ([75c2472](https://github.com/php-testo/testo/commit/75c2472c740e51c416f7d875a4d552276b828541))
+
+
+### Bug Fixes
+
+* **codecov:** keep the configured level when CLI report flags activate coverage ([addbb76](https://github.com/php-testo/testo/commit/addbb76016ac5fc0b8d5473084887ab5182a967c))
+* **report:** update report type from 'phpunit-xml' to 'coverage-xml' ([0b715e0](https://github.com/php-testo/testo/commit/0b715e030c67223af9edf85f2ceb06f2e389b8ca))
+
 ## [0.1.12](https://github.com/php-testo/testo/compare/codecov-0.1.11...codecov-0.1.12) (2026-08-06)
 
 

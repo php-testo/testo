@@ -1,6 +1,6 @@
 ---
 name: testo-data-driven
-description: Parameterize Testo tests with #[DataSet], #[DataProvider], #[DataZip], and #[DataCross]. Use when a test should run with multiple inputs, the user asks for "table-driven tests", "parameterized tests", "data providers", or a test method has copy-pasted setup with only the values changing.
+description: 'Parameterize Testo tests with #[DataSet], #[DataProvider], #[DataZip], and #[DataCross]. Use when a test should run with multiple inputs, the user asks for "table-driven tests", "parameterized tests", "data providers", or a test method has copy-pasted setup with only the values changing.'
 ---
 
 # Data-driven tests in Testo

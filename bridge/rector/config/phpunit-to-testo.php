@@ -15,6 +15,8 @@ use Testo\Bridge\Rector\PhpunitToTesto\LifecycleMethodToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MarkTestIncompleteRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MarkTestSkippedToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MergeAssertChainRector;
+use Testo\Bridge\Rector\PhpunitToTesto\RepeatRetryToTestoRector;
+use Testo\Bridge\Rector\PhpunitToTesto\TypedAssertCallToTestoRector;
 
 /**
  * PHPUnit -> Testo conversion set.
@@ -27,6 +29,11 @@ use Testo\Bridge\Rector\PhpunitToTesto\MergeAssertChainRector;
  */
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->rule(AssertCallToTestoRector::class);
+
+    # Assertions that map onto a typed Assert head + matcher (comparisons, array keys, canonicalizing,
+    # emptiness) rather than a flat facade call — see TypedAssertCallToTestoRector.
+    $rectorConfig->rule(TypedAssertCallToTestoRector::class);
+
     $rectorConfig->rule(MarkTestSkippedToTestoRector::class);
 
     # Incomplete has no exact Testo status; mapped to a Skipped throw with an "Incomplete:" reason
@@ -51,4 +58,7 @@ return static function (RectorConfig $rectorConfig): void {
 
     # Cleanup pass: collapse adjacent `Assert::<type>($var)->…` chains on the same variable into one.
     $rectorConfig->rule(MergeAssertChainRector::class);
+
+    # Repeat/Retry method attributes (PHPUnit 13.3+) map onto Testo's #[Repeat]/#[Retry].
+    $rectorConfig->rule(RepeatRetryToTestoRector::class);
 };

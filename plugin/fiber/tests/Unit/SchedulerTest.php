@@ -12,6 +12,7 @@ use Testo\Fiber\Exception\DeadlockException;
 use Testo\Fiber\Internal\Scheduler;
 use Testo\Fiber\Internal\Task;
 use Testo\Fiber\Schedule;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -19,6 +20,7 @@ use Testo\Test;
  * back to the scheduler by calling `\Fiber::suspend()`.
  */
 #[Test]
+#[Group('async')]
 #[Covers(Scheduler::class)]
 final class SchedulerTest
 {

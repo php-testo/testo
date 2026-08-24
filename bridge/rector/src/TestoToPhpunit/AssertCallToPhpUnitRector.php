@@ -40,9 +40,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * outside object context".
  *
  * Methods with no faithful PHPUnit counterpart (fluent type assertions such as
- * `Assert::string()`/`int()`/`json()`, and `blank()`) are intentionally left
+ * `Assert::string()`/`int()`/`json()`, and `blank()`/`notBlank()`) are intentionally left
  * untouched, so the surrounding test stays visibly unconverted instead of being
- * silently mistranslated.
+ * silently mistranslated. (`blank()`/`notBlank()` deliberately treat `false`/`0`/`'0'` as valid
+ * data, unlike PHPUnit's `assertEmpty`/`assertNotEmpty`, so a blind swap would change meaning.)
  */
 #[TestRectorFixtures('AssertCallToPhpUnitRector')]
 final class AssertCallToPhpUnitRector extends AbstractRector

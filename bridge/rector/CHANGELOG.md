@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.2.4](https://github.com/php-testo/testo/compare/bridge-rector-0.2.3...bridge-rector-0.2.4) (2026-08-18)
+
+
+### Features
+
+* **assert:** implement numeric(), notBlank() and sameElementsAs() ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+* **rector:** convert new assertions and add Repeat/Retry ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
+
+### Bug Fixes
+
+* **test:** make the PHPUnit mutation mirror run green under PHPUnit 13.3 ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
+
+### Documentation
+
+* FEATURE_PARITY.md, both TODO.md, and the testo-write-tests / testo-migrate-from-phpunit skills. ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
+## [0.2.3](https://github.com/php-testo/testo/compare/bridge-rector-0.2.2...bridge-rector-0.2.3) (2026-08-17)
+
+
+### Features
+
+* **report:** add a self-contained HTML report ([#291](https://github.com/php-testo/testo/issues/291)) ([d850a8c](https://github.com/php-testo/testo/commit/d850a8c71352312053ee4e27b4eaab0d5b5f2e88))
+
 ## [0.2.2](https://github.com/php-testo/testo/compare/bridge-rector-0.2.1...bridge-rector-0.2.2) (2026-08-10)
 
 

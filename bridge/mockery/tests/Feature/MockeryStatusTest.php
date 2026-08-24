@@ -23,7 +23,8 @@ use Tests\Bridge\Mockery\Stub\MockeryScenarios;
  * {@see Status} — the surface a user sees in the report.
  */
 #[Test]
-#[Covers(MockeryPlugin::class, MockeryInterceptor::class)]
+#[Covers(MockeryPlugin::class)]
+#[Covers(MockeryInterceptor::class)]
 #[TestingSuite(path: __DIR__ . '/../Stub', plugins: [MockeryPlugin::class])]
 final class MockeryStatusTest
 {

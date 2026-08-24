@@ -9,6 +9,7 @@ use Testo\Assert;
 use Testo\Bridge\Revolt\Internal\RunInRevoltInterceptor;
 use Testo\Bridge\Revolt\RunInRevolt;
 use Testo\Codecov\Covers;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -22,6 +23,7 @@ use Testo\Test;
  */
 #[Test]
 #[RunInRevolt]
+#[Group('async')]
 #[Covers(RunInRevolt::class)]
 #[Covers(RunInRevoltInterceptor::class)]
 final class RunInRevoltTest

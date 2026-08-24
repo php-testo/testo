@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.13](https://github.com/php-testo/testo/compare/assert-0.1.12...assert-0.1.13) (2026-08-18)
+
+
+### Features
+
+* **assert:** implement numeric(), notBlank() and sameElementsAs() ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+* **rector:** convert new assertions and add Repeat/Retry ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
+
+### Bug Fixes
+
+* **test:** make the PHPUnit mutation mirror run green under PHPUnit 13.3 ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
+
+### Documentation
+
+* FEATURE_PARITY.md, both TODO.md, and the testo-write-tests / testo-migrate-from-phpunit skills. ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
 ## [0.1.12](https://github.com/php-testo/testo/compare/assert-0.1.11...assert-0.1.12) (2026-08-06)
 
 

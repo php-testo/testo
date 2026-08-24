@@ -8,6 +8,11 @@
 *.http binary
 *.gpg binary
 
+# Version manifest: each package bumps its own line — take both sides on overlap
+# instead of raising a conflict. A trailing sentinel key keeps every real entry
+# comma-terminated so the union stays valid JSON.
+/resources/version.json merge=union
+
 # Default: nothing is included in the `composer archive` of testo/testo.
 # Re-include only the files that actually belong to the root metapackage below.
 * export-ignore

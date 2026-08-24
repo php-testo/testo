@@ -206,6 +206,30 @@ final class SyncDepsTest
         }
     }
 
+    /**
+     * The manifest carries a trailing sentinel key (`_`) so that a `merge=union`
+     * of concurrent per-package bumps stays valid JSON. It names no package, so
+     * the synchroniser must skip it rather than try to read `_/composer.json`.
+     */
+    public function ignoresTheSentinelManifestKey(): void
+    {
+        $dir = $this->fixture(
+            ['.' => '1.0.0', 'plugin/a' => '1.2.3', '_' => ''],
+            [
+                'composer.json' => $this->composer('testo/testo', ['testo/a' => '0.1 - 1']),
+                'plugin/a/composer.json' => $this->composer('testo/a'),
+            ],
+        );
+
+        try {
+            $this->run($dir);
+
+            Assert::same($this->requireOf($dir, 'composer.json')['testo/a'], '^1.2.3');
+        } finally {
+            $this->cleanup($dir);
+        }
+    }
+
     public function isIdempotent(): void
     {
         $dir = $this->fixture(

@@ -11,6 +11,7 @@ use Testo\Bridge\Mockery\MockeryPlugin;
 use Testo\Bridge\Revolt\RunInRevolt;
 use Testo\Codecov\Covers;
 use Testo\Fiber\RunInFiber;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -19,7 +20,9 @@ use Testo\Test;
  * process-global container stays this test's throughout.
  */
 #[Test]
-#[Covers(MockeryPlugin::class, MockeryInterceptor::class)]
+#[Group('async')]
+#[Covers(MockeryPlugin::class)]
+#[Covers(MockeryInterceptor::class)]
 final class MockeryUnderFibersTest
 {
     #[RunInFiber]

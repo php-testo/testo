@@ -11,6 +11,7 @@ use Testo\Fiber\Exception\CancelledException;
 use Testo\Fiber\Exception\CompositeException;
 use Testo\Fiber\Exception\DeadlockException;
 use Testo\Fiber\Internal\Scheduler;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -19,6 +20,7 @@ use Testo\Test;
  * for a real test.
  */
 #[Test]
+#[Group('async')]
 #[Covers(Coroutine::class)]
 #[Covers(CompositeException::class)]
 #[Covers(DeadlockException::class)]

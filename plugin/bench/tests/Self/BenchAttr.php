@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Tests\Bench\Self;
 
 use Testo\Bench;
+use Testo\Filter\Group;
 use Testo\Inline\TestInline;
 
+#[Group('bench')]
 final class BenchAttr
 {
     #[Bench(

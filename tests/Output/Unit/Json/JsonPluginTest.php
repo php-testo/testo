@@ -163,7 +163,6 @@ final class JsonPluginTest
         return new RunResult(
             [new SuiteResult([new CaseResult([$test], Status::Failed, $summary)], Status::Failed, $summary)],
             Status::Failed,
-            0.0,
             $summary,
         );
     }

@@ -33,6 +33,11 @@ use Testo\Core\Value\TestType;
  * Passing any of these implies coverage collection at {@see CoverageMode::IfAvailable} (collect and
  * write if a driver is present, skip silently otherwise); `--no-coverage` still wins.
  *
+ * `--coverage-level=line|branch|path` pins the analysis depth for the whole run, overriding the
+ * `level` argument of every instance. Without it the configured levels are merged and the deepest
+ * one applies — a level declared in `testo.php` therefore holds even when the CLI report flags are
+ * what activated collection.
+ *
  * # How activation works
  *
  * A `CodecovPlugin` is part of {@see \Testo\Application\Config\Plugin\ApplicationPlugins::defaults()},
@@ -57,7 +62,7 @@ final readonly class CodecovPlugin implements PluginConfigurator
     private array $testTypes;
 
     /**
-     * @param CoverageLevel $level Depth of coverage analysis.
+     * @param CoverageLevel $level Depth of coverage analysis. Overridden by `--coverage-level`.
      * @param CoverageMode $collect Default activation mode. Can be overridden by CLI flags
      *        (`--coverage` → Always, `--no-coverage` → Never).
      * @param list<non-empty-string|\BackedEnum> $testTypes Test types to collect coverage for.
@@ -95,9 +100,16 @@ final readonly class CodecovPlugin implements PluginConfigurator
             return;
         }
 
+        // `--coverage-level` pins the depth for the whole run; without it the configured one applies.
+        $level = $input->resolveLevel() ?? $this->level;
+
         $activation = $container->has(CoverageActivation::class)
             ? $container->get(CoverageActivation::class)
             : self::createActivation($container);
+
+        // Declared before the inertness check below, so a plugin that writes no reports itself still
+        // sets the depth for the instance that does.
+        $activation->requestLevel($level);
 
         // Own reports plus the CLI-flag reports, which the first activating plugin claims for the
         // whole run so multiple instances don't emit them twice.
@@ -110,7 +122,7 @@ final readonly class CodecovPlugin implements PluginConfigurator
             return;
         }
 
-        $activation->contribute($this->level, $this->testTypes, $reports, $mode);
+        $activation->contribute($level, $this->testTypes, $reports, $mode);
 
         // Enforce `Always` here, while still in the configuration phase (outside the event
         // dispatcher), so a missing driver aborts the run with a non-zero exit instead of being

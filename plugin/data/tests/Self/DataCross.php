@@ -15,6 +15,7 @@ use Testo\Test;
 /**
  * @see DataCrossImpl
  */
+#[Test]
 #[Covers(DataCrossImpl::class)]
 #[Covers(DataProviderInterceptor::class)]
 final class DataCross
@@ -38,7 +39,6 @@ final class DataCross
      * Cartesian product of two providers yields every combination of their rows
      * (2 number sets x 3 letter sets = 6 combinations).
      */
-    #[Test]
     #[\Testo\Data\DataCross(
         new DataProvider('numbersProvider'),
         new DataProvider('lettersProvider'),
@@ -59,7 +59,6 @@ final class DataCross
      * Inline DataSet axes and a DataProvider axis cross together
      * (1 DataSet x 3 letters x 1 DataSet = 3 combinations).
      */
-    #[Test]
     #[\Testo\Data\DataCross(
         new DataSet([true], 'yes'),
         new DataProvider('lettersProvider'),
