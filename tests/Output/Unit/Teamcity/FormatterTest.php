@@ -273,6 +273,35 @@ final class FormatterTest
         Assert::string($msg)->contains("path='/app/|[build|]/it|'s/index.html'");
     }
 
+    public function testMetadataNamesTheValueItsTypeAndTheTestItBelongsTo(): void
+    {
+        $msg = Formatter::testMetadata('sumInCycle', 'bench.current.meanUs', '0.3585');
+
+        Assert::string($msg)->contains('##teamcity[testMetadata ');
+        Assert::string($msg)->contains("testName='sumInCycle'");
+        Assert::string($msg)->contains("name='bench.current.meanUs'");
+        Assert::string($msg)->contains("type='number'");
+        Assert::string($msg)->contains("value='0.3585'");
+    }
+
+    public function testMetadataCarriesTheFlowOfTheTestItAttachesTo(): void
+    {
+        $test = self::test();
+
+        $msg = Formatter::testMetadata('itWorks', 'bench.iterations', '10', identity: $test);
+
+        // The value has to land in the same flow as the test's own messages, or a consumer cannot tell
+        // which of several concurrent tests produced it.
+        Assert::string($msg)->contains("flowId='{$test->pipelineId}'");
+    }
+
+    public function testMetadataWithoutAnIdentityClaimsNoFlow(): void
+    {
+        $msg = Formatter::testMetadata('itWorks', 'bench.iterations', '10');
+
+        Assert::string($msg)->notContains('flowId=');
+    }
+
     private static function test(): TestIdentity
     {
         return (new SuiteIdentity('Core/Unit'))
