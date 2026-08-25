@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.1.9](https://github.com/php-testo/testo/compare/bench-0.1.8...bench-0.1.9) (2026-08-25)
+
+
+### Features
+
+* **bench:** fail a benchmark when `current` is not the fastest ([0f032fd](https://github.com/php-testo/testo/commit/0f032fd1c8ad5c57714a0ea6d878b332776cf7ee)), closes [#303](https://github.com/php-testo/testo/issues/303)
+
+
+### Bug Fixes
+
+* **bench:** group recommendations by advice instead of repeating it ([af627db](https://github.com/php-testo/testo/commit/af627db9c1936c5930256bef3fd390d1ab97217f)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **bench:** guard filtered RStDev against a zero mean ([f82fdef](https://github.com/php-testo/testo/commit/f82fdefcb57f014df126d4ba9f70f5e0570f0c52)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **bench:** guard the mean percentage against a zero baseline mean ([82d767f](https://github.com/php-testo/testo/commit/82d767fbc2451f62ec0758dd8e46ecc580150c68)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **bench:** keep the results table in declaration order ([a07e93f](https://github.com/php-testo/testo/commit/a07e93ff3d630e7bef66c3a9400439a2ab2c9ad1)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **bench:** make `[class-string, method]` reach a non-public method ([84e5013](https://github.com/php-testo/testo/commit/84e5013e10d2645bf839b80daef413c224b7759b)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **bench:** measure peak memory per iteration instead of an end-to-end delta ([#300](https://github.com/php-testo/testo/issues/300)) ([67cac86](https://github.com/php-testo/testo/commit/67cac866713f01d1da09a6a516187a472e814d0c))
+* **bench:** render the results table fastest-first with aligned numeric columns ([9e6b560](https://github.com/php-testo/testo/commit/9e6b5605aaf4fb27306917bcd23793fde9641da0)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **bench:** stop rejecting every off-median sample when MAD is zero ([05cb384](https://github.com/php-testo/testo/commit/05cb384091bc3b7a2a939b7327801c4b50840c1d)), closes [#303](https://github.com/php-testo/testo/issues/303)
+
+
+### Documentation
+
+* **bench:** distinguish the 2% reader bar from the diagnostic threshold ([087faf5](https://github.com/php-testo/testo/commit/087faf587d89ec66ab6920d0a721bff3b3e9f978)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **bench:** document the warmup default and the per-call harness overhead ([8f9c356](https://github.com/php-testo/testo/commit/8f9c356a2de19ca5c10be7097b671ee606fe3f40)), closes [#303](https://github.com/php-testo/testo/issues/303)
+
 ## [0.1.8](https://github.com/php-testo/testo/compare/bench-0.1.7...bench-0.1.8) (2026-08-10)
 
 
