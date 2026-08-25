@@ -60,9 +60,11 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * ## Stability
  *
- * Results are considered stable when the relative standard deviation (RStDev) is below 2%.
- * If variance is too high, Testo will generate diagnostic reports with actionable advice
- * (e.g., increase `$calls` or `$iterations`).
+ * Read the RStDev column to judge a result yourself: below 2% it is reproducible at one
+ * significant figure. That bar is stricter than the diagnostic engine, which stays silent
+ * until variance is pronounced (RStDev around 10% and up) and only then emits reports with
+ * actionable advice (e.g., increase `$calls` or `$iterations`) — a clean report means "nothing
+ * worth acting on", not "below 2%".
  *
  * @link https://php-testo.github.io/blog/collider.md
  *
