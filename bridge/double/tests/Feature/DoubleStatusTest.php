@@ -54,10 +54,30 @@ final class DoubleStatusTest
         Assert::same($result->status, Status::Passed);
     }
 
+    public function verifiedRecordNamesTheDoubleAndItsCalls(): void
+    {
+        // The fulfilled record carries the double's label and a per-method call summary, not just a count.
+        $result = TestRunner::runTest([DoubleScenarios::class, 'fulfilledExpectationOnly']);
+        Assert::string(self::successExpectation($result))
+            ->contains('Countable')
+            ->contains('count()×1');
+    }
+
     public function doubleAndAssertCoexist(): void
     {
         $result = TestRunner::runTest([DoubleScenarios::class, 'doubleAndAssertMixed']);
         Assert::same($result->status, Status::Passed);
+    }
+
+    public function bodyCheckFailureIsRecordedButResultLeftAsIs(): void
+    {
+        // A Double check that throws in the body (here: unused() on a called spy) with no #[ExpectException]
+        // to catch it: the bridge records the failure in the history but does not touch the result, so it
+        // stays the Error the runner produced from the uncaught throw.
+        $result = TestRunner::runTest([DoubleScenarios::class, 'bodyCheckFailsUncaught']);
+        Assert::same($result->status, Status::Error);
+        Assert::true(self::hasRecord($result, success: false));
+        Assert::string(self::failReason($result))->contains('expected no calls');
     }
 
     public function stateIsDrainedAfterAFailingTest(): void
@@ -90,5 +110,43 @@ final class DoubleStatusTest
         }
 
         return false;
+    }
+
+    /**
+     * The expectation text of the test's first fulfilled (success) assertion record, or '' if none.
+     */
+    private static function successExpectation(TestResult $result): string
+    {
+        $state = $result->getAttribute(TestState::class);
+        if (!$state instanceof TestState) {
+            return '';
+        }
+
+        foreach ($state->history as $record) {
+            if ($record->isSuccess()) {
+                return $record->getExpectation();
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * The fail reason of the test's first failed (unsuccessful) assertion record, or '' if none.
+     */
+    private static function failReason(TestResult $result): string
+    {
+        $state = $result->getAttribute(TestState::class);
+        if (!$state instanceof TestState) {
+            return '';
+        }
+
+        foreach ($state->history as $record) {
+            if (!$record->isSuccess()) {
+                return $record->getFailReason();
+            }
+        }
+
+        return '';
     }
 }

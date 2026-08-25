@@ -58,4 +58,15 @@ final class DoubleScenarios
 
         Assert::same($double->count(), 5);
     }
+
+    #[Test]
+    public function bodyCheckFailsUncaught(): void
+    {
+        /** @var DoubleInterface&\Countable $spy */
+        $spy = Double::for(\Countable::class);
+        $spy->allows('count')->returns(0);
+        $spy->count();
+
+        $spy->unused();
+    }
 }
