@@ -18,7 +18,7 @@ final readonly class UnreliableLowIterTime extends Report
         parent::__construct(
             severity: Severity::Danger,
             reason: 'Unreliable, low iter time',
-            advice: 'Timer overhead dominates — significantly increase calls per iteration.',
+            advice: 'Increase calls per iteration.',
         );
     }
 }

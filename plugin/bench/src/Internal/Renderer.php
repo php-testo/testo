@@ -154,37 +154,52 @@ final class Renderer
 
     public static function recommendations(BenchResult $result): string
     {
-        $dangers = [];
-        $warnings = [];
-        $notices = [];
+        $glyphs = [
+            Severity::Danger->name => '✗',
+            Severity::Warning->name => '⚠',
+            Severity::Notice->name => 'ℹ',
+        ];
+        $rank = [
+            Severity::Danger->name => 0,
+            Severity::Warning->name => 1,
+            Severity::Notice->name => 2,
+        ];
 
+        # Group the detected causes by the advice they share, across severities: one fix is printed
+        # once as a heading with every cause that calls for it beneath, each carrying its own icon.
+        # @var array<non-empty-string, list<array{Severity, non-empty-string}>> $groups
+        $groups = [];
+        $seen = [];
         foreach ($result->lines as $line) {
             foreach ($line->reports as $report) {
-                match ($report->severity) {
-                    Severity::Danger => $dangers[$report->reason] = $report->advice,
-                    Severity::Warning => $warnings[$report->reason] = $report->advice,
-                    Severity::Notice => $notices[$report->reason] = $report->advice,
-                    default => null,
-                };
+                $key = $report->severity->name . '|' . $report->reason;
+                if (isset($seen[$report->advice][$key])) {
+                    continue;
+                }
+                $seen[$report->advice][$key] = true;
+                $groups[$report->advice][] = [$report->severity, $report->reason];
             }
         }
 
-        if ($dangers === [] && $warnings === [] && $notices === []) {
+        if ($groups === []) {
             return '';
         }
 
+        # Most severe cause first, both within a group and between groups.
+        $topRank = [];
+        foreach ($groups as $advice => &$causes) {
+            \usort($causes, static fn(array $a, array $b): int => $rank[$a[0]->name] <=> $rank[$b[0]->name]);
+            $topRank[$advice] = $rank[$causes[0][0]->name];
+        }
+        unset($causes);
+        \uksort($groups, static fn(string $a, string $b): int => $topRank[$a] <=> $topRank[$b]);
+
         $lines = ['', 'Recommendations:'];
-
-        foreach ($dangers as $reason => $advice) {
-            $lines[] = "  ✗ {$reason}: {$advice}";
-        }
-
-        foreach ($warnings as $reason => $advice) {
-            $lines[] = "  ⚠ {$reason}: {$advice}";
-        }
-
-        foreach ($notices as $reason => $advice) {
-            $lines[] = "  ℹ {$reason}: {$advice}";
+        foreach ($groups as $advice => $causes) {
+            $lines[] = "  {$advice}";
+            foreach ($causes as [$severity, $reason]) {
+                $lines[] = "      {$glyphs[$severity->name]} {$reason}";
+            }
         }
 
         return \implode("\n", $lines);
