@@ -173,8 +173,42 @@ final readonly class BenchHandler
 
     private static function normalizeCallable(TestInfo $info, callable|array $callable): \Closure
     {
-        $fn = $callable(...);
+        # A `[class-string, method]` pair may name a non-public method, which the plain first-class
+        # callable syntax cannot invoke; resolve those through reflection. An `[object, method]` pair
+        # and every other callable already close over their target, so keep them as is.
+        if (\is_array($callable) && \is_string($callable[0])) {
+            $case = $info->caseInfo->instance;
+            $instance = $case !== null && $case->hasInstance() ? $case->getInstance() : null;
+            $fn = self::methodClosure($callable[0], $callable[1], $instance);
+        } else {
+            $fn = $callable(...);
+        }
+
         return static fn(): mixed => $fn(...$info->arguments);
+    }
+
+    /**
+     * Resolves a `[class-string, method]` reference to a closure, bypassing visibility so a benchmark
+     * can compare non-public implementations. A static method binds to no instance; a non-static one
+     * binds to `$instance`, which must be an instance of the method's declaring class.
+     *
+     * @param class-string $class
+     * @param non-empty-string $method
+     */
+    public static function methodClosure(string $class, string $method, ?object $instance): \Closure
+    {
+        $reflection = new \ReflectionMethod($class, $method);
+
+        if ($reflection->isStatic()) {
+            return $reflection->getClosure();
+        }
+
+        $instance !== null && $reflection->getDeclaringClass()->isInstance($instance)
+            or throw new \InvalidArgumentException(
+                "Cannot benchmark non-static method {$class}::{$method}() without an instance of {$class}.",
+            );
+
+        return $reflection->getClosure($instance);
     }
 
     /**

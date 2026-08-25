@@ -78,7 +78,9 @@ final readonly class Bench implements Interceptable
          *
          * Each entry can be:
          * - A callable (closure, function name, `[object, method]`, etc.)
-         * - An array `[class-string, non-empty-string]` to reference a non-public method by class and name.
+         * - An array `[class-string, non-empty-string]` to reference a non-public method by class and
+         *   name. A static method is called as is; a non-static one is bound to the current test case
+         *   instance, so its class must be the one under test.
          *
          * Use **string keys** to assign aliases that will appear in the results table:
          *
