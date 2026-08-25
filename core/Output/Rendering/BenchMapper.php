@@ -19,8 +19,8 @@ use Testo\Bench\Dto\Snap;
  * loads any of this.
  *
  * The numbers are taken from {@see Line}, the ranked view the plugin computes: it carries the relative
- * difference against the baseline case and the diagnostics that explain when a measurement should not be
- * trusted. Times stay in microseconds, the unit the plugin measures in — converting here would only add a
+ * difference against the `current` baseline and the diagnostics that explain when a measurement should not
+ * be trusted. Times stay in microseconds, the unit the plugin measures in — converting here would only add a
  * rounding step for the renderer to undo.
  *
  * Two shapes are offered, because the reporters need different ones: {@see map()} for documents that can
@@ -142,7 +142,7 @@ final class BenchMapper
             # Microseconds, as the bench plugin measures.
             'mean' => $line->avg->value,
             'median' => $line->med->value,
-            # Percent against the baseline case: 0.0 for the baseline, positive for slower.
+            # Percent against `current`, the baseline: 0.0 for it, positive for slower, negative for faster.
             'meanDiff' => $line->avg->diff,
             'medianDiff' => $line->med->diff,
             # Standard deviation as a percentage of the mean.
