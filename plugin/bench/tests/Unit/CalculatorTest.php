@@ -25,6 +25,16 @@ final class CalculatorTest
         Assert::same($result->rstdev, 0.0);
     }
 
+    public function aZeroMadKeepsEverySampleInsteadOfRejectingTheTail(): void
+    {
+        # Six of ten samples share a value, so the median absolute deviation collapses to zero.
+        $set = self::caseSet([10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.1, 10.1, 10.2, 10.2]);
+
+        $result = Calculator::calculate($set);
+
+        Assert::same($result->rejected, 0);
+    }
+
     /**
      * @param list<float> $perCallUs Per-call time of each iteration, in microseconds.
      */
