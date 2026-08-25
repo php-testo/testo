@@ -38,9 +38,9 @@
         "symfony/console": "^6.4 || ^7 || ^8.0",
         "symfony/finder": "^6.4 || ^7 || ^8.0",
         "testo/assert": "^0.1.13",
-        "testo/fiber": "^0.1.2",
-        "testo/bench": "^0.1.8",
-        "testo/bridge-symfony-console": "^0.1.9",
+        "testo/fiber": "^0.1.3",
+        "testo/bench": "^0.1.9",
+        "testo/bridge-symfony-console": "^0.1.10",
         "testo/codecov": "^0.2.0",
         "testo/convention": "^0.1.4",
         "testo/data": "^0.1.8",
@@ -63,8 +63,8 @@
         "testo/bridge-infection": "^0.1.8",
         "testo/bridge-mockery": "^0.1.2",
         "testo/bridge-rector": "^0.2.4",
-        "testo/bridge-revolt": "^0.1.1",
-        "testo/bridge-vcr": "^0.1.0",
+        "testo/bridge-revolt": "^0.1.2",
+        "testo/bridge-vcr": "^0.1.1",
         "testo/facade": "^0.1.1"
     },
     "suggest": {

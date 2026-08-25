@@ -21,13 +21,13 @@
     ],
     "require": {
         "php": ">=8.2",
-        "testo/data": "^0.1.7",
+        "testo/data": "^0.1.8",
         "testo/filter": "^0.1.6",
         "testo/inline": "^0.1.8",
-        "testo/testo": "0.10.40 - 1"
+        "testo/testo": "0.10.43 - 1"
     },
     "require-dev": {
-        "testo/assert": "^0.1.12"
+        "testo/assert": "^0.1.13"
     },
     "suggest": {
         "testo/assert": "Enables the benchmark verdict as an assertion: current must be the fastest within tolerance, otherwise the test fails."
