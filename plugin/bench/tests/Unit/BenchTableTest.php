@@ -19,11 +19,11 @@ use Testo\Test;
 #[Covers(Renderer::class)]
 final class BenchTableTest
 {
-    public function rowsAreRenderedFastestFirstRegardlessOfDeclarationOrder(): void
+    public function rowsFollowDeclarationOrderKeepingCurrentFirst(): void
     {
         $out = Renderer::table(self::result());
 
-        Assert::true(\strpos($out, 'fast') < \strpos($out, 'slow'));
+        Assert::true(\strpos($out, 'slow') < \strpos($out, 'fast'));
     }
 
     public function callsAreAttributedPerCaseNotByName(): void

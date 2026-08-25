@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Testo\Bench\Internal;
 
 use Testo\Bench\Dto\BenchResult;
-use Testo\Bench\Dto\Line;
 use Testo\Bench\Dto\Report;
 use Testo\Bench\Dto\Report\Severity;
 
@@ -61,12 +60,10 @@ final class Renderer
         $spans[] = [$summaryStart, $summaryEnd, 'Summary'];
         $summaryStart !== $summaryEnd and $merges[] = [$summaryStart, $summaryEnd];
 
-        # Render fastest first; the keys still index into $result->cases for the call count.
-        $orderedLines = $result->lines;
-        \uasort($orderedLines, static fn(Line $a, Line $b): int => $a->place <=> $b->place);
-
+        # Keep declaration order so `current` stays first as the percentage baseline; the keys
+        # index into $result->cases for the call count.
         $rows = [];
-        foreach ($orderedLines as $k => $line) {
+        foreach ($result->lines as $k => $line) {
             $calls = $result->cases[$k]->iterations[0]->calls ?? 0;
             $row = [
                 $line->name,
