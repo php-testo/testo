@@ -10,7 +10,7 @@ use Testo\Application\Config\StoreConfig;
 use Testo\Application\Internal\Store\FileStore;
 use Testo\Application\Internal\Store\NullStore;
 use Testo\Common\Messenger;
-use Testo\Common\Store\Store;
+use Testo\Common\Store;
 use Testo\Common\Store\StoreDefinition;
 use Testo\Common\Store\Stores;
 use Testo\Common\Store\StoreScope;

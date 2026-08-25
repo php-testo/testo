@@ -6,7 +6,6 @@ namespace Testo\Application\Internal\Store;
 
 use Internal\Path;
 use Testo\Common\Messenger;
-use Testo\Common\Store\Store;
 use Testo\Common\Store\StoreDefinition;
 use Testo\Core\Log\Level;
 
@@ -21,7 +20,7 @@ use Testo\Core\Log\Level;
  *
  * @internal
  */
-final class FileStore implements Store
+final class FileStore implements \Testo\Common\Store
 {
     /**
      * Envelope format version, owned by the framework. An unfamiliar layout makes the file count as

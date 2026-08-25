@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Internal\Store;
 
-use Testo\Common\Store\Store;
+use Testo\Common\Store;
 
 /**
  * The store handed out when the subsystem is disabled: no data, no writes.

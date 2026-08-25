@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Testo\Common\Store;
+namespace Testo\Common;
 
 /**
  * A single opened store: a named, versioned document that survives between runs.

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Common\Store;
 
+use Testo\Common\Store;
+
 /**
  * One contribution to a store's environment fingerprint.
  *
