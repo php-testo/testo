@@ -10,7 +10,7 @@ that an AI coding agent can load on demand.
 | [`testo-write-tests`](testo-write-tests/SKILL.md) | Writing or modifying a normal test class — covers `#[Test]`, `Assert`, `Expect`, lifecycle hooks. |
 | [`testo-data-driven`](testo-data-driven/SKILL.md) | Parameterizing a test — `#[DataSet]`, `#[DataProvider]`, `#[DataZip]`, `#[DataCross]`. |
 | [`testo-flaky-tests`](testo-flaky-tests/SKILL.md) | Stabilizing flaky tests with `#[Retry]` or stress-testing with `#[Repeat]`. |
-| [`testo-fiber`](testo-fiber/SKILL.md) | Running tests as cooperatively-scheduled plain fibers with `#[RunInFiber]` — fiber code that suspends, and interleaving a case's tests to shake out races. |
+| [`testo-async`](testo-async/SKILL.md) | Async tests — `#[RunInFiber]` (plain fibers, deterministic interleaving, `Coroutine::spawn`) and `#[RunInRevolt]` (real async I/O on the Revolt event loop, `testo/bridge-revolt`). |
 | [`testo-inline-tests`](testo-inline-tests/SKILL.md) | Attaching `#[TestInline]` examples directly to production methods. |
 | [`testo-benchmarks`](testo-benchmarks/SKILL.md) | Writing or tuning `#[Bench]` benchmarks. |
 | [`testo-coverage`](testo-coverage/SKILL.md) | Configuring `CodecovPlugin`, reports, and `#[Covers]`. |

@@ -19,7 +19,7 @@
     "require": {
         "php": ">=8.2",
         "revolt/event-loop": "^1.0",
-        "testo/testo": "0.10.39 - 1"
+        "testo/testo": "0.10.43 - 1"
     },
     "autoload": {
         "psr-4": {

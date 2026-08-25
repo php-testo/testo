@@ -1,6 +1,6 @@
 ---
 name: testo-write-tests
-description: Write or modify tests in a project that uses the Testo PHP testing framework. Use when adding a #[Test] class, writing assertions with the Assert facade, expecting exceptions with Expect, or adding lifecycle hooks (#[BeforeTest], #[AfterTest], #[BeforeClass], #[AfterClass]). Trigger when the user says "write a test", "add a test for X", "test this class", or edits a file under `tests/`.
+description: 'Write or modify tests in a project that uses the Testo PHP testing framework. Use when adding a #[Test] class, writing assertions with the Assert facade, expecting exceptions with Expect, or adding lifecycle hooks (#[BeforeTest], #[AfterTest], #[BeforeClass], #[AfterClass]). Trigger when the user says "write a test", "add a test for X", "test this class", or edits a file under `tests/`.'
 ---
 
 # Writing tests with Testo
@@ -10,7 +10,7 @@ Write them the Testo way described below — don't transliterate idioms from oth
 
 ## Before you write code
 
-Fetch the canonical API surface (cached for 15 min):
+Fetch the canonical API surface:
 
 - `https://php-testo.github.io/llms.txt` — concise index. Always start here.
 - `https://php-testo.github.io/llms-full.txt` — escalate when `llms.txt` doesn't answer the question.
@@ -244,4 +244,5 @@ semantics are covered by the `testo-run-tests` skill — escalate there before a
 - Do not write `setUp`/`tearDown` — use the lifecycle attributes above.
 - For parameterized tests, escalate to the `testo-data-driven` skill.
 - For flaky-test handling, escalate to the `testo-flaky-tests` skill.
+- For fiber/coroutine or async I/O tests (`\Fiber::suspend()`, amphp, Revolt, `Future::await()`), escalate to the `testo-async` skill.
 - For exception assertions, **always** use `Expect::exception(...)` before the throwing call — never wrap in try/catch.

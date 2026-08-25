@@ -30,11 +30,6 @@ final class Renderer
             }
         }
 
-        $callsByName = [];
-        foreach ($result->cases as $case) {
-            $callsByName[$case->name] = $case->iterations[0]->calls;
-        }
-
         $headers = ['Name', 'Iters', 'Calls', 'Mean', 'Median', 'RStDev'];
         $spans = [[0, 2, 'Benchmark setup'], [3, 5, 'Time results']];
         $merges = [[0, 2], [3, 5]];
@@ -65,12 +60,15 @@ final class Renderer
         $spans[] = [$summaryStart, $summaryEnd, 'Summary'];
         $summaryStart !== $summaryEnd and $merges[] = [$summaryStart, $summaryEnd];
 
+        # Keep declaration order so `current` stays first as the percentage baseline; the keys
+        # index into $result->cases for the call count.
         $rows = [];
-        foreach ($result->lines as $line) {
+        foreach ($result->lines as $k => $line) {
+            $calls = $result->cases[$k]->iterations[0]->calls ?? 0;
             $row = [
                 $line->name,
                 (string) $iters,
-                (string) ($callsByName[$line->name] ?? 0),
+                (string) $calls,
                 self::formatTime($line->avg->value, $line->avg->diff),
                 self::formatTime($line->med->value, $line->med->diff),
                 $iters > 1 ? self::formatRstdev($line->rstdev) : '',
@@ -89,8 +87,9 @@ final class Renderer
             $rows[] = $row;
         }
 
-        $rightAlign = [5 => true];
+        $rightAlign = [3 => true, 4 => true, 5 => true];
         if ($hasRejected) {
+            $rightAlign[7] = true;
             $rightAlign[8] = true;
         }
 
@@ -154,37 +153,52 @@ final class Renderer
 
     public static function recommendations(BenchResult $result): string
     {
-        $dangers = [];
-        $warnings = [];
-        $notices = [];
+        $glyphs = [
+            Severity::Danger->name => '✗',
+            Severity::Warning->name => '⚠',
+            Severity::Notice->name => 'ℹ',
+        ];
+        $rank = [
+            Severity::Danger->name => 0,
+            Severity::Warning->name => 1,
+            Severity::Notice->name => 2,
+        ];
 
+        # Group the detected causes by the advice they share, across severities: one fix is printed
+        # once as a heading with every cause that calls for it beneath, each carrying its own icon.
+        # @var array<non-empty-string, list<array{Severity, non-empty-string}>> $groups
+        $groups = [];
+        $seen = [];
         foreach ($result->lines as $line) {
             foreach ($line->reports as $report) {
-                match ($report->severity) {
-                    Severity::Danger => $dangers[$report->reason] = $report->advice,
-                    Severity::Warning => $warnings[$report->reason] = $report->advice,
-                    Severity::Notice => $notices[$report->reason] = $report->advice,
-                    default => null,
-                };
+                $key = $report->severity->name . '|' . $report->reason;
+                if (isset($seen[$report->advice][$key])) {
+                    continue;
+                }
+                $seen[$report->advice][$key] = true;
+                $groups[$report->advice][] = [$report->severity, $report->reason];
             }
         }
 
-        if ($dangers === [] && $warnings === [] && $notices === []) {
+        if ($groups === []) {
             return '';
         }
 
+        # Most severe cause first, both within a group and between groups.
+        $topRank = [];
+        foreach ($groups as $advice => &$causes) {
+            \usort($causes, static fn(array $a, array $b): int => $rank[$a[0]->name] <=> $rank[$b[0]->name]);
+            $topRank[$advice] = $rank[$causes[0][0]->name];
+        }
+        unset($causes);
+        \uksort($groups, static fn(string $a, string $b): int => $topRank[$a] <=> $topRank[$b]);
+
         $lines = ['', 'Recommendations:'];
-
-        foreach ($dangers as $reason => $advice) {
-            $lines[] = "  ✗ {$reason}: {$advice}";
-        }
-
-        foreach ($warnings as $reason => $advice) {
-            $lines[] = "  ⚠ {$reason}: {$advice}";
-        }
-
-        foreach ($notices as $reason => $advice) {
-            $lines[] = "  ℹ {$reason}: {$advice}";
+        foreach ($groups as $advice => $causes) {
+            $lines[] = "  {$advice}";
+            foreach ($causes as [$severity, $reason]) {
+                $lines[] = "      {$glyphs[$severity->name]} {$reason}";
+            }
         }
 
         return \implode("\n", $lines);
@@ -326,7 +340,6 @@ final class Renderer
             foreach ($spans as [$from, $to, $label]) {
                 if ($i === $from) {
                     $span = self::spanWidth($widths, $from, $to);
-                    // $result .= ' ' . self::centerPad($label, $span - 2) . ' |';
                     $result .= ' ' . \str_pad(\strtoupper($label), $span - 2) . ' |';
                     $i = $to + 1;
                     $handled = true;

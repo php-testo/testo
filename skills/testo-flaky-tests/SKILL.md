@@ -1,6 +1,6 @@
 ---
 name: testo-flaky-tests
-description: Stabilize flaky Testo tests with #[Retry] or stress-verify with #[Repeat]. Use when the user mentions "flaky test", "intermittent failure", "retry", "rerun", or asks to "verify a fix sticks" by running the test many times. Also use to mark a test flaky for reporting.
+description: 'Stabilize flaky Testo tests with #[Retry] or stress-verify with #[Repeat]. Use when the user mentions "flaky test", "intermittent failure", "retry", "rerun", or asks to "verify a fix sticks" by running the test many times. Also use to mark a test flaky for reporting.'
 ---
 
 # Flaky and repeated tests in Testo
@@ -90,9 +90,6 @@ Don't ship `#[Repeat(times: 50)]` long-term on a fast suite — CI cost adds up.
 
 ## Pitfalls
 
-- **Don't disable `markFlaky`** on `#[Retry]` / `#[Repeat]` (it defaults to `true`). Setting `markFlaky: false` is **silent rot** — a flaky test that retries to green hides the underlying defect. Only flip it off when the user explicitly asks.
-- **`Repeat(times: N)` is total runs, not extra runs.** `Repeat(times: 1)` runs the test once, `Repeat(times: 3)` runs it three times total — `N` is the run count, not a number of *additional* runs on top of the first.
-- Combining `#[Retry]` with `#[Repeat]` is allowed: Repeat runs **inside** Retry (each retry attempt re-runs the full repeat cycle). Only suggest both when the user genuinely wants that nesting.
 - A test with `Expect::exception(...)` and `#[Retry]` is almost always wrong — expected exceptions are deterministic by design.
 - Don't use retries to paper over network calls in unit tests — replace the dependency with a fake instead.
 - Throwing `SkipTest` / `CancelTest` from the body short-circuits both `#[Retry]` and `#[Repeat]` — the loop stops immediately and the result keeps the `Skipped` / `Cancelled` status. That's intentional (skipping isn't a failure to retry against), but worth knowing when a "flaky" test is actually skipping on some runs.

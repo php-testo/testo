@@ -1,6 +1,6 @@
 ---
 name: testo-coverage
-description: Configure code coverage in Testo via CodecovPlugin, choose coverage level (Line/Branch/Path), wire up reports (Clover/Cobertura/PHPUnit XML), and use #[Covers] / #[CoversNothing] on tests. Use when the user asks about "code coverage", "clover", "cobertura", "infection coverage XML", or `#[Covers]`.
+description: 'Configure code coverage in Testo via CodecovPlugin, choose coverage level (Line/Branch/Path), wire up reports (Clover/Cobertura/PHPUnit XML), and use #[Covers] / #[CoversNothing] on tests. Use when the user asks about "code coverage", "clover", "cobertura", "infection coverage XML", or `#[Covers]`.'
 ---
 
 # Code coverage with Testo
@@ -95,11 +95,11 @@ CLI report flags activated.
 
 Don't ship `Path` on every CI run — it's the slowest. Reserve it for mutation testing or scheduled jobs.
 
-**`Branch` / `Path` with fibers needs Xdebug ≥ 3.4.5.** Both levels enable Xdebug's branch analysis,
-which corrupts memory in older builds when a test runs inside a fiber (`#[RunInFiber]`) — the process
-dies with no PHP error and no report. On Xdebug < 3.4.5 Testo stops such a test with
-`BranchCoverageUnsafeInFiber` rather than letting it crash; upgrade Xdebug or use `Line`. PCOV is
-unaffected (it only does `Line` anyway).
+**With fibers (`#[RunInFiber]`), use `Line` only.** `Branch` and `Path` enable Xdebug's branch
+analysis, which corrupts memory and crashes the process when it runs inside a fiber — no PHP error, no
+report. The bug persists in current Xdebug builds (reproduced on 3.5.3). Testo tries to stop such a
+test with `BranchCoverageUnsafeInFiber`, but the guard is tied to the Xdebug version and doesn't fire
+on every build — don't rely on it. PCOV is unaffected (it only does `Line` anyway).
 
 ## `#[Covers]` and `#[CoversNothing]`
 

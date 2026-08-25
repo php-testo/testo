@@ -7,6 +7,11 @@ namespace Tests\Output\Unit\Teamcity;
 use Internal\Path;
 use Testo\Assert;
 use Testo\Assert\State\Assertion\AssertionException;
+use Testo\Bench\Dto\BenchResult;
+use Testo\Bench\Dto\CaseSet;
+use Testo\Bench\Dto\Line;
+use Testo\Bench\Dto\Snap;
+use Testo\Bench\Dto\ValueRel;
 use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
@@ -72,6 +77,43 @@ final class TeamcityLoggerTest
         Assert::string($output)->notContains("type='comparisonFailure'");
         Assert::string($output)->notContains("expected='");
         Assert::string($output)->notContains("actual='");
+    }
+
+    public function handleSingleTestResultPublishesBenchMetricsAsMetadataBeforeTheTestCloses(): void
+    {
+        $result = self::makeResult(Status::Passed)->withResult(self::benchResult());
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::string($output)->contains('##teamcity[testMetadata');
+        Assert::string($output)->contains("name='bench.iterations'");
+        Assert::string($output)->contains("name='bench.shift.meanUs'");
+
+        // testFinished closes the node the metadata attaches to, so every metadata line has to precede it.
+        Assert::true(\strpos($output, 'testMetadata') < \strpos($output, 'testFinished'));
+    }
+
+    public function handleSingleTestResultPublishesNoMetadataForAnOrdinaryTest(): void
+    {
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult(self::makeResult(Status::Passed)),
+        );
+
+        Assert::string($output)->notContains('testMetadata');
+    }
+
+    public function handleSingleTestResultAttachesDataSetBenchMetricsToTheOverriddenName(): void
+    {
+        $result = self::makeResult(Status::Passed)->withResult(self::benchResult());
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result, null, 'shiftVsPush#0:1'),
+        );
+
+        // A data-set run reports under the set's name, so its metadata has to carry that name too, not the
+        // bare method's.
+        Assert::string($output)->contains('##teamcity[testMetadata');
+        Assert::string($output)->contains("testName='shiftVsPush#0:1'");
     }
 
     public function handleFailedTestRendersPreviousThrowableMessageInDetails(): void
@@ -424,6 +466,27 @@ final class TeamcityLoggerTest
             status: $status,
             failure: $failure,
             attributes: ['duration' => 0],
+        );
+    }
+
+    private static function benchResult(): BenchResult
+    {
+        return new BenchResult(
+            cases: [new CaseSet('shift', [new Snap(calls: 20, memory: 0, time: 5.1)])],
+            results: [],
+            lines: [
+                new Line(
+                    place: 1,
+                    name: 'shift',
+                    avg: new ValueRel(5.1, 0.0),
+                    med: new ValueRel(5.1, 0.0),
+                    rstdev: 2.0,
+                    favg: new ValueRel(5.1, 0.0),
+                    frstdev: 2.0,
+                    rejected: 0,
+                    reports: [],
+                ),
+            ],
         );
     }
 

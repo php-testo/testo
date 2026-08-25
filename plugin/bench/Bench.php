@@ -14,8 +14,9 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * The marked method (or function) automatically receives the alias `current`.
  * All callables listed in {@see Bench::$callables} are benchmarked under the same conditions.
- * Results are ranked by filtered average time — the fastest callable takes first place
- * and serves as the baseline for relative comparison.
+ * Results are ranked by filtered average time — the fastest callable takes first place — while the
+ * relative percentages are measured against `current`, the baseline the alternatives are compared to.
+ * The fastest callable and the baseline are independent: `current` need not be the fastest.
  *
  * ## How it works
  *
@@ -26,7 +27,7 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * ## Aliases
  *
- * - The marked method always has the alias `current`.
+ * - The marked method always has the alias `current` and is the baseline for relative percentages.
  * - For other callables, use **string keys** in the `$callables` array to assign aliases.
  *   These aliases appear in the results table for easy identification.
  *
@@ -59,9 +60,11 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * ## Stability
  *
- * Results are considered stable when the relative standard deviation (RStDev) is below 2%.
- * If variance is too high, Testo will generate diagnostic reports with actionable advice
- * (e.g., increase `$calls` or `$iterations`).
+ * Read the RStDev column to judge a result yourself: below 2% it is reproducible at one
+ * significant figure. That bar is stricter than the diagnostic engine, which stays silent
+ * until variance is pronounced (RStDev around 10% and up) and only then emits reports with
+ * actionable advice (e.g., increase `$calls` or `$iterations`) — a clean report means "nothing
+ * worth acting on", not "below 2%".
  *
  * @link https://php-testo.github.io/blog/collider.md
  *
@@ -77,7 +80,9 @@ final readonly class Bench implements Interceptable
          *
          * Each entry can be:
          * - A callable (closure, function name, `[object, method]`, etc.)
-         * - An array `[class-string, non-empty-string]` to reference a non-public method by class and name.
+         * - An array `[class-string, non-empty-string]` to reference a non-public method by class and
+         *   name. A static method is called as is; a non-static one is bound to the current test case
+         *   instance, so its class must be the one under test.
          *
          * Use **string keys** to assign aliases that will appear in the results table:
          *
@@ -101,10 +106,12 @@ final readonly class Bench implements Interceptable
         public array $arguments = [],
 
         /**
-         * Number of warmup calls before the actual benchmark iterations.
+         * Number of warmup calls before the actual benchmark iterations; their results are discarded.
          *
-         * Warmup runs eliminate cold-start overhead (lazy initialization, first-call allocations, etc.).
-         * Results from warmup calls are discarded.
+         * The default `1` covers first-call resolution: autoloading, file includes, opcache compilation
+         * and other lazy one-time initialization, which a single call already triggers. It is intentionally
+         * low because the per-call cost is unknown up front. Raise it for JIT-sensitive or cache-sensitive
+         * code, where warming needs many calls to reach a steady state.
          *
          * @var int<0, max>
          */
@@ -115,6 +122,12 @@ final readonly class Bench implements Interceptable
          *
          * Higher values reduce the impact of measurement overhead and produce more stable results.
          * If RStDev is too high, try increasing this value.
+         *
+         * Every measurement includes a fixed per-call harness cost (a closure call and argument
+         * forwarding). It is the same for every callable, so relative ranking stays correct, but for
+         * sub-microsecond functions it dominates the timing and compresses the reported percentages.
+         * It is not subtracted: a faithful baseline would itself depend on argument count and runtime,
+         * so raise `$calls` (or compare relatively) rather than trusting absolute figures at that scale.
          *
          * @var int<1, max>
          */
@@ -129,10 +142,24 @@ final readonly class Bench implements Interceptable
          * @var int<1, max>
          */
         public int $iterations = 10,
+
+        /**
+         * How much slower `current` may be than the fastest callable before the benchmark fails.
+         *
+         * Expressed as a fraction of the fastest filtered mean: `current` passes while its own
+         * filtered mean stays within `fastest * (1 + $tolerance)`. The default matches the 2% stability
+         * target, leaving that much headroom for measurement noise; raise it for noisier environments,
+         * or set it to `0.0` to demand that `current` be no slower than every alternative. Set it to
+         * `\INF` to compare implementations of equivalent speed without gating on which one wins.
+         *
+         * @var float
+         */
+        public float $tolerance = 0.02,
     ) {
         $warmup >= 0 or throw new \InvalidArgumentException('Warmup must be greater than or equal to 0.');
         \count($callables) >= 1 or throw new \InvalidArgumentException('At least one callable must be provided.');
         $calls > 0 or throw new \InvalidArgumentException('Calls must be greater than 0.');
         $iterations > 0 or throw new \InvalidArgumentException('Iterations must be greater than 0.');
+        $tolerance >= 0.0 or throw new \InvalidArgumentException('Tolerance must be greater than or equal to 0.');
     }
 }

@@ -18,7 +18,7 @@ final readonly class InsufficientIterTime extends Report
         parent::__construct(
             severity: Severity::Warning,
             reason: 'Insufficient iter time',
-            advice: 'Timer jitter exceeds useful signal — increase calls per iteration.',
+            advice: 'Increase calls per iteration.',
         );
     }
 }

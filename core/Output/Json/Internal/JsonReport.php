@@ -9,6 +9,8 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Log\MessageLog;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
+use Testo\Data\MultipleResult;
+use Testo\Output\Rendering\BenchMapper;
 use Testo\Output\Rendering\StackTrace;
 
 /**
@@ -34,9 +36,15 @@ final class JsonReport
             'failures' => self::failures($result),
         ];
 
-        // JSON_INVALID_UTF8_SUBSTITUTE: failure messages, traces and captured output are raw strings
-        // from user code and may contain malformed UTF-8 (binary stdout, non-UTF-8 encodings). Without
-        // it JSON_THROW_ON_ERROR would abort the whole report; instead bad bytes become U+FFFD.
+        # Benchmarks are the one test kind whose result *is* data: a green status says nothing about
+        # what was measured. Omitted entirely when the run had none, so an ordinary run's payload is
+        # unchanged.
+        $benchmarks = self::benchmarks($result);
+        $benchmarks === [] or $payload['benchmarks'] = $benchmarks;
+
+        # JSON_INVALID_UTF8_SUBSTITUTE: failure messages, traces and captured output are raw strings
+        # from user code and may contain malformed UTF-8 (binary stdout, non-UTF-8 encodings). Without
+        # it JSON_THROW_ON_ERROR would abort the whole report; instead bad bytes become U+FFFD.
         return \json_encode(
             $payload,
             \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE
@@ -60,6 +68,64 @@ final class JsonReport
         }
 
         return $totals;
+    }
+
+    /**
+     * Walks the result tree and collects every benchmark measurement in encounter order.
+     *
+     * A repeatable `#[Bench]` puts each scenario in its own data set, so a benchmark test contributes
+     * either one entry (single attribute) or one per set, addressed by its data-set coordinates the way
+     * `--filter=method:1:0` names it.
+     *
+     * @return list<array<non-empty-string, mixed>>
+     */
+    private static function benchmarks(RunResult $result): array
+    {
+        $benchmarks = [];
+        foreach ($result as $suite) {
+            foreach ($suite as $case) {
+                foreach ($case as $test) {
+                    foreach (self::benchmarksOf($test) as $benchmark) {
+                        $benchmarks[] = $benchmark;
+                    }
+                }
+            }
+        }
+
+        return $benchmarks;
+    }
+
+    /**
+     * @return list<array<non-empty-string, mixed>>
+     */
+    private static function benchmarksOf(TestResult $test): array
+    {
+        if (BenchMapper::supports($test->result)) {
+            return [['test' => self::testId($test)] + BenchMapper::map($test->result)];
+        }
+
+        $multiple = \class_exists(MultipleResult::class)
+            ? $test->getAttribute(MultipleResult::class)
+            : null;
+        if (!$multiple instanceof MultipleResult) {
+            return [];
+        }
+
+        $benchmarks = [];
+        foreach ($multiple->results as $set) {
+            if (!BenchMapper::supports($set->result)) {
+                continue;
+            }
+
+            $identity = $set->info->identity;
+            $benchmarks[] = [
+                'test' => self::testId($set),
+                'dataProvider' => $identity->dataProvider,
+                'dataSet' => $identity->dataSet,
+            ] + BenchMapper::map($set->result);
+        }
+
+        return $benchmarks;
     }
 
     /**
@@ -199,8 +265,8 @@ final class JsonReport
             $output[] = ['channel' => $message->channel, 'content' => $message->content];
         }
 
-        // array_values: in-place content mutation above makes Psalm widen the list back to a
-        // keyed array; the keys are already 0..n, this just restores the list<> shape.
+        # array_values: in-place content mutation above makes Psalm widen the list back to a
+        # keyed array; the keys are already 0..n, this just restores the list<> shape.
         return \array_values($output);
     }
 

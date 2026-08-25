@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.10.43](https://github.com/php-testo/testo/compare/0.10.42...0.10.43) (2026-08-25)
+
+
+### Features
+
+* **bench:** fail a benchmark when `current` is not the fastest ([0f032fd](https://github.com/php-testo/testo/commit/0f032fd1c8ad5c57714a0ea6d878b332776cf7ee)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **output:** report benchmark measurements in JSON, JUnit and TeamCity ([cfdc27f](https://github.com/php-testo/testo/commit/cfdc27f36be61967acb17ba74bb190d79c7a21e0))
+
+
+### Bug Fixes
+
+* **bench:** guard the mean percentage against a zero baseline mean ([82d767f](https://github.com/php-testo/testo/commit/82d767fbc2451f62ec0758dd8e46ecc580150c68)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **output:** honour `--no-ansi` and `NO_COLOR` ([#299](https://github.com/php-testo/testo/issues/299)) ([9da803d](https://github.com/php-testo/testo/commit/9da803d40c3bca3f9612d72f23b7596854946dc1))
+
+
+### Documentation
+
+* **bench:** distinguish the 2% reader bar from the diagnostic threshold ([087faf5](https://github.com/php-testo/testo/commit/087faf587d89ec66ab6920d0a721bff3b3e9f978)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **bench:** drop the false "no bench in a test method" pitfall ([e070a8f](https://github.com/php-testo/testo/commit/e070a8fba1cd8761df100accea0b6b09855ae769)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* expand CONTRIBUTING for new contributors ([db6630b](https://github.com/php-testo/testo/commit/db6630ba81053dfb48e655f6a60b22d575202217))
+* make AGENTS.md the single source of agent instructions ([db6630b](https://github.com/php-testo/testo/commit/db6630ba81053dfb48e655f6a60b22d575202217))
+* **output:** describe the HTML report as opt-in via `--log-html` ([46e794b](https://github.com/php-testo/testo/commit/46e794bd91d2da740e128596734d47bddf7134bb)), closes [#303](https://github.com/php-testo/testo/issues/303)
+* **skills:** add `testo-run-tests` skill ([#297](https://github.com/php-testo/testo/issues/297)) ([9513ad1](https://github.com/php-testo/testo/commit/9513ad1ea8826258488b0051c99ac78b263ba366))
+* **skills:** merge `testo-fiber` and stale async material into `testo-async` ([fb7ea8f](https://github.com/php-testo/testo/commit/fb7ea8fb0463f06183966c9aa14762d96b150084))
+* **skills:** quote frontmatter descriptions containing PHP attributes ([fb7ea8f](https://github.com/php-testo/testo/commit/fb7ea8fb0463f06183966c9aa14762d96b150084))
+* **skills:** show a Messenger channel as the PSR-3 logger in the database-plugin example ([83906ee](https://github.com/php-testo/testo/commit/83906ee153f70aa1fce0be41fd7ec78c8f0040be))
+* **spec:** add commit-creation spec ([db6630b](https://github.com/php-testo/testo/commit/db6630ba81053dfb48e655f6a60b22d575202217))
+
 ## [0.10.42](https://github.com/php-testo/testo/compare/0.10.41...0.10.42) (2026-08-18)
 
 
