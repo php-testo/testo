@@ -18,6 +18,5 @@
     "bridge/mockery": "0.1.2",
     "bridge/rector": "0.2.4",
     "bridge/revolt": "0.1.1",
-    "bridge/vcr": "0.1.0",
-    "_": ""
+    "bridge/vcr": "0.1.0"
 }

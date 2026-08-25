@@ -38,11 +38,15 @@ final class Calculator
         # Set limit for outliers
         $limit = 3 * $mad * 1.4826;
 
-        # Filter out iterations that are considered outliers
-        $filtered = \array_filter(
-            $averages,
-            static fn(float $avg): bool => \abs($avg - $median) <= $limit,
-        );
+        # A zero MAD means a degenerately narrow distribution — over half the samples share a value,
+        # which a coarse timer produces routinely — not that every sample off the median is an outlier.
+        # Filtering on a zero limit would keep only exact-median samples and reject the rest, so skip it.
+        $filtered = $mad > 0.0
+            ? \array_filter(
+                $averages,
+                static fn(float $avg): bool => \abs($avg - $median) <= $limit,
+            )
+            : $averages;
 
         # Calc RMS of the original averages for relative standard deviation calculation
         $rms = self::rms(...$averages);
@@ -52,7 +56,7 @@ final class Calculator
         # Calc RMS, average, and relative standard deviation for the filtered iterations
         $frms = self::rms(...$filtered);
         $favg = self::avg(...$filtered);
-        $frstdev = $frms / $favg * 100;
+        $frstdev = $favg > 0 ? ($frms / $favg) * 100 : 0.0;
 
         return new CaseResult(
             mean: self::avg(...$averages),

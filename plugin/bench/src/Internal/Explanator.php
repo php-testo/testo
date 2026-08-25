@@ -40,7 +40,7 @@ final class Explanator
                 name: $cases[$k]->name,
                 avg: new ValueRel(
                     value: $result->mean,
-                    diff: $baseTime > 0 ? ($result->mean - $baseMean) / $baseMean * 100 : 0.0,
+                    diff: $baseMean > 0 ? ($result->mean - $baseMean) / $baseMean * 100 : 0.0,
                 ),
                 med: new ValueRel(
                     value: $result->med,

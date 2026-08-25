@@ -129,15 +129,21 @@ final readonly class BenchHandler
 
     private static function runCase(\Closure $function, int $calls): Snap
     {
-        $beforeMem = \memory_get_usage();
+        # Peak rather than end-to-end delta: a function that frees what it allocated ends where it
+        # started, so the difference would be zero no matter how much it allocated in between. The
+        # peak is reset first so it reflects this iteration only, and the collection cycle keeps
+        # garbage from a previous case out of the window.
+        \gc_collect_cycles();
+        \memory_reset_peak_usage();
+        $beforeMem = \memory_get_peak_usage();
         $beforeTime = \hrtime(true);
         for ($i = 0; $i < $calls; ++$i) {
             $function();
         }
         $afterTime = \hrtime(true);
-        $afterMem = \memory_get_usage();
+        $afterMem = \memory_get_peak_usage();
 
-        $deltaMem = $afterMem - $beforeMem;
+        $deltaMem = \max(0, $afterMem - $beforeMem);
         # Delta time in microseconds
         $deltaTime = ($afterTime - $beforeTime) / 1_000;
         return new Snap(

@@ -14,8 +14,9 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * The marked method (or function) automatically receives the alias `current`.
  * All callables listed in {@see Bench::$callables} are benchmarked under the same conditions.
- * Results are ranked by filtered average time — the fastest callable takes first place
- * and serves as the baseline for relative comparison.
+ * Results are ranked by filtered average time — the fastest callable takes first place — while the
+ * relative percentages are measured against `current`, the baseline the alternatives are compared to.
+ * The fastest callable and the baseline are independent: `current` need not be the fastest.
  *
  * ## How it works
  *
@@ -26,7 +27,7 @@ use Testo\Pipeline\Attribute\Interceptable;
  *
  * ## Aliases
  *
- * - The marked method always has the alias `current`.
+ * - The marked method always has the alias `current` and is the baseline for relative percentages.
  * - For other callables, use **string keys** in the `$callables` array to assign aliases.
  *   These aliases appear in the results table for easy identification.
  *

@@ -8,6 +8,7 @@ use Internal\Path;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
+use Testo\Output\Rendering\BenchMapper;
 use Testo\Output\Rendering\StackTrace;
 
 /**
@@ -142,6 +143,9 @@ final class JUnitWriter
             providerIndex: $providerIndex,
             datasetIndex: $datasetIndex,
             datasetKey: $datasetKey,
+            properties: BenchMapper::supports($result->result)
+                ? BenchMapper::metrics($result->result)
+                : [],
         );
 
         $suite = $this->currentSuite();
@@ -441,6 +445,20 @@ final class JUnitWriter
             $xml->writeAttribute('testo:data-provider', (string) ($case->providerIndex ?? 0));
             $xml->writeAttribute('testo:data-set', (string) $case->datasetIndex);
             $case->datasetKey === null or $xml->writeAttribute('testo:data-set-key', (string) $case->datasetKey);
+        }
+
+        // Measurements a plain testcase has nowhere else to carry. `<properties>` under `<testcase>` is
+        // the shape PHPUnit emits and CI servers already read, so a consumer needs no Testo-specific
+        // knowledge to pick the numbers up.
+        if ($case->properties !== []) {
+            $xml->startElement('properties');
+            foreach ($case->properties as $name => $value) {
+                $xml->startElement('property');
+                $xml->writeAttribute('name', $name);
+                $xml->writeAttribute('value', BenchMapper::formatMetric($value));
+                $xml->endElement();
+            }
+            $xml->endElement();
         }
 
         $outcome = $case->outcome;
