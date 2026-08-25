@@ -50,6 +50,16 @@ final readonly class StoreRegistry implements Stores
             : new NullStore();
     }
 
+    /**
+     * @return non-empty-string
+     */
+    private static function slug(string $name): string
+    {
+        $slug = \trim((string) \preg_replace('/[^a-z0-9]+/', '-', \strtolower($name)), '-');
+
+        return \substr($slug, 0, 40) ?: 'suite';
+    }
+
     private function baseDir(): Path
     {
         $env = \getenv('TESTO_STORE_DIR');
@@ -69,15 +79,5 @@ final readonly class StoreRegistry implements Stores
         $slug = self::slug($name) . '-' . \substr(\sha1($name), 0, 8);
 
         return $base->join('suite', $slug);
-    }
-
-    /**
-     * @return non-empty-string
-     */
-    private static function slug(string $name): string
-    {
-        $slug = \trim((string) \preg_replace('/[^a-z0-9]+/', '-', \strtolower($name)), '-');
-
-        return \substr($slug, 0, 40) ?: 'suite';
     }
 }
