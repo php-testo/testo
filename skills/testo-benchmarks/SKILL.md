@@ -101,4 +101,5 @@ When reporting comparison results, **always** include RStDev for each variant. A
 - Don't put assertions inside a benched callable — they inflate the timing and obscure the signal.
 - Don't share state between iterations unless the benchmark is explicitly testing amortized cost.
 - Don't compare benchmarks across machines, CI runners, or PHP versions without re-running both sides on the same host.
-- Don't bench in a method that also uses `#[Test]` or `#[TestInline]` — keep benchmark classes separate.
+
+A method may carry `#[Bench]` together with `#[Test]` or `#[TestInline]` — they run as separate passes, so the inline cases verify correctness while the benchmark measures timing on the same implementation.
