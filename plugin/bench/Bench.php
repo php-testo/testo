@@ -130,10 +130,24 @@ final readonly class Bench implements Interceptable
          * @var int<1, max>
          */
         public int $iterations = 10,
+
+        /**
+         * How much slower `current` may be than the fastest callable before the benchmark fails.
+         *
+         * Expressed as a fraction of the fastest filtered mean: `current` passes while its own
+         * filtered mean stays within `fastest * (1 + $tolerance)`. The default matches the 2% stability
+         * target, leaving that much headroom for measurement noise; raise it for noisier environments,
+         * or set it to `0.0` to demand that `current` be no slower than every alternative. Set it to
+         * `\INF` to compare implementations of equivalent speed without gating on which one wins.
+         *
+         * @var float
+         */
+        public float $tolerance = 0.02,
     ) {
         $warmup >= 0 or throw new \InvalidArgumentException('Warmup must be greater than or equal to 0.');
         \count($callables) >= 1 or throw new \InvalidArgumentException('At least one callable must be provided.');
         $calls > 0 or throw new \InvalidArgumentException('Calls must be greater than 0.');
         $iterations > 0 or throw new \InvalidArgumentException('Iterations must be greater than 0.');
+        $tolerance >= 0.0 or throw new \InvalidArgumentException('Tolerance must be greater than or equal to 0.');
     }
 }

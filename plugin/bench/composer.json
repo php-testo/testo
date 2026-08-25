@@ -26,6 +26,12 @@
         "testo/inline": "^0.1.8",
         "testo/testo": "0.10.40 - 1"
     },
+    "require-dev": {
+        "testo/assert": "^0.1.12"
+    },
+    "suggest": {
+        "testo/assert": "Enables the benchmark verdict as an assertion: current must be the fastest within tolerance, otherwise the test fails."
+    },
     "autoload": {
         "psr-4": {
             "Testo\\Bench\\": "src/"

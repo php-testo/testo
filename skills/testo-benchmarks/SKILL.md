@@ -36,7 +36,8 @@ final class SerializationBench
     )]
     public static function encode(): void
     {
-        // Body is unused when `callables` is set — the listed callables are compared head-to-head.
+        // The body is the `current` callable: benchmarked against the listed ones and the baseline
+        // the percentages compare against. Put your current implementation here.
     }
 
     public static function customEncode(array $data): string
@@ -52,6 +53,13 @@ Key parameters:
 - `arguments` — array of positional arguments, applied to every callable.
 - `calls` — invocations per iteration (the inner loop). Increase until per-iteration time is well above timer resolution.
 - `iterations` — number of iterations (the outer loop). Drives the statistics (Mean/Median/RStDev).
+- `tolerance` — how much slower the marked method (`current`) may be than the fastest callable before the benchmark **fails**, as a fraction of the fastest filtered mean (default `0.02`, i.e. 2%).
+
+## Pass / fail
+
+A benchmark records one assertion: `current` is the fastest, within `tolerance`. It **passes** when `current`'s filtered mean stays within `fastest * (1 + tolerance)`, and **fails** (a real test failure) when an alternative beats it by more. So `#[Bench]` doubles as a guard that your current implementation has not regressed against the alternatives you compare it with.
+
+When you compare implementations of *equivalent* speed, the winner is decided by measurement noise and the gate would flake. Set `tolerance: \INF` to compare them without gating on which one wins — the benchmark then only measures and always passes.
 
 ## Selecting or excluding benches
 
