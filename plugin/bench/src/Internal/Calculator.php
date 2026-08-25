@@ -52,7 +52,7 @@ final class Calculator
         # Calc RMS, average, and relative standard deviation for the filtered iterations
         $frms = self::rms(...$filtered);
         $favg = self::avg(...$filtered);
-        $frstdev = $frms / $favg * 100;
+        $frstdev = $favg > 0 ? ($frms / $favg) * 100 : 0.0;
 
         return new CaseResult(
             mean: self::avg(...$averages),
