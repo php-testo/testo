@@ -106,10 +106,12 @@ final readonly class Bench implements Interceptable
         public array $arguments = [],
 
         /**
-         * Number of warmup calls before the actual benchmark iterations.
+         * Number of warmup calls before the actual benchmark iterations; their results are discarded.
          *
-         * Warmup runs eliminate cold-start overhead (lazy initialization, first-call allocations, etc.).
-         * Results from warmup calls are discarded.
+         * The default `1` covers first-call resolution: autoloading, file includes, opcache compilation
+         * and other lazy one-time initialization, which a single call already triggers. It is intentionally
+         * low because the per-call cost is unknown up front. Raise it for JIT-sensitive or cache-sensitive
+         * code, where warming needs many calls to reach a steady state.
          *
          * @var int<0, max>
          */
@@ -120,6 +122,12 @@ final readonly class Bench implements Interceptable
          *
          * Higher values reduce the impact of measurement overhead and produce more stable results.
          * If RStDev is too high, try increasing this value.
+         *
+         * Every measurement includes a fixed per-call harness cost (a closure call and argument
+         * forwarding). It is the same for every callable, so relative ranking stays correct, but for
+         * sub-microsecond functions it dominates the timing and compresses the reported percentages.
+         * It is not subtracted: a faithful baseline would itself depend on argument count and runtime,
+         * so raise `$calls` (or compare relatively) rather than trusting absolute figures at that scale.
          *
          * @var int<1, max>
          */
