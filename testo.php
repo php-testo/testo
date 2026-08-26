@@ -6,7 +6,6 @@ use Testo\Application\Config\ApplicationConfig;
 use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 use Testo\Testing\InjectPlugin;
-use Tests\Sandbox\Metadata\TestMetadataPlugin;
 
 return new ApplicationConfig(
     src: new FinderConfig(
@@ -49,7 +48,6 @@ return new ApplicationConfig(
                 location: new FinderConfig(
                     include: ['tests/Sandbox'],
                 ),
-                plugins: [new TestMetadataPlugin()],
             ),
         ],
         require 'internal/container/tests/suites.php',

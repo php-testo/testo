@@ -7,11 +7,13 @@ namespace Tests\Sandbox\Metadata;
 use Testo\Assert;
 use Testo\Filter\Group;
 use Testo\Test;
+use Testo\Test\MetadataType;
+use Testo\Test\TestMetadata;
 
 /**
  * Playground for the `testMetadata` TeamCity protocol.
  *
- * Every test declares one or more {@see TestMetadata} values that {@see TestMetadataInterceptor} turns
+ * Every test declares one or more {@see TestMetadata} values that the test plugin's interceptor turns
  * into `##teamcity[testMetadata …]` messages. Run the `sandbox` suite against an IDE or CI server that
  * understands the protocol and watch each type render: numbers as charts and a table, text and links
  * inline, images and artifacts as attachments, sourced from both local files and URLs.
@@ -64,18 +66,18 @@ final class MetadataShowcaseTest
      * — a grid a consumer can plot as a graph: rows are the x-axis (concurrency), columns are the series
      * (backends), and the milliseconds are the y-axis.
      */
-    #[TestMetadata(name: 'response time.1.redis', value: '0.4', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.1.postgres', value: '0.9', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.2.redis', value: '0.5', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.2.postgres', value: '1.1', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.4.redis', value: '0.7', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.4.postgres', value: '1.6', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.8.redis', value: '1.1', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.8.postgres', value: '2.7', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.16.redis', value: '2.0', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.16.postgres', value: '5.1', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.32.redis', value: '3.8', type: MetadataType::Milliseconds)]
-    #[TestMetadata(name: 'response time.32.postgres', value: '9.4', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.redis.1', value: '0.4', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.postgres.1', value: '0.9', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.redis.2', value: '0.5', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.postgres.2', value: '1.1', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.redis.4', value: '0.7', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.postgres.4', value: '1.6', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.redis.8', value: '1.1', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.postgres.8', value: '2.7', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.redis.16', value: '2.0', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.postgres.16', value: '5.1', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.redis.32', value: '3.8', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.postgres.32', value: '9.4', type: MetadataType::Milliseconds)]
     public function graphTable(): void
     {
         echo "Reporting a uniform three-level table to plot as a graph.\n";
