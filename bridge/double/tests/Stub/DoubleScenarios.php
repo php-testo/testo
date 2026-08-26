@@ -69,4 +69,15 @@ final class DoubleScenarios
 
         $spy->unused();
     }
+
+    #[Test]
+    public function checkInterleavesWithAssertions(): void
+    {
+        /** @var DoubleInterface&\Countable $spy */
+        $spy = Double::for(\Countable::class);
+
+        Assert::same(1, 1);
+        $spy->unused(); // passes immediately (never called), recorded here rather than at teardown
+        Assert::same(2, 2);
+    }
 }
