@@ -54,19 +54,46 @@ final class DoubleStatusTest
         Assert::same($result->status, Status::Passed);
     }
 
-    public function verifiedRecordNamesTheDoubleAndItsCalls(): void
+    public function verifiedChecksNameTheDoubleAndMethod(): void
     {
-        // The fulfilled record carries the double's label and a per-method call summary, not just a count.
-        $result = TestRunner::runTest([DoubleScenarios::class, 'fulfilledExpectationOnly']);
-        Assert::string(self::successExpectation($result))
-            ->contains('Countable')
-            ->contains('count()×1');
+        // Each recorded check names its double, and a received() check names the method it verified.
+        $result = TestRunner::runTest([DoubleScenarios::class, 'receivedVerificationOnly']);
+        Assert::string(self::successExpectations($result))
+            ->contains('Double `Countable`')
+            ->contains('count()');
     }
 
     public function doubleAndAssertCoexist(): void
     {
         $result = TestRunner::runTest([DoubleScenarios::class, 'doubleAndAssertMixed']);
         Assert::same($result->status, Status::Passed);
+    }
+
+    public function checksAreRecordedInChronologicalOrder(): void
+    {
+        // The scenario asserts, runs a passing Double check, then asserts again. Because checks are recorded
+        // the moment they resolve (not batched at teardown), a plain assertion lands after the Double check
+        // in the history.
+        $result = TestRunner::runTest([DoubleScenarios::class, 'checkInterleavesWithAssertions']);
+        $order = self::orderedExpectations($result);
+
+        $firstDouble = null;
+        foreach ($order as $i => $expectation) {
+            if (\str_contains($expectation, 'Double `')) {
+                $firstDouble = $i;
+                break;
+            }
+        }
+        Assert::true($firstDouble !== null, 'a Double check was recorded');
+
+        $assertionAfterDouble = false;
+        foreach ($order as $i => $expectation) {
+            if ($i > $firstDouble && !\str_contains($expectation, 'Double `')) {
+                $assertionAfterDouble = true;
+                break;
+            }
+        }
+        Assert::true($assertionAfterDouble, 'a plain assertion is recorded after a Double check');
     }
 
     public function bodyCheckFailureIsRecordedButResultLeftAsIs(): void
@@ -113,22 +140,39 @@ final class DoubleStatusTest
     }
 
     /**
-     * The expectation text of the test's first fulfilled (success) assertion record, or '' if none.
+     * The rendered text of every assertion record, in the order they were recorded.
+     *
+     * @return list<string>
      */
-    private static function successExpectation(TestResult $result): string
+    private static function orderedExpectations(TestResult $result): array
+    {
+        $state = $result->getAttribute(TestState::class);
+        if (!$state instanceof TestState) {
+            return [];
+        }
+
+        return \array_map(
+            static fn(\Stringable $record): string => (string) $record,
+            $state->history,
+        );
+    }
+
+    /**
+     * The expectation texts of every fulfilled (success) assertion record, joined by newlines.
+     */
+    private static function successExpectations(TestResult $result): string
     {
         $state = $result->getAttribute(TestState::class);
         if (!$state instanceof TestState) {
             return '';
         }
 
+        $expectations = [];
         foreach ($state->history as $record) {
-            if ($record->isSuccess()) {
-                return $record->getExpectation();
-            }
+            $record->isSuccess() and $expectations[] = (string) $record;
         }
 
-        return '';
+        return \implode("\n", $expectations);
     }
 
     /**
