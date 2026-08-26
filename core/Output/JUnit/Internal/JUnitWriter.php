@@ -452,10 +452,12 @@ final class JUnitWriter
         // knowledge to pick the numbers up.
         if ($case->properties !== []) {
             $xml->startElement('properties');
-            foreach ($case->properties as $name => $value) {
+            foreach ($case->properties as $name => $metric) {
                 $xml->startElement('property');
-                $xml->writeAttribute('name', $name);
-                $xml->writeAttribute('value', BenchMapper::formatMetric($value));
+                // A `<property>` carries no dimension of its own, so the unit rides on the name to
+                // survive the flat namespace: `…mean.ms`, `…memory.bytes`.
+                $xml->writeAttribute('name', $name . $metric->unit->suffix());
+                $xml->writeAttribute('value', BenchMapper::formatMetric($metric->value));
                 $xml->endElement();
             }
             $xml->endElement();

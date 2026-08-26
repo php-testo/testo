@@ -89,8 +89,10 @@ final class TeamcityLoggerTest
         $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
 
         Assert::string($output)->contains('##teamcity[testMetadata');
-        Assert::string($output)->contains("name='bench.iterations'");
-        Assert::string($output)->contains("name='bench.shift.meanUs'");
+        Assert::string($output)->contains("name='bench.shift.Benchmark setup.iters'");
+        Assert::string($output)->contains("name='bench.shift.Time results.mean'");
+        // A time metric carries its dimension in `type`, where TeamCity charts it natively.
+        Assert::string($output)->contains("type='ms'");
 
         // testFinished closes the node the metadata attaches to, so every metadata line has to precede it.
         Assert::true(\strpos($output, 'testMetadata') < \strpos($output, 'testFinished'));
