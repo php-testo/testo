@@ -22,7 +22,7 @@ use Testo\Test\TestMetadata;
  * `testStarted` node before the interceptor writes the metadata into it.
  */
 #[Test]
-#[Group('sandbox')]
+#[Group('sandbox', 'metadata')]
 final class MetadataShowcaseTest
 {
     /**
@@ -104,8 +104,8 @@ final class MetadataShowcaseTest
      * An image referenced by URL — the value is emitted verbatim.
      */
     #[TestMetadata(
-        name: 'remote chart',
-        value: 'https://raw.githubusercontent.com/php-testo/testo/1.x/resources/logo.png',
+        name: 'remote image',
+        value: 'https://github.com/php-testo/.github/blob/1.x/resources/logo-full.svg?raw=true',
         type: MetadataType::Image,
     )]
     public function imageFromUrl(): void
@@ -117,7 +117,7 @@ final class MetadataShowcaseTest
     /**
      * An image shipped next to the test — the relative path resolves against this file's directory.
      */
-    #[TestMetadata(name: 'local chart', value: 'resources/chart.png', type: MetadataType::Image)]
+    #[TestMetadata(name: 'local image', value: 'resources/chart.png', type: MetadataType::Image)]
     public function imageFromLocalFile(): void
     {
         echo "Reporting an image from a local file.\n";
