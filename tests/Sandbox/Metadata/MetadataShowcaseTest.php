@@ -47,6 +47,18 @@ final class MetadataShowcaseTest
         Assert::true(true);
     }
 
+    /**
+     * Dimensioned numbers — TeamCity formats the graph axis by the type, so the value carries no unit.
+     */
+    #[TestMetadata(name: 'duration', value: '434.5', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'peak memory', value: '1048576', type: MetadataType::Bytes)]
+    #[TestMetadata(name: 'coverage', value: '91.2', type: MetadataType::Percent)]
+    public function dimensionedNumbers(): void
+    {
+        echo "Reporting numbers with measurement dimensions.\n";
+        Assert::true(true);
+    }
+
     #[TestMetadata(name: 'summary', value: 'Processed 5 batches, 0 retries, warm cache.', type: MetadataType::Text)]
     #[TestMetadata(name: 'commit', value: 'feature/sandbox-test-metadata @ 64f100e4', type: MetadataType::Text)]
     public function text(): void
