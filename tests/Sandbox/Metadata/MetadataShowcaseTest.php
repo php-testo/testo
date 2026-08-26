@@ -59,6 +59,29 @@ final class MetadataShowcaseTest
         Assert::true(true);
     }
 
+    /**
+     * A three-level table (`<prefix>.<row>.<column>`, no column group) whose every value shares one type
+     * — a grid a consumer can plot as a graph: rows are the x-axis (concurrency), columns are the series
+     * (backends), and the milliseconds are the y-axis.
+     */
+    #[TestMetadata(name: 'response time.1.redis', value: '0.4', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.1.postgres', value: '0.9', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.2.redis', value: '0.5', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.2.postgres', value: '1.1', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.4.redis', value: '0.7', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.4.postgres', value: '1.6', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.8.redis', value: '1.1', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.8.postgres', value: '2.7', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.16.redis', value: '2.0', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.16.postgres', value: '5.1', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.32.redis', value: '3.8', type: MetadataType::Milliseconds)]
+    #[TestMetadata(name: 'response time.32.postgres', value: '9.4', type: MetadataType::Milliseconds)]
+    public function graphTable(): void
+    {
+        echo "Reporting a uniform three-level table to plot as a graph.\n";
+        Assert::true(true);
+    }
+
     #[TestMetadata(name: 'summary', value: 'Processed 5 batches, 0 retries, warm cache.', type: MetadataType::Text)]
     #[TestMetadata(name: 'commit', value: 'feature/sandbox-test-metadata @ 64f100e4', type: MetadataType::Text)]
     public function text(): void
