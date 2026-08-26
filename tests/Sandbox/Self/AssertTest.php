@@ -239,7 +239,7 @@ final class AssertTest
     {
         for ($i = 0; $i < 10; ++$i) {
             \usleep(100_000);
-            echo "Foo $i\n";
+            echo "Foo $i";
         }
 
         Assert::false(true);
@@ -258,12 +258,27 @@ final class AssertTest
     {
         echo "This test demonstrates logging to \e[32mmultiple channels\e[0m with different levels.\n";
 
-        $this->messenger->channel('query.sql')->debug(
+        $this->messenger->channel('query.sql/n')->debug(
             <<<SQL
                 SELECT *
                 FROM user
                 WHERE id = 42
                 SQL,
+        );
+        $this->messenger->channel('query.sql/n')->debug(
+            <<<SQL
+                SELECT *
+                FROM user
+                WHERE id = 42
+                SQL,
+        );
+        $this->messenger->channel('query.sql/n')->debug(
+            <<<SQL
+                SELECT *
+                FROM user
+                WHERE id = %s
+                SQL,
+            context: ['42'],
         );
 
         $this->messenger->channel('response.json')->write(
