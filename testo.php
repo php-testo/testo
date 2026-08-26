@@ -6,7 +6,6 @@ use Testo\Application\Config\ApplicationConfig;
 use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 use Testo\Testing\InjectPlugin;
-use Tests\Sandbox\Metadata\TestMetadataPlugin;
 
 # Bridge runtime deps aren't in the root install; the bootstrap loads them from the isolated bin vendors.
 require __DIR__ . '/tests/bootstrap.php';
@@ -53,7 +52,6 @@ return new ApplicationConfig(
                 location: new FinderConfig(
                     include: ['tests/Sandbox'],
                 ),
-                plugins: [new TestMetadataPlugin()],
             ),
         ],
         require 'internal/fiber/tests/suites.php',

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Sandbox\Metadata;
+namespace Testo\Test;
 
 /**
  * TeamCity `testMetadata` value types.
@@ -12,6 +12,7 @@ namespace Tests\Sandbox\Metadata;
  * axis) — plain text, a clickable link, an inline image, and a downloadable artifact.
  *
  * @link https://www.jetbrains.com/help/teamcity/reporting-test-metadata.html
+ * @api
  */
 enum MetadataType: string
 {
