@@ -358,4 +358,115 @@ final class AssertJson
         Assert::json('{"id": 1, "name": "test"}')
             ->matchesType('array{id: int, name?: string}');
     }
+
+    /**
+     * Schema validation is an unimplemented stub: it raises a plain
+     * {@see \LogicException}, not an assertion failure.
+     */
+    #[Test]
+    public function matchesSchemaNotImplemented(): never
+    {
+        Expect::exception(\LogicException::class)
+            ->withMessageContaining('Not implemented yet');
+        Assert::json('{}')->matchesSchema('{"type": "object"}');
+    }
+
+    /**
+     * An empty key list is a vacuous requirement: the call is a no-op that
+     * stays chainable.
+     */
+    #[Test]
+    public function hasKeysEmptyIsNoop(): void
+    {
+        Assert::json('{"id": 1}')
+            ->hasKeys([])
+            ->hasKeys('id');
+    }
+
+    /**
+     * Keys can be checked against the numeric indices of a JSON array.
+     */
+    #[Test]
+    public function hasKeysOnArray(): void
+    {
+        Assert::json('["x", "y"]')->hasKeys(['0', '1']);
+    }
+
+    /**
+     * A primitive has no keys, so any requested key is reported missing.
+     */
+    #[Test]
+    public function hasKeysOnPrimitiveFails(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('missing key');
+        Assert::json('42')->hasKeys('id');
+    }
+
+    #[Test]
+    public function assertPathUnclosedBracket(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('unclosed bracket in path');
+        Assert::json('[1, 2, 3]')
+            ->assertPath('$[0', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
+
+    /**
+     * Bracketed keys may be quoted with single or double quotes; the quotes
+     * are stripped before lookup, allowing keys with spaces.
+     */
+    #[Test]
+    public function assertPathQuotedKey(): void
+    {
+        $json = '{"first name": "Alice"}';
+
+        Assert::json($json)
+            ->assertPath("$['first name']", static fn(JsonAbstract $json) => $json
+                ->matchesType('non-empty-string'));
+
+        Assert::json($json)
+            ->assertPath('$["first name"]', static fn(JsonAbstract $json) => $json
+                ->isPrimitive());
+    }
+
+    #[Test]
+    public function assertPathEmptyProperty(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('empty property name in path');
+        Assert::json('{"a": 1}')
+            ->assertPath('$.', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
+
+    #[Test]
+    public function assertPathUnexpectedCharacter(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining("unexpected character 'x' in path");
+        Assert::json('{"a": 1}')
+            ->assertPath('$x', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
+
+    #[Test]
+    public function assertPathArrayIndexMissing(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('not found in array');
+        Assert::json('[1, 2, 3]')
+            ->assertPath('$[5]', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
+
+    /**
+     * Navigating a property off a primitive value is a path error, not a
+     * silent null.
+     */
+    #[Test]
+    public function assertPathIntoPrimitive(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('cannot access property on int');
+        Assert::json('{"a": 1}')
+            ->assertPath('$.a.b', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
 }
