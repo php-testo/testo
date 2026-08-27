@@ -31,6 +31,7 @@ final class ExplanatorTest
     #[DataSet([15.0, 50.0, 1, 0, 10, 50.0, [Report\HighVariance::class, Report\NoisyEnvironment::class]], 'rstdev 10-20 & normal iter -> high + noisy')]
     #[DataSet([20.0, 50.0, 1, 0, 10, 50.0, [Report\HighVariance::class, Report\NoisyEnvironment::class]], 'rstdev exactly 20 stays in the 10-20 band')]
     #[DataSet([10.0, 50.0, 1, 0, 10, 50.0, [Report\HighVariance::class]], 'rstdev exactly 10 -> high variance, noisy needs >10 so it stays off')]
+    #[DataSet([10.0, 5.0, 1, 0, 10, 5.0, [Report\HighVarianceLowIterTime::class]], 'rstdev exactly 10 & low iter -> high-low only, low-iter-time notice stays off')]
     #[DataSet([15.0, 50.0, 1, 3, 10, 50.0, [Report\HighVariance::class, Report\ExtremeOutlierRate::class]], 'outliers suppress the noisy-environment arm')]
     #[DataSet([1.0, 50.0, 1, 3, 10, 50.0, [Report\ExtremeOutlierRate::class]], 'outliers>=3 & rate>20 -> extreme')]
     #[DataSet([1.0, 50.0, 1, 3, 20, 50.0, [Report\TooManyOutliers::class]], 'outliers>=3 & rate 15 -> too-many')]

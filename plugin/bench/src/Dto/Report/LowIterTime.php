@@ -7,7 +7,7 @@ namespace Testo\Bench\Dto\Report;
 use Testo\Bench\Dto\Report;
 
 /**
- * Iter time < 10μs and RStDev✓ ≤ 10%
+ * Iter time < 10μs and RStDev✓ < 10%
  */
 final readonly class LowIterTime extends Report
 {
