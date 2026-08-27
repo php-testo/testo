@@ -60,6 +60,7 @@
         "php-vcr/php-vcr": "^1.6",
         "roxblnfk/unpoly": "1.8.2",
         "rector/rector": "^2.5.2",
+        "testo/bridge-double": "^0.1.0",
         "testo/bridge-infection": "^0.1.8",
         "testo/bridge-mockery": "^0.1.2",
         "testo/bridge-rector": "^0.2.4",
@@ -68,6 +69,7 @@
         "testo/facade": "^0.1.1"
     },
     "suggest": {
+        "testo/bridge-double": "Auto-verifies Double mocks, stubs and spies after every test — fiber-safe, no manual verify() calls.",
         "testo/bridge-infection": "Provides integration with Infection PHP mutation testing framework.",
         "testo/bridge-mockery": "Provides integration with the Mockery mocking framework.",
         "llm/skills": "Ship Testo's bundled AI-agent skills into your project's skills directory automatically."
@@ -94,6 +96,7 @@
             "Tests\\Assert\\": "plugin/assert/tests/",
             "Tests\\Fiber\\": "plugin/fiber/tests/",
             "Tests\\Bench\\": "plugin/bench/tests/",
+            "Tests\\Bridge\\Double\\": "bridge/double/tests/",
             "Tests\\Bridge\\Mockery\\": "bridge/mockery/tests/",
             "Tests\\Bridge\\Rector\\": "bridge/rector/tests/",
             "Tests\\Bridge\\Revolt\\": "bridge/revolt/tests/",
@@ -142,6 +145,7 @@
             "options": {
                 "symlink": true,
                 "versions": {
+                    "testo/bridge-double": "0.1.x-dev",
                     "testo/bridge-infection": "0.1.x-dev",
                     "testo/bridge-mockery": "0.1.x-dev",
                     "testo/bridge-rector": "0.2.x-dev",
