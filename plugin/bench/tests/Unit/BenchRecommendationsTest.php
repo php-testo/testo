@@ -54,6 +54,16 @@ final class BenchRecommendationsTest
         Assert::same(\substr_count($out, 'Increase iterations or isolate side effects.'), 1);
     }
 
+    public function identicalCausesAppearOnce(): void
+    {
+        $out = Renderer::recommendations(self::resultWith(
+            new Report\InsufficientIterTime(15.0, 5.0),
+            new Report\InsufficientIterTime(20.0, 6.0),
+        ));
+
+        Assert::same(\substr_count($out, 'Insufficient iter time'), 1);
+    }
+
     public function noReportsRenderNothing(): void
     {
         Assert::same(Renderer::recommendations(self::resultWith()), '');

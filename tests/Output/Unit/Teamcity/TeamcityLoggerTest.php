@@ -15,8 +15,10 @@ use Testo\Bench\Dto\ValueRel;
 use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
+use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\SuiteInfo;
+use Testo\Core\Context\SuiteResult;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
@@ -31,6 +33,7 @@ use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Core\Report\ReportInfo;
 use Testo\Output\Teamcity\Teamcity\TeamcityLogger;
+use Testo\Output\Terminal\Renderer\Style;
 use Testo\Test;
 use Tests\Output\Stub\Teamcity\ConcreteSampleTestCase;
 use Tests\Output\Stub\Teamcity\SampleTestClass;
@@ -413,6 +416,275 @@ final class TeamcityLoggerTest
         Assert::string($b)->contains("flowId='{$second->identity->pipelineId}'");
     }
 
+    public function logEnvironmentEmitsAnEnvironmentBlockWithRuntimeDetails(): void
+    {
+        $previous = Style::areColorsEnabled();
+        try {
+            Style::setColorsEnabled(false);
+            $plain = self::capture(static fn(TeamcityLogger $logger) => $logger->logEnvironment());
+            Style::setColorsEnabled(true);
+            $colored = self::capture(static fn(TeamcityLogger $logger) => $logger->logEnvironment());
+        } finally {
+            Style::setColorsEnabled($previous);
+        }
+
+        // The runtime facts sit inside a named block an IDE can fold, one labelled line per subsystem.
+        Assert::string($plain)->contains("##teamcity[blockOpened name='Environment']");
+        Assert::string($plain)->contains("##teamcity[blockClosed name='Environment']");
+        Assert::string($plain)->contains('PHP: ');
+        Assert::string($plain)->contains('XDebug: ');
+        Assert::string($plain)->contains('OPcache: ');
+
+        // With colours on the labels carry the cyan ANSI prefix; the plain run leaves them bare.
+        Assert::string($colored)->contains("\033[36;1mPHP:\033[0m");
+        Assert::string($plain)->notContains("\033[36;1m");
+    }
+
+    public function suiteFinishedFromInfoClosesTheSuiteNodeWithItsStatus(): void
+    {
+        $info = new SuiteInfo(name: 'Output/Unit', testCases: CaseDefinitions::fromArray());
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->suiteFinishedFromInfo($info, Status::Passed),
+        );
+
+        Assert::string($output)->contains('##teamcity[testSuiteFinished');
+        Assert::string($output)->contains("name='Output/Unit'");
+        Assert::string($output)->contains("status='passed'");
+    }
+
+    public function batchStartedFromInfoOpensADataProviderBatchAsASuite(): void
+    {
+        $info = self::makeInfo('passingTest');
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->batchStartedFromInfo($info));
+
+        // A DataProvider test becomes a nested suite so its data sets can report as children.
+        Assert::string($output)->contains('##teamcity[testSuiteStarted');
+        Assert::string($output)->contains("name='passingTest'");
+    }
+
+    public function batchFinishedFromInfoClosesTheDataProviderBatchWithItsStatus(): void
+    {
+        $info = self::makeInfo('passingTest');
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->batchFinishedFromInfo($info, Status::Failed),
+        );
+
+        Assert::string($output)->contains('##teamcity[testSuiteFinished');
+        Assert::string($output)->contains("status='failed'");
+    }
+
+    public function handleSuiteResultReportsTheFailureOnStdErrThenClosesTheSuite(): void
+    {
+        $info = new SuiteInfo(name: 'Output/Unit', testCases: CaseDefinitions::fromArray());
+        $result = new SuiteResult(results: [], status: Status::Failed, summary: new Summary(counts: ['Failed' => 2]));
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSuiteResult($info, $result));
+
+        // The failure is reported on the still-open suite node, so it has to precede the close.
+        Assert::string($output)->contains('##teamcity[testStdErr');
+        Assert::string($output)->contains('Test suite failed: 2 test(s) failed');
+        Assert::string($output)->contains('##teamcity[testSuiteFinished');
+        Assert::string($output)->contains("status='failed'");
+        Assert::true(\strpos($output, 'testStdErr') < \strpos($output, 'testSuiteFinished'));
+    }
+
+    public function handleSuiteResultOfAPassingSuiteJustClosesItWithoutAnyStdErr(): void
+    {
+        $info = new SuiteInfo(name: 'Output/Unit', testCases: CaseDefinitions::fromArray());
+        $result = new SuiteResult(results: [], status: Status::Passed);
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSuiteResult($info, $result));
+
+        Assert::string($output)->notContains('testStdErr');
+        Assert::string($output)->contains('##teamcity[testSuiteFinished');
+        Assert::string($output)->contains("status='passed'");
+    }
+
+    public function caseStartedFromInfoOpensTheCaseAsASuite(): void
+    {
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->caseStartedFromInfo(self::makeCaseInfo()),
+        );
+
+        // A test case is a class of tests, which TeamCity models as a suite.
+        Assert::string($output)->contains('##teamcity[testSuiteStarted');
+        Assert::string($output)->contains(SampleTestClass::class);
+    }
+
+    public function caseFinishedFromInfoClosesTheCaseWithItsStatus(): void
+    {
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->caseFinishedFromInfo(self::makeCaseInfo(), Status::Passed),
+        );
+
+        Assert::string($output)->contains('##teamcity[testSuiteFinished');
+        Assert::string($output)->contains("status='passed'");
+    }
+
+    public function handleCaseResultReportsTheFailureOnStdErrThenClosesTheCase(): void
+    {
+        $result = new CaseResult(results: [], status: Status::Error, summary: new Summary(counts: ['Error' => 1]));
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->handleCaseResult(self::makeCaseInfo(), $result),
+        );
+
+        Assert::string($output)->contains('##teamcity[testStdErr');
+        Assert::string($output)->contains('Test case failed: 1 test(s) failed');
+        Assert::string($output)->contains('##teamcity[testSuiteFinished');
+        Assert::string($output)->contains("status='error'");
+        Assert::true(\strpos($output, 'testStdErr') < \strpos($output, 'testSuiteFinished'));
+    }
+
+    public function testFinishedFromInfoClosesTheTestNodeWithItsDuration(): void
+    {
+        $info = self::makeInfo('passingTest');
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testFinishedFromInfo($info, 42));
+
+        Assert::string($output)->contains('##teamcity[testFinished');
+        Assert::string($output)->contains("name='passingTest'");
+        Assert::string($output)->contains("duration='42'");
+    }
+
+    public function testFailedFromResultWithoutAFailureUsesAGenericMessageAndEmptyDetails(): void
+    {
+        $result = new TestResult(
+            info: self::makeInfo('failingTest'),
+            status: Status::Failed,
+            failure: null,
+            attributes: ['duration' => 0],
+        );
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->testFailedFromResult($result));
+
+        // No throwable means nothing to render: a generic message and empty details, no comparison shape.
+        Assert::string($output)->contains('##teamcity[testFailed');
+        Assert::string($output)->contains("message='Test failed'");
+        Assert::string($output)->contains("details=''");
+        Assert::string($output)->notContains("type='comparisonFailure'");
+    }
+
+    public function handleSingleTestResultFailedWithoutAFailureUsesAGenericMessageAndEmptyDetails(): void
+    {
+        $result = new TestResult(
+            info: self::makeInfo('failingTest'),
+            status: Status::Failed,
+            failure: null,
+            attributes: ['duration' => 0],
+        );
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::string($output)->contains('##teamcity[testFailed');
+        Assert::string($output)->contains("message='Test failed'");
+        Assert::string($output)->contains("details=''");
+        Assert::string($output)->contains('##teamcity[testFinished');
+    }
+
+    public function anAbortedTestWithAFailureRendersTheThrowableInDetails(): void
+    {
+        $result = self::makeResult(Status::Aborted, new \RuntimeException('interceptor exploded'));
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::string($output)->contains('##teamcity[testFailed');
+        Assert::string($output)->contains("message='Test aborted'");
+        Assert::string($output)->contains('RuntimeException: interceptor exploded');
+        Assert::string($output)->contains('##teamcity[testFinished');
+        Assert::string($output)->contains("status='aborted'");
+    }
+
+    public function testIgnoredFromInfoEmitsAnIgnoredMessageCarryingTheReason(): void
+    {
+        $info = self::makeInfo('passingTest');
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->testIgnoredFromInfo($info, 'not applicable on windows'),
+        );
+
+        Assert::string($output)->contains('##teamcity[testIgnored');
+        Assert::string($output)->contains("name='passingTest'");
+        Assert::string($output)->contains("message='not applicable on windows'");
+    }
+
+    public function logMessageRoutesTheStderrChannelToTeamcityStdErr(): void
+    {
+        $info = self::makeInfo('passingTest');
+        $message = new Message(time: 0.0, channel: 'stderr', level: Level::Error, content: 'boom on stderr');
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->logMessage('someTest', $message, $info->identity),
+        );
+
+        // The dedicated stderr channel maps to TeamCity's stderr stream, not stdout.
+        Assert::string($output)->contains('##teamcity[testStdErr');
+        Assert::string($output)->contains('boom on stderr');
+        Assert::string($output)->contains("channel='stderr'");
+    }
+
+    public function logMessageWithEmptyContentEmitsNothing(): void
+    {
+        $info = self::makeInfo('passingTest');
+        $message = new Message(time: 0.0, channel: 'stdout', level: Level::Info, content: '');
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->logMessage('someTest', $message, $info->identity),
+        );
+
+        // Empty output is not worth a service message that would open an empty node on the consumer.
+        Assert::same($output, '');
+    }
+
+    public function logMessageEscapesTeamcitySpecialCharactersInContent(): void
+    {
+        $info = self::makeInfo('passingTest');
+        $message = new Message(time: 0.0, channel: 'stdout', level: Level::Info, content: "a|b 'q' [x]\nend");
+
+        $output = self::capture(
+            static fn(TeamcityLogger $logger) => $logger->logMessage('someTest', $message, $info->identity),
+        );
+
+        // TeamCity value escaping: | -> ||, ' -> |', [ -> |[, ] -> |], newline -> |n. A missed escape here
+        // corrupts the whole message on the parser.
+        Assert::string($output)->contains("out='a||b |'q|' |[x|]|nend'");
+    }
+
+    public function logStandaloneMessageOnTheStderrChannelReportsAnErrorMessage(): void
+    {
+        $message = new Message(time: 0.0, channel: 'stderr', level: Level::Error, content: 'bootstrap failed');
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->logStandaloneMessage($message));
+
+        // A fault with no test to attribute it to still surfaces, as a standalone ERROR message.
+        Assert::string($output)->contains('##teamcity[message');
+        Assert::string($output)->contains("text='bootstrap failed'");
+        Assert::string($output)->contains("status='ERROR'");
+    }
+
+    public function logStandaloneMessageOnAnyOtherChannelReportsANormalMessage(): void
+    {
+        $message = new Message(time: 0.0, channel: 'stdout', level: Level::Info, content: 'just a note');
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->logStandaloneMessage($message));
+
+        Assert::string($output)->contains('##teamcity[message');
+        Assert::string($output)->contains("text='just a note'");
+        Assert::string($output)->contains("status='NORMAL'");
+    }
+
+    public function logStandaloneMessageWithEmptyContentEmitsNothing(): void
+    {
+        $message = new Message(time: 0.0, channel: 'stderr', level: Level::Error, content: '');
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->logStandaloneMessage($message));
+
+        Assert::same($output, '');
+    }
+
     /**
      * Runs the callback against a logger writing to an in-memory stream and returns what it wrote.
      *
@@ -508,6 +780,22 @@ final class TeamcityLoggerTest
             file: Path::create(__FILE__),
             reflection: new \ReflectionClass(SampleTestClass::class),
             tests: $tests,
+        );
+    }
+
+    /**
+     * A {@see CaseInfo} for {@see SampleTestClass}, used to drive the case-level logger methods.
+     */
+    private static function makeCaseInfo(): CaseInfo
+    {
+        return new CaseInfo(
+            suiteIdentity: new SuiteIdentity('Output/Unit'),
+            definition: new CaseDefinition(
+                name: SampleTestClass::class,
+                type: 'test',
+                file: Path::create(__FILE__),
+                reflection: new \ReflectionClass(SampleTestClass::class),
+            ),
         );
     }
 

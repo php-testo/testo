@@ -43,6 +43,29 @@ final class BenchVerdictTest
         Assert::true($record->isSuccess());
     }
 
+    public function currentExactlyAtTheToleranceBoundaryPasses(): void
+    {
+        $record = BenchHandler::benchmarkVerdict(self::results(1.1, 1.0), ['current', 'alt'], 0.1);
+
+        Assert::true($record->isSuccess());
+    }
+
+    public function currentJustOverTheToleranceBoundaryFails(): void
+    {
+        $record = BenchHandler::benchmarkVerdict(self::results(1.11, 1.0), ['current', 'alt'], 0.1);
+
+        Assert::false($record->isSuccess());
+        Assert::string((string) $record)->contains("'alt' is 11.0% faster");
+    }
+
+    public function aZeroFilteredMeanForTheFastestReportsInfinitePercent(): void
+    {
+        $record = BenchHandler::benchmarkVerdict(self::results(1.0, 0.0), ['current', 'alt'], 0.02);
+
+        Assert::false($record->isSuccess());
+        Assert::string((string) $record)->contains("'alt' is INF% faster");
+    }
+
     /**
      * @return list<CaseResult> Case results carrying only the filtered mean the verdict reads.
      */
