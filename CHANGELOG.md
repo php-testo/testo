@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.44](https://github.com/php-testo/testo/compare/0.10.43...0.10.44) (2026-08-27)
+
+
+### Features
+
+* **bench:** add benchmark for arbitrary-precision decimal arithmetic ([b036888](https://github.com/php-testo/testo/commit/b036888fbd15c9bb9a5f14e078cc210d1ef83aba))
+
+
+### Bug Fixes
+
+* **bench:** partition the variance bands cleanly at frstdev == 10.0 ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+* **rector:** resolve rule instances via findByContract, require rector/rector ^2.6.4 (Rector 2.6.4 dropped RectorConfig::tagged(); rectorphp/rector[#9870](https://github.com/php-testo/testo/issues/9870)) ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+* **rector:** surface a rule setup failure as an errored data set ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+
+
+### Code Refactoring
+
+* **codecov:** null-coalescing assignment in CoberturaReport ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+
 ## [0.10.43](https://github.com/php-testo/testo/compare/0.10.42...0.10.43) (2026-08-25)
 
 
