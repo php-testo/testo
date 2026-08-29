@@ -255,9 +255,7 @@ final readonly class CoberturaReport implements CoverageReport
                 $total = \count($branch->outHit);
                 $covered = \count(\array_filter($branch->outHit));
 
-                if (!isset($map[$line])) {
-                    $map[$line] = [0, 0];
-                }
+                $map[$line] ??= [0, 0];
 
                 $map[$line][0] += $total;
                 $map[$line][1] += $covered;

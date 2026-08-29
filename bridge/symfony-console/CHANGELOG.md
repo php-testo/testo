@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.9...bridge-symfony-console-0.1.10) (2026-08-25)
+
+
+### Bug Fixes
+
+* **output:** honour `--no-ansi` and `NO_COLOR` ([#299](https://github.com/php-testo/testo/issues/299)) ([9da803d](https://github.com/php-testo/testo/commit/9da803d40c3bca3f9612d72f23b7596854946dc1))
+
 ## [0.1.9](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.8...bridge-symfony-console-0.1.9) (2026-08-17)
 
 

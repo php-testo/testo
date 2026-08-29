@@ -127,9 +127,10 @@ final class JUnitPlugin implements PluginConfigurator
      *        the report. Cases of any other type are skipped entirely — no
      *        `<testsuite>`/`<testcase>` element is emitted for them. Empty array means
      *        all types. Use {@see TestType} cases or custom string identifiers.
-     *        Defaults to {@see TestType::Test} only, since the primary JUnit consumers
-     *        (Infection, CI test reporters) look up class-bound test methods by FQN
-     *        and inline/bench/profile cases would pollute that mapping.
+     *        Defaults to {@see TestType::Test} and {@see TestType::TestInline}, deliberately
+     *        excluding bench/profile cases: the primary JUnit consumers (Infection, CI test
+     *        reporters) look up class-bound test methods by FQN and those cases would pollute
+     *        that mapping.
      */
     public function __construct(
         ?string $outputPath = null,

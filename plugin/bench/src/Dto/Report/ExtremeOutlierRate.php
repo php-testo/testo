@@ -18,7 +18,7 @@ final readonly class ExtremeOutlierRate extends Report
         parent::__construct(
             severity: Severity::Danger,
             reason: 'Extreme outlier rate',
-            advice: 'Results invalid — split benchmarks or fix environment.',
+            advice: 'Split into separate benchmarks.',
         );
     }
 }

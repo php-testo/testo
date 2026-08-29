@@ -52,7 +52,6 @@ final readonly class RectorFixtureInterceptor implements TestRunInterceptor
 
         $results = [];
         $status = Status::Passed;
-        $error = null;
 
         try {
             // Resolved inside the try so a path-containment violation surfaces as a test error
@@ -96,15 +95,25 @@ final readonly class RectorFixtureInterceptor implements TestRunInterceptor
                 }
             }
         } catch (\Throwable $e) {
-            $status = Status::Error;
-            $error = $e;
+            # The rule failed before a single fixture ran (path resolution or the Rector container
+            # build). Report it as one errored data set so every reporter surfaces it the way it does
+            # a failing fixture: the batch node itself is only opened and closed, never re-reported,
+            # so a failure left on it alone would vanish into a bare "error" count.
+            $num = \count($results);
+            $dsInfo = $info->with(identity: $info->identity->toDataSet(dataProvider: 0, dataSet: $num));
+            $this->eventDispatcher->dispatch(new TestDataSetStarting($dsInfo, 'setup', null, $num));
+            $result = new TestResult(info: $dsInfo, status: Status::Error, failure: $e);
+            $this->eventDispatcher->dispatch(new TestDataSetFinished($dsInfo, $result, 'setup', null, $num));
+            $results[] = $result;
+            $status = Status::Failed;
         }
 
         if ($results === []) {
+            # No fixture matched: a risky no-op carrying an explanatory reason.
             $final = new TestResult(
                 info: $info,
-                status: $status->isFailure() ? $status : Status::Risky,
-                result: $error ?? new \RuntimeException('No fixtures were found for this rule.'),
+                status: Status::Risky,
+                result: new \RuntimeException('No fixtures were found for this rule.'),
             );
         } else {
             $multiple = new MultipleResult($results);

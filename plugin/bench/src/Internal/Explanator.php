@@ -119,7 +119,7 @@ final class Explanator
         };
 
         // Preventive: low iter time with acceptable RStDev
-        $iterTime < 10.0 && $frstdev <= 10.0
+        $iterTime < 10.0 && $frstdev < 10.0
             and $result[] = new Report\LowIterTime($iterTime);
 
         return $result;

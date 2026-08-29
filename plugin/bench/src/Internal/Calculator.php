@@ -51,10 +51,10 @@ final class Calculator
         # Calc RMS of the original averages for relative standard deviation calculation
         $rms = self::rms(...$averages);
         $avg = self::avg(...$averages);
-        $rstdev = $avg > 0 ? ($rms / $avg) * 100 : 0.0;
+        $rstdev = $avg > 0 ? ($sd / $avg) * 100 : 0.0;
 
-        # Calc RMS, average, and relative standard deviation for the filtered iterations
-        $frms = self::rms(...$filtered);
+        # Standard deviation, average, and relative standard deviation for the filtered iterations
+        $fsd = self::stdev(...$filtered);
         $favg = self::avg(...$filtered);
         $frstdev = $favg > 0 ? ($frms / $favg) * 100 : 0.0;
 
@@ -87,12 +87,12 @@ final class Calculator
     }
 
     /**
-     * Calculates the root mean square (RMS) of the given values.
+     * Calculates the population standard deviation of the given values (variance over `n`).
      */
     #[TestInline([], result: 0.0)]
     #[TestInline([3.0], result: 0.0)]
     #[TestInline([3.0, 3.0, 3.0, 3.0], result: 0.0)]
-    private static function rms(float ...$values): float
+    private static function stdev(float ...$values): float
     {
         $n = \count($values);
         if ($n === 0) {
