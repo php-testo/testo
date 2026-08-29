@@ -13,8 +13,8 @@ final readonly class ValueRel
         public float $value,
 
         /**
-         * @var float Difference from the baseline value (the best-performing benchmark) in percentage.
-         *      For the baseline, this will be 0.0. For others, can be positive (worse) or negative (better).
+         * @var float Difference from the baseline — the `current` case — in percentage. Zero for the
+         *      baseline itself; positive means slower than it, negative means faster.
          *
          * The formula for calculating this is: ((current_value - baseline_value) / baseline_value) * 100
          */

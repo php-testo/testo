@@ -82,7 +82,7 @@ final readonly class PhpUnitXmlReport implements CoverageReport
     public function info(): ReportInfo
     {
         return new ReportInfo(
-            'phpunit-xml',
+            'coverage-xml',
             'PHPUnit XML coverage',
             Path::create($this->outputDir)->join('index.xml'),
         );

@@ -11,6 +11,7 @@ use Testo\Assert\TestState;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
+use Testo\Filter\Group;
 use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner;
@@ -27,6 +28,7 @@ use Tests\Assert\Stub\Concurrency\RoundRobinAssertScenarios;
  * assertions across many suspensions, so a leak in either direction shows up as a wrong count.
  */
 #[Test]
+#[Group('async')]
 #[Covers(StaticState::class)]
 #[Covers(AssertCollectorInterceptor::class)]
 #[TestingSuite(path: __DIR__ . '/../Stub/Concurrency')]

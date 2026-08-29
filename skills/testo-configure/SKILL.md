@@ -81,12 +81,12 @@ Run it: `vendor/bin/testo`. The single suite `Unit` will be discovered under `te
 - `location` — directories or `FinderConfig` for the suite's test files.
 - `plugins` — suite-specific plugins, or `SuitePlugins::only(...)` to override inherited application plugins.
 
-`FinderConfig(includes, excludes)` — when a flat array isn't enough (e.g. exclude module's own tests):
+`FinderConfig(include, exclude)` — when a flat array isn't enough (e.g. exclude module's own tests):
 
 ```php
 new FinderConfig(
-    includes: ['core', 'plugin', 'bridge'],
-    excludes: ['plugin/assert/tests', 'plugin/codecov/tests'],
+    include: ['core', 'plugin', 'bridge'],
+    exclude: ['plugin/assert/tests', 'plugin/codecov/tests'],
 );
 ```
 
@@ -135,6 +135,27 @@ Notes on the example:
 - `CodecovPlugin` is application-wide → it applies to every suite.
 - Names are arbitrary; keep them short — they appear in CI logs and in `--suite=`.
 
+## Reports on every run
+
+Output plugins are application-wide. Add them to `plugins:` when a report should be produced by every run
+rather than only when a flag asks for it:
+
+```php
+use Testo\Output\Html\HtmlPlugin;
+use Testo\Output\JUnit\JUnitPlugin;
+
+plugins: [
+    // runtime/report/index.html; a path ending in .html inlines everything into that one file instead
+    new HtmlPlugin(),
+    new JUnitPlugin(__DIR__ . '/build/junit.xml'),
+],
+```
+
+`HtmlPlugin` takes a second path for the report's own JSON document
+(`new HtmlPlugin('runtime/report', 'runtime/report.json')`) — the HTML is a view over that
+document, and CI or external tooling can consume it on its own. The HTML report opens over `file://`
+with no server and reaches no network.
+
 ## Conditional / dynamic config
 
 Because `testo.php` is real PHP, conditional logic is fine:
@@ -156,27 +177,13 @@ Keep it readable — if the logic gets long, extract a helper, don't pile up ter
 ## CLI cheat-sheet
 
 ```
-vendor/bin/testo init                  # bootstrap testo.php + composer scripts
-vendor/bin/testo init --path=app       # bootstrap inside a subdirectory
-vendor/bin/testo                       # all suites
-vendor/bin/testo --suite=Unit          # one suite
-vendor/bin/testo --suite=Unit --suite=Integration  # multiple
-vendor/bin/testo --path=tests/Unit/Foo # subdirectory of a suite
-vendor/bin/testo --filter='UserService'  # by name
-vendor/bin/testo --group=integration   # only the #[Group('integration')] tests
-vendor/bin/testo --group=!slow         # everything except the "slow" group
-vendor/bin/testo --type=test           # only #[Test], not benches/inline (OR across values)
-vendor/bin/testo --type=!bench         # everything except benches; prefix with `!` to exclude
-vendor/bin/testo --coverage            # force coverage on
-vendor/bin/testo --no-coverage         # force coverage off
-vendor/bin/testo --coverage-clover=build/clover.xml        # write Clover report (no testo.php needed)
-vendor/bin/testo --coverage-cobertura=build/cobertura.xml  # write Cobertura report
-vendor/bin/testo --coverage-xml=build/coverage-xml         # write coverage XML dir (Infection)
-vendor/bin/testo --teamcity            # TeamCity output (CI/IDE)
-vendor/bin/testo --json                # minimal JSON on stdout: run summary + failed tests (for LLM agents / CI scripts)
-vendor/bin/testo --log-json=build/report.json  # same JSON to a file, keeps the terminal output (like --log-junit)
-vendor/bin/testo --config=path/to/testo.php
+vendor/bin/testo init                          # bootstrap testo.php + composer scripts
+vendor/bin/testo init --path=app               # bootstrap inside a subdirectory
+vendor/bin/testo --config=path/to/testo.php    # run with a config outside the project root
 ```
+
+Running and filtering (`--json`, `--suite`, `--filter`, `--path`, `--group`, `--type`, report
+outputs) are covered by the `testo-run-tests` skill; coverage flags by the `testo-coverage` skill.
 
 ## Pitfalls
 
@@ -186,4 +193,4 @@ vendor/bin/testo --config=path/to/testo.php
 - **Don't shell out to `composer dump-autoload` from `testo.php`.** Composer's autoloader is already booted by the CLI entry. Avoid side-effects in config.
 - **Don't read environment variables without a fallback.** `\getenv('FOO') ?: 'default'` — CI dropouts otherwise silently change which suites run.
 - **`testo.php` is required.** If a project doesn't have one, run `vendor/bin/testo init` (see *Bootstrap with `init`*) or, for full control, write the minimal version above by hand.
-- **An empty run is not a success.** When no tests are discovered — nothing matched, or a filter (`--filter`/`--path`/`--suite`/`--type`/`--group`) excluded everything — the run is marked **risky** and exits **non-zero** (so CI fails instead of going green on a test-free build). The terminal shows a `NO TESTS` banner, `--json` reports `"status": "risky"` with `"total": 0`, and `--teamcity` emits a `buildProblem`. An over-narrow filter is the usual cause.
+- **An empty run is not a success.** Zero discovered tests → status **risky**, non-zero exit (details in the `testo-run-tests` skill). On the config side the usual causes are a suite `location` pointing at the wrong directory or an empty suite.

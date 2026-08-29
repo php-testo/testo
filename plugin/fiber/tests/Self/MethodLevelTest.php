@@ -8,6 +8,7 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Fiber\Internal\RunInFiberInterceptor;
 use Testo\Fiber\RunInFiber;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -20,6 +21,7 @@ use Testo\Test;
 final class MethodLevelTest
 {
     #[RunInFiber]
+    #[Group('async')]
     public function taggedRunsInAFiber(): void
     {
         Assert::notNull(\Fiber::getCurrent());

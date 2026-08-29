@@ -18,7 +18,7 @@ final readonly class HighVarianceLowIterTime extends Report
         parent::__construct(
             severity: Severity::Warning,
             reason: 'High variance, low iter time',
-            advice: 'Measurement overhead may dominate — increase calls per iteration.',
+            advice: 'Increase calls per iteration.',
         );
     }
 }

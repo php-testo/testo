@@ -19,6 +19,7 @@ use Testo\Core\Value\Status;
 use Testo\Fiber\Coroutine;
 use Testo\Fiber\Internal\CoroutineScopeInterceptor;
 use Testo\Fiber\RunInFiber;
+use Testo\Filter\Group;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Test;
 use Tests\Codecov\Stub\WindowDriver;
@@ -41,6 +42,7 @@ final class CoroutineCoverageTest
      * collector, the trampoline would close the window at every suspension the body relays — and the
      * coroutines, stepped from outside it, would be measured for nobody.
      */
+    #[Group('async')]
     public function coroutineLinesLandInTheSpawningTestsWindow(): void
     {
         $driver = new WindowDriver();
@@ -58,6 +60,7 @@ final class CoroutineCoverageTest
      * the scope relays a round to the outer schedule, no window is left open for a sibling test to
      * record into.
      */
+    #[Group('async')]
     public function leavesNoWindowOpenWhenTheScopeRelaysOutward(): void
     {
         $driver = new WindowDriver();

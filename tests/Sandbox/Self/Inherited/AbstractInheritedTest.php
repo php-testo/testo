@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Sandbox\Self\Inherited;
 
 use Testo\Assert;
+use Testo\Filter\Group;
 use Testo\Test;
 
 /**
@@ -12,6 +13,7 @@ use Testo\Test;
  * that discovery, naming and `--filter` (by class and by method) attribute inherited tests to the
  * concrete subclass rather than this base.
  */
+#[Group('sandbox')]
 abstract class AbstractInheritedTest
 {
     #[Test]

@@ -6,6 +6,12 @@ namespace Tests\Output\Unit\JUnit;
 
 use Internal\Path;
 use Testo\Assert;
+use Testo\Bench\Dto\BenchResult;
+use Testo\Bench\Dto\CaseSet;
+use Testo\Bench\Dto\Line;
+use Testo\Bench\Dto\Snap;
+use Testo\Bench\Dto\ValueRel;
+use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
@@ -171,6 +177,63 @@ final class JUnitWriterTest
         // Assert
         Assert::same((string) $xml['skipped'], '1');
         Assert::count($xml->testsuite->testcase->skipped, 1);
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function benchmarkTestCarriesItsMeasurementsAsProperties(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeBenchResult('shiftVsPush'));
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        $properties = $xml->testsuite->testcase->properties;
+        Assert::count($properties, 1);
+
+        // `<property name value>` pairs — the shape PHPUnit emits, keyed to survive as data.
+        $byName = [];
+        foreach ($properties->property as $property) {
+            $byName[(string) $property['name']] = (string) $property['value'];
+        }
+        Assert::same($byName['bench.iterations'], '1');
+        Assert::same($byName['bench.shift.meanUs'], '5.1');
+        Assert::same($byName['bench.shift.calls'], '20');
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function anOrdinaryTestWritesNoPropertiesElement(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed));
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        Assert::count($xml->testsuite->testcase->properties, 0);
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function aDataSetBenchmarkStillCarriesItsMeasurements(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(
+            self::makeBenchResult('shiftVsPush'),
+            overrideName: 'shiftVsPush#0',
+            providerIndex: 0,
+            datasetIndex: 1,
+        );
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+        $case = $xml->testsuite->testcase;
+
+        // The measurements ride on the data-set entry itself, under its own name, not on an umbrella case.
+        Assert::same((string) $case['name'], 'shiftVsPush#0');
+        Assert::count($case->properties, 1);
     }
 
     public function abortedTestCountsAsError(): void
@@ -477,6 +540,43 @@ final class JUnitWriterTest
             failure: $failure,
             attributes: ['duration' => $durationMs],
         );
+    }
+
+    private static function makeBenchResult(string $method): TestResult
+    {
+        $info = new TestInfo(
+            name: $method,
+            caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
+                definition: new CaseDefinition(
+                    name: SampleTestClass::class,
+                    type: 'bench',
+                    file: Path::create(__FILE__),
+                    reflection: new \ReflectionClass(SampleTestClass::class),
+                ),
+            ),
+            testDefinition: new TestDefinition(new \ReflectionMethod(SampleTestClass::class, 'passingTest')),
+        );
+
+        $bench = new BenchResult(
+            cases: [new CaseSet('shift', [new Snap(calls: 20, memory: 0, time: 5.1)])],
+            results: [],
+            lines: [
+                new Line(
+                    place: 1,
+                    name: 'shift',
+                    avg: new ValueRel(5.1, 0.0),
+                    med: new ValueRel(5.1, 0.0),
+                    rstdev: 2.0,
+                    favg: new ValueRel(5.1, 0.0),
+                    frstdev: 2.0,
+                    rejected: 0,
+                    reports: [],
+                ),
+            ],
+        );
+
+        return new TestResult(info: $info, status: Status::Passed, result: $bench, attributes: ['duration' => 0]);
     }
 
     private static function makeInheritedResult(Status $status): TestResult

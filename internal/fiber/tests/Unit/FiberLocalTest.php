@@ -7,6 +7,7 @@ namespace Internal\Fiber\Tests\Unit;
 use Internal\Fiber\FiberLocal;
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Filter\Group;
 use Testo\Test;
 
 #[Test]
@@ -45,6 +46,7 @@ final class FiberLocalTest
      * The interleaving invariant every guard relies on: while two fibers are driven turn by turn, each
      * reads its own scoped value across every switch, with no swapping at the suspension boundary.
      */
+    #[Group('async')]
     public function interleavedFibersEachReadOwnValue(): void
     {
         $local = new FiberLocal('base');
@@ -129,6 +131,7 @@ final class FiberLocalTest
         Assert::true($destroyed);
     }
 
+    #[Group('async')]
     public function abandonedFiberSlotIsReleasedByGc(): void
     {
         $local = new FiberLocal('base');

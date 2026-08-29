@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Testo report</title>
+    {{styles}}
+</head>
+<body>
+
+<header class="top">
+    <div class="top-row">
+        <span class="brand">Testo <span class="v" id="generator"></span></span>
+        <span id="verdict"></span>
+        <span class="top-meta" id="top-meta"></span>
+        <button class="theme-toggle" id="theme" type="button" title="Follows the OS preference until you pick one">
+            theme
+        </button>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+</header>
+
+<main class="shell" id="view"></main>
+
+<!-- Classic scripts and a global payload: ESM, fetch() and workers are all unavailable over file://. -->
+{{scripts}}
+</body>
+</html>

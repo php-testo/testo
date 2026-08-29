@@ -627,7 +627,7 @@ final class TerminalLogger
     {
         $summary = $result->summary;
 
-        $this->write(null, Formatter::summary($summary, $result->duration));
+        $this->write(null, Formatter::summary($summary, $result->timing));
 
         if ($summary->total() === 0) {
             $this->write(null, Formatter::emptyBanner());

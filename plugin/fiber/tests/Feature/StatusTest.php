@@ -12,6 +12,7 @@ use Testo\Fiber\Exception\CompositeException;
 use Testo\Fiber\Internal\CoroutineScopeInterceptor;
 use Testo\Fiber\Internal\RunInFiberInterceptor;
 use Testo\Fiber\RunInFiber;
+use Testo\Filter\Group;
 use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner;
@@ -29,6 +30,7 @@ use Tests\Fiber\Stub\FiberScenarios;
 #[TestingSuite(path: __DIR__ . '/../Stub')]
 final class StatusTest
 {
+    #[Group('async')]
     public function fiberTestPasses(): void
     {
         $result = TestRunner::runTest([FiberScenarios::class, 'runsInAFiber']);
@@ -36,6 +38,7 @@ final class StatusTest
         Assert::same($result->status, Status::Passed);
     }
 
+    #[Group('async')]
     public function failureInsideFiberPropagates(): void
     {
         $result = TestRunner::runTest([FiberScenarios::class, 'failureInsideFiberPropagates']);
@@ -50,6 +53,7 @@ final class StatusTest
         Assert::same($result->status, Status::Passed);
     }
 
+    #[Group('async')]
     public function unawaitedCoroutineFailureErrorsTheTest(): void
     {
         $result = TestRunner::runTest([FiberScenarios::class, 'unawaitedCoroutineFailure']);
@@ -59,6 +63,7 @@ final class StatusTest
         Assert::instanceOf($result->failure->getPrevious(), \RuntimeException::class);
     }
 
+    #[Group('async')]
     public function awaitedCoroutineFailureHandledInTestPasses(): void
     {
         $result = TestRunner::runTest([FiberScenarios::class, 'awaitedCoroutineFailureHandledInTest']);
@@ -67,6 +72,7 @@ final class StatusTest
         Assert::same($result->status, Status::Passed);
     }
 
+    #[Group('async')]
     public function bodyThrowKeepsWorkingWithExpectException(): void
     {
         $result = TestRunner::runTest([FiberScenarios::class, 'bodyThrowStaysUnwrapped']);
@@ -75,6 +81,7 @@ final class StatusTest
         Assert::same($result->status, Status::Passed);
     }
 
+    #[Group('async')]
     public function coroutineAssertionsCountTowardTheirTest(): void
     {
         $result = TestRunner::runTest([FiberScenarios::class, 'assertionsInsideCoroutinesCountForTheTest']);
@@ -84,6 +91,7 @@ final class StatusTest
         Assert::same($result->summary->metric('assertions'), 3);
     }
 
+    #[Group('async')]
     public function failingBodyCancelsPendingCoroutines(): void
     {
         FiberScenarios::$cancellationLog = [];

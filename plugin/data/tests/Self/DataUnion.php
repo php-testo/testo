@@ -15,6 +15,7 @@ use Testo\Test;
 /**
  * @see DataUnionImpl
  */
+#[Test]
 #[Covers(DataUnionImpl::class)]
 #[Covers(DataProviderInterceptor::class)]
 final class DataUnion
@@ -46,7 +47,6 @@ final class DataUnion
      * A DataUnion used as one axis of a DataCross concatenates its providers before crossing:
      * (2 admins + 2 users) x 1 permission = 4 combinations.
      */
-    #[Test]
     #[\Testo\Data\DataCross(
         new DataUnionImpl(
             new DataProvider('adminsProvider'),
@@ -69,7 +69,6 @@ final class DataUnion
      * A DataUnion axis zipped against another provider stops at the shortest axis:
      * 4 unioned users | 3 permissions = 3 iterations.
      */
-    #[Test]
     #[\Testo\Data\DataZip(
         new DataUnionImpl(
             new DataProvider('adminsProvider'),
@@ -90,7 +89,6 @@ final class DataUnion
      * DataUnion as a standalone attribute concatenates its providers into one sequence:
      * 2 admins + 2 users = 4 iterations.
      */
-    #[Test]
     #[\Testo\Data\DataUnion(
         new DataProvider('adminsProvider'),
         new DataProvider('usersProvider'),

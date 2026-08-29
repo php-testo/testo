@@ -7,6 +7,7 @@ namespace Testo\PhpUnitBuild\Rector;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
@@ -26,8 +27,12 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  *
  * A test method is skipped when:
  *   - its class lives in a runtime-bound namespace ({@see self::RUNTIME_NAMESPACES}) — the Facade
- *     tests need an active container;
+ *     tests need an active container — or is an Acceptance test that drives an external process by a
+ *     path absent from the mirror;
  *   - it carries a composite data source ({@see self::COMPOSITE_DATA}) with no PHPUnit equivalent;
+ *   - it declares an `Expect::exception()` expectation with a modifier that has no PHPUnit form
+ *     (the substring `withMessageContaining`, `fromMethod`, …) — the chain stays as a `Testo\Expect::`
+ *     call the runtime cannot satisfy under PHPUnit;
  *   - it is individually listed as unconvertible ({@see self::SKIP_METHODS}) — e.g. a Tokenizer test
  *     whose stub reprint fully-qualifies an unqualified external call.
  *
@@ -38,11 +43,15 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  * skipped: PHPUnit — not the engine — discovers and runs them, so a mutation cannot break discovery
  * to fake a pass, and these tests are exactly what gives the pipeline its mutation coverage.
  *
- * Skipping rewrites the body to a single `$this->markTestSkipped(...)`, drops the parameters and
- * removes any data-provider attributes — otherwise PHPUnit would invoke the method with the wrong
- * argument count before the skip runs. Whole-file fatals (a custom constructor, a name colliding
- * with a `final` TestCase method) are handled earlier by bin/build-phpunit.php, which cannot be
- * fixed per method.
+ * Skipping PREPENDS a `$this->markTestSkipped(...)` and keeps the original body and attributes, so
+ * the unconvertible test stays fully visible and simply reports as skipped instead of being blanked
+ * out — the skip throws before the kept body runs. Parameters are dropped only when no data source
+ * will feed them (so PHPUnit can still call the method: a Testo composite it ignores would otherwise
+ * leave required parameters unfed and error before the skip); a method whose data source PHPUnit
+ * honors keeps its parameters so the dataset arity still matches. Lifecycle hooks are left untouched
+ * — they run their real body around a skipped test, which is harmless. Whole-file fatals (a custom
+ * constructor, a name colliding with a `final` TestCase method) are handled earlier by
+ * bin/build-phpunit.php, which cannot be fixed per method.
  */
 final class SkipUnconvertibleTestMethodRector extends AbstractRector
 {
@@ -73,18 +82,6 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
         'Testo\\Data\\DataUnion',
     ];
 
-    /** Argument-feeding attributes to strip from a skipped method (else PHPUnit miscounts args). */
-    private const DATA_ATTRIBUTES = [
-        'PHPUnit\\Framework\\Attributes\\DataProvider',
-        'PHPUnit\\Framework\\Attributes\\TestWith',
-        'PHPUnit\\Framework\\Attributes\\TestWithJson',
-        'Testo\\Data\\DataProvider',
-        'Testo\\Data\\DataSet',
-        'Testo\\Data\\DataCross',
-        'Testo\\Data\\DataZip',
-        'Testo\\Data\\DataUnion',
-    ];
-
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -93,17 +90,19 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
                 new CodeSample(
                     <<<'PHP'
                         #[\PHPUnit\Framework\Attributes\Test]
-                        public function risky(): void
+                        public function rejects(): never
                         {
-                            $result = \Testo\Testing\Helper\TestRunner::runTest([Common::class, 'risky']);
-                            $this->assertSame($result->status, Status::Risky);
+                            \Testo\Expect::exception(X::class)->withMessageContaining('x');
+                            $this->act();
                         }
                         PHP,
                     <<<'PHP'
                         #[\PHPUnit\Framework\Attributes\Test]
-                        public function risky(): void
+                        public function rejects(): never
                         {
-                            $this->markTestSkipped('risky() exercises the Testo runtime (Testo\Testing\) and has no PHPUnit equivalent');
+                            $this->markTestSkipped('rejects() calls Testo\Expect with no PHPUnit form');
+                            \Testo\Expect::exception(X::class)->withMessageContaining('x');
+                            $this->act();
                         }
                         PHP,
                 ),
@@ -143,37 +142,7 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
             $changed = true;
         }
 
-        // When the whole case is skipped, its lifecycle hooks still run before/after each (skipped)
-        // test. Empty them: their setup is meaningless once every test is skipped, and it may
-        // reference Testo runtime helpers or stub files absent from the mirror (e.g. a former
-        // constructor turned into a #[Before] hook that `require`s a stub).
-        if ($classReason !== null) {
-            foreach ($node->getMethods() as $method) {
-                // Leave a hook already turned into a skipped test (it carried #[Test]) — emptying it
-                // would drop the markTestSkipped and PHPUnit would report it risky, not skipped.
-                if ($this->isLifecycleHook($method) && !$this->isAlreadySkipped($method) && ($method->stmts ?? []) !== []) {
-                    $method->stmts = [];
-                    $changed = true;
-                }
-            }
-        }
-
         return $changed ? $node : null;
-    }
-
-    /** A lifecycle hook by reserved name or by PHPUnit lifecycle attribute. */
-    private function isLifecycleHook(ClassMethod $method): bool
-    {
-        if (\in_array(\strtolower((string) $this->getName($method)), ['setup', 'teardown', 'setupbeforeclass', 'teardownafterclass'], true)) {
-            return true;
-        }
-
-        return $this->hasAttribute($method, [
-            'PHPUnit\\Framework\\Attributes\\Before',
-            'PHPUnit\\Framework\\Attributes\\After',
-            'PHPUnit\\Framework\\Attributes\\BeforeClass',
-            'PHPUnit\\Framework\\Attributes\\AfterClass',
-        ]);
     }
 
     private function namespaceReason(?string $fqcn): ?string
@@ -213,52 +182,101 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
             return 'uses a composite data source (Testo\\Data\\DataCross/DataZip/DataUnion) with no PHPUnit equivalent';
         }
 
+        // An `Expect::exception()` chain carrying a modifier that ExpectExceptionToPhpUnitRector cannot
+        // translate (only withMessage/withCode/withMessagePattern are mapped — the substring
+        // withMessageContaining, fromMethod, withPrevious, … are not) is left as a `Testo\Expect::`
+        // call, which needs the Testo runtime state absent under PHPUnit and would fatal with
+        // StateNotFound. Skip such a method. (A chain with only mapped modifiers converts fine and is
+        // left to run — detecting it by modifier name, not by "leftover Expect", is order-independent:
+        // the skip rule may run before or after that conversion.)
+        if ($this->hasUnconvertibleExpect($method)) {
+            return 'declares an Expect::exception() expectation with a modifier that has no PHPUnit form (e.g. withMessageContaining)';
+        }
+
         $shortClass = $fqcn === null ? '' : \substr($fqcn, (int) \strrpos($fqcn, '\\') + 1);
 
         return self::SKIP_METHODS[$shortClass . '::' . $this->getName($method)] ?? null;
+    }
+
+    /** Modifiers ExpectExceptionToPhpUnitRector can translate; any other on the chain aborts it. */
+    private const MAPPED_EXPECT_MODIFIERS = ['withMessage', 'withCode', 'withMessagePattern'];
+
+    /**
+     * Whether the body holds a `Testo\Expect::exception(...)` chain with at least one modifier that has
+     * no PHPUnit counterpart — the case ExpectExceptionToPhpUnitRector leaves unconverted. Each
+     * modifier is a `MethodCall` whose `->var` chain bottoms out at the `exception()` head.
+     */
+    private function hasUnconvertibleExpect(ClassMethod $method): bool
+    {
+        foreach ((new \PhpParser\NodeFinder())->findInstanceOf($method->stmts ?? [], MethodCall::class) as $call) {
+            $head = $call->var;
+            while ($head instanceof MethodCall) {
+                $head = $head->var;
+            }
+            if (!$head instanceof StaticCall || !$this->isName($head->class, 'Testo\\Expect') || !$this->isName($head->name, 'exception')) {
+                continue;
+            }
+
+            $modifier = $this->getName($call->name);
+            if ($modifier === null || !\in_array($modifier, self::MAPPED_EXPECT_MODIFIERS, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function skip(ClassMethod $method, string $reason): void
     {
         $name = $this->getName($method) ?? 'test';
 
-        $method->params = [];
-        $method->stmts = [
-            new Expression(new MethodCall(
-                new Variable('this'),
-                new Identifier('markTestSkipped'),
-                [new Arg(new String_("{$name}() {$reason}"))],
-            )),
-        ];
+        $skip = new Expression(new MethodCall(
+            new Variable('this'),
+            new Identifier('markTestSkipped'),
+            [new Arg(new String_("{$name}() {$reason}"))],
+        ));
 
-        // Drop data-feeding attributes (and any group left empty), keep the rest (#[Test], #[Group]).
-        $groups = [];
-        foreach ($method->attrGroups as $group) {
-            $group->attrs = \array_filter(
-                $group->attrs,
-                fn($attr): bool => !$this->isAnyName($attr->name, self::DATA_ATTRIBUTES),
-            );
-
-            if ($group->attrs !== []) {
-                $group->attrs = \array_values($group->attrs);
-                $groups[] = $group;
-            }
+        // Prepend the skip, keeping the original body and attributes; the skip throws before the kept
+        // body would run. Parameters are kept when a PHPUnit data source will feed them (so the
+        // dataset arity still matches), and dropped otherwise so PHPUnit can still call the method — a
+        // Testo composite source it ignores, or no source at all, would leave required parameters
+        // unfed and error before the skip.
+        $method->stmts = [$skip, ...($method->stmts ?? [])];
+        if (!$this->hasHonoredDataSource($method)) {
+            $method->params = [];
         }
+    }
 
-        $method->attrGroups = $groups;
+    /**
+     * Whether a data source that PHPUnit will feed to the method's parameters is present — either the
+     * PHPUnit attribute directly, or the Testo attribute the conversion turns into one (this rule may
+     * run before or after that conversion). A Testo *composite* source (DataCross/Zip/Union) is NOT
+     * honored — PHPUnit ignores it, so its method's parameters must still be dropped.
+     */
+    private function hasHonoredDataSource(ClassMethod $method): bool
+    {
+        return $this->hasAttribute($method, [
+            'PHPUnit\\Framework\\Attributes\\DataProvider',
+            'PHPUnit\\Framework\\Attributes\\DataProviderExternal',
+            'PHPUnit\\Framework\\Attributes\\TestWith',
+            'PHPUnit\\Framework\\Attributes\\TestWithJson',
+            'Testo\\Data\\DataProvider',
+            'Testo\\Data\\DataSet',
+        ]);
     }
 
     private function isAlreadySkipped(ClassMethod $method): bool
     {
-        if (\count($method->stmts ?? []) !== 1) {
+        $first = ($method->stmts ?? [])[0] ?? null;
+        if (!$first instanceof Expression) {
             return false;
         }
 
-        $stmt = $method->stmts[0];
+        # `$this->markTestSkipped()` on a test method, `self::markTestSkipped()` on a (possibly static) hook.
+        $call = $first->expr;
 
-        return $stmt instanceof Expression
-            && $stmt->expr instanceof MethodCall
-            && $this->isName($stmt->expr->name, 'markTestSkipped');
+        return ($call instanceof MethodCall || $call instanceof StaticCall)
+            && $this->isName($call->name, 'markTestSkipped');
     }
 
     /**

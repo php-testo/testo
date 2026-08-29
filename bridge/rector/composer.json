@@ -25,13 +25,13 @@
     "require": {
         "php": ">=8.2",
         "internal/path": "^1.2",
-        "rector/rector": "^2.0"
+        "rector/rector": "^2.6.4"
     },
     "require-dev": {
-        "testo/assert": "^0.1.12",
-        "testo/data": "^0.1.7",
+        "testo/assert": "^0.1.14",
+        "testo/data": "^0.1.9",
         "testo/filter": "^0.1.6",
-        "testo/testo": "0.10.40 - 1"
+        "testo/testo": "0.10.44 - 1"
     },
     "autoload": {
         "psr-4": {

@@ -17,7 +17,7 @@ final readonly class HeavilySkewed extends Report
         parent::__construct(
             severity: Severity::Danger,
             reason: 'Heavily skewed',
-            advice: 'Results unreliable — split into separate benchmarks.',
+            advice: 'Split into separate benchmarks.',
         );
     }
 }

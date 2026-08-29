@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.2.1](https://github.com/php-testo/testo/compare/codecov-0.2.0...codecov-0.2.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **bench:** partition the variance bands cleanly at frstdev == 10.0 ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+* **rector:** resolve rule instances via findByContract, require rector/rector ^2.6.4 (Rector 2.6.4 dropped RectorConfig::tagged(); rectorphp/rector[#9870](https://github.com/php-testo/testo/issues/9870)) ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+* **rector:** surface a rule setup failure as an errored data set ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+
+
+### Code Refactoring
+
+* **codecov:** null-coalescing assignment in CoberturaReport ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+
+## [0.2.0](https://github.com/php-testo/testo/compare/codecov-0.1.12...codecov-0.2.0) (2026-08-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **codecov:** announce every coverage report that states where it wrote; added a new method `CoverageReport::info()`
+
+### Features
+
+* **codecov:** add --coverage-level=line|branch|path ([addbb76](https://github.com/php-testo/testo/commit/addbb76016ac5fc0b8d5473084887ab5182a967c))
+* **codecov:** announce every coverage report that states where it wrote; added a new method `CoverageReport::info()` ([509aa6f](https://github.com/php-testo/testo/commit/509aa6fd942bd8018e63dd8cb45baae169a04102))
+* **core:** describe a run's time with a `RunTiming` DTO instead of a bare duration ([75c2472](https://github.com/php-testo/testo/commit/75c2472c740e51c416f7d875a4d552276b828541))
+
+
+### Bug Fixes
+
+* **codecov:** keep the configured level when CLI report flags activate coverage ([addbb76](https://github.com/php-testo/testo/commit/addbb76016ac5fc0b8d5473084887ab5182a967c))
+* **report:** update report type from 'phpunit-xml' to 'coverage-xml' ([0b715e0](https://github.com/php-testo/testo/commit/0b715e030c67223af9edf85f2ceb06f2e389b8ca))
+
 ## [0.1.12](https://github.com/php-testo/testo/compare/codecov-0.1.11...codecov-0.1.12) (2026-08-06)
 
 

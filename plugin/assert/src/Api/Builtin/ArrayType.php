@@ -42,4 +42,21 @@ interface ArrayType extends IterableType
      * @throws AssertionException when the assertion fails.
      */
     public function isList(string $message = ''): static;
+
+    /**
+     * Asserts that the array holds the same elements as the expected iterable, regardless of order.
+     *
+     * Both sides are canonicalized (recursively sorted, keys discarded) and then compared loosely:
+     *
+     * ```php
+     * Assert::array([3, 1, 2])->sameElementsAs([1, 2, 3]);         // passes — order ignored
+     * Assert::array(['a' => 1, 'b' => 2])->sameElementsAs([2, 1]); // passes — keys ignored
+     * Assert::array([1, 2])->sameElementsAs([1, 2, 3]);            // fails — different elements
+     * ```
+     *
+     * @param iterable $expected The expected elements, in any order.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    public function sameElementsAs(iterable $expected, string $message = ''): static;
 }

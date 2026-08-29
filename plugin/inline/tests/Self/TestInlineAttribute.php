@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Data\Self;
+namespace Tests\Inline\Self;
 
 use Testo\Assert;
 use Testo\Codecov\Covers;

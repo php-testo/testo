@@ -43,5 +43,14 @@ final readonly class JUnitCaseNode
          * Mapped to `testo:data-set-key` on `<testcase>` when set.
          */
         public string|int|null $datasetKey = null,
+
+        /**
+         * Named numeric measurements to emit as `<properties>` inside the `<testcase>` — currently the
+         * benchmark counters, for tests that are benchmarks. Empty for an ordinary test, in which case
+         * no `<properties>` element is written at all.
+         *
+         * @var array<non-empty-string, int|float>
+         */
+        public array $properties = [],
     ) {}
 }

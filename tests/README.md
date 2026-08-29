@@ -13,6 +13,10 @@ integrating the Assert module tests into the overall Testo testing process.
 Tests must be isolated from other tests, meaning each module should have
 its own fixtures, mock objects, etc.
 
+Pass `--log-html` (or `--log-report`) to write an HTML report of the run — open it in a browser to inspect
+what ran, with channel output, failures and timings. Without the flag no report is written: the default
+`HtmlPlugin` is inert. The flag with no path uses `runtime/report/index.html`, overwritten by the next run.
+
 ## Self Tests
 
 In addition to the commonly known types of tests (unit tests, integration tests, etc.),

@@ -1,6 +1,6 @@
 ---
 name: testo-inline-tests
-description: Attach #[TestInline] cases directly to production methods so the example/doctest lives next to the implementation. Use when the user asks for "inline tests", "doctests", "examples next to code", or wants quick example-based verification of a pure function without a dedicated test class.
+description: 'Attach #[TestInline] cases directly to production methods so the example/doctest lives next to the implementation. Use when the user asks for "inline tests", "doctests", "examples next to code", or wants quick example-based verification of a pure function without a dedicated test class.'
 ---
 
 # Inline tests in Testo (`#[TestInline]`)

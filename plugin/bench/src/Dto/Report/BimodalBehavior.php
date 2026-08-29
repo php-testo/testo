@@ -19,7 +19,7 @@ final readonly class BimodalBehavior extends Report
         parent::__construct(
             severity: Severity::Danger,
             reason: 'Bimodal behavior',
-            advice: 'Function has two execution modes — benchmark each separately.',
+            advice: 'Split into separate benchmarks.',
         );
     }
 }

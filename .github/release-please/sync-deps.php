@@ -52,6 +52,14 @@ const MANIFEST = 'resources/version.json';
 const SECTIONS = ['require', 'require-dev'];
 
 /**
+ * Trailing sentinel key in the manifest. It carries no package: its only job is
+ * to keep every real entry comma-terminated so a `merge=union` of concurrent
+ * per-package version bumps (see .gitattributes) stays valid JSON. Skipped
+ * everywhere a manifest key is treated as a package path.
+ */
+const SENTINEL = '_';
+
+/**
  * The framework meta-package that plugins/bridges depend on. Unlike siblings
  * (pinned with a caret), it is refreshed with an open upper bound
  * (`<version> - 1`, i.e. `>=<version> <2.0.0`) so it still resolves against the
@@ -74,6 +82,9 @@ $previous = $hasPrevious ? readJson($argv[1]) : [];
 // changed, so we fall back to refreshing every package.
 $released = [];
 foreach ($manifest as $path => $version) {
+    if ($path === SENTINEL) {
+        continue;
+    }
     if (!$hasPrevious || !\array_key_exists($path, $previous) || $previous[$path] !== $version) {
         $released[$path] = true;
     }
@@ -86,7 +97,7 @@ $rootVersion = isset($manifest['.']) ? (string) $manifest['.'] : null;
 // The root (testo/testo) is intentionally excluded — siblings only.
 $versions = [];
 foreach ($manifest as $path => $version) {
-    if ($path === '.') {
+    if ($path === '.' || $path === SENTINEL) {
         continue;
     }
     $composer = readJson($root . "/$path/composer.json");

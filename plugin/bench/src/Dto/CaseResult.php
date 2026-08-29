@@ -16,7 +16,7 @@ final readonly class CaseResult
         /** Median time across all iterations in microseconds. */
         public float $med,
 
-        /** Standard deviation of the time values across all iterations. */
+        /** Relative standard deviation across all iterations, as a percentage of the mean. */
         public float $rstdev,
 
         /** @var int<0, max> Number of iterations that were rejected from the final results. */
@@ -25,7 +25,7 @@ final readonly class CaseResult
         /** Average time across all the filtered iterations in microseconds. */
         public float $favg,
 
-        /** Standard deviation of the time values across all the filtered iterations. */
+        /** Relative standard deviation across the filtered iterations, as a percentage of the filtered mean. */
         public float $frstdev,
     ) {}
 }

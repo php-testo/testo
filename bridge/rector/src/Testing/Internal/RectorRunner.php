@@ -55,10 +55,8 @@ final readonly class RectorRunner
         }
 
         # Mirror AbstractRectorTestCase: hand the freshly-registered rules to the traverser.
-        # `tagged()` returns a Traversable (Illuminate RewindableGenerator); avoid naming the
-        # php-scoper-prefixed class and just iterate it.
-        $tagged = $rectorConfig->tagged(RectorInterface::class);
-        $rectors = \is_iterable($tagged) ? \iterator_to_array($tagged, false) : [];
+        # `findByContract()` returns them as a plain, 0-indexed list.
+        $rectors = $rectorConfig->findByContract(RectorInterface::class);
         $rectorConfig->make(RectorNodeTraverser::class)->refreshPhpRectors($rectors);
 
         $this->fileProcessor = $rectorConfig->make(ApplicationFileProcessor::class);

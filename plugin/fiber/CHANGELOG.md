@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/fiber-0.1.2...fiber-0.1.3) (2026-08-25)
+
+
+### Features
+
+* allow #[RunInFiber] and #[RunInRevolt] on free functions ([#295](https://github.com/php-testo/testo/issues/295)) ([b258cbe](https://github.com/php-testo/testo/commit/b258cbec2cc86ba73f15ff88e8c4fa786210e56c))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/fiber-0.1.1...fiber-0.1.2) (2026-08-10)
 
 

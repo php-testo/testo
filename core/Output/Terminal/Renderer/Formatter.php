@@ -8,6 +8,7 @@ use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Common\Info;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\SuiteResult;
+use Testo\Core\Value\RunTiming;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Output\Rendering\Color;
@@ -232,12 +233,12 @@ final class Formatter
      * Formats final summary section.
      *
      * @param Summary $summary Aggregated session statistics.
-     * @param float $duration Wall-clock duration in seconds.
+     * @param RunTiming $timing Where the run spent its time.
      * @return non-empty-string
      */
     public static function summary(
         Summary $summary,
-        float $duration,
+        RunTiming $timing,
     ): string {
         $parts = [];
         $passed = $summary->count(Status::Passed);
@@ -261,11 +262,9 @@ final class Formatter
         $total = $summary->total();
         $assertions = $summary->metric('assertions');
         $breakdown = $parts === [] ? Style::dim('no tests') : \implode(', ', $parts);
-        $testsTime = self::formatDuration($summary->duration);
-        $overheadTime = self::formatDuration(\max(0, $duration - $summary->duration));
 
         $result = "\n\n " . Style::bold('Summary') . "\n\n";
-        $result .= self::statRow('Time', Style::dim("{$testsTime} tests · {$overheadTime} overhead"));
+        $result .= self::statRow('Time', Style::dim(self::timeBreakdown($summary, $timing)));
         $result .= self::statRow('Total', "{$total} tests · {$assertions} assertions");
 
         return $result . self::statRow('', $breakdown);
@@ -356,6 +355,32 @@ final class Formatter
         $label = $label === '' ? \str_repeat(' ', self::STAT_LABEL_WIDTH) : Style::dim(\str_pad($label, self::STAT_LABEL_WIDTH));
 
         return ' ' . $label . $value . "\n";
+    }
+
+    /**
+     * Where the run's time went: what the tests declared, and what the framework spent around them.
+     *
+     * Overhead is the `tests` phase minus the declared test time — discovery is a phase of its own and
+     * never counted as overhead. That subtraction only holds while the tests ran one after another: once
+     * they overlap, declared time exceeds the wall it ran on and the difference stops being overhead.
+     * Telling the two numbers apart needs the union of the test intervals, which a terminal run does not
+     * record, so a concurrent run states the wall it took instead of claiming an overhead of zero.
+     *
+     * `total` closes the account: the phases outside the loop (startup, discovery, teardown) are the
+     * difference between it and the numbers before it.
+     *
+     * @return non-empty-string
+     */
+    private static function timeBreakdown(Summary $summary, RunTiming $timing): string
+    {
+        $declared = self::formatDuration($summary->duration);
+        $total = self::formatDuration($timing->total());
+
+        $spent = $summary->duration <= $timing->tests
+            ? self::formatDuration($timing->tests - $summary->duration) . ' overhead'
+            : self::formatDuration($timing->tests) . ' wall';
+
+        return "{$declared} tests · {$spent} · {$total} total";
     }
 
     /**

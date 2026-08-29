@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.1.14](https://github.com/php-testo/testo/compare/assert-0.1.13...assert-0.1.14) (2026-08-27)
+
+
+### Bug Fixes
+
+* **bench:** partition the variance bands cleanly at frstdev == 10.0 ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+* **rector:** resolve rule instances via findByContract, require rector/rector ^2.6.4 (Rector 2.6.4 dropped RectorConfig::tagged(); rectorphp/rector[#9870](https://github.com/php-testo/testo/issues/9870)) ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+* **rector:** surface a rule setup failure as an errored data set ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+
+
+### Code Refactoring
+
+* **codecov:** null-coalescing assignment in CoberturaReport ([e0ff9ac](https://github.com/php-testo/testo/commit/e0ff9ac7e21d419d0985c642972331cf4852d6f3))
+
+## [0.1.13](https://github.com/php-testo/testo/compare/assert-0.1.12...assert-0.1.13) (2026-08-18)
+
+
+### Features
+
+* **assert:** implement numeric(), notBlank() and sameElementsAs() ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+* **rector:** convert new assertions and add Repeat/Retry ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
+
+### Bug Fixes
+
+* **test:** make the PHPUnit mutation mirror run green under PHPUnit 13.3 ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
+
+### Documentation
+
+* FEATURE_PARITY.md, both TODO.md, and the testo-write-tests / testo-migrate-from-phpunit skills. ([5cc3e53](https://github.com/php-testo/testo/commit/5cc3e5392c0e08beb67df068e8f5e89aba25d282))
+
 ## [0.1.12](https://github.com/php-testo/testo/compare/assert-0.1.11...assert-0.1.12) (2026-08-06)
 
 
