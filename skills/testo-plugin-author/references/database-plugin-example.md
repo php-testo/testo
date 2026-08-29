@@ -7,6 +7,8 @@ connection". Compile the heavy bit **once**, store it in the container; build th
 service in a scope; do only cheap reset work per test; skip if the dependency is down.
 
 ```php
+use Testo\Common\Messenger;
+
 final readonly class DatabasePlugin implements PluginConfigurator
 {
     public function configure(Container $container): void
@@ -14,7 +16,11 @@ final readonly class DatabasePlugin implements PluginConfigurator
         $schema = $this->compileSchemaOnce();          // expensive, driver-agnostic
         $container->set($schema, SchemaInterface::class);
 
-        $pool = new ConnectionPool();
+        // A Messenger channel is a PSR-3 logger; hand it to anything that takes one.
+        // Every query logged during a test lands in that test's own output.
+        $sql = $container->get(Messenger::class)->channel('query.sql');
+
+        $pool = new ConnectionPool(logger: $sql);
         $container->set($pool);
 
         $container->get(InterceptorCollector::class)
@@ -77,3 +83,6 @@ Plugin lessons this encodes:
   read services back from it, so there's no separate fixture object to thread around.
 - **Skip, don't fail**, when an external dependency is unavailable.
 - A **custom attribute** (`#[WithoutTransaction]`) lets individual tests opt out of the wrapping.
+- **Route diagnostics through a `Messenger` channel**, not `echo`/`error_log`: the channel is a PSR-3
+  `LoggerInterface`, and the hub scopes messages per test — each test's queries show up in its own
+  report block, even when tests interleave.

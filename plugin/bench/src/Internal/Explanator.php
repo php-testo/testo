@@ -40,7 +40,7 @@ final class Explanator
                 name: $cases[$k]->name,
                 avg: new ValueRel(
                     value: $result->mean,
-                    diff: $baseTime > 0 ? ($result->mean - $baseMean) / $baseMean * 100 : 0.0,
+                    diff: $baseMean > 0 ? ($result->mean - $baseMean) / $baseMean * 100 : 0.0,
                 ),
                 med: new ValueRel(
                     value: $result->med,
@@ -119,7 +119,7 @@ final class Explanator
         };
 
         // Preventive: low iter time with acceptable RStDev
-        $iterTime < 10.0 && $frstdev <= 10.0
+        $iterTime < 10.0 && $frstdev < 10.0
             and $result[] = new Report\LowIterTime($iterTime);
 
         return $result;

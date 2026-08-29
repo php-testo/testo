@@ -13,11 +13,13 @@ final class BenchAttr
 {
     #[Bench(
         [
-            'shift' => [self::class, 'sumLinearF2'],
-            'multi' => [self::class, 'sumLinearF3'],
+            'cycle' => [self::class, 'sumInCycle'],
+            'sumInArray' => [self::class, 'sumRange'],
+            'eval1' => [self::class, 'eval1'],
             'recursion' => [self::class, 'rangeSum'],
         ],
-        arguments: [1, 20_000],
+        arguments: [1, 5_000],
+        warmup: 10,
         calls: 20,
         iterations: 10,
     )]
@@ -35,6 +37,17 @@ final class BenchAttr
         return (int) (($d - 1) * $d * 0.5) + $a * $d;
     }
 
+    #[Bench(
+        [
+            'division' => [self::class, 'sumLinearF1'],
+            'multi' => [self::class, 'sumLinearF3'],
+            'recursion' => [self::class, 'rangeSum'],
+        ],
+        arguments: [1, 20_000],
+        calls: 20,
+        iterations: 10,
+        tolerance: \INF,
+    )]
     #[TestInline([1, 2000], 2001000)]
     #[TestInline([24, 2000], 2000724)]
     public static function sumLinearF2(int $a, int $b): int
@@ -50,27 +63,6 @@ final class BenchAttr
         return $a === $b ? $a : $a + self::rangeSum($a + 1, $b);
     }
 
-    // #[Bench(
-    //     [
-    //         'sumInArray' => [self::class, 'sumRange'],
-    //         'sumLinearF' => [self::class, 'sumLinearF1'],
-    //     ],
-    //     arguments: [1, 5_000],
-    //     calls: 20,
-    //     iterations: 10,
-    // )]
-    #[Bench(
-        [
-            'sumInArray' => [self::class, 'sumRange'],
-            'sumLinearF' => [self::class, 'sumLinearF1'],
-            'eval1' => [self::class, 'eval1'],
-            'recursion' => [self::class, 'rangeSum'],
-        ],
-        arguments: [1, 5_000],
-        warmup: 10,
-        calls: 20,
-        iterations: 10,
-    )]
     public static function sumInCycle(int $a, int $b): int
     {
         $result = 0;

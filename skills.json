@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/roxblnfk/skills/master/resources/skills.schema.json",
-    "target": ".claude/skills",
-    "aliases": [".agents/skills"],
+    "target": ".agents/skills",
+    "aliases": [".claude/skills"],
     "sources": [
         { "from": "dir", "path": "skills" },
         {
