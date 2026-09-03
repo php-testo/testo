@@ -47,6 +47,29 @@ interface — parse the JSON. When a human also needs terminal output (CI logs),
 - `failures` — every failed/errored test with what you need to fix it: the throwable, its
   `previous` chain (`causedBy`), a stack trace trimmed at the test boundary, and captured
   output (`stdout`, log channels).
+- `benchmarks` — present only when the run measured benchmarks (`#[Bench]`), omitted otherwise, so an
+  ordinary run's payload is unchanged. One entry per benchmark test — per data set for a repeatable one,
+  each carrying its `dataProvider`/`dataSet` — with `iterations`, the ranked `cases`, and `diagnostics`.
+
+```json
+"benchmarks": [
+    {
+        "test": "App\\Bench\\SortBench::compare",
+        "iterations": 10,
+        "cases": [
+            {"name": "shift", "place": 1, "calls": 20, "mean": 0.26, "median": 0.27, "meanDiff": 0.0,
+             "medianDiff": 0.0, "rstdev": 5.6, "filteredMean": 0.26, "filteredMeanDiff": 0.0,
+             "filteredRstdev": 5.6, "rejected": 0, "memory": 4096}
+        ],
+        "diagnostics": [{"case": "shift", "kind": "HighVariance", "severity": "warning", "reason": "…", "advice": "…"}]
+    }
+]
+```
+
+A case ranks by `place` (1 is fastest); times are microseconds, each `…Diff` a percentage against the
+`current` case (the `#[Bench]`-marked method) as the baseline — 0.0 for it, positive for slower,
+negative for faster — `rstdev` the spread as a percent of the mean, the `filtered*` trio the same with
+outliers dropped, and `memory` the peak bytes per iteration.
 
 ## Selecting what to run
 
@@ -81,7 +104,8 @@ over-narrow filter — widen it (a typo in `--filter`, a `--path` that matches n
 
 - Coverage (`--coverage`, `--coverage-clover=`, `--coverage-level=`, …) — see the
   `testo-coverage` skill.
-- `--log-junit=`, `--log-html=` (a `.html` path → single file, anything else → directory),
+- `--log-junit=`, `--log-html=` (a `.html` path → single file, anything else → directory;
+  bare `--log-html` → `runtime/report`),
   `--log-report=` (the full run as a versioned JSON document — the data behind the HTML),
   `--teamcity` — reports for CI and IDEs, not for agent parsing.
 - `--config=path/to/testo.php` when the config is not at the project root.

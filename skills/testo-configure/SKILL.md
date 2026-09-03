@@ -81,12 +81,12 @@ Run it: `vendor/bin/testo`. The single suite `Unit` will be discovered under `te
 - `location` — directories or `FinderConfig` for the suite's test files.
 - `plugins` — suite-specific plugins, or `SuitePlugins::only(...)` to override inherited application plugins.
 
-`FinderConfig(includes, excludes)` — when a flat array isn't enough (e.g. exclude module's own tests):
+`FinderConfig(include, exclude)` — when a flat array isn't enough (e.g. exclude module's own tests):
 
 ```php
 new FinderConfig(
-    includes: ['core', 'plugin', 'bridge'],
-    excludes: ['plugin/assert/tests', 'plugin/codecov/tests'],
+    include: ['core', 'plugin', 'bridge'],
+    exclude: ['plugin/assert/tests', 'plugin/codecov/tests'],
 );
 ```
 

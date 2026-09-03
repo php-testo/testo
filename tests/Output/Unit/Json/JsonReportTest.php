@@ -6,6 +6,11 @@ namespace Tests\Output\Unit\Json;
 
 use Internal\Path;
 use Testo\Assert;
+use Testo\Bench\Dto\BenchResult;
+use Testo\Bench\Dto\CaseSet;
+use Testo\Bench\Dto\Line;
+use Testo\Bench\Dto\Snap;
+use Testo\Bench\Dto\ValueRel;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
@@ -14,6 +19,7 @@ use Testo\Core\Context\SuiteResult;
 use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Log\Level;
@@ -22,6 +28,7 @@ use Testo\Core\Log\MessageLog;
 use Testo\Core\Value\RunTiming;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
+use Testo\Data\MultipleResult;
 use Testo\Output\Json\Internal\JsonReport;
 use Testo\Test;
 use Tests\Output\Stub\JUnit\SampleTestClass;
@@ -196,6 +203,57 @@ final class JsonReportTest
         Assert::same($report['failures'], []);
     }
 
+    public function benchmarkResultIsReportedAsData(): void
+    {
+        $report = self::decode(self::run(
+            Status::Passed,
+            results: [self::benchTest('shiftVsPush', self::benchResult())],
+        ));
+
+        Assert::count($report['benchmarks'], 1);
+        $bench = $report['benchmarks'][0];
+
+        Assert::same($bench['test'], SampleTestClass::class . '::shiftVsPush');
+        Assert::same($bench['iterations'], 1);
+        Assert::same($bench['cases'][0]['name'], 'shift');
+        Assert::same($bench['cases'][0]['mean'], 5.1);
+    }
+
+    public function aRunWithoutBenchmarksOmitsTheSectionEntirely(): void
+    {
+        // Byte-for-byte identical to before the feature: the key is absent, not an empty array.
+        $report = self::decode(self::run(
+            Status::Passed,
+            results: [self::test('passingTest', Status::Passed)],
+        ));
+
+        Assert::false(\array_key_exists('benchmarks', $report));
+    }
+
+    public function aRepeatableBenchmarkContributesOneEntryPerDataSet(): void
+    {
+        $identity = (new SuiteIdentity('Output/Unit'))
+            ->toCase(SampleTestClass::class, 'bench', Path::create(__FILE__))
+            ->toTest('shiftVsPush');
+
+        $multiple = new MultipleResult([
+            self::benchTest('shiftVsPush', self::benchResult(), $identity->toDataSet(0, 0)),
+            self::benchTest('shiftVsPush', self::benchResult(), $identity->toDataSet(0, 1)),
+        ]);
+        // The umbrella result of a data-provider run carries no return value of its own; each set does.
+        $test = self::test('passingTest', Status::Passed)
+            ->withAttribute(MultipleResult::class, $multiple);
+
+        $report = self::decode(self::run(Status::Passed, results: [$test]));
+
+        // The single umbrella result is not itself an entry; each data set is, addressed by the same
+        // coordinates `--filter=method:0:1` names.
+        Assert::count($report['benchmarks'], 2);
+        Assert::same($report['benchmarks'][0]['dataProvider'], 0);
+        Assert::same($report['benchmarks'][0]['dataSet'], 0);
+        Assert::same($report['benchmarks'][1]['dataSet'], 1);
+    }
+
     /**
      * @return array<non-empty-string, mixed>
      */
@@ -249,6 +307,50 @@ final class JsonReportTest
             status: $status,
             failure: $failure,
             messages: $messages ?? new MessageLog(),
+        );
+    }
+
+    private static function benchTest(
+        string $method,
+        BenchResult $result,
+        ?TestIdentity $identity = null,
+    ): TestResult {
+        $info = new TestInfo(
+            name: $method,
+            caseInfo: new CaseInfo(
+                suiteIdentity: new SuiteIdentity('Output/Unit'),
+                definition: new CaseDefinition(
+                    name: SampleTestClass::class,
+                    type: 'bench',
+                    file: Path::create(__FILE__),
+                    reflection: new \ReflectionClass(SampleTestClass::class),
+                ),
+            ),
+            testDefinition: new TestDefinition(new \ReflectionMethod(SampleTestClass::class, 'passingTest')),
+            identity: $identity,
+        );
+
+        return new TestResult(info: $info, status: Status::Passed, result: $result);
+    }
+
+    private static function benchResult(): BenchResult
+    {
+        return new BenchResult(
+            cases: [new CaseSet('shift', [new Snap(calls: 20, memory: 0, time: 5.1)])],
+            results: [],
+            lines: [
+                new Line(
+                    place: 1,
+                    name: 'shift',
+                    avg: new ValueRel(5.1, 0.0),
+                    med: new ValueRel(5.1, 0.0),
+                    rstdev: 2.0,
+                    favg: new ValueRel(5.1, 0.0),
+                    frstdev: 2.0,
+                    rejected: 0,
+                    reports: [],
+                ),
+            ],
         );
     }
 }

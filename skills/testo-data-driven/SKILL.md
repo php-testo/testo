@@ -63,7 +63,7 @@ Rules:
 
 - Provider must be `public static` and return `iterable`.
 - Prefer `yield 'label' => [...]` over numeric keys — labels appear in output.
-- Provider lives on the same class unless `#[DataProvider(Other::class, 'method')]` is supported by the version in use (verify against `llms-full.txt`).
+- The constructor takes a single `callable|string` argument. A provider on another class is referenced as a callable string: `#[DataProvider(Other::class . '::method')]` (the method must be `public static`).
 
 ## `#[DataZip]` — index-aligned pairing
 

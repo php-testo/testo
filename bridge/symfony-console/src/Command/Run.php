@@ -9,6 +9,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Testo\Output\Html\HtmlPlugin;
 use Testo\Output\Json\JsonPlugin;
 use Testo\Output\Teamcity\TeamcityPlugin;
 use Testo\Output\Terminal\TerminalPlugin;
@@ -154,9 +155,10 @@ final class Run extends Base
         $this->addOption(
             'log-html',
             null,
-            InputOption::VALUE_REQUIRED,
+            InputOption::VALUE_OPTIONAL,
             'Write a self-contained HTML report. A path ending in ".html" produces that single file; '
             . 'anything else is a directory to fill with index.html and its assets. '
+            . 'Without a value the report goes to ' . HtmlPlugin::DEFAULT_PATH . '. '
             . 'The report opens over file:// with no server.',
         );
         // $this->addOption(
@@ -218,5 +220,22 @@ final class Run extends Base
         return $result->status->isSuccessful()
             ? Command::SUCCESS
             : Command::FAILURE;
+    }
+
+    /**
+     * Exists because the option definition cannot express "a bare `--log-html` falls back to the default
+     * path": a VALUE_OPTIONAL option reports null both when absent and when passed without a value, and a
+     * declared default would fire for the absent case too — so the two nulls are told apart against the
+     * raw parameters instead. Lives in `initialize()` and not in `__invoke()` with the other flags
+     * because {@see Base::execute()} snapshots the options for config hydration between the two — any
+     * later, and the resolved path would never reach the reporter.
+     */
+    #[\Override]
+    protected function initialize(InputInterface $input, OutputInterface $output): void
+    {
+        parent::initialize($input, $output);
+
+        $input->getOption('log-html') === null && $input->hasParameterOption('--log-html', true)
+            and $input->setOption('log-html', HtmlPlugin::DEFAULT_PATH);
     }
 }

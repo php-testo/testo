@@ -8,6 +8,7 @@ use Internal\Path;
 use Testo\Application\Config\RunConfiguration;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
+use Testo\Bench\Dto\BenchResult;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
@@ -32,6 +33,7 @@ use Testo\Event\Test\TestRetrying;
 use Testo\Output\Html\Internal\DocumentBuilder;
 use Testo\Output\Html\Internal\Json;
 use Testo\Output\Html\Internal\Recorder;
+use Testo\Retry;
 use Testo\Test;
 use Tests\Output\Stub\Html\SampleTestClass;
 
@@ -205,6 +207,244 @@ final class DocumentBuilderTest
             ['name' => 'stderr', 'messages' => 1],
             ['name' => 'stdout', 'messages' => 1],
         ]);
+    }
+
+    public function aNonFailureStatusTakesItsReasonFromTheFailureMessage(): void
+    {
+        $recorder = new Recorder();
+        $info = self::start(self::dispatcher($recorder), 'passingTest');
+
+        // A skip is neither passed nor failed, so its reason lives only on the carried failure's message.
+        $test = new TestResult(
+            info: $info,
+            status: Status::Skipped,
+            failure: new \RuntimeException('database not reachable'),
+            summary: Summary::forTest(Status::Skipped),
+        );
+
+        $rendered = self::documentOf([$test], $recorder)['suites'][0]['cases'][0]['tests'][0];
+        Assert::same($rendered['status'], 'skipped');
+        Assert::same($rendered['statusReason'], 'database not reachable');
+    }
+
+    public function anEmptyReasonMessageIsOmittedRatherThanShownBlank(): void
+    {
+        $recorder = new Recorder();
+        $info = self::start(self::dispatcher($recorder), 'passingTest');
+
+        // A skip whose failure carries no message has no reason to state; the section is dropped, not blank.
+        $test = new TestResult(
+            info: $info,
+            status: Status::Skipped,
+            failure: new \RuntimeException(''),
+            summary: Summary::forTest(Status::Skipped),
+        );
+
+        $rendered = self::documentOf([$test], $recorder)['suites'][0]['cases'][0]['tests'][0];
+        Assert::same($rendered['status'], 'skipped');
+        Assert::false(isset($rendered['statusReason']));
+    }
+
+    public function theRetryPolicyIsReadFromASingleRetryAttribute(): void
+    {
+        // A test carries its retry policy as one attribute instance.
+        $policy = self::retryPolicyFor(new Retry(maxAttempts: 5, markFlaky: false));
+
+        Assert::same($policy, ['maxAttempts' => 5, 'markFlaky' => false]);
+    }
+
+    public function theRetryPolicyIsReadWhenTheAttributeRepeats(): void
+    {
+        // The pipeline groups a repeatable attribute into a list; the first Retry still wins.
+        $policy = self::retryPolicyFor([new Retry(maxAttempts: 2)]);
+
+        Assert::same($policy, ['maxAttempts' => 2, 'markFlaky' => true]);
+    }
+
+    public function messageContextRendersUnserialisableValuesAsLabels(): void
+    {
+        $recorder = new Recorder();
+        $info = self::start(self::dispatcher($recorder), 'passingTest');
+
+        // A value that cannot survive JSON as itself is stated as a printed label rather than dropped.
+        $test = new TestResult(
+            info: $info,
+            status: Status::Passed,
+            messages: new MessageLog([
+                new Message(\microtime(true), 'stdout', Level::Info, 'query', ['connection' => new \stdClass()]),
+            ]),
+            summary: Summary::forTest(Status::Passed),
+        );
+
+        $rendered = self::documentOf([$test], $recorder)['suites'][0]['cases'][0]['tests'][0];
+        Assert::same($rendered['messages'][0]['context']['connection'], '\\stdClass');
+    }
+
+    public function aRunWithoutRecordedStartsHasNoExecutionWindow(): void
+    {
+        $recorder = new Recorder();
+        self::dispatcher($recorder); // Session start stamps the origin, but no test announces a start.
+
+        $test = new TestResult(
+            info: self::makeTestInfo('passingTest'),
+            status: Status::Passed,
+            summary: Summary::forTest(Status::Passed, 0.01),
+        );
+
+        // With no interval to union there is no window to divide the declared work by.
+        $run = self::documentOf([$test], $recorder)['run'];
+        Assert::same($run['execution'], 0.0);
+        Assert::same($run['boost'], null);
+    }
+
+    public function twoNonOverlappingTestsCountAsTheSumOfTheirWindows(): void
+    {
+        $recorder = new Recorder();
+        $dispatcher = self::dispatcher($recorder);
+        $first = self::start($dispatcher, 'passingTest');
+        \usleep(2000);
+        $second = self::start($dispatcher, 'failingTest');
+
+        $tests = [
+            new TestResult(info: $first, status: Status::Passed, summary: Summary::forTest(Status::Passed)),
+            new TestResult(info: $second, status: Status::Passed, summary: Summary::forTest(Status::Passed, 0.01)),
+        ];
+
+        // The windows do not overlap, so execution is their sum — the gap between them is not counted.
+        $run = self::documentOf($tests, $recorder)['run'];
+        Assert::true($run['execution'] >= 0.01 - 1e-9, "execution = {$run['execution']}");
+        Assert::true($run['execution'] < 0.0105, "execution = {$run['execution']}");
+    }
+
+    public function aBenchmarkResultIsMappedOntoTheTest(): void
+    {
+        $recorder = new Recorder();
+        $info = self::start(self::dispatcher($recorder), 'passingTest');
+
+        // The benchmark's structured result is the test's return value, mapped into the document as data.
+        $test = new TestResult(
+            info: $info,
+            status: Status::Passed,
+            result: new BenchResult(cases: [], results: [], lines: []),
+            summary: Summary::forTest(Status::Passed, 0.02),
+        );
+
+        $rendered = self::documentOf([$test], $recorder)['suites'][0]['cases'][0]['tests'][0];
+        Assert::same($rendered['bench']['iterations'], 0);
+        Assert::same($rendered['bench']['cases'], []);
+        Assert::same($rendered['bench']['diagnostics'], []);
+    }
+
+    public function dataSetsCarryTheirFailuresAndBenchmarks(): void
+    {
+        $recorder = new Recorder();
+        $dispatcher = self::dispatcher($recorder);
+        $info = self::start($dispatcher, 'datasetTest');
+
+        $failed = $info->with(
+            arguments: ['x', 1],
+            identity: $info->identity->toDataSet(dataProvider: 0, dataSet: 0),
+        );
+        $dispatcher->dispatch(new TestDataSetStarting($failed, 'first', 0, 0));
+        $failedResult = new TestResult(
+            info: $failed,
+            status: Status::Failed,
+            failure: new \RuntimeException('set boom'),
+            summary: Summary::forTest(Status::Failed, 0.01),
+        );
+
+        $benched = $info->with(
+            arguments: ['y', 2],
+            identity: $info->identity->toDataSet(dataProvider: 0, dataSet: 1),
+        );
+        $dispatcher->dispatch(new TestDataSetStarting($benched, 'second', 0, 1));
+        $benchResult = new TestResult(
+            info: $benched,
+            status: Status::Passed,
+            result: new BenchResult(cases: [], results: [], lines: []),
+            summary: Summary::forTest(Status::Passed, 0.02),
+        );
+
+        $multiple = new MultipleResult([$failedResult, $benchResult]);
+        $test = new TestResult(
+            info: $info,
+            status: Status::Failed,
+            result: $multiple,
+            attributes: [MultipleResult::class => $multiple],
+            summary: Summary::combine([$failedResult->summary, $benchResult->summary]),
+        );
+
+        // A data set states its own failure and its own benchmark, each on the set it belongs to.
+        $sets = self::documentOf([$test], $recorder)['suites'][0]['cases'][0]['tests'][0]['dataSets'];
+        Assert::same($sets[0]['failure']['message'], 'set boom');
+        Assert::false(isset($sets[0]['bench']));
+        Assert::same($sets[1]['bench']['iterations'], 0);
+        Assert::false(isset($sets[1]['failure']));
+    }
+
+    public function outputPastTheLimitIsCountedButNoLongerEmitted(): void
+    {
+        $recorder = new Recorder();
+        $info = self::start(self::dispatcher($recorder), 'passingTest');
+
+        $test = new TestResult(
+            info: $info,
+            status: Status::Passed,
+            messages: new MessageLog([
+                new Message(\microtime(true), 'stdout', Level::Info, 'ab'),
+                new Message(\microtime(true), 'stdout', Level::Info, 'cdef'),
+                new Message(\microtime(true), 'stdout', Level::Info, 'gh'),
+            ]),
+            summary: Summary::forTest(Status::Passed),
+        );
+
+        // Once the cap is crossed every later message is still counted for the total but no longer emitted.
+        $rendered = self::documentOf([$test], $recorder, messageLimit: 4)['suites'][0]['cases'][0]['tests'][0];
+        Assert::same($rendered['truncated']['messages']['total'], 3);
+        Assert::same($rendered['truncated']['messages']['shown'], 1);
+        Assert::same(\count($rendered['messages']), 1);
+    }
+
+    /**
+     * @return array{maxAttempts: int, markFlaky: bool}
+     */
+    private static function retryPolicyFor(mixed $attribute): array
+    {
+        $recorder = new Recorder();
+        $info = self::makeTestInfo('flakyTest')->withAttribute(Retry::class, $attribute);
+        self::dispatcher($recorder)->dispatch(new TestPipelineStarting($info));
+
+        $test = new TestResult(
+            info: $info,
+            status: Status::Passed,
+            summary: Summary::forTest(Status::Passed, 0.01),
+        );
+
+        /** @var array{maxAttempts: int, markFlaky: bool} */
+        return self::documentOf([$test], $recorder)['suites'][0]['cases'][0]['tests'][0]['retryPolicy'];
+    }
+
+    /**
+     * @param list<TestResult> $tests
+     * @param int<0, max> $messageLimit
+     * @return array<non-empty-string, mixed>
+     */
+    private static function documentOf(array $tests, Recorder $recorder, int $messageLimit = 65536): array
+    {
+        $summary = Summary::combine(\array_map(
+            static fn(TestResult $r): Summary => $r->summary,
+            $tests,
+        ));
+        $case = new CaseResult($tests, status: Status::Failed, summary: $summary);
+        $suite = new SuiteResult([$case], status: Status::Failed, summary: $summary);
+        $result = new RunResult(
+            [$suite],
+            status: Status::Failed,
+            summary: $summary,
+            timing: new RunTiming(startup: 0.1, discovery: 0.2, tests: 0.15, teardown: 0.05),
+        );
+
+        return self::builder($recorder, $messageLimit)->build($result);
     }
 
     /**

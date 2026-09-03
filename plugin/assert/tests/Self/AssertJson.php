@@ -54,6 +54,46 @@ final class AssertJson
     }
 
     /**
+     * One matching JSON value per distinct type arm the matcher supports.
+     */
+    public static function typeArms(): iterable
+    {
+        yield 'true literal' => ['true', 'true'];
+        yield 'false literal' => ['false', 'false'];
+        yield 'mixed accepts anything' => ['[1, 2]', 'mixed'];
+        yield 'scalar int' => ['42', 'scalar'];
+        yield 'scalar null' => ['null', 'scalar'];
+        yield 'numeric int' => ['42', 'numeric'];
+        yield 'numeric float' => ['3.14', 'numeric'];
+        yield 'numeric string' => ['"42"', 'numeric'];
+        yield 'class-string' => ['"AnyClass"', 'class-string'];
+
+        yield 'plain array on object' => ['{"a": 1}', 'array'];
+        yield 'plain array on list' => ['[1, 2]', 'array'];
+        yield 'plain array empty' => ['{}', 'array'];
+        yield 'non-empty-array on object' => ['{"a": 1}', 'non-empty-array'];
+        yield 'non-empty-array on list' => ['[1]', 'non-empty-array'];
+        yield 'plain list' => ['[1, 2]', 'list'];
+        yield 'non-empty plain list' => ['[1, 2]', 'non-empty-list'];
+
+        yield 'generic map key+value' => ['{"a": 1, "b": 2}', 'array<string, int>'];
+        yield 'generic array value only' => ['[1, 2]', 'array<int>'];
+        yield 'non-empty-list generic' => ['[1, 2]', 'non-empty-list<int>'];
+        yield 'non-empty generic map' => ['{"a": 1}', 'non-empty-array<string, int>'];
+
+        yield 'empty shape' => ['{}', 'array{}'];
+        yield 'integer shape key on list' => ['[42]', 'array{0: int}'];
+        yield 'non-empty shape' => ['{"a": 1}', 'non-empty-array{a: int}'];
+    }
+
+    #[Test]
+    #[DataProvider('typeArms')]
+    public function matchesTypeArms(string $json, string $type): void
+    {
+        Assert::json($json)->matchesType($type);
+    }
+
+    /**
      * @param non-empty-string $json
      * @param non-empty-string $type
      */
@@ -61,10 +101,43 @@ final class AssertJson
     #[DataSet(['42', 'string'], 'int is not string')]
     #[DataSet(['"hello"', 'int'], 'string is not int')]
     #[DataSet(['{"id": 1}', 'array{id: non-empty-string}'], 'shape value type mismatch')]
+    #[DataSet(['true', 'int|string'], 'union all arms fail')]
+    #[DataSet(['{"a": 1}', 'list<int>'], 'object is not a list')]
+    #[DataSet(['[]', 'non-empty-list<int>'], 'empty non-empty-list')]
+    #[DataSet(['["a"]', 'list<int>'], 'list element type mismatch')]
+    #[DataSet(['42', 'array<string, int>'], 'scalar is not a map')]
+    #[DataSet(['[]', 'non-empty-array<int>'], 'empty non-empty map')]
+    #[DataSet(['{"a": 1}', 'array<int, int>'], 'generic key type mismatch')]
+    #[DataSet(['[1]', 'array<int, string>'], 'generic value type mismatch')]
+    #[DataSet(['42', 'array{id: int}'], 'scalar is not a shape')]
+    #[DataSet(['{}', 'non-empty-array{id?: int}'], 'empty non-empty shape')]
+    #[DataSet(['{}', 'array{id: int}'], 'shape required key missing')]
+    #[DataSet(['42', 'array'], 'scalar is not array')]
+    #[DataSet(['{"a": 1}', 'list'], 'object is not a plain list')]
+    #[DataSet(['[]', 'non-empty-list'], 'empty non-empty plain list')]
+    #[DataSet(['[]', 'non-empty-array'], 'empty array is not non-empty')]
+    #[DataSet(['{}', 'non-empty-array'], 'empty object is not non-empty')]
     public function matchesTypeFails(string $json, string $type): never
     {
         Expect::exception(AssertionException::class);
         Assert::json($json)->matchesType($type);
+    }
+
+    /**
+     * Malformed type expressions are a programmer error: the parser rejects them
+     * with an {@see \InvalidArgumentException}, not an assertion failure.
+     */
+    #[Test]
+    #[DataSet(['int)'], 'trailing characters')]
+    #[DataSet(['unknown'], 'unknown type name')]
+    #[DataSet(['intx'], 'keyword without word boundary')]
+    #[DataSet(['array{?: int}'], 'missing shape key')]
+    #[DataSet(['int<x, 5>'], 'non-numeric range bound')]
+    #[DataSet(['int<0 5>'], 'missing comma in range')]
+    public function invalidTypeExpression(string $type): never
+    {
+        Expect::exception(\InvalidArgumentException::class);
+        Assert::json('42')->matchesType($type);
     }
 
     /**
@@ -284,5 +357,116 @@ final class AssertJson
 
         Assert::json('{"id": 1, "name": "test"}')
             ->matchesType('array{id: int, name?: string}');
+    }
+
+    /**
+     * Schema validation is an unimplemented stub: it raises a plain
+     * {@see \LogicException}, not an assertion failure.
+     */
+    #[Test]
+    public function matchesSchemaNotImplemented(): never
+    {
+        Expect::exception(\LogicException::class)
+            ->withMessageContaining('Not implemented yet');
+        Assert::json('{}')->matchesSchema('{"type": "object"}');
+    }
+
+    /**
+     * An empty key list is a vacuous requirement: the call is a no-op that
+     * stays chainable.
+     */
+    #[Test]
+    public function hasKeysEmptyIsNoop(): void
+    {
+        Assert::json('{"id": 1}')
+            ->hasKeys([])
+            ->hasKeys('id');
+    }
+
+    /**
+     * Keys can be checked against the numeric indices of a JSON array.
+     */
+    #[Test]
+    public function hasKeysOnArray(): void
+    {
+        Assert::json('["x", "y"]')->hasKeys(['0', '1']);
+    }
+
+    /**
+     * A primitive has no keys, so any requested key is reported missing.
+     */
+    #[Test]
+    public function hasKeysOnPrimitiveFails(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('missing key');
+        Assert::json('42')->hasKeys('id');
+    }
+
+    #[Test]
+    public function assertPathUnclosedBracket(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('unclosed bracket in path');
+        Assert::json('[1, 2, 3]')
+            ->assertPath('$[0', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
+
+    /**
+     * Bracketed keys may be quoted with single or double quotes; the quotes
+     * are stripped before lookup, allowing keys with spaces.
+     */
+    #[Test]
+    public function assertPathQuotedKey(): void
+    {
+        $json = '{"first name": "Alice"}';
+
+        Assert::json($json)
+            ->assertPath("$['first name']", static fn(JsonAbstract $json) => $json
+                ->matchesType('non-empty-string'));
+
+        Assert::json($json)
+            ->assertPath('$["first name"]', static fn(JsonAbstract $json) => $json
+                ->isPrimitive());
+    }
+
+    #[Test]
+    public function assertPathEmptyProperty(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('empty property name in path');
+        Assert::json('{"a": 1}')
+            ->assertPath('$.', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
+
+    #[Test]
+    public function assertPathUnexpectedCharacter(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining("unexpected character 'x' in path");
+        Assert::json('{"a": 1}')
+            ->assertPath('$x', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
+
+    #[Test]
+    public function assertPathArrayIndexMissing(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('not found in array');
+        Assert::json('[1, 2, 3]')
+            ->assertPath('$[5]', static fn(JsonAbstract $json) => $json->isPrimitive());
+    }
+
+    /**
+     * Navigating a property off a primitive value is a path error, not a
+     * silent null.
+     */
+    #[Test]
+    public function assertPathIntoPrimitive(): never
+    {
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('cannot access property on int');
+        Assert::json('{"a": 1}')
+            ->assertPath('$.a.b', static fn(JsonAbstract $json) => $json->isPrimitive());
     }
 }

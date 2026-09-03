@@ -40,7 +40,7 @@ final class UserServiceTest
 
         $user = $service->create('Alice', 'alice@example.com');
 
-        Assert::same('Alice', $user->name);
+        Assert::same($user->name, 'Alice');
     }
 }
 ```
@@ -150,7 +150,7 @@ use Testo\Assert\ExpectNoAssertions;
 #[ExpectNoAssertions]
 public function bootsWithoutError(): void
 {
-    new Kernel()->boot();   // success is simply "no exception thrown"
+    (new Kernel())->boot();   // success is simply "no exception thrown"
 }
 ```
 

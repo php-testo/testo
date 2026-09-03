@@ -13,7 +13,7 @@ final readonly class BenchResult
         /** @var list<CaseResult> */
         public array $results,
 
-        /** @var list<Line> Res */
+        /** @var list<Line> Prepared report lines, one per case. */
         public array $lines = [],
     ) {}
 }

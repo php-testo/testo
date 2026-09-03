@@ -66,31 +66,56 @@ final class VcrInterceptor implements TestRunInterceptor
         );
 
         $configuration = PhpVcr::configure();
+        $configuration->enableLibraryHooks(self::libraryHooks());
         $this->options->mode === null or $configuration->setMode($this->options->mode->value);
         $this->options->match === [] or $configuration->enableRequestMatchers(
             \array_map(static fn(Matcher $m): string => $m->value, $this->options->match),
         );
 
         self::$active = true;
-        PhpVcr::turnOn();
-        PhpVcr::insertCassette($this->options->name);
         try {
+            PhpVcr::turnOn();
+            PhpVcr::insertCassette($this->options->name);
             return self::runToCompletion($info, $next);
         } finally {
-            PhpVcr::eject();
-            PhpVcr::turnOff();
+            # turnOff() ejects the cassette itself and is a no-op when VCR never came on, so a failure
+            # inside turnOn() unwinds with its own cause. The guard is released first: a throw here
+            # must not leave every later #[VCR] test refusing to start.
             self::$active = false;
+            PhpVcr::turnOff();
         }
+    }
+
+    /**
+     * Library hooks php-vcr installs when the window opens.
+     *
+     * Left alone, php-vcr enables every hook it knows — including the SOAP one, whose constructor
+     * hard-requires `ext-soap` and throws from inside `VCR::turnOn()` when it is missing. The extension
+     * is declared `require-dev` by php-vcr itself, so Composer neither installs it for a consumer nor
+     * warns about it: every `#[VCR]` test on a soap-less build dies, whether or not it speaks SOAP.
+     *
+     * Hence the set is stated explicitly, with `soap` added only when it can actually be constructed —
+     * the same pair of classes `\VCR\LibraryHooks\SoapHook` checks. HTTP recording keeps working
+     * everywhere; SOAP recording stays available wherever `ext-soap` is installed.
+     *
+     * @return list<non-empty-string>
+     */
+    private static function libraryHooks(): array
+    {
+        $hooks = ['stream_wrapper', 'curl'];
+
+        \class_exists(\SoapClient::class) && \class_exists(\DOMDocument::class) and $hooks[] = 'soap';
+
+        return $hooks;
     }
 
     /**
      * Run the test to completion without letting a suspension escape the VCR window.
      *
-     * With no surrounding fiber (Testo's current, synchronous mode) the test runs inline. When Testo
-     * runs the test inside a fiber, `$next` is wrapped in a private fiber and resumed here until it
-     * terminates instead of re-suspending to the parent scheduler — keeping the process-global cassette
-     * window atomic. A `#[VCR]` test is therefore expected to be synchronous; awaiting real async work
-     * inside the window is unsupported by design.
+     * With no surrounding fiber the test runs inline. When Testo runs the test inside a fiber, `$next`
+     * is wrapped in a private fiber and resumed here until it terminates instead of re-suspending to the
+     * parent scheduler — keeping the process-global cassette window atomic. A `#[VCR]` test is therefore
+     * expected to be synchronous; awaiting real async work inside the window is unsupported by design.
      *
      * @param callable(TestInfo): TestResult $next
      */

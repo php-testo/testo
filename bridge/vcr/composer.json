@@ -26,11 +26,11 @@
     "require": {
         "php": ">=8.2",
         "php-vcr/php-vcr": "^1.6",
-        "testo/testo": "0.10.40 - 1"
+        "testo/testo": "0.10.43 - 1"
     },
     "require-dev": {
-        "testo/assert": "^0.1.12",
-        "testo/codecov": "^0.1.12",
+        "testo/assert": "^0.1.13",
+        "testo/codecov": "^0.2.0",
         "testo/test": "^0.1.6"
     },
     "autoload": {

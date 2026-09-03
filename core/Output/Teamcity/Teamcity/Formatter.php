@@ -330,6 +330,33 @@ final class Formatter
     }
 
     /**
+     * Formats a test metadata message: one named value attached to a test.
+     *
+     * This is TeamCity's own vocabulary for numbers a test produced — the server charts them across
+     * builds and shows them on the test's page — so a benchmark's measurements belong here rather than
+     * in `testStdOut`, where they would arrive as text nothing can plot.
+     *
+     * @param non-empty-string $testName Test the value belongs to
+     * @param non-empty-string $name Metric key
+     * @param non-empty-string $value Metric value, formatted for the declared type
+     * @param 'number'|'text'|'link'|'image'|'artifact' $type
+     * @return non-empty-string
+     * @link https://www.jetbrains.com/help/teamcity/reporting-test-metadata.html
+     */
+    public static function testMetadata(
+        string $testName,
+        string $name,
+        string $value,
+        string $type = 'number',
+        ?TestIdentity $identity = null,
+    ): string {
+        $attributes = ['testName' => $testName, 'name' => $name, 'type' => $type, 'value' => $value];
+        $identity === null or $attributes['flowId'] = self::flowId($identity);
+
+        return self::formatMessage('testMetadata', $attributes);
+    }
+
+    /**
      * Formats a build parameter message.
      *
      * @param non-empty-string $name Parameter name

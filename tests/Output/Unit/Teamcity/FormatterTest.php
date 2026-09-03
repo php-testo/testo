@@ -6,13 +6,16 @@ namespace Tests\Output\Unit\Teamcity;
 
 use Internal\Path;
 use Testo\Assert;
+use Testo\Codecov\Covers;
 use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Value\Status;
+use Testo\Data\DataSet;
 use Testo\Output\Teamcity\Teamcity\Formatter;
 use Testo\Test;
 
 #[Test]
+#[Covers(Formatter::class)]
 final class FormatterTest
 {
     public function aCaseHangsUnderItsSuiteRatherThanUnderWhateverOpenedLast(): void
@@ -271,6 +274,152 @@ final class FormatterTest
         // A bracket left raw would terminate the service message early and the plugin would read a
         // truncated path.
         Assert::string($msg)->contains("path='/app/|[build|]/it|'s/index.html'");
+    }
+
+    public function testMetadataNamesTheValueItsTypeAndTheTestItBelongsTo(): void
+    {
+        $msg = Formatter::testMetadata('sumInCycle', 'bench.current.meanUs', '0.3585');
+
+        Assert::string($msg)->contains('##teamcity[testMetadata ');
+        Assert::string($msg)->contains("testName='sumInCycle'");
+        Assert::string($msg)->contains("name='bench.current.meanUs'");
+        Assert::string($msg)->contains("type='number'");
+        Assert::string($msg)->contains("value='0.3585'");
+    }
+
+    public function testMetadataCarriesTheFlowOfTheTestItAttachesTo(): void
+    {
+        $test = self::test();
+
+        $msg = Formatter::testMetadata('itWorks', 'bench.iterations', '10', identity: $test);
+
+        // The value has to land in the same flow as the test's own messages, or a consumer cannot tell
+        // which of several concurrent tests produced it.
+        Assert::string($msg)->contains("flowId='{$test->pipelineId}'");
+    }
+
+    public function testMetadataWithoutAnIdentityClaimsNoFlow(): void
+    {
+        $msg = Formatter::testMetadata('itWorks', 'bench.iterations', '10');
+
+        Assert::string($msg)->notContains('flowId=');
+    }
+
+    public function testIgnoredCarriesTheSkipReasonWhenGiven(): void
+    {
+        $msg = Formatter::testIgnored('itWorks', 'no database configured');
+
+        Assert::same($msg, "##teamcity[testIgnored name='itWorks' message='no database configured']");
+    }
+
+    public function testIgnoredOmitsTheMessageAttributeWhenEmpty(): void
+    {
+        // An empty value would read as a blank reason rather than "no reason given".
+        $msg = Formatter::testIgnored('itWorks');
+
+        Assert::same($msg, "##teamcity[testIgnored name='itWorks']");
+    }
+
+    public function testStdOutNamesTheTestAndCarriesItsOutput(): void
+    {
+        $msg = Formatter::testStdOut('itWorks', 'hello world');
+
+        Assert::same($msg, "##teamcity[testStdOut name='itWorks' out='hello world']");
+    }
+
+    public function testStdOutPassesExtraAttributesThroughForConsumersThatUnderstandThem(): void
+    {
+        $msg = Formatter::testStdOut('itWorks', 'line', ['channel' => 'app', 'level' => 'info']);
+
+        Assert::string($msg)->contains("out='line'");
+        Assert::string($msg)->contains("channel='app'");
+        Assert::string($msg)->contains("level='info'");
+    }
+
+    public function testStdErrNamesTheTestAndCarriesItsErrorOutput(): void
+    {
+        $msg = Formatter::testStdErr('itWorks', 'boom');
+
+        Assert::same($msg, "##teamcity[testStdErr name='itWorks' out='boom']");
+    }
+
+    #[DataSet(['progressMessage', 'working'], 'a bare progress line')]
+    #[DataSet(['progressStart', 'begin'], 'the opening of a progress block')]
+    #[DataSet(['progressFinish', 'end'], 'the closing of a progress block')]
+    public function aProgressMessageCarriesItsTextUnderTheMatchingName(string $method, string $text): void
+    {
+        $msg = Formatter::$method($text);
+
+        Assert::same($msg, "##teamcity[{$method} text='{$text}']");
+    }
+
+    public function buildProblemCarriesItsDescription(): void
+    {
+        $msg = Formatter::buildProblem('the build broke');
+
+        Assert::same($msg, "##teamcity[buildProblem description='the build broke']");
+    }
+
+    public function buildProblemCarriesAnIdentityForDeduplicationWhenGiven(): void
+    {
+        // TeamCity collapses problems that share an identity, so a repeated failure reports once.
+        $msg = Formatter::buildProblem('the build broke', 'compile-error');
+
+        Assert::same($msg, "##teamcity[buildProblem description='the build broke' identity='compile-error']");
+    }
+
+    public function buildStatusCarriesItsText(): void
+    {
+        $msg = Formatter::buildStatus('all green');
+
+        Assert::same($msg, "##teamcity[buildStatus text='all green']");
+    }
+
+    public function buildStatusCarriesTheStatusWhenGiven(): void
+    {
+        $msg = Formatter::buildStatus('something broke', 'FAILURE');
+
+        Assert::same($msg, "##teamcity[buildStatus text='something broke' status='FAILURE']");
+    }
+
+    #[DataSet(['blockOpened'], 'the opening of an output block')]
+    #[DataSet(['blockClosed'], 'the closing of an output block')]
+    public function aBlockMessageNamesTheGroupItBrackets(string $method): void
+    {
+        $msg = Formatter::$method('setup');
+
+        Assert::same($msg, "##teamcity[{$method} name='setup']");
+    }
+
+    public function buildParameterSetsANamedValueUnderSetParameter(): void
+    {
+        // The wire name is `setParameter`, the verb TeamCity reads to bind a build parameter.
+        $msg = Formatter::buildParameter('env.FOO', 'bar');
+
+        Assert::same($msg, "##teamcity[setParameter name='env.FOO' value='bar']");
+    }
+
+    public function aMessageCarriesItsTextAndStatus(): void
+    {
+        $msg = Formatter::message('careful', 'WARNING');
+
+        Assert::same($msg, "##teamcity[message text='careful' status='WARNING']");
+    }
+
+    public function aMessageDefaultsToNormalStatus(): void
+    {
+        $msg = Formatter::message('just so you know');
+
+        Assert::same($msg, "##teamcity[message text='just so you know' status='NORMAL']");
+    }
+
+    #[DataSet(['compilationStarted'], 'the start of a compilation')]
+    #[DataSet(['compilationFinished'], 'the end of a compilation')]
+    public function aCompilationMessageNamesTheCompiler(string $method): void
+    {
+        $msg = Formatter::$method('phpc');
+
+        Assert::same($msg, "##teamcity[{$method} compiler='phpc']");
     }
 
     private static function test(): TestIdentity

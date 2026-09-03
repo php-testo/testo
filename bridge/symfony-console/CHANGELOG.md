@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.11](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.10...bridge-symfony-console-0.1.11) (2026-08-29)
+
+
+### Bug Fixes
+
+* `--log-html` without param reports to the default path ([#311](https://github.com/php-testo/testo/issues/311)) ([4275e2c](https://github.com/php-testo/testo/commit/4275e2c90fdc9c9dba98e996be8eb18ad95fa343))
+
+## [0.1.10](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.9...bridge-symfony-console-0.1.10) (2026-08-25)
+
+
+### Bug Fixes
+
+* **output:** honour `--no-ansi` and `NO_COLOR` ([#299](https://github.com/php-testo/testo/issues/299)) ([9da803d](https://github.com/php-testo/testo/commit/9da803d40c3bca3f9612d72f23b7596854946dc1))
+
 ## [0.1.9](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.8...bridge-symfony-console-0.1.9) (2026-08-17)
 
 

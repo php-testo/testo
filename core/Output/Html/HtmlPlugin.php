@@ -40,7 +40,8 @@ use Testo\Output\Html\Internal\ReportKind;
  * ```
  *
  * An inert copy — {@see inert()} — is part of the application defaults, so the `--log-html=<path>` and
- * `--log-report=<path>` flags have something to activate without any change to `testo.php`. An instance
+ * `--log-report=<path>` flags have something to activate without any change to `testo.php`; a bare
+ * `--log-html` activates it at {@see self::DEFAULT_PATH}. An instance
  * configured in code owns its slots and ignores the flags; only an instance with no destination of its
  * own reads them, which is how the inert default gets activated. Every destination a run collects — from
  * configured plugins and from flags — feeds a single {@see HtmlReportSink}: the document is built once
