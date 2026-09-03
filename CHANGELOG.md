@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.45](https://github.com/php-testo/testo/compare/0.10.44...0.10.45) (2026-08-29)
+
+
+### Bug Fixes
+
+* `--log-html` without param reports to the default path ([#311](https://github.com/php-testo/testo/issues/311)) ([4275e2c](https://github.com/php-testo/testo/commit/4275e2c90fdc9c9dba98e996be8eb18ad95fa343))
+
+
+### Documentation
+
+* **skills:** fix API claims that drifted from the code ([54d69bf](https://github.com/php-testo/testo/commit/54d69bf6837ae51be04e8ebfb1fea0568f571663))
+
 ## [0.10.44](https://github.com/php-testo/testo/compare/0.10.43...0.10.44) (2026-08-27)
 
 
