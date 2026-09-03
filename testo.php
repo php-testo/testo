@@ -73,6 +73,7 @@ return new ApplicationConfig(
         require 'tests/Testo/suites.php',
         require 'tests/Application/suites.php',
         require 'tests/Core/suites.php',
+        require 'tests/Metric/suites.php',
         require 'tests/Common/suites.php',
         require 'tests/Output/suites.php',
         require 'tests/Tokenizer/suites.php',

@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Testo\Core\Metric;
+namespace Testo\Metric;
+
+use Testo\Metric\Exception\IncompatibleUnits;
 
 /**
  * One number a test produced, together with the unit it was measured in.
@@ -24,4 +26,27 @@ final readonly class Metric
         public int|float $value,
         public Unit $unit,
     ) {}
+
+    /**
+     * The same amount in another unit of the same family.
+     *
+     * @template TTo of Unit
+     * @param TTo $unit
+     * @return self<TTo>
+     * @throws IncompatibleUnits When `$unit` belongs to a different family.
+     */
+    public function to(Unit $unit): self
+    {
+        return new self(Units::convert($this->value, $this->unit, $unit), $unit);
+    }
+
+    /**
+     * The same amount in the unit of its family that reads most compactly; see {@see UnitFamily::fit()}.
+     *
+     * @return self<TUnit>
+     */
+    public function compact(): self
+    {
+        return Units::compact($this->value, $this->unit);
+    }
 }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Testo\Output\JUnit\Internal;
 
 use Testo\Core\Value\Status;
-use Testo\Core\Metric\Metric;
-use Testo\Core\Metric\Unit;
+use Testo\Metric\Unit;
+use Testo\Metric\Metric;
 
 /**
  * Captured `<testcase>` payload produced from a single `TestResult`.

@@ -11,11 +11,11 @@ use Testo\Bench\Dto\Report;
 use Testo\Bench\Dto\Report\Severity;
 use Testo\Bench\Dto\Snap;
 use Testo\Core\Metric\Memory;
-use Testo\Core\Metric\Metric;
+use Testo\Metric\Unit;
+use Testo\Metric\Metric;
 use Testo\Core\Metric\Percent;
 use Testo\Core\Metric\Scalar;
 use Testo\Core\Metric\Time;
-use Testo\Core\Metric\Unit;
 
 /**
  * Benchmark measurements as data rather than as the ASCII table the terminal prints.
