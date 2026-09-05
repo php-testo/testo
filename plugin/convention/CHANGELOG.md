@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.5](https://github.com/php-testo/testo/compare/convention-0.1.4...convention-0.1.5) (2026-09-05)
+
+
+### Performance Improvements
+
+* **core:** Optimize TestDefinitions ([#318](https://github.com/php-testo/testo/issues/318)) ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
+
+### Code Refactoring
+
+* **core:** promote prefilled case members in the finders instead of scanning methods ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
 ## [0.1.4](https://github.com/php-testo/testo/compare/convention-0.1.3...convention-0.1.4) (2026-07-01)
 
 

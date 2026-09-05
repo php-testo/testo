@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.9](https://github.com/php-testo/testo/compare/inline-0.1.8...inline-0.1.9) (2026-09-05)
+
+
+### Performance Improvements
+
+* **core:** Optimize TestDefinitions ([#318](https://github.com/php-testo/testo/issues/318)) ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
+
+### Code Refactoring
+
+* **core:** promote prefilled case members in the finders instead of scanning methods ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
 ## [0.1.8](https://github.com/php-testo/testo/compare/inline-0.1.7...inline-0.1.8) (2026-08-10)
 
 

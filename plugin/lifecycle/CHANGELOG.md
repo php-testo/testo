@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.6](https://github.com/php-testo/testo/compare/lifecycle-0.1.5...lifecycle-0.1.6) (2026-09-05)
+
+
+### Bug Fixes
+
+* **lifecycle:** optimize function-case hooks checks ([#315](https://github.com/php-testo/testo/issues/315)) ([f0ae7de](https://github.com/php-testo/testo/commit/f0ae7de3ea6de90db6d02e1f6da9eb1d5ee10880))
+
+
+### Performance Improvements
+
+* **core:** Optimize TestDefinitions ([#318](https://github.com/php-testo/testo/issues/318)) ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
+
+### Code Refactoring
+
+* **core:** promote prefilled case members in the finders instead of scanning methods ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
 ## [0.1.5](https://github.com/php-testo/testo/compare/lifecycle-0.1.4...lifecycle-0.1.5) (2026-07-01)
 
 
