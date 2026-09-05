@@ -30,14 +30,13 @@ final class CaseDefinitions
     }
 
     /**
-     * Get or create the case of the given type for a class (or, with a null reflection, for the
-     * file's free functions).
+     * Get or create the case of the given type for a class or, with a null reflection, for the
+     * file's free functions.
      *
-     * With `$prefill` a newly created case is seeded with every candidate it has — all methods of the
-     * class, inherited ones included, or all free functions of the file — registered as non-tests.
-     * Finders then promote the ones they recognise via {@see TestDefinitions::define()}, while the
-     * rest stay reachable as non-tests (lifecycle hooks, helpers) without re-reading the file.
-     * Finders whose tests are the only members of interest (e.g. inline tests) pass `false`.
+     * With `$prefill` a new case is seeded with all its members — the class methods, inherited ones
+     * included, or the file's free functions — as non-tests, for finders to promote the ones they
+     * recognise; the rest stay reachable as non-tests (lifecycle hooks, helpers). Finders whose
+     * tests are the only members of interest (e.g. inline tests) pass `false`.
      */
     public function define(
         ?\ReflectionClass $reflection,

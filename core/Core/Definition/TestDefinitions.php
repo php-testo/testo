@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Testo\Core\Definition;
 
 /**
- * Collection of the runnable definitions located in a Test Case.
- *
- * A case holds one flat set of {@see TestDefinition}s — tests and non-tests (lifecycle hooks,
- * helpers) alike. Their role is not fixed at discovery: interceptors refine it through each
- * definition's mutable flags rather than by adding or removing entries. Iterate the whole set with
- * {@see self::all()}, or a slice of it with {@see self::filter()} (and its shorthand
- * {@see self::getTests()}) over the `isTest` / `active` flags.
+ * Collection of the runnable definitions located in a Test Case: one flat set of
+ * {@see TestDefinition}s, tests and non-tests (lifecycle hooks, helpers) alike. Interceptors refine
+ * a case through the definitions' mutable flags rather than by adding or removing entries; see
+ * {@see self::all()}, {@see self::filter()} and {@see self::getTests()}.
  *
  * @api
  */
@@ -37,11 +34,9 @@ final class TestDefinitions
     }
 
     /**
-     * Register a function of the case and return its definition. Registration is idempotent per
-     * short name: a function seen before yields its existing definition. A test registration wins
-     * over a non-test one — re-registering a non-test as a test promotes it — while a non-test
-     * registration never demotes an existing test, so several finders may register the same
-     * function in any order.
+     * Register a function of the case and return its definition. Idempotent per short name, so
+     * several finders may register the same function in any order: a test registration promotes an
+     * existing non-test, a non-test registration never demotes an existing test.
      */
     public function define(\ReflectionFunctionAbstract $reflection, bool $isTest = true): TestDefinition
     {

@@ -216,9 +216,8 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
                 $survivors === [] or $survivors = $this->filterTestsByGroup($caseGroups, $survivors);
             }
 
-            # Deactivate every active test the filters did not keep, rather than rebuilding the case:
-            # its non-tests (lifecycle hooks) stay untouched and still fire, and a case left with no
-            # active test is dropped downstream. Non-tests are never in getTests(), so never touched.
+            # Tests are deactivated, not removed: the case keeps its non-tests (lifecycle hooks), which
+            # must still fire even when every test was filtered out.
             foreach ($case->tests->getTests() as $name => $test) {
                 isset($survivors[$name]) or $test->active = false;
             }

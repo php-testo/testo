@@ -34,9 +34,8 @@ use Testo\Tokenizer\Reflection\FileDefinitions;
  *
  * Both class-based cases (methods of a {@see \Testo\Test} class) and function-based cases (a file of
  * top-level functions, whose {@see CaseDefinition::$reflection} is null) are supported. In both the
- * hooks are the lifecycle-annotated non-test members of the case (the non-tests of
- * {@see \Testo\Core\Definition\TestDefinitions}), which case discovery records regardless of the
- * finder that built the case.
+ * hooks are the lifecycle-annotated non-test members of the case, see
+ * {@see \Testo\Core\Definition\TestDefinitions::filter()}.
  *
  * @internal
  * @psalm-internal Testo\Lifecycle
@@ -154,16 +153,10 @@ final readonly class LifecycleInterceptor implements
     }
 
     /**
-     * Collect the lifecycle-annotated hooks of a case: its non-test members bearing a lifecycle
-     * attribute.
-     *
-     * Case discovery seeds every case with all of its members — the class methods, inherited ones
-     * included, or the file's free functions — as non-tests, and the finders promote the tests among
-     * them ({@see \Testo\Core\Definition\CaseDefinitions::define()}). Lifecycle-annotated members a
-     * finder did take for tests are demoted back in {@see self::locateTestCases()}. So the hooks are
-     * always among the non-tests, never among the surviving tests, and nothing is re-read from disk
-     * or reflection: the non-tests outlive test pruning, and the `#[BeforeClass]`/`#[AfterClass]`
-     * hooks still run for a case whose tests were all filtered out.
+     * The lifecycle-annotated non-test members of the case. Lifecycle-annotated members a finder
+     * took for tests were demoted in {@see self::locateTestCases()}, so every hook is a non-test.
+     * Non-tests outlive test filtering: the `#[BeforeClass]`/`#[AfterClass]` hooks run even for a
+     * case whose tests were all filtered out.
      *
      * @return list<\ReflectionFunctionAbstract>
      */

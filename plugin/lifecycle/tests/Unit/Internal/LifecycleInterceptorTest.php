@@ -179,12 +179,9 @@ final class LifecycleInterceptorTest
     }
 
     /**
-     * Regression: hook discovery for a function-based case must come from the case's non-test
-     * functions (the {@see \Testo\Core\Definition\TestDefinitions} definitions with `isTest: false`),
-     * not from the surviving tests. Any outer case interceptor may prune every test before this
-     * interceptor runs, and the `#[BeforeClass]`/`#[AfterClass]` hooks must still fire. Discovery
-     * used to derive the hooks from the surviving tests, so a fully pruned case silently lost its
-     * class-level hooks.
+     * Hooks of a function-based case come from its non-test functions, not from the surviving
+     * tests: an outer case interceptor may prune every test before this interceptor runs, and the
+     * `#[BeforeClass]`/`#[AfterClass]` hooks must still fire.
      */
     public function runsClassHooksForFunctionCaseWhoseTestsWereAllPruned(): void
     {
@@ -271,10 +268,9 @@ final class LifecycleInterceptorTest
     }
 
     /**
-     * Build a {@see CaseInfo} over a function-based case (null reflection) whose test set is empty
-     * but whose non-test free functions are still recorded — the state an outer case interceptor
-     * leaves behind after pruning every test. Case discovery seeds the case with the file's free
-     * functions as non-tests, exactly as in a real run; a file without free functions seeds none.
+     * Build a {@see CaseInfo} over a function-based case (null reflection) with no tests, only the
+     * file's free functions as non-tests — the state an outer case interceptor leaves behind after
+     * pruning every test.
      */
     private function makeFunctionCaseInfoWithoutTests(string $path): CaseInfo
     {
