@@ -29,11 +29,21 @@ final class CaseDefinitions
         return $self;
     }
 
+    /**
+     * Get or create the case of the given type for a class or, with a null reflection, for the
+     * file's free functions.
+     *
+     * With `$prefill` a new case is seeded with all its members — the class methods, inherited ones
+     * included, or the file's free functions — as non-tests, for finders to promote the ones they
+     * recognise; the rest stay reachable as non-tests (lifecycle hooks, helpers). Finders whose
+     * tests are the only members of interest (e.g. inline tests) pass `false`.
+     */
     public function define(
         ?\ReflectionClass $reflection,
         FileDefinitions $file,
         string|\BackedEnum $type = 'test',
         ?\Closure $handler = null,
+        bool $prefill = true,
     ): CaseDefinition {
         \is_string($type) or $type = (string) $type->value;
         \assert($type !== '');
@@ -45,13 +55,21 @@ final class CaseDefinitions
             }
         }
 
-        return $this->cases[$type][] = new CaseDefinition(
+        $case = new CaseDefinition(
             name: $reflection?->getShortName() ?? $file->tokenizedFile->path->name(),
             type: $type,
             file: $file->tokenizedFile->path,
             reflection: $reflection,
             handler: $handler,
         );
+
+        if ($prefill) {
+            foreach ($reflection?->getMethods() ?? $file->functions as $function) {
+                $case->tests->define($function, isTest: false);
+            }
+        }
+
+        return $this->cases[$type][] = $case;
     }
 
     /**

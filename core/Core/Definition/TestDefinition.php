@@ -7,12 +7,26 @@ namespace Testo\Core\Definition;
 use Testo\Inline\TestInline;
 
 /**
+ * A runnable member of a case: a test, or a non-test such as a lifecycle hook. Interceptors refine
+ * its role through the mutable {@see self::$isTest} and {@see self::$active} flags.
+ *
  * @api
  */
-final readonly class TestDefinition
+final class TestDefinition
 {
     public function __construct(
-        public \ReflectionFunctionAbstract $reflection,
+        public readonly \ReflectionFunctionAbstract $reflection,
+
+        /**
+         * Whether this member runs as a test. A non-test (a lifecycle hook, a helper) stays in the
+         * case but is never executed as a test.
+         */
+        public bool $isTest = true,
+
+        /**
+         * Whether this member is active. Filtering deactivates a test instead of discarding it.
+         */
+        public bool $active = true,
     ) {}
 
     public function getDescription(): ?string

@@ -49,16 +49,24 @@ final readonly class NamingConventionLocator implements FileLocatorInterceptor, 
     #[\Override]
     public function locateTestCases(FileDefinitions $file, callable $next): CaseDefinitions
     {
+        # Cases for classes
         foreach ($file->classes as $class) {
             if (!$class->isAbstract() && \str_ends_with($class->getName(), $this->caseSuffix)) {
                 $case = $file->cases->define($class, $file, type: TestType::Test);
-                foreach ($class->getMethods() as $method) {
+                foreach ($case->tests->all() as $member) {
+                    if ($member->isTest) {
+                        continue;
+                    }
+
+                    $method = $member->reflection;
+                    \assert($method instanceof \ReflectionMethod);
+
                     if (!$this->allowPrivate && !$method->isPublic()) {
                         continue;
                     }
 
-                    if ($this->testPrefix === '' || \preg_match("/^{$this->testPrefix}[^a-z]/", $method->getName()) === 1) {
-                        $case->tests->define($method);
+                    if ($this->matchesPrefix($method->getName())) {
+                        $member->isTest = true;
                     }
                 }
             }
@@ -68,16 +76,27 @@ final readonly class NamingConventionLocator implements FileLocatorInterceptor, 
             return $next($file);
         }
 
-        # Define a case for functions
-        # Implement a lazy case definition
-        $case = null;
-        foreach ($file->functions as $function) {
-            if ($this->testPrefix === '' || \preg_match("/^{$this->testPrefix}[^a-z]/", $function->getShortName()) === 1) {
-                $case ??= $file->cases->define(null, $file, type: TestType::Test);
-                $case->tests->define($function);
+        # Case for functions
+        $case = $file->cases->define(null, $file, type: TestType::Test);
+        foreach ($case->tests->all() as $member) {
+            if ($member->isTest) {
+                continue;
+            }
+
+            if ($this->matchesPrefix($member->reflection->getShortName())) {
+                $member->isTest = true;
             }
         }
 
         return $next($file);
+    }
+
+    /**
+     * Whether a method or function name follows the convention: it starts with {@see $testPrefix}
+     * followed by a non-lowercase character. An empty prefix matches every name.
+     */
+    private function matchesPrefix(string $name): bool
+    {
+        return $this->testPrefix === '' || \preg_match("/^{$this->testPrefix}[^a-z]/", $name) === 1;
     }
 }

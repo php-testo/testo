@@ -21,9 +21,7 @@ use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\CaseLocatorInterceptor;
 use Testo\Pipeline\Middleware\TestCaseRunInterceptor;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
-use Testo\Tokenizer\DefinitionLocator;
 use Testo\Tokenizer\Reflection\FileDefinitions;
-use Testo\Tokenizer\Reflection\TokenizedFile;
 
 /**
  * Wires lifecycle attributes ({@see BeforeClass}, {@see BeforeTest}, {@see AfterTest},
@@ -35,9 +33,9 @@ use Testo\Tokenizer\Reflection\TokenizedFile;
  *   methods/functions as lifecycle hooks around each test/case.
  *
  * Both class-based cases (methods of a {@see \Testo\Test} class) and function-based cases (a file of
- * top-level functions, whose {@see CaseDefinition::$reflection} is null) are supported. For a
- * function-based case the hooks are the file's lifecycle-annotated functions, discovered from the
- * case's source file ({@see CaseDefinition::$file}).
+ * top-level functions, whose {@see CaseDefinition::$reflection} is null) are supported. In both the
+ * hooks are the lifecycle-annotated non-test members of the case, see
+ * {@see \Testo\Core\Definition\TestDefinitions::filter()}.
  *
  * @internal
  * @psalm-internal Testo\Lifecycle
@@ -58,14 +56,14 @@ final readonly class LifecycleInterceptor implements
         $result = $next($file);
 
         foreach ($result->getCases() as $case) {
-            foreach ($case->tests->getTests() as $name => $test) {
+            foreach ($case->tests->getTests() as $test) {
                 $method = $test->reflection;
                 if (Reflection::fetchFunctionAttributes(
                     $method,
                     attributeClass: LifecycleAttribute::class,
                     flags: \ReflectionAttribute::IS_INSTANCEOF,
                 ) !== []) {
-                    $case->tests->undefine($name);
+                    $test->isTest = false;
                 }
             }
         }
@@ -79,17 +77,7 @@ final readonly class LifecycleInterceptor implements
     #[\Override]
     public function runTestCase(CaseInfo $info, callable $next): CaseResult
     {
-        # Lifecycle hooks are the class methods of a class-based case, or the lifecycle-annotated
-        # free functions of a function-based case (no class reflection).
-        $hooks = $info->definition->reflection !== null
-            ? Reflection::findMethodsWithAttribute(
-                $info->definition->reflection,
-                LifecycleAttribute::class,
-                flags: \ReflectionAttribute::IS_INSTANCEOF,
-            )
-            : self::collectCaseFunctions($info->definition);
-
-        $result = self::group($hooks);
+        $result = self::group(self::collectHooks($info->definition));
 
         # Execute BeforeClass hooks
         foreach ($result[BeforeClass::class] ?? [] as $hook) {
@@ -165,36 +153,27 @@ final readonly class LifecycleInterceptor implements
     }
 
     /**
-     * Collect the lifecycle-annotated free functions of a function-based case.
+     * The lifecycle-annotated non-test members of the case. Lifecycle-annotated members a finder
+     * took for tests were demoted in {@see self::locateTestCases()}, so every hook is a non-test.
+     * Non-tests outlive test filtering: the `#[BeforeClass]`/`#[AfterClass]` hooks run even for a
+     * case whose tests were all filtered out.
      *
-     * A function-based case carries no class reflection, so the hooks are located from the case's
-     * source file ({@see CaseDefinition::$file}): every function declared there is reflected and
-     * filtered down to those carrying a lifecycle attribute.
-     *
-     * The path comes from the definition itself, never from the surviving tests: outer case
-     * interceptors may prune tests from the case, and the `#[BeforeClass]`/`#[AfterClass]` hooks
-     * must still run for a fully pruned case.
-     *
-     * @return list<\ReflectionFunction>
+     * @return list<\ReflectionFunctionAbstract>
      */
-    private static function collectCaseFunctions(CaseDefinition $definition): array
+    private static function collectHooks(CaseDefinition $definition): array
     {
-        $path = $definition->file;
-        if (!$path->isFile()) {
-            # A synthetic definition without a real source file has no discoverable hooks.
-            return [];
-        }
-
-        $file = new TokenizedFile(file: new \SplFileInfo((string) $path), path: $path);
-
-        return \array_values(\array_filter(
-            DefinitionLocator::getFunctions($file),
-            static fn(\ReflectionFunction $function): bool => Reflection::fetchFunctionAttributes(
-                $function,
+        $hooks = [];
+        foreach ($definition->tests->filter(isTest: false) as $member) {
+            if (Reflection::fetchFunctionAttributes(
+                $member->reflection,
                 attributeClass: LifecycleAttribute::class,
                 flags: \ReflectionAttribute::IS_INSTANCEOF,
-            ) !== [],
-        ));
+            ) !== []) {
+                $hooks[] = $member->reflection;
+            }
+        }
+
+        return $hooks;
     }
 
     private static function execute(?CaseInstance $instance, \ReflectionFunctionAbstract $reflection): void
