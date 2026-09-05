@@ -154,6 +154,11 @@ if (!$reachable) {
 }
 ```
 
+The canonical shipped example is `Testo\Test\Internal\SkipInterceptor` (`plugin/test`): a
+case-level interceptor that filters `#[Skip]`-marked tests out of the case before lifecycle
+hooks and returns synthetic Skipped results for them — constructing each `TestResult` by hand
+(status, `SkipTest` failure, self-stamped `Summary::forTest(...)`) instead of throwing.
+
 ## Container scopes — provision per-case / per-suite resources
 
 `$container->scope($closure)` runs `$closure` in a **child scope**: services bound inside live only for

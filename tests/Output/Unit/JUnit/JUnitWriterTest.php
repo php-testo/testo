@@ -18,6 +18,7 @@ use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
+use Testo\Core\Exception\SkipTest;
 use Testo\Core\Value\Status;
 use Testo\Output\JUnit\Internal\JUnitWriter;
 use Testo\Test;
@@ -161,6 +162,30 @@ final class JUnitWriterTest
         // Assert
         Assert::same((string) $xml['skipped'], '1');
         Assert::count($xml->testsuite->testcase->skipped, 1);
+    }
+
+    /**
+     * The failure message is the single source of truth for the skip reason: every producer
+     * (a runtime throw, a declarative `#[Skip]`) delivers it the same way, and the writer
+     * renders it as the `message` of `<skipped>`.
+     */
+    #[Covers(JUnitWriter::class)]
+    public function skippedTestCarriesTheReasonFromTheFailureMessage(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult(
+            'passingTest',
+            Status::Skipped,
+            failure: new SkipTest('sqlite extension is missing'),
+        ));
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        $skipped = $xml->testsuite->testcase->skipped;
+        Assert::count($skipped, 1);
+        Assert::same((string) $skipped['message'], 'sqlite extension is missing');
     }
 
     public function cancelledTestCountsAsSkipped(): void

@@ -8,6 +8,7 @@ use Internal\Container\Container;
 use Testo\Common\PluginConfigurator;
 use Testo\Pipeline\InterceptorCollector;
 use Testo\Test;
+use Testo\Test\Internal\SkipInterceptor;
 use Testo\Test\Internal\TestoAttributesLocatorInterceptor;
 
 /**
@@ -20,6 +21,8 @@ final readonly class TestPlugin implements PluginConfigurator
     #[\Override]
     public function configure(Container $container): void
     {
-        $container->get(InterceptorCollector::class)->addInterceptor(new TestoAttributesLocatorInterceptor());
+        $collector = $container->get(InterceptorCollector::class);
+        $collector->addInterceptor(new TestoAttributesLocatorInterceptor());
+        $collector->addInterceptor(SkipInterceptor::class);
     }
 }
