@@ -184,6 +184,8 @@ final class Reflection
      * @param int $flags Flags to pass to {@see \ReflectionMethod::getAttributes()}.
      *
      * @return \ReflectionMethod[] An array of methods that have the specified attribute.
+     *
+     * @deprecated Not used
      */
     public static function findMethodsWithAttribute(
         \ReflectionClass|string $class,

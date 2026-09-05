@@ -13,6 +13,12 @@ return [
         ),
     ),
     new SuiteConfig(
+        name: 'Core/Definition',
+        location: new FinderConfig(
+            include: [__DIR__ . '/Definition'],
+        ),
+    ),
+    new SuiteConfig(
         name: 'Core/Log',
         location: new FinderConfig(
             include: [__DIR__ . '/Log'],

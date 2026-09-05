@@ -7,12 +7,29 @@ namespace Testo\Core\Definition;
 use Testo\Inline\TestInline;
 
 /**
+ * A runnable definition discovered in a case: a test, or a non-test function such as a lifecycle
+ * hook. The role is not fixed at discovery — interceptors refine it through mutable flags: whether
+ * the definition is a {@see self::$isTest test}, and whether it is {@see self::$active active}.
+ *
  * @api
  */
-final readonly class TestDefinition
+final class TestDefinition
 {
     public function __construct(
-        public \ReflectionFunctionAbstract $reflection,
+        public readonly \ReflectionFunctionAbstract $reflection,
+
+        /**
+         * Whether this definition is run as a test. A non-test (false) stays in the case — a
+         * lifecycle hook, a helper — but is never executed as a test. Interceptors flip it: e.g.
+         * the lifecycle plugin demotes its hook functions.
+         */
+        public bool $isTest = true,
+
+        /**
+         * Whether this definition is active. Filtering deactivates a test instead of discarding it,
+         * so it drops out of the run yet remains available (a demoted lifecycle hook still fires).
+         */
+        public bool $active = true,
     ) {}
 
     public function getDescription(): ?string

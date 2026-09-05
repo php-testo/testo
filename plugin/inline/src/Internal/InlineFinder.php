@@ -57,7 +57,7 @@ final readonly class InlineFinder implements FileLocatorInterceptor, CaseLocator
             $case = null;
             foreach ($class->getMethods() as $method) {
                 if (Reflection::fetchFunctionAttributes($method, attributeClass: TestInline::class)) {
-                    $case ??= $file->cases->define($class, $file, TestType::TestInline, handler: $this->handler);
+                    $case ??= $file->cases->define($class, $file, TestType::TestInline, handler: $this->handler, prefill: false);
                     $case->tests->define($method);
                 }
             }
@@ -72,7 +72,7 @@ final readonly class InlineFinder implements FileLocatorInterceptor, CaseLocator
         $case = null;
         foreach ($file->functions as $function) {
             if (Reflection::fetchFunctionAttributes($function, attributeClass: TestInline::class)) {
-                $case ??= $file->cases->define(null, $file, TestType::TestInline, handler: $this->handler);
+                $case ??= $file->cases->define(null, $file, TestType::TestInline, handler: $this->handler, prefill: false);
                 $case->tests->define($function);
             }
         }
