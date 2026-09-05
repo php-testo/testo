@@ -9,7 +9,8 @@ A Testo plugin is a class implementing `Testo\Common\PluginConfigurator`. Its on
 `configure(Container $container)`, runs **once per suite** and wires the plugin into that suite's DI
 container. From there a plugin can:
 
-- Register **interceptors** (middleware) that wrap test / test-case / discovery execution.
+- Register **interceptors** (middleware) that wrap test / test-case / suite execution and discovery,
+  from the suite list down to a single file.
 - Subscribe to lifecycle **events** (PSR-14) — `TestFinished`, `TestSuiteStarting`, …
 - **Bind / scope services** in the container — provision resources, replace Testo defaults.
 - Define and act on **custom attributes** placed on test classes/methods.
@@ -75,15 +76,32 @@ single class may implement several. Register them in `configure()`:
 $container->get(InterceptorCollector::class)->addInterceptor(new MyInterceptor(/* deps */));
 ```
 
-| Interface                | Method                                                                 | Wraps                    |
-|--------------------------|------------------------------------------------------------------------|--------------------------|
-| `TestRunInterceptor`     | `runTest(TestInfo $i, callable $next): TestResult`                     | one test                 |
-| `TestCaseRunInterceptor` | `runTestCase(CaseInfo $i, callable $next): CaseResult`                 | one case (all its tests) |
-| `CaseLocatorInterceptor` | `locateTestCases(FileDefinitions $f, callable $next): CaseDefinitions` | discovery                |
+Discovery stages, outermost first:
+
+| Interface                 | Method                                                                        | Stage                                          |
+|---------------------------|-------------------------------------------------------------------------------|------------------------------------------------|
+| `SuiteLocatorInterceptor` | `locateTestSuites(ApplicationConfig $c, callable $next): array`               | the suite list, once per session               |
+| `FileLocatorInterceptor`  | `locateFile(TokenizedFile $f, callable $next): ?bool`                         | one file, tokens only (not loaded yet)         |
+| `CaseLocatorInterceptor`  | `locateTestCases(FileDefinitions $f, callable $next): CaseDefinitions`        | one file, reflections available                |
+
+Execution stages, outermost first:
+
+| Interface                 | Method                                                                        | Wraps                    |
+|---------------------------|-------------------------------------------------------------------------------|--------------------------|
+| `TestSuiteRunInterceptor` | `runTestSuite(SuiteInfo $i, callable $next): SuiteResult`                     | one suite                |
+| `TestCaseRunInterceptor`  | `runTestCase(CaseInfo $i, callable $next): CaseResult`                        | one case (all its tests) |
+| `TestRunInterceptor`      | `runTest(TestInfo $i, callable $next): TestResult`                            | one test                 |
 
 `$next` is the rest of the chain (and ultimately the test). **Always call it once** unless you are
 deliberately short-circuiting (see skipping). Use `try { return $next($i); } finally { … }` for
 cleanup — later interceptors can throw.
+
+`locateTestSuites` returns the `list<SuiteConfig>` to run: call `$next($c)` to get the configured
+suites, then drop, reorder, narrow (`$suite->with(location: …)`), duplicate, or add entries. It runs
+**before any suite container exists**, so it is only seen when registered by an application-level
+plugin (`ApplicationConfig(plugins: [...])`); a suite-level plugin registering it is silently ignored.
+`locateFile` answers `true` (load the file), `false` (never load it), or `null` (let the next
+interceptor decide); the file is not loaded yet, so judge by path and tokens only.
 
 ### Ordering & scoping with `#[InterceptorOptions]`
 

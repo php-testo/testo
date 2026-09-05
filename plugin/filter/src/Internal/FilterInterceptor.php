@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Filter\Internal;
 
+use Internal\Path;
 use Testo\Common\Reflection;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
@@ -22,9 +23,9 @@ use Testo\Tokenizer\Reflection\FileDefinitions;
 use Testo\Tokenizer\Reflection\TokenizedFile;
 
 /**
- * Three-stage interceptor for filtering test execution by name patterns and data provider indices.
+ * Three-stage interceptor for filtering test execution by paths, name patterns and data provider indices.
  *
- * Stage 1 (FileLocatorInterceptor): Pre-filters test files before loading for reflection analysis.
+ * Stage 1 (FileLocatorInterceptor): Pre-filters test files by path and by tokens before loading for reflection analysis.
  * Stage 2 (CaseLocatorInterceptor): Filters test cases and individual tests before execution.
  * Stage 3 (TestRunInterceptor): Injects {@see \Testo\Filter\DataPointer} to tests metadata for data provider filtering.
  *
@@ -59,6 +60,13 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
 
     /** @var bool True if no group filters were provided */
     private readonly bool $groupSkip;
+
+    /**
+     * Paths a file must be located under to pass Stage 1. Empty means every file passes.
+     *
+     * @var list<Path>
+     */
+    private readonly array $paths;
 
     /**
      * Group names to include. A test passes when its group set intersects this list (OR logic).
@@ -146,14 +154,15 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
         $this->fragment = $fragment;
         $this->groups = $filter->groups;
         $this->excludeGroups = $filter->excludeGroups;
+        $this->paths = $filter->paths;
         $this->skip or $this->pointers = new \SplObjectStorage();
     }
 
     /**
      * Stage 1: Filter test files before loading for reflection analysis.
      *
-     * Performs quick pre-filtering based on tokenized file data to skip files
-     * that don't contain any matching classes, methods, or functions.
+     * A file outside every filtered path is rejected. Then quick pre-filtering based on tokenized
+     * file data skips files that don't contain any matching classes, methods, or functions.
      *
      * @param TokenizedFile $file Tokenized file with class/function/method names
      * @param callable(TokenizedFile): (null|bool) $next Next interceptor in the chain
@@ -163,6 +172,10 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     #[\Override]
     public function locateFile(TokenizedFile $file, callable $next): ?bool
     {
+        if ($this->paths !== [] && !$this->matchPath($file)) {
+            return false;
+        }
+
         # Group filters require reflection (Stage 2); tokens carry no attributes,
         # so when there are no name filters we cannot pre-filter files here.
         return match (true) {
@@ -170,6 +183,17 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
             $this->matchFile($file) => $next($file),
             default => false,
         };
+    }
+
+    private function matchPath(TokenizedFile $file): bool
+    {
+        foreach ($this->paths as $path) {
+            if ($file->path->isWithin($path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -21,20 +21,30 @@ use Testo\Tokenizer\Reflection\FileDefinitions;
 use Testo\Tokenizer\Reflection\TokenizedFile;
 
 /**
+ * Locates the test cases of a Test Suite: its files first, then the cases they hold.
+ *
  * @internal
  * @psalm-internal Testo\Application
  */
 final readonly class SuiteFactory
 {
+    private PipeOptions $pipeOptions;
+
     public function __construct(
         private InterceptorProvider $interceptorProvider,
         private ErrorReporter $errorReporter,
-    ) {}
+        Filter $filter,
+    ) {
+        $this->pipeOptions = new PipeOptions(includeTypes: $filter->type, excludeTypes: $filter->notType);
+    }
 
-    public function create(SuiteConfig $config, Filter $filter): SuiteInfo
+    /**
+     * A suite left without test cases is not a suite to run: null is returned for it.
+     */
+    public function create(SuiteConfig $config): ?SuiteInfo
     {
-        $files = $this->getFilesIterator($config, $filter);
-        $definitions = $this->getCaseDefinitions($files, $filter);
+        $files = $this->getFilesIterator($config);
+        $definitions = $this->getCaseDefinitions($files);
 
         $cases = [];
         foreach ($definitions as $definition) {
@@ -46,7 +56,7 @@ final readonly class SuiteFactory
             $cases[] = $definition;
         }
 
-        return new SuiteInfo(
+        return $cases === [] ? null : new SuiteInfo(
             name: $config->name,
             testCases: CaseDefinitions::fromArray(...$cases),
         );
@@ -57,9 +67,9 @@ final readonly class SuiteFactory
      *
      * @return iterable<TokenizedFile>
      */
-    private function getFilesIterator(SuiteConfig $config, Filter $filter): iterable
+    private function getFilesIterator(SuiteConfig $config): iterable
     {
-        $locator = FileLocator::fromFinderConfig($config->location, $filter);
+        $locator = FileLocator::fromFinderConfig($config->location);
 
         # Prepare interceptors pipeline
         $interceptors = $this->interceptorProvider->fromConfig(FileLocatorInterceptor::class);
@@ -68,10 +78,7 @@ final readonly class SuiteFactory
          * @see FileLocatorInterceptor::locateFile()
          * @var callable(TokenizedFile): (null|bool) $pipeline
          */
-        $pipeline = Pipeline::prepare(
-            new PipeOptions(includeTypes: $filter->type, excludeTypes: $filter->notType),
-            ...$interceptors,
-        )
+        $pipeline = Pipeline::prepare($this->pipeOptions, ...$interceptors)
             ->with(static fn(TokenizedFile $_): ?bool => null, 'locateFile');
 
         foreach ($locator->getIterator() as $fileReflection) {
@@ -89,7 +96,7 @@ final readonly class SuiteFactory
      * @param iterable<TokenizedFile> $files
      * @return list<CaseDefinition>
      */
-    private function getCaseDefinitions(iterable $files, Filter $filter): array
+    private function getCaseDefinitions(iterable $files): array
     {
         $cases = [];
         # Prepare interceptors pipeline
@@ -99,10 +106,7 @@ final readonly class SuiteFactory
          * @see CaseLocatorInterceptor::locateTestCases()
          * @var callable(FileDefinitions): CaseDefinitions $pipeline
          */
-        $pipeline = Pipeline::prepare(
-            new PipeOptions(includeTypes: $filter->type, excludeTypes: $filter->notType),
-            ...$interceptors,
-        )
+        $pipeline = Pipeline::prepare($this->pipeOptions, ...$interceptors)
             ->with(
                 static fn(FileDefinitions $definitions): CaseDefinitions => $definitions->cases,
                 'locateTestCases',
