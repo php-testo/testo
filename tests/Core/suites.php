@@ -19,6 +19,12 @@ return [
         ),
     ),
     new SuiteConfig(
+        name: 'Core/Metric',
+        location: new FinderConfig(
+            include: [__DIR__ . '/Metric'],
+        ),
+    ),
+    new SuiteConfig(
         name: 'Core/Value',
         location: new FinderConfig(
             include: [__DIR__ . '/Value'],

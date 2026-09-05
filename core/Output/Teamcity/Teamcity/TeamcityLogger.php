@@ -451,9 +451,10 @@ final class TeamcityLogger
         $name = $overrideName ?? $result->info->name;
         $identity = $result->info->identity;
 
-        foreach (BenchMapper::metrics($result->result) as $key => $value) {
+        foreach (BenchMapper::metrics($result->result) as $key => $metric) {
+            [$type, $value] = TeamcityMetricType::convert($metric);
             $this->publish(
-                Formatter::testMetadata($name, $key, BenchMapper::formatMetric($value), identity: $identity),
+                Formatter::testMetadata($name, $key, BenchMapper::formatMetric($value), $type->value, $identity),
             );
         }
     }
