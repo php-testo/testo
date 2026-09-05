@@ -129,7 +129,7 @@ final class FailureMapper
     {
         $chain = [];
         $current = $failure->getPrevious();
-        while ($current instanceof Throwable) {
+        while ($current instanceof \Throwable) {
             $chain[] = [
                 'class' => $current::class,
                 'message' => $current->getMessage(),
