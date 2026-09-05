@@ -9,6 +9,7 @@ use Testo\Common\PluginConfigurator;
 use Testo\Filter;
 use Testo\Filter\Internal\FilterInput;
 use Testo\Filter\Internal\FilterInterceptor;
+use Testo\Filter\Internal\SuiteFilterInterceptor;
 use Testo\Pipeline\InterceptorProvider;
 
 /**
@@ -22,6 +23,7 @@ final readonly class FilterPlugin implements PluginConfigurator
     public function configure(Container $container): void
     {
         $container->get(InterceptorProvider::class)->addInterceptor(FilterInterceptor::class);
+        $container->get(InterceptorProvider::class)->addInterceptor(SuiteFilterInterceptor::class);
 
         $container->bind(Filter::class, static function (FilterInput $scope): Filter {
             [$types, $notTypes] = self::splitInclusionExclusion($scope->type);

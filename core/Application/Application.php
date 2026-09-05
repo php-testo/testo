@@ -16,7 +16,8 @@ use Testo\Application\Config\Plugin\ApplicationPlugins;
 use Testo\Application\Config\Plugin\PluginCollection;
 use Testo\Application\Config\Plugin\SuitePlugins;
 use Testo\Application\Internal\Runner\SuiteRunner;
-use Testo\Application\Internal\SuiteProvider;
+use Testo\Application\Internal\SuiteFactory;
+use Testo\Application\Internal\SuiteLocator;
 use Testo\Common\PluginConfigurator;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Context\SuiteResult;
@@ -107,7 +108,6 @@ final readonly class Application
             $dispatcher->dispatch(new SessionStarting());
             $dispatcher->dispatch(new WorkerStarting());
 
-            $suiteProvider = $container->get(SuiteProvider::class);
             $status = Status::Passed;
 
             # Phase timers. Discovery and execution interleave — a suite is scanned, run, and only then
@@ -118,14 +118,13 @@ final readonly class Application
 
             # Iterate and run Test Suites
             $suiteResults = [];
-            foreach ($appConfig->suites as $config) {
+            foreach ($container->make(SuiteLocator::class)->locate($appConfig) as $config) {
                 # Resolve a Test Suite from config and
                 # run a separate container scope to isolate services and plugins.
                 $suiteResult = $container->scope(
                     static function (Container $container) use (
                         $filter,
                         $config,
-                        $suiteProvider,
                         &$discovery,
                         &$tests,
                     ): ?SuiteResult {
@@ -134,7 +133,7 @@ final readonly class Application
                         # Apply plugins first to have all interceptors before suite files scanning
                         self::applyPlugins($container, self::resolvePlugins($config->plugins, SuitePlugins::class));
 
-                        $suite = $suiteProvider->findSuite($config);
+                        $suite = $container->make(SuiteFactory::class)->create($config);
                         $discovery += \microtime(true) - $at;
 
                         if ($suite === null) {

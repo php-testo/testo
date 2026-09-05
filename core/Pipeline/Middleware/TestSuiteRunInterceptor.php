@@ -21,7 +21,7 @@ interface TestSuiteRunInterceptor extends Interceptor
 {
     /**
      * @param SuiteInfo $info Test suite to run.
-     * @param callable(SuiteInfo): SuiteResult $next Next interceptor or core logic to run the test suite.
+     * @param callable(CaseInfo): CaseResult $next Next interceptor or core logic to run the test suite.
      */
     public function runTestSuite(SuiteInfo $info, callable $next): SuiteResult;
 }
