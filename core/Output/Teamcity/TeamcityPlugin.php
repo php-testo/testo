@@ -19,6 +19,7 @@ use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestDataSetStarting;
 use Testo\Event\Test\TestPipelineFinished;
 use Testo\Event\Test\TestPipelineStarting;
+use Testo\Event\Test\TestStarting;
 use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
@@ -50,9 +51,9 @@ final class TeamcityPlugin implements PluginConfigurator
 
     /**
      * Regular (non-DataProvider) tests whose `testStarted` has not been emitted yet, per test id. Emitted
-     * lazily on the first message (so output streams in real time), or at pipeline finish if the test
-     * produced no output. Dropped once `testStarted` has been emitted (or for data sets, which emit it
-     * eagerly).
+     * when the test body is about to run ({@see onTestStarting}); the message stream and pipeline finish
+     * emit it as a fallback for a test aborted before its body ran. Dropped once `testStarted` has been
+     * emitted (or for data sets, which emit it eagerly).
      *
      * @var array<int, TestInfo>
      */
@@ -60,13 +61,16 @@ final class TeamcityPlugin implements PluginConfigurator
 
     private readonly TeamcityLogger $logger;
 
-    public function __construct(ColorMode $colorMode = ColorMode::Always)
+    /**
+     * @param resource|null $output Stream service messages are written to; defaults to {@see \STDOUT}.
+     */
+    public function __construct(ColorMode $colorMode = ColorMode::Always, $output = null)
     {
         // Service messages are parsed by the CI server, but the human-readable lines around them go
         // through the same styling as the terminal renderer's — so the color decision has to be made
         // here too, or `--no-ansi` would leave ANSI in a machine-read stream.
         Style::setColorsEnabled($colorMode->shouldUseColors());
-        $this->logger = new TeamcityLogger();
+        $this->logger = new TeamcityLogger($output);
     }
 
     #[\Override]
@@ -87,6 +91,10 @@ final class TeamcityPlugin implements PluginConfigurator
         // Test Pipeline events (lifecycle of entire test through all interceptors)
         $listeners->addListener(TestPipelineStarting::class, $this->onTestPipelineStarting(...));
         $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
+
+        // Fires from the pipeline core right before the test body runs — the earliest point at which a
+        // regular test is known not to be a DataProvider batch, so testStarted can be emitted eagerly.
+        $listeners->addListener(TestStarting::class, $this->onTestStarting(...));
 
         // Test Batch events (for DataProvider)
         $listeners->addListener(TestBatchStarting::class, $this->onTestBatchStarting(...));
@@ -145,7 +153,7 @@ final class TeamcityPlugin implements PluginConfigurator
 
         $id = $identity->pipelineId;
 
-        // Lazily emit testStarted for a regular test on its first output, so it streams in real time.
+        // Fallback: if the test body never ran (no TestStarting), emit testStarted before its output.
         if (isset($this->pendingStart[$id])) {
             $this->logger->testStartedFromInfo($this->pendingStart[$id]);
             unset($this->pendingStart[$id]);
@@ -156,11 +164,32 @@ final class TeamcityPlugin implements PluginConfigurator
 
     private function onTestPipelineStarting(TestPipelineStarting $event): void
     {
-        // Assume a regular test: attribute output to it and keep testStarted pending until output
-        // arrives. If it turns out to be a DataProvider batch, onTestBatchStarting clears this.
+        // Assume a regular test: attribute output to it and keep testStarted pending until its body
+        // starts (onTestStarting). If it turns out to be a DataProvider batch, onTestBatchStarting
+        // clears this.
         $id = $event->testInfo->identity->pipelineId;
         $this->currentName[$id] = $event->testInfo->name;
         $this->pendingStart[$id] = $event->testInfo;
+    }
+
+    private function onTestStarting(TestStarting $event): void
+    {
+        $id = $event->testInfo->identity->pipelineId;
+
+        // A data set emits its own testStarted eagerly (onTestDataSetStarting) and the batch around it
+        // is a suite, not a test — so inside a batch there is nothing to start here. A data set shares
+        // its batch's pipelineId, so this flag is already set by the time its body runs.
+        if (isset($this->isBatch[$id])) {
+            return;
+        }
+
+        // Regular test: emit testStarted the moment its body is about to run, so the IDE shows a running
+        // spinner for the whole execution. The pendingStart guard also makes a retried test — which
+        // fires TestStarting again — emit testStarted only once.
+        if (isset($this->pendingStart[$id])) {
+            $this->logger->testStartedFromInfo($this->pendingStart[$id]);
+            unset($this->pendingStart[$id]);
+        }
     }
 
     private function onTestPipelineFinished(TestPipelineFinished $event): void
@@ -174,7 +203,8 @@ final class TeamcityPlugin implements PluginConfigurator
             return;
         }
 
-        // Regular test: testStarted was emitted lazily on first output; if there was none, emit now.
+        // Regular test: testStarted is normally emitted when the body starts; if the body never ran
+        // (aborted in an interceptor before TestStarting), emit it now so the node still appears.
         if (isset($this->pendingStart[$id])) {
             $this->logger->testStartedFromInfo($this->pendingStart[$id]);
             unset($this->pendingStart[$id]);
