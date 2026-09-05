@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.46](https://github.com/php-testo/testo/compare/0.10.45...0.10.46) (2026-09-05)
+
+
+### Performance Improvements
+
+* **core:** Optimize TestDefinitions ([#318](https://github.com/php-testo/testo/issues/318)) ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
+
+### Code Refactoring
+
+* **core:** promote prefilled case members in the finders instead of scanning methods ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
 ## [0.10.45](https://github.com/php-testo/testo/compare/0.10.44...0.10.45) (2026-08-29)
 
 
