@@ -6,6 +6,7 @@ namespace Tests\Filter\Unit\Internal;
 
 use Internal\Path;
 use Testo\Application\Config\ApplicationConfig;
+use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 use Testo\Assert;
 use Testo\Codecov\Covers;
@@ -60,6 +61,47 @@ final class SuiteFilterInterceptorTest
         $suites = self::locate(new Filter(paths: [self::ROOT]), self::config(['alpha' => $alpha]));
 
         Assert::same(self::includes($suites[0]), [self::absolute($alpha)]);
+    }
+
+    /**
+     * Roots are judged one by one: of two roots in a suite, the one touching no filtered path is
+     * dropped while the other is narrowed, and the suite survives with the narrowed root only.
+     */
+    public function narrowsRootsIndependentlyWithinOneSuite(): void
+    {
+        $alphaFile = self::ROOT . '/Alpha/AlphaTest.php';
+        $config = new ApplicationConfig(suites: [
+            new SuiteConfig('both', [self::ROOT . '/Alpha', self::ROOT . '/Beta']),
+        ]);
+
+        $suites = self::locate(new Filter(paths: [$alphaFile]), $config);
+
+        Assert::same(self::names($suites), ['both']);
+        Assert::same(self::includes($suites[0]), [self::absolute($alphaFile)]);
+    }
+
+    public function keepsSuiteExcludesWhenNarrowing(): void
+    {
+        $config = new ApplicationConfig(suites: [
+            new SuiteConfig('all', new FinderConfig(include: [self::ROOT], exclude: [self::ROOT . '/Beta'])),
+        ]);
+
+        $suites = self::locate(new Filter(paths: [self::ROOT . '/Alpha']), $config);
+
+        Assert::same(
+            \array_map(strval(...), $suites[0]->location->excludes),
+            [self::absolute(self::ROOT . '/Beta')],
+        );
+    }
+
+    /**
+     * A prefix that is not a whole path segment is not containment: `Alp` does not select `Alpha`.
+     */
+    public function segmentPrefixIsNotContainment(): void
+    {
+        $suites = self::locate(new Filter(paths: [self::ROOT . '/Alp']), self::config(['alpha' => self::ROOT . '/Alpha']));
+
+        Assert::same($suites, []);
     }
 
     public function dropsSuiteWhoseRootsTouchNoFilteredPath(): void

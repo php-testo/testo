@@ -11,8 +11,10 @@ use Testo\Filter;
 use Testo\Filter\FilterPlugin;
 use Testo\Filter\Internal\FilterInput;
 use Testo\Filter\Internal\FilterInterceptor;
+use Testo\Filter\Internal\SuiteFilterInterceptor;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\CaseLocatorInterceptor;
+use Testo\Pipeline\Middleware\SuiteLocatorInterceptor;
 use Testo\Test;
 
 /**
@@ -39,6 +41,19 @@ final class FilterPluginTest
         }
 
         Assert::true($hasFilter, 'FilterPlugin must register FilterInterceptor as a case locator');
+    }
+
+    public function registersSuiteFilterInterceptorAsSuiteLocator(): void
+    {
+        $container = new ObjectContainer();
+        $container->set(new FilterInput(), FilterInput::class);
+
+        (new FilterPlugin())->configure($container);
+
+        $locators = $container->get(InterceptorProvider::class)->fromConfig(SuiteLocatorInterceptor::class);
+
+        Assert::array($locators)->hasCount(1);
+        Assert::instanceOf($locators[0], SuiteFilterInterceptor::class);
     }
 
     public function splitsGroupOptionIntoIncludeAndExclude(): void
