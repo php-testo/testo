@@ -74,6 +74,7 @@ final class TestRunner
         );
 
         $suiteConfigs === [] and throw new \RuntimeException('Testing Suite is not configured.');
+        /** @var TestingSuite $config */
         $config = \reset($suiteConfigs)->newInstance();
 
         # Extra plugins requested by the test, on top of the suite defaults.

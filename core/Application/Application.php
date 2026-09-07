@@ -222,9 +222,7 @@ final readonly class Application
     private static function applyPlugins(Container $container, array $plugins): void
     {
         foreach ($plugins as $plugin) {
-            if (\is_string($plugin)) {
-                $plugin = $container->get($plugin);
-            }
+            \is_string($plugin) and $plugin = $container->get($plugin);
 
             $plugin->configure($container);
         }
