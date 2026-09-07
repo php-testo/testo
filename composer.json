@@ -30,6 +30,7 @@
     "require": {
         "php": ">=8.2",
         "ext-tokenizer": "*",
+        "internal/container": "^1.0",
         "internal/destroy": "^1.0",
         "internal/path": "^1.3",
         "psr/container": "1 - 2",
@@ -76,17 +77,14 @@
     "autoload": {
         "psr-4": {
             "Testo\\": "core/",
-            "Internal\\Container\\": "internal/container/src",
             "Internal\\Fiber\\": "internal/fiber/src"
         }
     },
     "replace": {
-        "internal/container": "*",
         "internal/fiber": "*"
     },
     "autoload-dev": {
         "psr-4": {
-            "Internal\\Container\\Tests\\": "internal/container/tests/",
             "Internal\\Fiber\\Tests\\": "internal/fiber/tests/",
             "Tests\\PhpUnit\\": "tests/PhpUnit/",
             "Tests\\": "tests/",

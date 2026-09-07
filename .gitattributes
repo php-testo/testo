@@ -26,7 +26,7 @@
 /skills          -export-ignore
 /skills/**       -export-ignore
 
-# Core source code (`Testo\` namespace) and the bundled `internal/container`
+# Core source code (`Testo\` namespace) and the bundled `internal/fiber`
 # (mapped through composer.json `replace`). The `bin/testo` CLI entry point
 # now ships with the `testo/bridge-symfony-console` package.
 /core            -export-ignore
