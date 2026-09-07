@@ -22,6 +22,7 @@ use Testo\Event\Test\TestDataSetStarting;
 use Testo\Event\Test\TestPipelineFinished;
 use Testo\Event\Test\TestPipelineStarting;
 use Testo\Event\Test\TestStarting;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Teamcity\TeamcityPlugin;
 use Testo\Output\Terminal\Renderer\ColorMode;
 use Testo\Test;
@@ -100,7 +101,8 @@ final class TeamcityPluginTest
             $dispatcher = new EventDispatcher();
             $container = new ObjectContainer();
             $container->set($dispatcher, EventListenerCollector::class);
-            (new TeamcityPlugin(ColorMode::Never, $stream))->configure($container);
+            $container->set(new ConsoleStreams($stream), ConsoleStreams::class);
+            (new TeamcityPlugin(ColorMode::Never))->configure($container);
 
             $scenario($dispatcher);
 

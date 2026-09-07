@@ -14,6 +14,7 @@ use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Report\ReportFileGenerated;
 use Testo\Event\Report\ReportFileGenerating;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Json\Internal\JsonReport;
 
 /**
@@ -68,6 +69,8 @@ final class JsonPlugin implements PluginConfigurator
     #[\Override]
     public function configure(Container $container): void
     {
+        $this->path === null and $this->stream ??= $container->get(ConsoleStreams::class)->stdout;
+
         $listeners = $container->get(EventListenerCollector::class);
         $listeners->addListener(SessionFinished::class, $this->onSessionFinished(...));
 

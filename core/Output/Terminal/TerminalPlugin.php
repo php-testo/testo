@@ -42,17 +42,21 @@ final class TerminalPlugin implements PluginConfigurator
      */
     private array $isBatch = [];
 
+    private ?TerminalLogger $logger = null;
+
     public function __construct(
-        private readonly TerminalLogger $logger,
-        ColorMode $colorMode = ColorMode::Always,
-    ) {
-        // Configure color support based on mode
-        Style::setColorsEnabled($colorMode->shouldUseColors());
-    }
+        private readonly ?ColorMode $colorMode = null,
+    ) {}
 
     #[\Override]
     public function configure(Container $container): void
     {
+        $colorMode = $this->colorMode
+            ?? ($container->has(ColorMode::class) ? $container->get(ColorMode::class) : ColorMode::Always);
+        Style::setColorsEnabled($colorMode->shouldUseColors());
+
+        $this->logger = $container->get(TerminalLogger::class);
+
         $listeners = $container->get(EventListenerCollector::class);
 
         // Framework events

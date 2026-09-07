@@ -29,10 +29,9 @@ use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestDataSetStarting;
 use Testo\Event\Test\TestPipelineFinished;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Terminal\Renderer\ColorMode;
-use Testo\Output\Terminal\Renderer\OutputFormat;
 use Testo\Output\Terminal\Renderer\Style;
-use Testo\Output\Terminal\Renderer\TerminalLogger;
 use Testo\Output\Terminal\TerminalPlugin;
 use Testo\Test;
 use Tests\Output\Stub\JUnit\SampleTestClass;
@@ -174,11 +173,12 @@ final class TerminalPluginTest
         $colors = Style::areColorsEnabled();
 
         try {
-            $logger = new TerminalLogger(OutputFormat::Compact, Verbosity::Verbose, $stdout, $stderr);
             $dispatcher = new EventDispatcher();
             $container = new ObjectContainer();
             $container->set($dispatcher, EventListenerCollector::class);
-            (new TerminalPlugin($logger, ColorMode::Never))->configure($container);
+            $container->set(new ConsoleStreams($stdout, $stderr), ConsoleStreams::class);
+            $container->set(Verbosity::Verbose, Verbosity::class);
+            (new TerminalPlugin(ColorMode::Never))->configure($container);
 
             $scenario($dispatcher);
 

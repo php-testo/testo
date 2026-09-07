@@ -30,6 +30,7 @@ use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Core\Value\Verbosity;
 use Testo\Data\MultipleResult;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Terminal\Renderer\OutputFormat;
 use Testo\Output\Terminal\Renderer\Style;
 use Testo\Output\Terminal\Renderer\TerminalLogger;
@@ -77,7 +78,7 @@ final class TerminalLoggerTest
         \assert($stdout !== false && $stderr !== false);
 
         try {
-            $logger = new TerminalLogger(OutputFormat::Compact, Verbosity::Normal, $stdout, $stderr);
+            $logger = new TerminalLogger(new ConsoleStreams($stdout, $stderr), OutputFormat::Compact, Verbosity::Normal);
             $logger->logMessage(new Message(0.0, Messenger::CHANNEL_STDERR, Level::Error, 'framework boom'));
 
             \rewind($stdout);
@@ -553,7 +554,7 @@ final class TerminalLoggerTest
         \assert($stream !== false);
 
         try {
-            $scenario(new TerminalLogger($format, $verbosity, $stream));
+            $scenario(new TerminalLogger(new ConsoleStreams($stream), $format, $verbosity));
             \rewind($stream);
             $output = \stream_get_contents($stream);
         } finally {
@@ -598,7 +599,7 @@ final class TerminalLoggerTest
         \assert($stream !== false);
 
         try {
-            $logger = new TerminalLogger(OutputFormat::Compact, $verbosity, $stream);
+            $logger = new TerminalLogger(new ConsoleStreams($stream), OutputFormat::Compact, $verbosity);
             foreach ($handled as $result) {
                 $logger->handleTestResult($result, 0);
             }
@@ -625,7 +626,7 @@ final class TerminalLoggerTest
         \assert($stream !== false);
 
         try {
-            $logger = new TerminalLogger(OutputFormat::Compact, Verbosity::Normal, $stream);
+            $logger = new TerminalLogger(new ConsoleStreams($stream), OutputFormat::Compact, Verbosity::Normal);
             $logger->batchStartedFromInfo($info);
             foreach ($datasets as $name => $result) {
                 $logger->testStartedFromInfo($info, $name);

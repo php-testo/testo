@@ -9,13 +9,6 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Application\Internal\MessengerHub;
-use Testo\Core\Value\Verbosity;
-use Testo\Output\ConsoleStreams;
-use Testo\Output\Json\JsonPlugin;
-use Testo\Output\Teamcity\TeamcityPlugin;
-use Testo\Output\Terminal\Renderer\ColorMode;
-use Testo\Output\Terminal\Renderer\TerminalLogger;
-use Testo\Output\Terminal\TerminalPlugin;
 use Testo\Pipeline\Internal\OutputInterceptor;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\Messenger;
@@ -69,24 +62,6 @@ final readonly class DefaultServicesConfig implements PluginConfigurator
             EventListenerCollector::class => EventDispatcher::class,
             InterceptorCollector::class => InterceptorProvider::class,
             Messenger::class => MessengerHub::class,
-
-            ConsoleStreams::class => static fn(): ConsoleStreams => new ConsoleStreams(),
-
-            TerminalPlugin::class => static fn(Container $c): TerminalPlugin => new TerminalPlugin(
-                new TerminalLogger(
-                    verbosity: $c->has(Verbosity::class) ? $c->get(Verbosity::class) : Verbosity::Normal,
-                    output: $c->get(ConsoleStreams::class)->stdout,
-                    errorOutput: $c->get(ConsoleStreams::class)->stderr,
-                ),
-                $c->has(ColorMode::class) ? $c->get(ColorMode::class) : ColorMode::Always,
-            ),
-            TeamcityPlugin::class => static fn(Container $c): TeamcityPlugin => new TeamcityPlugin(
-                $c->has(ColorMode::class) ? $c->get(ColorMode::class) : ColorMode::Always,
-                $c->get(ConsoleStreams::class)->stdout,
-            ),
-            JsonPlugin::class => static fn(Container $c): JsonPlugin => new JsonPlugin(
-                $c->get(ConsoleStreams::class)->stdout,
-            ),
         ];
     }
 

@@ -32,6 +32,7 @@ use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Core\Report\ReportInfo;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Teamcity\Teamcity\TeamcityLogger;
 use Testo\Output\Terminal\Renderer\Style;
 use Testo\Test;
@@ -699,7 +700,7 @@ final class TeamcityLoggerTest
         \assert($stream !== false);
 
         try {
-            $callback(new TeamcityLogger($stream));
+            $callback(new TeamcityLogger(new ConsoleStreams($stream)));
             \rewind($stream);
             $output = \stream_get_contents($stream);
         } finally {

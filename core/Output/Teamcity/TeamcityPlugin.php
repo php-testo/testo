@@ -59,23 +59,24 @@ final class TeamcityPlugin implements PluginConfigurator
      */
     private array $pendingStart = [];
 
-    private readonly TeamcityLogger $logger;
+    private ?TeamcityLogger $logger = null;
 
-    /**
-     * @param resource|null $output Stream service messages are written to; defaults to {@see \STDOUT}.
-     */
-    public function __construct(ColorMode $colorMode = ColorMode::Always, $output = null)
-    {
-        // Service messages are parsed by the CI server, but the human-readable lines around them go
-        // through the same styling as the terminal renderer's — so the color decision has to be made
-        // here too, or `--no-ansi` would leave ANSI in a machine-read stream.
-        Style::setColorsEnabled($colorMode->shouldUseColors());
-        $this->logger = new TeamcityLogger($output);
-    }
+    public function __construct(
+        private readonly ?ColorMode $colorMode = null,
+    ) {}
 
     #[\Override]
     public function configure(Container $container): void
     {
+        // Service messages are parsed by the CI server, but the human-readable lines around them go
+        // through the same styling as the terminal renderer's — so the color decision has to be made
+        // here too, or `--no-ansi` would leave ANSI in a machine-read stream.
+        $colorMode = $this->colorMode
+            ?? ($container->has(ColorMode::class) ? $container->get(ColorMode::class) : ColorMode::Always);
+        Style::setColorsEnabled($colorMode->shouldUseColors());
+
+        $this->logger = $container->get(TeamcityLogger::class);
+
         $listeners = $container->get(EventListenerCollector::class);
 
         // Framework events
