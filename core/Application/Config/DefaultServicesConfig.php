@@ -85,7 +85,7 @@ final readonly class DefaultServicesConfig implements PluginConfigurator
                 $c->get(ConsoleStreams::class)->stdout,
             ),
             JsonPlugin::class => static fn(Container $c): JsonPlugin => new JsonPlugin(
-                stream: $c->get(ConsoleStreams::class)->stdout,
+                $c->get(ConsoleStreams::class)->stdout,
             ),
         ];
     }
