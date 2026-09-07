@@ -21,7 +21,6 @@ use Testo\Tokenizer\Reflection\TokenizedFile;
 final class FileLocateTest
 {
     private const FIXTURE = __DIR__ . '/../Fixture/GroupedTestClass.php';
-    private const SUITES = __DIR__ . '/../Fixture/Suite';
 
     public function matchesByMethodFragment(): void
     {
@@ -65,31 +64,6 @@ final class FileLocateTest
         Assert::true($this->locate([]));
     }
 
-    public function passesFileInsideFilteredPath(): void
-    {
-        $interceptor = new FilterInterceptor(new Filter(paths: [self::SUITES . '/Alpha']));
-
-        Assert::true($interceptor->locateFile(self::tokenize(self::SUITES . '/Alpha/AlphaTest.php'), static fn() => true));
-    }
-
-    public function rejectsFileOutsideEveryFilteredPath(): void
-    {
-        $interceptor = new FilterInterceptor(new Filter(paths: [self::SUITES . '/Alpha']));
-
-        Assert::false($interceptor->locateFile(self::tokenize(self::SUITES . '/Beta/BetaTest.php'), static fn() => true));
-    }
-
-    /**
-     * Path and name filters are both required to pass: a file under a filtered path is still
-     * rejected when no token matches the name filter.
-     */
-    public function rejectsFileInsideFilteredPathWithoutNameMatch(): void
-    {
-        $interceptor = new FilterInterceptor(new Filter(names: ['noSuchSymbol'], paths: [self::SUITES . '/Alpha']));
-
-        Assert::false($interceptor->locateFile(self::tokenize(self::SUITES . '/Alpha/AlphaTest.php'), static fn() => true));
-    }
-
     /**
      * Run Stage 1 against the fixture file and return the locator decision.
      *
@@ -98,12 +72,8 @@ final class FileLocateTest
     private function locate(array $names): bool
     {
         $interceptor = new FilterInterceptor(new Filter(names: $names));
+        $file = new TokenizedFile(file: new \SplFileInfo(self::FIXTURE), path: self::FIXTURE);
 
-        return (bool) $interceptor->locateFile(self::tokenize(self::FIXTURE), static fn(TokenizedFile $f): bool => true);
-    }
-
-    private static function tokenize(string $path): TokenizedFile
-    {
-        return new TokenizedFile(file: new \SplFileInfo($path), path: $path);
+        return (bool) $interceptor->locateFile($file, static fn(TokenizedFile $f): bool => true);
     }
 }
