@@ -126,6 +126,7 @@ final class RunCommandTest
             use Testo\\Application\\Config\\Plugin\\ApplicationPlugins;
             use Testo\\Application\\Config\\SuiteConfig;
             use Testo\\Output\\Html\\HtmlPlugin;
+            use Tests\\Bridge\\SymfonyConsole\\Stub\\DiscardConsoleStreams;
 
             return new ApplicationConfig(
                 src: [],
@@ -135,7 +136,8 @@ final class RunCommandTest
                         location: new FinderConfig(include: [{$stub}]),
                     ),
                 ],
-                plugins: ApplicationPlugins::without(HtmlPlugin::class)->with(HtmlPlugin::inert()),
+                plugins: ApplicationPlugins::without(HtmlPlugin::class)
+                    ->with(HtmlPlugin::inert(), new DiscardConsoleStreams()),
             );
             PHP;
     }

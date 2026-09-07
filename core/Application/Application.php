@@ -94,13 +94,19 @@ final readonly class Application
         return new self($container);
     }
 
-    public function run(): RunResult
+    /**
+     * @param PluginConfigurator ...$latePlugins Applied after the configured application plugins, so a
+     *        binding one of them made — the reporter streams, say — is already in place before these run.
+     */
+    public function run(PluginConfigurator ...$latePlugins): RunResult
     {
-        return $this->container->scope(static function (Container $container): RunResult {
+        return $this->container->scope(static function (Container $container) use ($latePlugins): RunResult {
             $startedAt = \microtime(true);
 
             $appConfig = $container->get(ApplicationConfig::class);
             self::applyPlugins($container, self::resolvePlugins($appConfig->plugins, ApplicationPlugins::class));
+            /** @var list<PluginConfigurator> $latePlugins */
+            self::applyPlugins($container, $latePlugins);
             $filter = $container->get(Filter::class);
 
             $dispatcher = $container->get(EventDispatcherInterface::class);

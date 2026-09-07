@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Testo\Bridge\Symfony\Console\Command;
 
+use Internal\Container\Container;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Testo\Common\PluginConfigurator;
 use Testo\Output\Html\HtmlPlugin;
 use Testo\Output\Json\JsonPlugin;
 use Testo\Output\Teamcity\TeamcityPlugin;
@@ -208,14 +210,25 @@ final class Run extends Base
             $json => JsonPlugin::class,
             default => TerminalPlugin::class,
         };
-        $this->container->get($renderer)->configure($this->container);
+        // Built here, the renderer would capture the console streams before any plugin can rebind them;
+        // deferring it into the run lets a plugin (a test) redirect the reporters first.
+        $deferredRenderer = new class($renderer) implements PluginConfigurator {
+            /** @param class-string<PluginConfigurator> $renderer */
+            public function __construct(private readonly string $renderer) {}
+
+            #[\Override]
+            public function configure(Container $container): void
+            {
+                $container->get($this->renderer)->configure($container);
+            }
+        };
 
         // --log-json writes the JSON report to a file alongside the stdout renderer above.
         $logJson = $input->getOption('log-json');
         \is_string($logJson) && $logJson !== ''
             and (new JsonPlugin($logJson))->configure($this->container);
 
-        $result = $this->application->run();
+        $result = $this->application->run($deferredRenderer);
 
         return $result->status->isSuccessful()
             ? Command::SUCCESS
