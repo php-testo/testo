@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.12](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.11...bridge-symfony-console-0.1.12) (2026-09-07)
+
+
+### Bug Fixes
+
+* **output:** keep nested runs' terminal output off the --json/--teamcity stdout ([e27baaa](https://github.com/php-testo/testo/commit/e27baaa6918ea9e9ee419cf9580a51751a4f5c08))
+* **teamcity:** emit `testStarted` when the test body begins ([#320](https://github.com/php-testo/testo/issues/320)) ([e27baaa](https://github.com/php-testo/testo/commit/e27baaa6918ea9e9ee419cf9580a51751a4f5c08))
+
 ## [0.1.11](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.10...bridge-symfony-console-0.1.11) (2026-08-29)
 
 
