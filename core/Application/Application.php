@@ -95,17 +95,18 @@ final readonly class Application
     }
 
     /**
-     * @param PluginConfigurator ...$latePlugins Applied after the configured application plugins, so a
-     *        binding one of them made — the reporter streams, say — is already in place before these run.
+     * @param PluginConfigurator|class-string<PluginConfigurator> ...$latePlugins Applied after the configured
+     *        application plugins, so a binding one of them made — the reporter streams, say — is already in
+     *        place before these run.
      */
-    public function run(PluginConfigurator ...$latePlugins): RunResult
+    public function run(PluginConfigurator|string ...$latePlugins): RunResult
     {
         return $this->container->scope(static function (Container $container) use ($latePlugins): RunResult {
             $startedAt = \microtime(true);
 
             $appConfig = $container->get(ApplicationConfig::class);
             self::applyPlugins($container, self::resolvePlugins($appConfig->plugins, ApplicationPlugins::class));
-            /** @var list<PluginConfigurator> $latePlugins */
+            /** @var list<PluginConfigurator|class-string<PluginConfigurator>> $latePlugins */
             self::applyPlugins($container, $latePlugins);
             $filter = $container->get(Filter::class);
 
@@ -216,11 +217,15 @@ final readonly class Application
     /**
      * Apply plugin services to the container.
      *
-     * @param list<PluginConfigurator> $plugins
+     * @param list<PluginConfigurator|class-string<PluginConfigurator>> $plugins
      */
     private static function applyPlugins(Container $container, array $plugins): void
     {
         foreach ($plugins as $plugin) {
+            if (\is_string($plugin)) {
+                $plugin = $container->get($plugin);
+            }
+
             $plugin->configure($container);
         }
     }

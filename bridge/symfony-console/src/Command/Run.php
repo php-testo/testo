@@ -205,30 +205,19 @@ final class Run extends Base
             . 'or use --log-json=<path> to write JSON to a file alongside another renderer.',
         );
 
-        $renderer = match (true) {
-            $teamcity => TeamcityPlugin::class,
-            $json => JsonPlugin::class,
-            default => TerminalPlugin::class,
-        };
-        // Built here, the renderer would capture the console streams before any plugin can rebind them;
-        // deferring it into the run lets a plugin (a test) redirect the reporters first.
-        $deferredRenderer = new class($renderer) implements PluginConfigurator {
-            /** @param class-string<PluginConfigurator> $renderer */
-            public function __construct(private readonly string $renderer) {}
-
-            #[\Override]
-            public function configure(Container $container): void
-            {
-                $container->get($this->renderer)->configure($container);
-            }
-        };
+        $plugins = [
+            match (true) {
+                $teamcity => TeamcityPlugin::class,
+                $json => JsonPlugin::class,
+                default => TerminalPlugin::class,
+            },
+        ];
 
         // --log-json writes the JSON report to a file alongside the stdout renderer above.
         $logJson = $input->getOption('log-json');
-        \is_string($logJson) && $logJson !== ''
-            and (new JsonPlugin($logJson))->configure($this->container);
+        \is_string($logJson) and $logJson !== '' and $plugins[] = (new JsonPlugin($logJson));
 
-        $result = $this->application->run($deferredRenderer);
+        $result = $this->application->run(...$plugins);
 
         return $result->status->isSuccessful()
             ? Command::SUCCESS
