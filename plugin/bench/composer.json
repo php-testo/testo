@@ -22,9 +22,9 @@
     "require": {
         "php": ">=8.2",
         "testo/data": "^0.1.9",
-        "testo/filter": "^0.1.6",
-        "testo/inline": "^0.1.8",
-        "testo/testo": "0.10.44 - 1"
+        "testo/filter": "^0.1.7",
+        "testo/inline": "^0.1.9",
+        "testo/testo": "0.10.46 - 1"
     },
     "require-dev": {
         "testo/assert": "^0.1.14"
