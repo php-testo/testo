@@ -10,10 +10,12 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\StreamOutput;
 use Symfony\Component\Console\Style\StyleInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Testo\Application\Application;
 use Testo\Core\Value\Verbosity;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Terminal\Renderer\ColorMode;
 use Yiisoft\Injector\Injector;
 
@@ -82,9 +84,15 @@ abstract class Base extends Command
         );
         $this->container = $this->application->getContainer();
 
+        # The reporters write through ConsoleStreams; build the command's own Symfony output from the
+        # same pair rather than the process streams Symfony wired, so one binding defines where a run's
+        # output goes instead of the bridge reaching for STDOUT independently.
+        $streams = $this->container->get(ConsoleStreams::class);
+        $consoleOutput = new StreamOutput($streams->stdout, $output->getVerbosity(), $output->isDecorated());
+
         $this->container->set($input, InputInterface::class);
-        $this->container->set($output, OutputInterface::class);
-        $this->container->set(new SymfonyStyle($input, $output), StyleInterface::class);
+        $this->container->set($consoleOutput, OutputInterface::class);
+        $this->container->set(new SymfonyStyle($input, $consoleOutput), StyleInterface::class);
         $this->container->set(self::resolveVerbosity($output), Verbosity::class);
         $this->container->set(self::resolveColorMode($input), ColorMode::class);
 
