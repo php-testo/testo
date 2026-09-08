@@ -62,17 +62,9 @@ jobs:
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
-      # On 8.1 the sources and several dependencies target 8.2+. Drop the dev tooling the self-test
-      # does not need, then install-php resolves everything as if on 8.1 (capping each dependency
-      # to its newest 8.1-compatible version) and downgrades both the sources and any dependency —
-      # including the path-mapped plugins, bridges and internal/container — that has no 8.1 version.
-      - name: Slim dev tooling for the PHP 8.1 leg
-        if: matrix.php == '8.1'
-        run: composer remove --dev llm/skills --no-update --no-interaction
-
       - name: Install and downgrade for PHP 8.1
         if: matrix.php == '8.1'
-        uses: php-internal/actions/install-php@v1
+        uses: php-internal/actions/downgrade@v1
         with:
           php-version: '8.1'
           dependency-versions: ${{ matrix.dependencies }}
