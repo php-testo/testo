@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Internal;
 
+use Internal\Container\Attribute\ScopeShared;
 use Internal\Destroy\Destroyable;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Codecov\Result\CoverageResult;
@@ -21,6 +22,7 @@ use Testo\Event\Report\ReportFileGenerated;
  *
  * @internal
  */
+#[ScopeShared]
 final readonly class CoverageCollector implements Destroyable
 {
     private Cache $cache;

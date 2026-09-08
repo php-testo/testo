@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Internal\Runner;
 
+use Internal\Container\Attribute\ScopeShared;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
@@ -25,6 +26,7 @@ use Testo\Pipeline\Pipeline;
  * @internal
  * @psalm-internal Testo\Application
  */
+#[ScopeShared]
 final readonly class CaseRunner
 {
     public function __construct(

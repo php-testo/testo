@@ -21,6 +21,7 @@
     ],
     "require": {
         "php": ">=8.2",
+        "internal/container": "^1.1",
         "testo/testo": "0.10.44 - 1"
     },
     "autoload": {

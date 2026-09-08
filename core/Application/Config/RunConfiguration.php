@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Config;
 
+use Internal\Container\Attribute\ScopeShared;
 use Internal\Path;
 
 /**
@@ -22,6 +23,7 @@ use Internal\Path;
  * @psalm-immutable
  * @api
  */
+#[ScopeShared]
 final readonly class RunConfiguration
 {
     /**

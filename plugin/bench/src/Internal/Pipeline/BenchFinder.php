@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Bench\Internal\Pipeline;
 
+use Internal\Container\Attribute\ScopeShared;
 use Testo\Bench;
 use Testo\Bench\Internal\BenchHandler;
 use Testo\Common\Reflection;
@@ -22,6 +23,7 @@ use Testo\Tokenizer\Reflection\TokenizedFile;
  * @internal
  */
 #[InterceptorOptions(order: -20_000, testType: TestType::BenchInline)]
+#[ScopeShared]
 final readonly class BenchFinder implements FileLocatorInterceptor, CaseLocatorInterceptor
 {
     /** @var \Closure(TestInfo): mixed Invoker for the test method. */

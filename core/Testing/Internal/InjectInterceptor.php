@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Testing\Internal;
 
+use Internal\Container\Attribute\ScopeShared;
 use Internal\Container\Container;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
@@ -21,6 +22,7 @@ use Testo\Testing\Attribute\Inject;
  * @psalm-internal Testo
  */
 #[InterceptorOptions(order: InterceptorOptions::ORDER_DEFAULT)]
+#[ScopeShared]
 final readonly class InjectInterceptor implements TestCaseRunInterceptor
 {
     public function __construct(
