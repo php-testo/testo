@@ -77,6 +77,7 @@ jobs:
         with:
           paths: core plugin bridge tests testo.php
           php-version: '8.1'
+          skip: bridge/symfony-console/resources/stubs
 
       # Bin tools carry deps with a higher PHP floor than the matrix (e.g. tools/double).
       # They install everywhere but only load where the platform allows, so ignore the check.
