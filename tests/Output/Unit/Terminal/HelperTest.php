@@ -114,9 +114,7 @@ final class HelperTest
     private static function throwViaBoundary(int $code = 0): \Throwable
     {
         try {
-            self::boundaryMarker(static function () use ($code): never {
-                throw new \RuntimeException('boom', $code);
-            });
+            self::boundaryMarker(static fn(): never => throw new \RuntimeException('boom', $code));
         } catch (\Throwable $e) {
             return $e;
         }
@@ -131,9 +129,7 @@ final class HelperTest
     private static function throwViaArrayMap(): \Throwable
     {
         try {
-            \array_map(static function (): never {
-                throw new \LogicException('via-map');
-            }, [1]);
+            \array_map(static fn(): never => throw new \LogicException('via-map'), [1]);
         } catch (\Throwable $e) {
             return $e;
         }
