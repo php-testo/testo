@@ -10,7 +10,6 @@ on:
       - 'testo.php'
       - 'composer.json'
       - 'composer.lock'
-      - 'rector-downgrade.php'
       - '.github/workflows/tests.yml'
   pull_request:
     paths:
@@ -21,7 +20,6 @@ on:
       - 'testo.php'
       - 'composer.json'
       - 'composer.lock'
-      - 'rector-downgrade.php'
       - '.github/workflows/tests.yml'
 
 jobs:
@@ -75,7 +73,10 @@ jobs:
 
       - name: Downgrade sources to PHP 8.1
         if: matrix.php == '8.1'
-        run: php vendor/bin/rector process --config=rector-downgrade.php --no-progress-bar
+        uses: php-testo/actions/downgrade-php@v1
+        with:
+          paths: core plugin bridge tests testo.php
+          php-version: '8.1'
 
       # Bin tools carry deps with a higher PHP floor than the matrix (e.g. tools/double).
       # They install everywhere but only load where the platform allows, so ignore the check.
