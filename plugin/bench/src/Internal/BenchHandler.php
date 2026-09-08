@@ -241,7 +241,7 @@ final readonly class BenchHandler
         # peak is reset first so it reflects this iteration only, and the collection cycle keeps
         # garbage from a previous case out of the window.
         \gc_collect_cycles();
-        \memory_reset_peak_usage();
+        \function_exists('memory_reset_peak_usage') and \memory_reset_peak_usage();
         $beforeMem = \memory_get_peak_usage();
         $beforeTime = \hrtime(true);
         for ($i = 0; $i < $calls; ++$i) {
