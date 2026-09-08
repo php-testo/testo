@@ -311,26 +311,15 @@ final class Reflection
     /**
      * The parent- or interface-declared method that $method overrides, or null when it declares none.
      *
-     * Resolves the same layer {@see \ReflectionMethod::getPrototype()} points to, but returns null for a
-     * standalone method instead of throwing, and does so on any supported PHP version. The declaring
-     * class's parent takes precedence over its interfaces.
+     * {@see \ReflectionMethod::getPrototype()} throws rather than returning null for a method that has
+     * no prototype; this normalises the absence so callers can branch on it directly.
      */
     private static function methodPrototype(\ReflectionMethod $method): ?\ReflectionMethod
     {
-        $name = $method->getName();
-        $declaring = $method->getDeclaringClass();
-
-        $parent = $declaring->getParentClass();
-        if ($parent !== false && $parent->hasMethod($name)) {
-            return $parent->getMethod($name);
+        try {
+            return $method->getPrototype();
+        } catch (\ReflectionException) {
+            return null;
         }
-
-        foreach ($declaring->getInterfaces() as $interface) {
-            if ($interface->hasMethod($name)) {
-                return $interface->getMethod($name);
-            }
-        }
-
-        return null;
     }
 }
