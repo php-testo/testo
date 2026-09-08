@@ -58,6 +58,13 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage: none
 
+      # The llm/skills Composer plugin runs a post-install hook whose code uses
+      # `readonly class`, so it fatals on 8.1 during install itself — before the
+      # sources can be downgraded. It is dev-only tooling the suite never needs.
+      - name: Drop the llm/skills plugin on 8.1
+        if: matrix.php == '8.1'
+        run: composer remove --dev llm/skills --no-update --no-interaction
+
       - name: Install Composer dependencies
         uses: ramsey/composer-install@v3
         with:
