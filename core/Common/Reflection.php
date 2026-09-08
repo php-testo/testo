@@ -59,11 +59,8 @@ final class Reflection
                 }
             }
 
-            $prototype = $includePrototypes && $function instanceof \ReflectionMethod
-                ? self::methodPrototype($function)
-                : null;
-            if ($prototype !== null) {
-                $function = $prototype;
+            if ($includePrototypes && $function instanceof \ReflectionMethod && $function->hasPrototype()) {
+                $function = $function->getPrototype();
                 continue;
             }
 
@@ -206,9 +203,8 @@ final class Reflection
                     break;
                 }
 
-                $prototype = self::methodPrototype($method);
-                if ($prototype !== null) {
-                    $method = $prototype;
+                if ($method->hasPrototype()) {
+                    $method = $method->getPrototype();
                     continue;
                 }
 
@@ -306,20 +302,5 @@ final class Reflection
         }
 
         return $attributes;
-    }
-
-    /**
-     * The parent- or interface-declared method that $method overrides, or null when it declares none.
-     *
-     * {@see \ReflectionMethod::getPrototype()} throws rather than returning null for a method that has
-     * no prototype; this normalises the absence so callers can branch on it directly.
-     */
-    private static function methodPrototype(\ReflectionMethod $method): ?\ReflectionMethod
-    {
-        try {
-            return $method->getPrototype();
-        } catch (\ReflectionException) {
-            return null;
-        }
     }
 }
