@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Pipeline\Internal;
 
+use Internal\Container\Attribute\ScopeShared;
 use Testo\Common\Reflection;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
@@ -25,6 +26,7 @@ use Testo\Pipeline\Pipeline;
  * @psalm-internal Testo\Pipeline
  */
 #[InterceptorOptions(order: InterceptorOptions::ORDER_ATTRIBUTES)]
+#[ScopeShared]
 final readonly class AttributesInterceptor implements TestRunInterceptor, TestCaseRunInterceptor
 {
     public function __construct(

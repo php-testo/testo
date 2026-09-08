@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Internal\Runner;
 
+use Internal\Container\Attribute\ScopeShared;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Exception\PipelineFailure;
 use Testo\Core\Context\TestInfo;
@@ -37,6 +38,7 @@ use Testo\Pipeline\Pipeline;
  * @internal
  * @psalm-internal Testo\Application
  */
+#[ScopeShared]
 final readonly class TestRunner
 {
     public function __construct(

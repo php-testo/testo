@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Assert\Internal\Middleware;
 
+use Internal\Container\Attribute\ScopeShared;
 use Testo\Assert\AssertPlugin;
 use Testo\Assert\Internal\HistoryRenderer;
 use Testo\Assert\Internal\StaticState;
@@ -28,6 +29,7 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * Supports both synchronous and asynchronous (Fiber-based) environments.
  */
 #[InterceptorOptions(order: InterceptorOptions::ORDER_ASSERTIONS - 10)]
+#[ScopeShared]
 final readonly class AssertCollectorInterceptor implements TestRunInterceptor
 {
     public function __construct(

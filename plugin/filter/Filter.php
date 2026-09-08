@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo;
 
+use Internal\Container\Attribute\ScopeShared;
 use Internal\Path;
 use Testo\Core\Value\TestType;
 
@@ -15,6 +16,7 @@ use Testo\Core\Value\TestType;
  *
  * @api
  */
+#[ScopeShared]
 final readonly class Filter
 {
     /**

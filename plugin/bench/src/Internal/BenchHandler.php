@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Bench\Internal;
 
+use Internal\Container\Attribute\ScopeShared;
 use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Assert\State\Assertion\AssertionSuccess;
@@ -21,6 +22,7 @@ use Testo\Core\Log\Level;
 /**
  * @internal
  */
+#[ScopeShared]
 final readonly class BenchHandler
 {
     public function __construct(

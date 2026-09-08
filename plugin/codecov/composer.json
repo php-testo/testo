@@ -22,6 +22,7 @@
     "require": {
         "php": ">=8.2",
         "ext-xmlwriter": "*",
+        "internal/container": "^1.1",
         "testo/data": "^0.1.9",
         "testo/inline": "^0.1.8",
         "testo/testo": "0.10.44 - 1"

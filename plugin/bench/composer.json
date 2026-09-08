@@ -21,6 +21,7 @@
     ],
     "require": {
         "php": ">=8.2",
+        "internal/container": "^1.1",
         "testo/data": "^0.1.9",
         "testo/filter": "^0.1.7",
         "testo/inline": "^0.1.9",
