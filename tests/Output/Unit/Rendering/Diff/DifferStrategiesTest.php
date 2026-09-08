@@ -6,6 +6,7 @@ namespace Tests\Output\Unit\Rendering\Diff;
 
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Core\Exception\SkipTest;
 use Testo\Data\DataCross;
 use Testo\Data\DataProvider;
 use Testo\Output\Rendering\Diff\DiffLine;
@@ -242,6 +243,10 @@ final class DifferStrategiesTest
      */
     public function hirschbergUsesFarLessMemoryThanTheLcsTable(): void
     {
+        \function_exists('memory_reset_peak_usage') or throw new SkipTest(
+            'Per-call peak measurement needs memory_reset_peak_usage() (PHP 8.2+).',
+        );
+
         $expected = \implode("\n", \array_map(static fn(int $i): string => "row {$i}", \range(1, 400)));
         $actual = \str_replace('row 200', 'row CHANGED', $expected);
 
