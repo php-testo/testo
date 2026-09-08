@@ -56,28 +56,27 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage: none
 
-      # The llm/skills Composer plugin runs a post-install hook whose code uses
-      # `readonly class`, so it fatals on 8.1 during install itself — before the
-      # sources can be downgraded. It is dev-only tooling the suite never needs.
-      - name: Drop the llm/skills plugin on 8.1
-        if: matrix.php == '8.1'
-        run: composer remove --dev llm/skills --no-update --no-interaction
-
       - name: Install Composer dependencies
+        if: matrix.php != '8.1'
         uses: ramsey/composer-install@v3
         with:
           dependency-versions: ${{ matrix.dependencies }}
-          # On 8.1 the sources still declare PHP >=8.2 (they use `readonly class`);
-          # bypass the platform check here and downgrade the code before the tests run.
-          composer-options: ${{ matrix.php == '8.1' && '--ignore-platform-req=php' || '' }}
 
-      - name: Downgrade sources to PHP 8.1
+      # On 8.1 the sources and several dependencies target 8.2+. Drop the dev tooling the self-test
+      # does not need, then install-php resolves everything as if on 8.1 (capping each dependency
+      # to its newest 8.1-compatible version) and downgrades both the sources and any dependency —
+      # including the path-mapped plugins, bridges and internal/container — that has no 8.1 version.
+      - name: Slim dev tooling for the PHP 8.1 leg
         if: matrix.php == '8.1'
-        uses: php-testo/actions/downgrade-php@v1
+        run: composer remove --dev llm/skills --no-update --no-interaction
+
+      - name: Install and downgrade for PHP 8.1
+        if: matrix.php == '8.1'
+        uses: php-internal/actions/install-php@v1
         with:
-          paths: core plugin bridge tests testo.php
           php-version: '8.1'
-          skip: bridge/symfony-console/resources/stubs
+          dependency-versions: ${{ matrix.dependencies }}
+          paths: core plugin bridge tests testo.php
 
       # Bin tools carry deps with a higher PHP floor than the matrix (e.g. tools/double).
       # They install everywhere but only load where the platform allows, so ignore the check.
