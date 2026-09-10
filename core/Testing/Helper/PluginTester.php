@@ -6,6 +6,7 @@ namespace Testo\Testing\Helper;
 
 use Internal\Container\Container;
 use Testo\Assert;
+use Testo\Common\Attribute\AssertMethod;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
 use Testo\Pipeline\Interceptor;
@@ -69,6 +70,7 @@ final readonly class PluginTester
      *
      * @param class-string<Interceptor> $interceptor
      */
+    #[AssertMethod]
     public function addsInterceptor(string $interceptor): self
     {
         $found = false;
@@ -91,6 +93,7 @@ final readonly class PluginTester
     /**
      * Assert the plugin added exactly this many interceptors.
      */
+    #[AssertMethod]
     public function addsInterceptors(int $count): self
     {
         Assert::count($this->interceptors->interceptors, $count);
@@ -103,6 +106,7 @@ final readonly class PluginTester
      *
      * @param class-string $eventName
      */
+    #[AssertMethod]
     public function addsListener(string $eventName): self
     {
         $found = false;
@@ -125,6 +129,7 @@ final readonly class PluginTester
     /**
      * Assert the plugin added exactly this many listeners.
      */
+    #[AssertMethod]
     public function addsListeners(int $count): self
     {
         Assert::count($this->listeners->listeners, $count);
@@ -137,6 +142,7 @@ final readonly class PluginTester
      *
      * @param class-string $id
      */
+    #[AssertMethod]
     public function binds(string $id): self
     {
         Assert::contains(\array_column($this->container->bindings, 'id'), $id, \sprintf(
@@ -152,6 +158,7 @@ final readonly class PluginTester
      *
      * @param class-string $id
      */
+    #[AssertMethod]
     public function registers(string $id): self
     {
         Assert::contains(\array_column($this->container->registrations, 'id'), $id, \sprintf(
