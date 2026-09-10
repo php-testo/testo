@@ -23,7 +23,6 @@ use Tests\Bridge\Double\Stub\DoubleScenarios;
  * {@see Status} — the surface a user sees in the report.
  */
 #[Test]
-#[Covers(DoublePlugin::class)]
 #[Covers(DoubleInterceptor::class)]
 #[TestingSuite(path: __DIR__ . '/../Stub', plugins: [DoublePlugin::class])]
 final class DoubleStatusTest

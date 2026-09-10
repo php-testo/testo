@@ -11,7 +11,6 @@ use JMac\Testing\Exceptions\UnusedAssertionException;
 use Testo\Assert;
 use Testo\Assert\ExpectException;
 use Testo\Assert\Internal\StaticState;
-use Testo\Bridge\Double\DoublePlugin;
 use Testo\Bridge\Double\Internal\DoubleInterceptor;
 use Testo\Codecov\Covers;
 use Testo\Expect;
@@ -25,7 +24,6 @@ use Testo\Test;
  * surfaces from `verifyAll()` after the method returns and cannot be observed with `Expect`.
  */
 #[Test]
-#[Covers(DoublePlugin::class)]
 #[Covers(DoubleInterceptor::class)]
 final class DoubleAndAssertCombinations
 {

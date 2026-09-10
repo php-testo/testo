@@ -19,7 +19,6 @@ use Testo\Test;
  * expectations are verified on teardown with no per-test `verify()` call.
  */
 #[Test]
-#[Covers(DoublePlugin::class)]
 #[Covers(DoubleInterceptor::class)]
 final class DoubleBridgeTest
 {

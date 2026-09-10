@@ -25,7 +25,6 @@ use Tests\Bridge\Double\Stub\DoubleExpectConcurrencyScenarios;
  */
 #[Test]
 #[Group('async')]
-#[Covers(DoublePlugin::class)]
 #[Covers(DoubleInterceptor::class)]
 #[TestingSuite(path: __DIR__ . '/../Stub', plugins: [DoublePlugin::class])]
 final class DoubleInterleaveAttributionTest
