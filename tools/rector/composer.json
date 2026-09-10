@@ -1,0 +1,8 @@
+{
+    "require": {
+        "rector/rector": "^2.6.4"
+    },
+    "config": {
+        "platform-check": false
+    }
+}
