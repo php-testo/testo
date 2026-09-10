@@ -8,8 +8,7 @@ use JMac\Testing\Double;
 use JMac\Testing\DoubleInterface;
 use Testo\Assert;
 use Testo\Bridge\Double\DoublePlugin;
-use Testo\Bridge\Double\Internal\DoubleInterceptor;
-use Testo\Codecov\Covers;
+use Testo\Codecov\CoversNothing;
 use Testo\Test;
 
 /**
@@ -19,7 +18,7 @@ use Testo\Test;
  * expectations are verified on teardown with no per-test `verify()` call.
  */
 #[Test]
-#[Covers(DoubleInterceptor::class)]
+#[CoversNothing]
 final class DoubleBridgeTest
 {
     public function doubleCreatedAndExpectationFulfilled(): void

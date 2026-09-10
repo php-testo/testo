@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Tests\Bridge\SymfonyConsole\Acceptance;
 
 use Testo\Assert;
-use Testo\Bridge\Symfony\Console\Command\Run;
-use Testo\Codecov\Covers;
+use Testo\Codecov\CoversNothing;
 use Testo\Test;
 
 /**
@@ -18,7 +17,7 @@ use Testo\Test;
  * its actual stdout.
  */
 #[Test]
-#[Covers(Run::class)]
+#[CoversNothing]
 final class StdoutLeakTest
 {
     public function jsonStdoutCarriesOnlyTheReport(): void

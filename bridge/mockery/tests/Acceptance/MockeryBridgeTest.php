@@ -7,9 +7,8 @@ namespace Tests\Bridge\Mockery\Acceptance;
 use Mockery;
 use Mockery\MockInterface;
 use Testo\Assert;
-use Testo\Bridge\Mockery\Internal\MockeryInterceptor;
 use Testo\Bridge\Mockery\MockeryPlugin;
-use Testo\Codecov\Covers;
+use Testo\Codecov\CoversNothing;
 use Testo\Test;
 
 /**
@@ -19,8 +18,7 @@ use Testo\Test;
  * expectations are verified on teardown and the container is reset between tests.
  */
 #[Test]
-#[Covers(MockeryPlugin::class)]
-#[Covers(MockeryInterceptor::class)]
+#[CoversNothing]
 final class MockeryBridgeTest
 {
     public function mockCreatedAndExpectationFulfilled(): void

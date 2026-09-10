@@ -8,9 +8,8 @@ use JMac\Testing\Double;
 use JMac\Testing\DoubleInterface;
 use Revolt\EventLoop;
 use Testo\Assert;
-use Testo\Bridge\Double\Internal\DoubleInterceptor;
 use Testo\Bridge\Revolt\RunInRevolt;
-use Testo\Codecov\Covers;
+use Testo\Codecov\CoversNothing;
 use Testo\Fiber\RunInFiber;
 use Testo\Filter\Group;
 use Testo\Test;
@@ -22,7 +21,7 @@ use Testo\Test;
  */
 #[Test]
 #[Group('async')]
-#[Covers(DoubleInterceptor::class)]
+#[CoversNothing]
 final class DoubleUnderFibersTest
 {
     #[RunInFiber]

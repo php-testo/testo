@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Tests\Bridge\VCR\Acceptance;
 
 use Testo\Assert;
-use Testo\Bridge\VCR\Internal\VcrInterceptor;
 use Testo\Bridge\VCR\RecordMode;
 use Testo\Bridge\VCR\VcrPlugin;
 use Testo\Bridge\VCR;
-use Testo\Codecov\Covers;
+use Testo\Codecov\CoversNothing;
 use Testo\Test;
 
 /**
@@ -18,9 +17,7 @@ use Testo\Test;
  * committed cassette instead of touching the network.
  */
 #[Test]
-#[Covers(VcrPlugin::class)]
-#[Covers(VcrInterceptor::class)]
-#[Covers(VCR::class)]
+#[CoversNothing]
 final class VcrReplayTest
 {
     /**
