@@ -13,7 +13,7 @@
     ],
     "authors": [
         {
-            "name": "Aleksei Gagarin (roxblnfk)",
+            "name": "Aleksei Gagarin",
             "homepage": "https://github.com/roxblnfk"
         }
     ],
@@ -25,7 +25,7 @@
     ],
     "require": {
         "php": ">=8.3",
-        "jasonmccreary/double": "dev-master",
+        "jasonmccreary/double": "^0.7",
         "testo/testo": "0.10.39 - 1"
     },
     "require-dev": {
