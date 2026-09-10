@@ -18,17 +18,9 @@ use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
 
 /**
- * Bridges Double's auto-verification into a Testo test.
- *
- * Turns on {@see Double::enableAutoVerify()} before the test body and runs {@see Double::verifyAll()}
- * afterwards in a `finally`: unmet `expects()` and deferred `received()` assertions are checked there, and
- * a failure turns an otherwise-passing test into a failed one (an already-failed result is left alone).
- *
- * A {@see Double::listen()} listener mirrors every check into the Assert plugin's history the moment it
- * resolves, pass or fail, immediate call-time failures included. So a double-only test still counts as
- * making assertions, and the report shows what was checked in the order it happened. The listener only
- * records; it never changes the result, so whether a body-thrown check failure fails the test or is
- * absorbed by `#[ExpectException]` stays the rest of the pipeline's call.
+ * Bridges Double's auto-verification into a Testo test: unmet `expects()` and deferred `received()`
+ * checks fail the test at teardown, and every resolved check is mirrored into the Assert plugin's
+ * history so a double-only test counts as making assertions.
  *
  * Runs innermost so the teardown fires as close as possible to the test function.
  *
@@ -45,8 +37,6 @@ final readonly class DoubleInterceptor implements TestRunInterceptor
     public function runTest(TestInfo $info, callable $next): TestResult
     {
         self::ensureListening();
-
-        # Enable before the test body runs so every double it creates is collected for verification.
         Double::enableAutoVerify();
 
         $result = null;
@@ -84,10 +74,6 @@ final readonly class DoubleInterceptor implements TestRunInterceptor
         Double::listen(self::record(...));
     }
 
-    /**
-     * Mirror one resolved Double check into the current test's assertion history: a fulfilled record when
-     * it passed, a failed one carrying the diagnostic when it did not.
-     */
     private static function record(CheckEvent $event): void
     {
         $state = StaticState::current();

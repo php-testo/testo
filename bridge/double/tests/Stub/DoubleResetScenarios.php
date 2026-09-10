@@ -25,8 +25,6 @@ final class DoubleResetScenarios
     #[Test]
     public function seesCleanSlate(): void
     {
-        // If the previous test's unmet expectation had leaked, verifyAll() would fail this test too.
-        // This double's own expectation is fulfilled, so a Passed status proves the slate was drained.
         $double = Double::for(\Countable::class);
         $double->expects('count')->returns(1);
 

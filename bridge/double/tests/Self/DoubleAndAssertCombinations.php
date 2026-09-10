@@ -96,16 +96,13 @@ final class DoubleAndAssertCombinations
         $double->allows('count')->returns(0);
         $double->count();
 
-        // A Double check that fails in the test body (here: unused() on a called double) throws like any
-        // other exception, so #[ExpectException] catches it. Unlike an unmet expects(), which surfaces only
-        // from the teardown verifyAll() and leaves nothing for the attribute to see.
+        // A check failing in the body throws at the call site, so #[ExpectException] sees it.
         $double->unused();
     }
 
     #[ExpectException(UnexpectedCallException::class)]
     public function strictUnexpectedCallThrowsAndIsCaught(): void
     {
-        // A strict double rejects any call it was not configured for, right at the call site.
         $double = Double::for(\Countable::class)->strict();
 
         $double->count();
@@ -114,7 +111,6 @@ final class DoubleAndAssertCombinations
     #[ExpectException(ExpectationCallLimitExceededException::class)]
     public function neverExpectationExceededThrowsAndIsCaught(): void
     {
-        // never() allows zero calls; the first call breaks the limit at the call site.
         $double = Double::for(\Countable::class);
         $double->expects('count')->never();
 
@@ -124,7 +120,6 @@ final class DoubleAndAssertCombinations
     #[ExpectException(ExpectationCallLimitExceededException::class)]
     public function callCountExceededThrowsAndIsCaught(): void
     {
-        // times(1) allows a single call; the second call exceeds the limit at the call site.
         $double = Double::for(\Countable::class);
         $double->expects('count')->times(1)->returns(0);
 

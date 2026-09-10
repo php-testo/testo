@@ -19,12 +19,9 @@ use Tests\Bridge\Double\Stub\DoubleAssertConcurrencyScenarios;
 use Tests\Bridge\Double\Stub\DoubleExpectConcurrencyScenarios;
 
 /**
- * The Double bridge must be **transparent** to the rest of the test while tests interleave on the fiber
- * scheduler: the doubles themselves stay isolated (that is the trampoline's own job), and everything else
- * the test does — plain `Assert::*` calls, `Expect::exception()` — must keep landing on that test's own
- * state exactly as it would without Double in the case.
- *
- * Each case runs a RoundRobin stub pair through {@see TestRunner} and inspects the per-test results.
+ * While tests interleave on the fiber scheduler, plain `Assert::*` calls and `Expect::exception()` must
+ * keep landing on their own test's state as if Double were not in the case. Each case runs a RoundRobin
+ * stub pair through {@see TestRunner}.
  */
 #[Test]
 #[Group('async')]
@@ -35,8 +32,6 @@ final class DoubleInterleaveAttributionTest
 {
     public function interleavedDoublesStayIsolated(): void
     {
-        // The trampoline's own concern: each test's expectations verify against its own pending list
-        // even though both tests park mid-double while the other runs.
         $first = TestRunner::runTest([DoubleAssertConcurrencyScenarios::class, 'firstAssertsAroundItsDouble']);
         $second = TestRunner::runTest([DoubleAssertConcurrencyScenarios::class, 'secondAssertsAroundItsDouble']);
 
@@ -46,8 +41,6 @@ final class DoubleInterleaveAttributionTest
 
     public function bodyAssertionsLandInEachTestsHistory(): void
     {
-        // Each stub test makes two Assert::same() calls of its own; the bridge adds one record for the
-        // verified double. A transparent bridge leaves all three in the test's history.
         $first = TestRunner::runTest([DoubleAssertConcurrencyScenarios::class, 'firstAssertsAroundItsDouble']);
         $second = TestRunner::runTest([DoubleAssertConcurrencyScenarios::class, 'secondAssertsAroundItsDouble']);
 
@@ -57,8 +50,6 @@ final class DoubleInterleaveAttributionTest
 
     public function expectExceptionSurvivesTheInterleave(): void
     {
-        // Each stub test declares Expect::exception() up front and throws after its yield — with a
-        // transparent bridge both expectations are fulfilled and both tests pass.
         $first = TestRunner::runTest([DoubleExpectConcurrencyScenarios::class, 'firstExpectsItsException']);
         $second = TestRunner::runTest([DoubleExpectConcurrencyScenarios::class, 'secondExpectsItsException']);
 

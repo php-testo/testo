@@ -56,7 +56,6 @@ final class DoubleStatusTest
 
     public function verifiedChecksNameTheDoubleAndMethod(): void
     {
-        // Each recorded check names its double, and a received() check names the method it verified.
         $result = TestRunner::runTest([DoubleScenarios::class, 'receivedVerificationOnly']);
         Assert::string(self::successExpectations($result))
             ->contains('Double `Countable`')
@@ -71,9 +70,7 @@ final class DoubleStatusTest
 
     public function checksAreRecordedInChronologicalOrder(): void
     {
-        // The scenario asserts, runs a passing Double check, then asserts again. Because checks are recorded
-        // the moment they resolve (not batched at teardown), a plain assertion lands after the Double check
-        // in the history.
+        // Checks are recorded the moment they resolve, not batched at teardown.
         $result = TestRunner::runTest([DoubleScenarios::class, 'checkInterleavesWithAssertions']);
         $order = self::orderedExpectations($result);
 
@@ -98,9 +95,7 @@ final class DoubleStatusTest
 
     public function bodyCheckFailureIsRecordedButResultLeftAsIs(): void
     {
-        // A Double check that throws in the body (here: unused() on a called spy) with no #[ExpectException]
-        // to catch it: the bridge records the failure in the history but does not touch the result, so it
-        // stays the Error the runner produced from the uncaught throw.
+        // The bridge records a body-thrown check failure but leaves the runner's Error result untouched.
         $result = TestRunner::runTest([DoubleScenarios::class, 'bodyCheckFailsUncaught']);
         Assert::same($result->status, Status::Error);
         Assert::true(self::hasRecord($result, success: false));
@@ -109,9 +104,7 @@ final class DoubleStatusTest
 
     public function stateIsDrainedAfterAFailingTest(): void
     {
-        // leavesUnmetExpectation fails on verifyAll(); seesCleanSlate runs right after it and would
-        // fail too if that unmet expectation had leaked into the global pending list. Both statuses
-        // being as expected proves the drain happens on the failure path, not only when a test passes.
+        // The second test would fail too if the first one's unmet expectation leaked past the failure path.
         $failed = TestRunner::runTest([DoubleResetScenarios::class, 'leavesUnmetExpectation']);
         Assert::same($failed->status, Status::Failed);
 
@@ -119,10 +112,6 @@ final class DoubleStatusTest
         Assert::same($next->status, Status::Passed);
     }
 
-    /**
-     * Whether the test's assertion history holds a record with the given success flag — i.e. the
-     * bridge reported the double verification (fulfilled or failed) to the Assert plugin.
-     */
     private static function hasRecord(TestResult $result, bool $success): bool
     {
         $state = $result->getAttribute(TestState::class);
@@ -140,8 +129,6 @@ final class DoubleStatusTest
     }
 
     /**
-     * The rendered text of every assertion record, in the order they were recorded.
-     *
      * @return list<string>
      */
     private static function orderedExpectations(TestResult $result): array
@@ -157,9 +144,6 @@ final class DoubleStatusTest
         );
     }
 
-    /**
-     * The expectation texts of every fulfilled (success) assertion record, joined by newlines.
-     */
     private static function successExpectations(TestResult $result): string
     {
         $state = $result->getAttribute(TestState::class);
@@ -175,9 +159,6 @@ final class DoubleStatusTest
         return \implode("\n", $expectations);
     }
 
-    /**
-     * The fail reason of the test's first failed (unsuccessful) assertion record, or '' if none.
-     */
     private static function failReason(TestResult $result): string
     {
         $state = $result->getAttribute(TestState::class);

@@ -12,11 +12,8 @@ use Testo\Fiber\Schedule;
 use Testo\Test;
 
 /**
- * Two Double tests interleaving on Testo's fiber scheduler ({@see Schedule::RoundRobin}), each declaring
- * an expected exception up front and throwing it after the yield. If the bridge is transparent, both pass:
- * the expectation is registered on the test's own double and the throw satisfies the declared exception.
- *
- * Driven through {@see \Testo\Testing\Helper\TestRunner} by the Feature suite.
+ * Two Double tests interleaving on {@see Schedule::RoundRobin}, each expecting an exception it throws
+ * after its yield. Driven through {@see \Testo\Testing\Helper\TestRunner} by the Feature suite.
  */
 #[Test]
 #[RunInFiber(Schedule::RoundRobin)]
