@@ -10,6 +10,7 @@ use JMac\Testing\Exceptions\UnexpectedCallException;
 use JMac\Testing\Exceptions\UnusedAssertionException;
 use Testo\Assert;
 use Testo\Assert\ExpectException;
+use Testo\Assert\Internal\StaticState;
 use Testo\Bridge\Double\DoublePlugin;
 use Testo\Bridge\Double\Internal\DoubleInterceptor;
 use Testo\Codecov\Covers;
@@ -70,6 +71,28 @@ final class DoubleAndAssertCombinations
         Assert::same($spy->count(), 7);
 
         $spy->received('count')->times(1);
+    }
+
+    public function checkResolvingWithNoActiveStateIsDropped(): void
+    {
+        $spy = Double::for(\Countable::class);
+        $spy->allows('count')->returns(0);
+
+        $state = StaticState::current();
+        Assert::notNull($state);
+        $before = \count($state->history);
+
+        // The listener is process-wide, so a check can resolve with no test's collector swapped in
+        // (a coroutine relayed out, another suite tearing down). It must be dropped, not appended to a
+        // stale collector nor dereference the null. unused() resolves its CheckEvent synchronously.
+        $restore = StaticState::swap(null);
+        try {
+            $spy->unused();
+        } finally {
+            StaticState::swap($restore);
+        }
+
+        Assert::same(\count($state->history), $before);
     }
 
     public function looseStubWithAssert(): void
