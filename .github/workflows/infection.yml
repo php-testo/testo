@@ -65,9 +65,8 @@ jobs:
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
-      # Infection and the bridge runtime deps are isolated via bamarni/composer-bin-plugin, not in
-      # the root install. `bin all` installs every namespace; --ignore-platform-req=php lets a
-      # higher-floor bridge (double) install here too — it only loads where its suite gates in.
+      # Infection and the bridge runtime deps are isolated via bamarni-bin, not in the root install.
+      # --ignore-platform-req=php lets a higher-floor bridge (double) install here too.
       - name: Install bin tools
         run: composer bin all install --ignore-platform-req=php
 
@@ -110,8 +109,8 @@ jobs:
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
-      # PHPUnit, Infection, rector (for the build) and the bridge runtime deps (for the mirror's
-      # bridge tests) are all isolated via bamarni/composer-bin-plugin, not in the root install.
+      # PHPUnit, Infection, rector and the bridge runtime deps are isolated via bamarni-bin, not in
+      # the root install.
       - name: Install bin tools
         run: composer bin all install --ignore-platform-req=php
 

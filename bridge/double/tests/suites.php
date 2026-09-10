@@ -27,8 +27,7 @@ return [
         ),
         plugins: SuitePlugins::with(new DoublePlugin()),
     ),
-    // The Feature suite drives Double only through the TestRunner harness (which loads
-    // DoublePlugin itself via #[TestingSuite]), so it runs with the default plugin set.
+    # No DoublePlugin here: the Feature tests load it themselves via #[TestingSuite].
     new SuiteConfig(
         name: 'Bridge/Double/Feature',
         location: new FinderConfig(

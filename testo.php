@@ -7,8 +7,7 @@ use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 use Testo\Testing\InjectPlugin;
 
-# Load the root autoloader plus the isolated bin vendors that hold bridge runtime deps kept out
-# of the root install. Shared with the PHPUnit mirror (phpunit.xml) so both runners see the bridges.
+# Bridge runtime deps aren't in the root install; the bootstrap loads them from the isolated bin vendors.
 require __DIR__ . '/tests/bootstrap.php';
 
 return new ApplicationConfig(
