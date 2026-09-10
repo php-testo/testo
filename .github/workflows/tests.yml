@@ -56,6 +56,11 @@ jobs:
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
+      # Bin tools carry deps with a higher PHP floor than the matrix (e.g. tools/double).
+      # They install everywhere but only load where the platform allows, so ignore the check.
+      - name: Install bin tools
+        run: composer bin all install --ignore-platform-req=php
+
       - name: Run Tests
         run: composer test:ci
 
@@ -84,6 +89,9 @@ jobs:
         uses: ramsey/composer-install@v3
         with:
           dependency-versions: highest
+
+      - name: Install bin tools
+        run: composer bin all install --ignore-platform-req=php
 
       - name: Run Tests with Coverage
         run: composer test:cc

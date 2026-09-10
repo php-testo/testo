@@ -7,6 +7,15 @@ use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 use Testo\Testing\InjectPlugin;
 
+# Some bridges keep their runtime deps out of the root install: double needs a higher PHP floor
+# than Testo's. That dep lives in an isolated bamarni-bin vendor under tools/. Register the
+# autoloader here so the self-hosted run can load the bridge code; the bridge's suites.php still
+# gates itself on the platform it needs.
+foreach (['double'] as $binNamespace) {
+    $autoload = __DIR__ . "/tools/{$binNamespace}/vendor/autoload.php";
+    \is_file($autoload) and require_once $autoload;
+}
+
 return new ApplicationConfig(
     src: new FinderConfig(
         ['core', 'plugin', 'bridge'],

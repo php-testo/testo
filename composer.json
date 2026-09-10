@@ -60,7 +60,6 @@
         "php-vcr/php-vcr": "^1.6",
         "roxblnfk/unpoly": "1.8.2",
         "rector/rector": "^2.6.4",
-        "testo/bridge-double": "^0.1.0",
         "testo/bridge-infection": "^0.1.8",
         "testo/bridge-mockery": "^0.1.2",
         "testo/bridge-rector": "^0.2.5",
@@ -88,6 +87,7 @@
     "autoload-dev": {
         "psr-4": {
             "Internal\\Fiber\\Tests\\": "internal/fiber/tests/",
+            "Testo\\Bridge\\Double\\": "bridge/double/src",
             "Tests\\PhpUnit\\": "tests/PhpUnit/",
             "Tests\\": "tests/",
             "Tests\\Assert\\": "plugin/assert/tests/",
