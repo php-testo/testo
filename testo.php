@@ -7,14 +7,9 @@ use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 use Testo\Testing\InjectPlugin;
 
-# Some bridges keep their runtime deps out of the root install: double needs a higher PHP floor
-# than Testo's, vcr and rector drag heavy transitive deps. Those deps live in isolated bamarni-bin
-# vendors under tools/. Register the autoloaders here so the self-hosted run can load the bridge
-# code; each bridge's suites.php still gates itself on the platform it needs.
-foreach (['double', 'vcr', 'rector'] as $binNamespace) {
-    $autoload = __DIR__ . "/tools/{$binNamespace}/vendor/autoload.php";
-    \is_file($autoload) and require_once $autoload;
-}
+# Load the root autoloader plus the isolated bin vendors that hold bridge runtime deps kept out
+# of the root install. Shared with the PHPUnit mirror (phpunit.xml) so both runners see the bridges.
+require __DIR__ . '/tests/bootstrap.php';
 
 return new ApplicationConfig(
     src: new FinderConfig(
