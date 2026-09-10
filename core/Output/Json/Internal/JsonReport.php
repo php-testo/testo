@@ -229,7 +229,7 @@ final class JsonReport
     {
         $chain = [];
         $current = $failure->getPrevious();
-        while ($current !== null) {
+        while ($current instanceof \Throwable) {
             $chain[] = [
                 'exception' => $current::class,
                 'message' => $current->getMessage(),

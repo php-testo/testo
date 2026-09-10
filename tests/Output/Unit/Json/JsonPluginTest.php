@@ -65,12 +65,12 @@ final class JsonPluginTest
         }
     }
 
-    public function emptyOutputPathIsTreatedAsStdoutMode(): void
+    public function streamModeWritesTheReportToTheStream(): void
     {
         $stream = \fopen('php://memory', 'rb+');
         \assert($stream !== false);
 
-        self::dispatch(new JsonPlugin('', $stream), self::failedRun());
+        self::dispatch(new JsonPlugin($stream), self::failedRun());
 
         \rewind($stream);
         $written = (string) \stream_get_contents($stream);
@@ -88,7 +88,7 @@ final class JsonPluginTest
 
         try {
             $toFile = self::announcements(new JsonPlugin($path));
-            $toStdout = self::announcements(new JsonPlugin(null, $stream));
+            $toStdout = self::announcements(new JsonPlugin($stream));
 
             Assert::same(\array_map(
                 static fn(object $event): string => $event::class,

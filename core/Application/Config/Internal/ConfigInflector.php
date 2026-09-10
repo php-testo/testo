@@ -185,7 +185,7 @@ final class ConfigInflector implements Inflector
      */
     private function getXPath(XPath $attribute): mixed
     {
-        $value = $this->xml?->xpath($attribute->path);
+        $value = $this->xpath($attribute->path);
 
         return \is_array($value) && \array_key_exists($attribute->key, $value)
             ? $value[$attribute->key]
@@ -201,7 +201,7 @@ final class ConfigInflector implements Inflector
             return null;
         }
 
-        $value = $this->xml->xpath($attribute->path);
+        $value = $this->xpath($attribute->path);
         if (!\is_array($value) || empty($value)) {
             return null;
         }
@@ -225,7 +225,7 @@ final class ConfigInflector implements Inflector
         }
 
         $result = [];
-        $value = $this->xml->xpath($attribute->path);
+        $value = $this->xpath($attribute->path);
         \is_array($value) or throw new \Exception(\sprintf('Invalid XPath `%s`', $attribute->path));
 
         foreach ($value as $xml) {
@@ -237,6 +237,29 @@ final class ConfigInflector implements Inflector
         }
 
         return $result;
+    }
+
+    /**
+     * Runs an XPath query with libxml's parse diagnostics suppressed: an invalid expression is a
+     * config-author mistake the callers already handle, and the raw PHP warning it would otherwise
+     * raise is noise on the `--json` / `--teamcity` report a consumer parses.
+     *
+     * @return array<array-key, \SimpleXMLElement>|false|null `null` when no XML is configured, `false`
+     *         on an invalid expression, otherwise the (possibly empty) match list.
+     */
+    private function xpath(string $path): array|false|null
+    {
+        if ($this->xml === null) {
+            return null;
+        }
+
+        $previous = \libxml_use_internal_errors(true);
+        try {
+            return $this->xml->xpath($path);
+        } finally {
+            \libxml_clear_errors();
+            \libxml_use_internal_errors($previous);
+        }
     }
 
     /**

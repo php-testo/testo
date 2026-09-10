@@ -19,6 +19,7 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
 use Testo\Core\Report\ReportInfo;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Rendering\BenchMapper;
 use Testo\Output\Rendering\StackTrace;
 use Testo\Output\Terminal\Renderer\Style;
@@ -43,11 +44,11 @@ final class TeamcityLogger
     private $output;
 
     /**
-     * @param resource|null $output Stream the logger writes to; defaults to {@see \STDOUT}.
+     * @param ConsoleStreams $streams Source of the stdout stream service messages are written to.
      */
-    public function __construct($output = null)
+    public function __construct(ConsoleStreams $streams)
     {
-        $this->output = $output ?? \STDOUT;
+        $this->output = $streams->stdout;
     }
 
     /**

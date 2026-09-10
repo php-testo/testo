@@ -37,9 +37,8 @@ final readonly class Filter
     public array $names;
 
     /**
-     * Absolute file or directory paths to filter by.
-     *
-     * Supports glob patterns: *, ?, [abc]
+     * Absolute file or directory paths to filter by. A suite is narrowed to the include roots
+     * touching them, and a file passes when it is located under one of them.
      *
      * @var list<Path>
      */
@@ -86,7 +85,7 @@ final readonly class Filter
     /**
      * @param list<non-empty-string> $suites Test suite names to filter by
      * @param list<non-empty-string> $names Class, method, or function names to filter by
-     * @param list<Path|string> $paths File or directory paths to filter by (supports glob patterns)
+     * @param list<Path|string> $paths File or directory paths to filter by
      * @param list<non-empty-string> $type Test case types to include (OR logic)
      * @param list<non-empty-string> $notType Test case types to exclude (takes precedence)
      * @param list<non-empty-string> $groups Group names to include (OR logic)

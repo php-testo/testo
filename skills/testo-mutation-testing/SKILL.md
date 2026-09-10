@@ -1,18 +1,33 @@
 ---
 name: testo-mutation-testing
-description: Run mutation testing on a Testo project with Infection (via testo/bridge-infection), collect surviving mutants efficiently, and kill them by strengthening tests. Use when the user asks about "mutation testing", "infection", "MSI", "mutation score", "escaped mutants", "kill mutants", or wants to measure how good the tests really are.
+description: Run mutation testing on a Testo project with Infection (via testo/bridge-infection) — check or install the Infection toolchain, collect surviving mutants efficiently, and kill them by strengthening tests. Use when the user asks about "mutation testing", "infection", "set up / install infection", "MSI", "mutation score", "escaped mutants", "kill mutants", or wants to measure how good the tests really are.
 ---
 
 # Mutation testing with Testo + Infection
 
-Five phases: **agree on scope** (blocking — see Phase 1), **set up** the scratch dir, **generate coverage**, **collect** surviving mutants, **kill** them. Run every command from the project root (never `cd` into `vendor/bin`).
+A read-only **pre-flight** (Phase 0), then five phases: **agree on scope** (blocking — see Phase 1), **set up** the scratch dir, **generate coverage**, **collect** surviving mutants, **kill** them. Run every command from the project root (never `cd` into `vendor/bin`).
 
 Related skills: `testo-coverage` (coverage setup), `testo-write-tests` (assertions). Fetch
 `https://php-testo.github.io/llms.txt` before editing tests.
 
+## Phase 0 — Pre-flight (toolchain)
+
+Run the bundled check first. It only reads `composer.json`, `vendor/` and `infection.json`, so it needs no confirmation:
+
+```bash
+php <skillDir>/scripts/precheck.php          # add --root=PATH when not at the project root
+```
+
+`<skillDir>` is this skill's own directory (the folder holding `SKILL.md`). The check covers Infection, `testo/bridge-infection`, whether Infection's extension-installer actually registered the bridge, an `infection.json` with `source.directories`, and a coverage driver. A config without `"testFramework": "testo"` is only a note: Phase 4 passes `--test-framework=testo` on the CLI. It ends with a verdict:
+
+- **READY** → go to Phase 1.
+- **NOT READY** → the listed fixes are the install offer. Carry them into the Phase 1 question; on consent follow `references/setup.md` (install commands, minimal `infection.json`, driver check), re-run the precheck until it prints READY, then continue. Nothing later in this skill runs against missing tooling.
+
 ## Phase 1 — Agree on scope (BLOCKING — ask first)
 
-**Your very first action in this skill is to ask the user how far to take this run, then WAIT for their answer.** Do not resolve the scratch dir, generate coverage, or run anything until they reply. The *only* exception: their request already states the scope (a named part, "the whole project", "just give me the report"). Mutation testing's kill phase is long and writes code — never assume the scope and never skip this question.
+**Right after Phase 0, ask the user how far to take this run, then WAIT for their answer.** Do not resolve the scratch dir, generate coverage, or run anything until they reply. The *only* exception: their request already states the scope (a named part, "the whole project", "just give me the report"). Mutation testing's kill phase is long and writes code — never assume the scope and never skip this question.
+
+If Phase 0 said **NOT READY**, the same message also offers to install and configure the missing pieces (quote the precheck's fix list). Installing and choosing the scope are two decisions; collect both in this one exchange. A user who declines the install ends the run here — say what is missing and stop.
 
 Offer these modes:
 
@@ -88,7 +103,7 @@ Do NOT hand-roll an aggregation script. Run the one bundled with this skill:
 php <skillDir>/scripts/aggregate-report.php <tmpDir>/mut          # add --batch=N to change batch size (default 15)
 ```
 
-`<skillDir>` is this skill's own directory (the folder holding `SKILL.md`). It reads every `<segment>.json` + `<segment>.gitlab.json` and writes two things:
+It reads every `<segment>.json` + `<segment>.gitlab.json` and writes two things:
 
 - **`<tmpDir>/mutation-report.md`** — the summary. A table (segments sorted by MSI ascending + a project-total row) of total / killed / escaped / not-covered / errors / timeout / MSI, then an index of the batch files. **Read this first.**
 - **`<tmpDir>/mut/batches/<segment>-NNN.json`** — the surviving mutants split into batches of up to N (default 15). These are the Phase-5 work-lists; each entry keeps `check_name`, `location.path`, `location.lines.begin`, `content`.

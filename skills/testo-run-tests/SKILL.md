@@ -80,7 +80,7 @@ vendor/bin/testo --json --suite=Unit                              # one suite (n
 vendor/bin/testo --json --filter=UserServiceTest                  # by name fragment
 vendor/bin/testo --json --filter='UserServiceTest::createsUser'   # one test method
 vendor/bin/testo --json --path=tests/Unit/UserServiceTest.php     # one file
-vendor/bin/testo --json --path='tests/Unit/User*'                 # glob: *, ?, [abc]
+vendor/bin/testo --json --path=tests/Unit/Service                 # one directory (no globs)
 vendor/bin/testo --json --group=db --group=!slow                  # groups: OR to include, ! to exclude
 vendor/bin/testo --json --type=!bench                             # types: test, inline, bench, profile
 ```

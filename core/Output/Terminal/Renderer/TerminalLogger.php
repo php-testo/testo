@@ -20,6 +20,7 @@ use Testo\Core\Value\Status;
 use Testo\Core\Value\Verbosity;
 use Testo\Data\MultipleResult;
 use Testo\Core\Report\ReportInfo;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Rendering\ChannelRenderer;
 use Testo\Output\Rendering\SharedStream;
 
@@ -81,21 +82,19 @@ final class TerminalLogger
     private ?ChannelRenderer $unownedChannels = null;
 
     /**
-     * @param resource|null $output Stream for the human-facing report; defaults to {@see \STDOUT}.
-     *        Output goes straight to the stream, bypassing PHP output buffering, so it is not captured
-     *        by the messenger's output interceptor.
-     * @param resource|null $errorOutput Stream for the internal {@see Messenger::CHANNEL_STDERR}
-     *        channel (framework faults); defaults to {@see \STDERR} so those messages never corrupt
-     *        the structured report on {@see \STDOUT} (which `--json` / `--teamcity` and CI parse).
+     * @param ConsoleStreams $streams Streams the report and framework-fault channels go to. The report
+     *        writes straight to the stdout stream, bypassing PHP output buffering, so it is not captured
+     *        by the messenger's output interceptor. {@see Messenger::CHANNEL_STDERR} (framework faults)
+     *        goes to the stderr stream so those messages never corrupt the structured report the stdout
+     *        stream carries.
      */
     public function __construct(
+        ConsoleStreams $streams,
         private readonly OutputFormat $format = OutputFormat::Compact,
         private readonly Verbosity $verbosity = Verbosity::Normal,
-        $output = null,
-        $errorOutput = null,
     ) {
-        $this->out = new SharedStream($output ?? \STDOUT);
-        $this->errorOutput = $errorOutput ?? \STDERR;
+        $this->out = new SharedStream($streams->stdout);
+        $this->errorOutput = $streams->stderr;
     }
 
     /**

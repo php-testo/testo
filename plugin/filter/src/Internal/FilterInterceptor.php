@@ -10,7 +10,6 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\CaseDefinitions;
 use Testo\Core\Definition\TestDefinition;
-use Testo\Core\Definition\TestDefinitions;
 use Testo\Filter;
 use Testo\Filter\DataPointer;
 use Testo\Filter\Group;
@@ -202,7 +201,6 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
 
         $definitions = $next($file);
 
-        $result = [];
         foreach ($definitions->getCases() as $case) {
             # Resolve the case (class) groups once. Skipped entirely when no group filters are set.
             $caseGroups = $this->groupSkip || $case->reflection === null
@@ -210,21 +208,22 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
                 : self::groupNamesOf($case->reflection);
 
             # Class-level group short-circuit, evaluated before any per-method work: case groups
-            # are inherited by every test, so a case excluded by group is dropped without name matching.
+            # are inherited by every test, so a case excluded by group keeps no survivors.
             if ($this->excludeGroups !== [] && \array_intersect($caseGroups, $this->excludeGroups) !== []) {
-                continue;
+                $survivors = [];
+            } else {
+                $survivors = $this->matchTestsByName($case);
+                $survivors === [] or $survivors = $this->filterTestsByGroup($caseGroups, $survivors);
             }
 
-            $tests = $this->matchTestsByName($case);
-            if ($tests === []) {
-                continue;
+            # Tests are deactivated, not removed: the case keeps its non-tests (lifecycle hooks), which
+            # must still fire even when every test was filtered out.
+            foreach ($case->tests->getTests() as $name => $test) {
+                isset($survivors[$name]) or $test->active = false;
             }
-
-            $tests = $this->filterTestsByGroup($caseGroups, $tests);
-            $tests === [] or $result[] = $case->with(tests: TestDefinitions::fromArray(...$tests));
         }
 
-        return CaseDefinitions::fromArray(...$result);
+        return $definitions;
     }
 
     /**

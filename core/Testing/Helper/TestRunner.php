@@ -13,6 +13,7 @@ use Testo\Application\Config\SuiteConfig;
 use Testo\Common\PluginConfigurator;
 use Testo\Common\Reflection;
 use Testo\Core\Context\TestResult;
+use Testo\Output\ConsoleStreams;
 use Testo\Testing\Attribute\TestingSuite;
 
 /**
@@ -74,6 +75,7 @@ final class TestRunner
         );
 
         $suiteConfigs === [] and throw new \RuntimeException('Testing Suite is not configured.');
+        /** @var TestingSuite $config */
         $config = \reset($suiteConfigs)->newInstance();
 
         # Extra plugins requested by the test, on top of the suite defaults.
@@ -118,6 +120,12 @@ final class TestRunner
             ),
             ApplicationConfig::class,
         );
+
+        # A TestRunner run is read through its results, never its terminal output — so a reporter it
+        # activates must not reach the real process streams. Default the seam to memory.
+        $sink = \fopen('php://memory', 'w+b');
+        \assert($sink !== false);
+        $app->getContainer()->set(new ConsoleStreams($sink, $sink), ConsoleStreams::class);
 
         return $app;
     }

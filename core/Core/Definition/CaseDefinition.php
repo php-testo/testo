@@ -9,6 +9,9 @@ use Testo\Core\Context\TestInfo;
 use Testo\Core\Value\TestType;
 
 /**
+ * A located Test Case. The definition itself is immutable; its {@see self::$tests} collection is not:
+ * interceptors refine the case by flipping the flags of its {@see TestDefinition}s in place.
+ *
  * @api
  */
 final readonly class CaseDefinition

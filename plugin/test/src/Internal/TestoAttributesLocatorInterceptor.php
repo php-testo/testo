@@ -36,26 +36,32 @@ final readonly class TestoAttributesLocatorInterceptor implements FileLocatorInt
     #[\Override]
     public function locateTestCases(FileDefinitions $file, callable $next): CaseDefinitions
     {
-        # Define cases for classes
+        # Cases for classes
         foreach ($file->classes as $class) {
             if ($class->isAbstract()) {
                 continue;
             }
 
-            # Check if the class has attribute Test, if so define a case for all its public methods
-            if (Reflection::fetchClassAttributes($class, attributeClass: Test::class) !== []) {
-                foreach ($class->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-                    # Skip potential data providers: we accept only public methods with `void` or `never` return type
-                    if (\in_array((string) $method->getReturnType(), ['void', 'never'])) {
-                        $file->cases->define($class, $file, type: TestType::Test)->tests->define($method);
-                    }
-                }
-            }
+            $case = $file->cases->define($class, $file, type: TestType::Test);
+            $classLevel = Reflection::fetchClassAttributes($class, attributeClass: Test::class) !== [];
 
-            # Otherwise, define a test for each public method with attribute Test
-            foreach ($class->getMethods() as $method) {
-                if (Reflection::fetchFunctionAttributes($method, attributeClass: Test::class)) {
-                    $file->cases->define($class, $file, type: TestType::Test)->tests->define($method);
+            foreach ($case->tests->all() as $member) {
+                if ($member->isTest) {
+                    continue;
+                }
+
+                $method = $member->reflection;
+                \assert($method instanceof \ReflectionMethod);
+
+                # With the Test attribute on the class, every public method is a test except potential
+                # data providers: only `void` or `never` return types are accepted.
+                if ($classLevel && $method->isPublic() && \in_array((string) $method->getReturnType(), ['void', 'never'], true)) {
+                    $member->isTest = true;
+                    continue;
+                }
+
+                if (Reflection::fetchFunctionAttributes($method, attributeClass: Test::class) !== []) {
+                    $member->isTest = true;
                 }
             }
         }
@@ -64,13 +70,15 @@ final readonly class TestoAttributesLocatorInterceptor implements FileLocatorInt
             return $next($file);
         }
 
-        # Define a case for functions
-        # Implement a lazy case definition
-        $case = null;
-        foreach ($file->functions as $function) {
-            if (Reflection::fetchFunctionAttributes($function, attributeClass: Test::class)) {
-                $case ??= $file->cases->define(null, $file, type: TestType::Test);
-                $case->tests->define($function);
+        # Case for functions
+        $case = $file->cases->define(null, $file, type: TestType::Test);
+        foreach ($case->tests->all() as $member) {
+            if ($member->isTest) {
+                continue;
+            }
+
+            if (Reflection::fetchFunctionAttributes($member->reflection, attributeClass: Test::class) !== []) {
+                $member->isTest = true;
             }
         }
 

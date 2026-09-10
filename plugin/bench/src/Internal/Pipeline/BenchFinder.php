@@ -54,7 +54,7 @@ final readonly class BenchFinder implements FileLocatorInterceptor, CaseLocatorI
             $case = null;
             foreach ($class->getMethods() as $method) {
                 if (Reflection::fetchFunctionAttributes($method, attributeClass: Bench::class)) {
-                    $case ??= $file->cases->define($class, $file, type: TestType::BenchInline, handler: $this->handler);
+                    $case ??= $file->cases->define($class, $file, type: TestType::BenchInline, handler: $this->handler, prefill: false);
                     $case->tests->define($method);
                 }
             }
@@ -69,7 +69,7 @@ final readonly class BenchFinder implements FileLocatorInterceptor, CaseLocatorI
         $case = null;
         foreach ($file->functions as $function) {
             if (Reflection::fetchFunctionAttributes($function, attributeClass: Bench::class)) {
-                $case ??= $file->cases->define(null, $file, type: TestType::BenchInline, handler: $this->handler);
+                $case ??= $file->cases->define(null, $file, type: TestType::BenchInline, handler: $this->handler, prefill: false);
                 $case->tests->define($function);
             }
         }

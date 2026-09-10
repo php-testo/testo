@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.10.46](https://github.com/php-testo/testo/compare/0.10.45...0.10.46) (2026-09-07)
+
+
+### Features
+
+* **core:** Add SuiteLocatorInterceptor pipeline ([#321](https://github.com/php-testo/testo/issues/321)) ([596f5f2](https://github.com/php-testo/testo/commit/596f5f2c1cea45137ab59950c0c7488cca56d108))
+
+
+### Bug Fixes
+
+* **filter:** match --path by containment instead of a prefix glob ([596f5f2](https://github.com/php-testo/testo/commit/596f5f2c1cea45137ab59950c0c7488cca56d108))
+* **output:** keep nested runs' terminal output off the --json/--teamcity stdout ([e27baaa](https://github.com/php-testo/testo/commit/e27baaa6918ea9e9ee419cf9580a51751a4f5c08))
+* **teamcity:** emit `testStarted` when the test body begins ([#320](https://github.com/php-testo/testo/issues/320)) ([e27baaa](https://github.com/php-testo/testo/commit/e27baaa6918ea9e9ee419cf9580a51751a4f5c08))
+
+
+### Performance Improvements
+
+* **core:** Optimize TestDefinitions ([#318](https://github.com/php-testo/testo/issues/318)) ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+
+
+### Code Refactoring
+
+* **core:** promote prefilled case members in the finders instead of scanning methods ([e320409](https://github.com/php-testo/testo/commit/e32040931f8cd655d0cf7f560c53bb611edb93be))
+* Require `internal/container` instead of bundling it ([#325](https://github.com/php-testo/testo/issues/325)) ([f041ebc](https://github.com/php-testo/testo/commit/f041ebcd7fe35deef8c2627da2362e129d154fab))
+
 ## [0.10.45](https://github.com/php-testo/testo/compare/0.10.44...0.10.45) (2026-08-29)
 
 

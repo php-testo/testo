@@ -145,14 +145,21 @@ final class NamingConventionLocatorTest
         Assert::array($tests)->hasCount(2);
     }
 
-    public function locateTestCasesNoCaseWhenNoFunctionMatches(): void
+    /**
+     * A file of functions none of which matches the convention still yields a case, with the
+     * functions as its non-tests and no tests. Dropping such a case is not the locator's job.
+     */
+    public function locateTestCasesNoTestsWhenNoFunctionMatches(): void
     {
         $locator = new NamingConventionLocator();
         $definitions = self::definitions($this->fixturesDir . 'NoFunctionMatchesTest.php');
 
         $locator->locateTestCases($definitions, static fn(FileDefinitions $f) => $f->cases);
 
-        Assert::array($definitions->cases->getCases())->hasCount(0);
+        $cases = $definitions->cases->getCases();
+        Assert::array($cases)->hasCount(1);
+        Assert::array($cases[0]->tests->getTests())->hasCount(0);
+        Assert::array($cases[0]->tests->filter(isTest: false))->hasKeys('helperOne', 'helperTwo');
     }
 
     public function locateTestCasesHandlesClassAndFunctionsInSameFile(): void
