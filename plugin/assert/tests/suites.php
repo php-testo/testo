@@ -21,4 +21,10 @@ return [
             include: [__DIR__ . '/Self'],
         ),
     ),
+    new SuiteConfig(
+        name: 'Assert/Unit',
+        location: new FinderConfig(
+            include: [__DIR__ . '/Unit'],
+        ),
+    ),
 ];

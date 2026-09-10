@@ -30,4 +30,10 @@ return [
             include: [__DIR__ . '/Feature'],
         ),
     ),
+    new SuiteConfig(
+        name: 'Bridge/Vcr/Unit',
+        location: new FinderConfig(
+            include: [__DIR__ . '/Unit'],
+        ),
+    ),
 ];
