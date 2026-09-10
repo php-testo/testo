@@ -1,0 +1,8 @@
+{
+    "require": {
+        "revolt/event-loop": "^1.0"
+    },
+    "config": {
+        "platform-check": false
+    }
+}

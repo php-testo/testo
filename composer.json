@@ -60,7 +60,6 @@
         "roxblnfk/unpoly": "1.8.2",
         "testo/bridge-infection": "^0.1.8",
         "testo/bridge-mockery": "^0.1.2",
-        "testo/bridge-revolt": "^0.1.2",
         "testo/facade": "^0.1.1"
     },
     "suggest": {
@@ -85,6 +84,7 @@
             "Internal\\Fiber\\Tests\\": "internal/fiber/tests/",
             "Testo\\Bridge\\Double\\": "bridge/double/src",
             "Testo\\Bridge\\Rector\\": "bridge/rector/src",
+            "Testo\\Bridge\\Revolt\\": "bridge/revolt/src",
             "Testo\\Bridge\\VCR\\": "bridge/vcr/src",
             "Tests\\PhpUnit\\": "tests/PhpUnit/",
             "Tests\\": "tests/",
