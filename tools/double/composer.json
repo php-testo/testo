@@ -1,0 +1,10 @@
+{
+    "require": {
+        "jasonmccreary/double": "dev-master"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "platform-check": false
+    }
+}

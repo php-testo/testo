@@ -57,17 +57,12 @@
         "bamarni/composer-bin-plugin": "^1.8",
         "buggregator/trap": "^1.10",
         "llm/skills": "^1.3",
-        "php-vcr/php-vcr": "^1.6",
         "roxblnfk/unpoly": "1.8.2",
-        "rector/rector": "^2.6.4",
         "testo/bridge-infection": "^0.1.8",
-        "testo/bridge-mockery": "^0.1.2",
-        "testo/bridge-rector": "^0.2.5",
-        "testo/bridge-revolt": "^0.1.2",
-        "testo/bridge-vcr": "^0.1.1",
         "testo/facade": "^0.1.1"
     },
     "suggest": {
+        "testo/bridge-double": "Auto-verifies Double mocks, stubs and spies after every test — fiber-safe, no manual verify() calls.",
         "testo/bridge-infection": "Provides integration with Infection PHP mutation testing framework.",
         "testo/bridge-mockery": "Provides integration with the Mockery mocking framework.",
         "llm/skills": "Ship Testo's bundled AI-agent skills into your project's skills directory automatically."
@@ -86,11 +81,17 @@
     "autoload-dev": {
         "psr-4": {
             "Internal\\Fiber\\Tests\\": "internal/fiber/tests/",
+            "Testo\\Bridge\\Double\\": "bridge/double/src",
+            "Testo\\Bridge\\Mockery\\": "bridge/mockery/src",
+            "Testo\\Bridge\\Rector\\": "bridge/rector/src",
+            "Testo\\Bridge\\Revolt\\": "bridge/revolt/src",
+            "Testo\\Bridge\\VCR\\": "bridge/vcr/src",
             "Tests\\PhpUnit\\": "tests/PhpUnit/",
             "Tests\\": "tests/",
             "Tests\\Assert\\": "plugin/assert/tests/",
             "Tests\\Fiber\\": "plugin/fiber/tests/",
             "Tests\\Bench\\": "plugin/bench/tests/",
+            "Tests\\Bridge\\Double\\": "bridge/double/tests/",
             "Tests\\Bridge\\Mockery\\": "bridge/mockery/tests/",
             "Tests\\Bridge\\Rector\\": "bridge/rector/tests/",
             "Tests\\Bridge\\Revolt\\": "bridge/revolt/tests/",
@@ -107,7 +108,8 @@
             "Tests\\Test\\": "plugin/test/tests/"
         },
         "files": [
-            "tests/Fixture/functions.php"
+            "tests/Fixture/functions.php",
+            "bridge/vcr/VCR.php"
         ]
     },
     "repositories": [
@@ -139,6 +141,7 @@
             "options": {
                 "symlink": true,
                 "versions": {
+                    "testo/bridge-double": "0.1.x-dev",
                     "testo/bridge-infection": "0.1.x-dev",
                     "testo/bridge-mockery": "0.1.x-dev",
                     "testo/bridge-rector": "0.2.x-dev",

@@ -1,0 +1,8 @@
+{
+    "require": {
+        "mockery/mockery": "^1.6"
+    },
+    "config": {
+        "platform-check": false
+    }
+}

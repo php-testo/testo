@@ -46,5 +46,9 @@ jobs:
         with:
           dependency-versions: highest
 
+      # rector is isolated in tools/rector; bin-links put its binary on vendor/bin.
+      - name: Install bin tools
+        run: composer bin all install --ignore-platform-req=php
+
       - name: Run Rector
         run: composer rector:ci

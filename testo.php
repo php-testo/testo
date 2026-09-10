@@ -7,10 +7,14 @@ use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 use Testo\Testing\InjectPlugin;
 
+# Bridge runtime deps aren't in the root install; the bootstrap loads them from the isolated bin vendors.
+require __DIR__ . '/tests/bootstrap.php';
+
 return new ApplicationConfig(
     src: new FinderConfig(
         ['core', 'plugin', 'bridge'],
         [
+            'bridge/double/tests',
             'bridge/mockery/tests',
             'bridge/rector/tests',
             'bridge/revolt/tests',
@@ -50,6 +54,7 @@ return new ApplicationConfig(
             ),
         ],
         require 'internal/fiber/tests/suites.php',
+        require 'bridge/double/tests/suites.php',
         require 'bridge/mockery/tests/suites.php',
         require 'bridge/rector/tests/suites.php',
         require 'bridge/revolt/tests/suites.php',

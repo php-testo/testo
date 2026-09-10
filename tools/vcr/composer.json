@@ -1,0 +1,10 @@
+{
+    "require": {
+        "php-vcr/php-vcr": "^1.6"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "platform-check": false
+    }
+}

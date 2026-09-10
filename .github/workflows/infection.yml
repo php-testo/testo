@@ -65,9 +65,10 @@ jobs:
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
-      # Infection is isolated via bamarni/composer-bin-plugin and not installed by the root install.
-      - name: Install isolated Infection
-        run: composer bin infection install
+      # Infection and the bridge runtime deps are isolated via bamarni-bin, not in the root install.
+      # --ignore-platform-req=php lets a higher-floor bridge (double) install here too.
+      - name: Install bin tools
+        run: composer bin all install --ignore-platform-req=php
 
       - name: Run Infection
         run: composer infect:ci
@@ -108,12 +109,10 @@ jobs:
         with:
           dependency-versions: ${{ matrix.dependencies }}
 
-      # PHPUnit and Infection are isolated via bamarni/composer-bin-plugin, not in the root install.
-      - name: Install isolated PHPUnit
-        run: composer bin phpunit install
-
-      - name: Install isolated Infection
-        run: composer bin infection install
+      # PHPUnit, Infection, rector and the bridge runtime deps are isolated via bamarni-bin, not in
+      # the root install.
+      - name: Install bin tools
+        run: composer bin all install --ignore-platform-req=php
 
       # Copy the Testo suite, convert it to PHPUnit (Rector) and relocate it to tests/PhpUnit.
       - name: Build the PHPUnit mirror
