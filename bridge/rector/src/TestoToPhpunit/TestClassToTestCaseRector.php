@@ -146,7 +146,17 @@ final class TestClassToTestCaseRector extends AbstractRector
                 }
                 $keptAttrs[] = $attr;
             }
-            $keptAttrs === [] or $keptGroups[] = new AttributeGroup($keptAttrs);
+
+            if ($keptAttrs === []) {
+                continue;
+            }
+
+            # Trim the group in place rather than building a fresh `new AttributeGroup`: a synthesized
+            # group carries no source position, and PHPStan derives the class start line from its
+            # leading attribute groups — a line-0 group drags the class to line 0, and the later scope
+            # refresh over that group then fatals in better-reflection (`assert($startLine > 0)`).
+            $attrGroup->attrs = $keptAttrs;
+            $keptGroups[] = $attrGroup;
         }
 
         $found and $class->attrGroups = $keptGroups;
