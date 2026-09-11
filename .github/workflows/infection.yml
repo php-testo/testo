@@ -72,8 +72,6 @@ jobs:
 
       - name: Run Infection
         run: composer infect:ci
-        env:
-          STRYKER_DASHBOARD_API_KEY: ${{ github.event_name == 'push' && secrets.STRYKER_DASHBOARD_API_KEY || '' }}
 
   # Second front: mutate core/ with PHPUnit as the runner. Testo is self-hosted, so a mutant on the
   # run path can break test discovery itself and skew the `infection` job above; PHPUnit shares no
@@ -120,3 +118,5 @@ jobs:
 
       - name: Run Infection on the PHPUnit mirror
         run: composer infect:phpunit:ci
+        env:
+          STRYKER_DASHBOARD_API_KEY: ${{ github.event_name == 'push' && secrets.STRYKER_DASHBOARD_API_KEY || '' }}

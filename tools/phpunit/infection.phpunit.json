@@ -31,6 +31,9 @@
     },
     "tmpDir": "../../runtime",
     "logs": {
-        "text": "../../runtime/infection-phpunit.log"
+        "text": "../../runtime/infection-phpunit.log",
+        "stryker": {
+            "report": "1.x"
+        }
     }
 }
