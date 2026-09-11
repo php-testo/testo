@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Testo\Bridge\Double\Internal;
 
-use JMac\Testing\AutoVerifySnapshot;
 use JMac\Testing\CheckEvent;
 use JMac\Testing\Double;
 use Testo\Assert\Internal\StaticState;

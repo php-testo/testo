@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Testo\Bench\Exception;
 
-use Testo\Bench;
 use Testo\Core\Context\TestInfo;
 
 /**

@@ -49,7 +49,7 @@ final readonly class XdebugDriver implements CoverageDriver
         $includes = \array_map(self::normalizePath(...), $src->includes);
         $excludes = \array_map(self::normalizePath(...), $src->excludes);
 
-        $includes !== [] and \xdebug_set_filter(
+        $includes !== [] and xdebug_set_filter(
             \XDEBUG_FILTER_CODE_COVERAGE,
             \XDEBUG_PATH_INCLUDE,
             $includes,
@@ -84,14 +84,14 @@ final readonly class XdebugDriver implements CoverageDriver
             self::assertBranchSafeHere($this->level);
         }
 
-        \xdebug_start_code_coverage($flags);
+        xdebug_start_code_coverage($flags);
     }
 
     #[\Override]
     public function collect(): CoverageResult
     {
-        $data = \xdebug_get_code_coverage();
-        \xdebug_stop_code_coverage();
+        $data = xdebug_get_code_coverage();
+        xdebug_stop_code_coverage();
 
         if ($this->includes !== [] || $this->excludes !== []) {
             foreach ($data as $filePath => $_) {

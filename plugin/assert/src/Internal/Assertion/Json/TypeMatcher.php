@@ -27,6 +27,12 @@ final class TypeMatcher
     private int $pos = 0;
     private readonly int $len;
 
+    private function __construct(
+        private readonly string $type,
+    ) {
+        $this->len = \strlen($type);
+    }
+
     /**
      * Validate a value against a Psalm type expression.
      *
@@ -44,267 +50,6 @@ final class TypeMatcher
         }
 
         return self::check($value, $ast);
-    }
-
-    private function __construct(
-        private readonly string $type,
-    ) {
-        $this->len = \strlen($type);
-    }
-
-    // ---- Parser ----
-
-    /**
-     * @return list<mixed> AST node
-     */
-    private function parseUnion(): array
-    {
-        $types = [$this->parseAtomic()];
-
-        while ($this->tryConsume('|')) {
-            $types[] = $this->parseAtomic();
-        }
-
-        return \count($types) === 1 ? $types[0] : ['union', $types];
-    }
-
-    /**
-     * @return list<mixed> AST node
-     */
-    private function parseAtomic(): array
-    {
-        $this->skipWhitespace();
-
-        // Literal types
-        if ($this->tryConsume('null')) return ['null'];
-        if ($this->tryConsume('true')) return ['true'];
-        if ($this->tryConsume('false')) return ['false'];
-        if ($this->tryConsume('bool')) return ['bool'];
-        if ($this->tryConsume('mixed')) return ['mixed'];
-        if ($this->tryConsume('scalar')) return ['scalar'];
-
-        // Numeric types (order: numeric-string before numeric)
-        if ($this->tryConsume('numeric-string')) return ['numeric-string'];
-        if ($this->tryConsume('numeric')) return ['numeric'];
-
-        // Int types (order: specific ranges before plain int)
-        if ($this->tryConsume('positive-int')) return ['int-range', 1, null];
-        if ($this->tryConsume('negative-int')) return ['int-range', null, -1];
-        if ($this->tryConsume('non-negative-int')) return ['int-range', 0, null];
-        if ($this->tryConsume('non-positive-int')) return ['int-range', null, 0];
-        if ($this->tryConsume('int')) {
-            if ($this->tryConsume('<')) {
-                $min = $this->parseBound();
-                $this->consume(',');
-                $max = $this->parseBound();
-                $this->consume('>');
-                return ['int-range', $min, $max];
-            }
-            return ['int'];
-        }
-
-        // Float
-        if ($this->tryConsume('float')) return ['float'];
-
-        // String types (order: non-empty-string, class-string before string)
-        if ($this->tryConsume('non-empty-string')) return ['non-empty-string'];
-        if ($this->tryConsume('class-string')) return ['class-string'];
-        if ($this->tryConsume('string')) return ['string'];
-
-        // List types (order: non-empty-list before list)
-        if ($this->tryConsume('non-empty-list')) {
-            if ($this->tryConsume('<')) {
-                $valueType = $this->parseUnion();
-                $this->consume('>');
-                return ['list', $valueType, true];
-            }
-            return ['plain-list', true];
-        }
-        if ($this->tryConsume('list')) {
-            if ($this->tryConsume('<')) {
-                $valueType = $this->parseUnion();
-                $this->consume('>');
-                return ['list', $valueType, false];
-            }
-            return ['plain-list', false];
-        }
-
-        // Array types (order: non-empty-array before array)
-        if ($this->tryConsume('non-empty-array')) {
-            return $this->parseArraySuffix(true);
-        }
-        if ($this->tryConsume('array')) {
-            return $this->parseArraySuffix(false);
-        }
-
-        throw new \InvalidArgumentException(
-            \sprintf('Unknown type at position %d in: %s', $this->pos, $this->type),
-        );
-    }
-
-    /**
-     * Parse array suffix: {shape}, <generic>, or plain.
-     *
-     * @return list<mixed> AST node
-     */
-    private function parseArraySuffix(bool $nonEmpty): array
-    {
-        if ($this->tryConsume('{')) {
-            $entries = $this->parseShapeEntries();
-            $this->consume('}');
-            return ['shape', $entries, $nonEmpty];
-        }
-
-        if ($this->tryConsume('<')) {
-            $first = $this->parseUnion();
-            if ($this->tryConsume(',')) {
-                $second = $this->parseUnion();
-                $this->consume('>');
-                return ['generic-array', $first, $second, $nonEmpty];
-            }
-            $this->consume('>');
-            return ['generic-array', null, $first, $nonEmpty];
-        }
-
-        return ['plain-array', $nonEmpty];
-    }
-
-    /**
-     * @return list<array{string|int, list<mixed>, bool}> Shape entries: [key, type, optional]
-     */
-    private function parseShapeEntries(): array
-    {
-        $entries = [];
-
-        while (true) {
-            $this->skipWhitespace();
-            if ($this->peek() === '}') {
-                break;
-            }
-
-            $key = $this->parseShapeKey();
-            $optional = $this->tryConsume('?');
-            $this->consume(':');
-            $type = $this->parseUnion();
-
-            $entries[] = [$key, $type, $optional];
-
-            $this->skipWhitespace();
-            if (!$this->tryConsume(',')) {
-                break;
-            }
-        }
-
-        return $entries;
-    }
-
-    private function parseShapeKey(): string|int
-    {
-        $this->skipWhitespace();
-        $start = $this->pos;
-
-        // Integer key
-        if ($this->pos < $this->len && \ctype_digit($this->type[$this->pos])) {
-            while ($this->pos < $this->len && \ctype_digit($this->type[$this->pos])) {
-                $this->pos++;
-            }
-            return (int) \substr($this->type, $start, $this->pos - $start);
-        }
-
-        // String key (identifier: alphanumeric, underscore, hyphen)
-        while (
-            $this->pos < $this->len
-            && (\ctype_alnum($this->type[$this->pos]) || $this->type[$this->pos] === '_' || $this->type[$this->pos] === '-')
-        ) {
-            $this->pos++;
-        }
-
-        $key = \substr($this->type, $start, $this->pos - $start);
-        if ($key === '' || $key === false) {
-            throw new \InvalidArgumentException(
-                \sprintf('Expected shape key at position %d in: %s', $this->pos, $this->type),
-            );
-        }
-
-        return $key;
-    }
-
-    private function parseBound(): ?int
-    {
-        $this->skipWhitespace();
-        if ($this->tryConsume('min')) return null;
-        if ($this->tryConsume('max')) return null;
-
-        $negative = $this->tryConsume('-');
-        $start = $this->pos;
-        while ($this->pos < $this->len && \ctype_digit($this->type[$this->pos])) {
-            $this->pos++;
-        }
-
-        if ($this->pos === $start) {
-            throw new \InvalidArgumentException(
-                \sprintf('Expected bound at position %d in: %s', $this->pos, $this->type),
-            );
-        }
-
-        $num = (int) \substr($this->type, $start, $this->pos - $start);
-        return $negative ? -$num : $num;
-    }
-
-    // ---- Lexer helpers ----
-
-    /**
-     * Try to consume a keyword or symbol. For alphabetic keywords, checks word boundary.
-     */
-    private function tryConsume(string $str): bool
-    {
-        $len = \strlen($str);
-        if ($this->pos + $len > $this->len) {
-            return false;
-        }
-
-        if (\substr_compare($this->type, $str, $this->pos, $len) === 0) {
-            // Word boundary check for alphabetic keywords
-            if (\ctype_alpha($str[$len - 1])) {
-                $nextPos = $this->pos + $len;
-                if ($nextPos < $this->len) {
-                    $c = $this->type[$nextPos];
-                    if (\ctype_alnum($c) || $c === '-' || $c === '_') {
-                        return false;
-                    }
-                }
-            }
-            $this->pos += $len;
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Consume an expected single character, skipping leading whitespace.
-     */
-    private function consume(string $char): void
-    {
-        $this->skipWhitespace();
-        if ($this->pos >= $this->len || $this->type[$this->pos] !== $char) {
-            throw new \InvalidArgumentException(
-                \sprintf("Expected '%s' at position %d in: %s", $char, $this->pos, $this->type),
-            );
-        }
-        $this->pos++;
-    }
-
-    private function peek(): ?string
-    {
-        return $this->pos < $this->len ? $this->type[$this->pos] : null;
-    }
-
-    private function skipWhitespace(): void
-    {
-        while ($this->pos < $this->len && $this->type[$this->pos] === ' ') {
-            $this->pos++;
-        }
     }
 
     // ---- Validator ----
@@ -448,5 +193,296 @@ final class TypeMatcher
         }
 
         return true;
+    }
+
+    // ---- Parser ----
+
+    /**
+     * @return list<mixed> AST node
+     */
+    private function parseUnion(): array
+    {
+        $types = [$this->parseAtomic()];
+
+        while ($this->tryConsume('|')) {
+            $types[] = $this->parseAtomic();
+        }
+
+        return \count($types) === 1 ? $types[0] : ['union', $types];
+    }
+
+    /**
+     * @return list<mixed> AST node
+     */
+    private function parseAtomic(): array
+    {
+        $this->skipWhitespace();
+
+        // Literal types
+        if ($this->tryConsume('null')) {
+            return ['null'];
+        }
+        if ($this->tryConsume('true')) {
+            return ['true'];
+        }
+        if ($this->tryConsume('false')) {
+            return ['false'];
+        }
+        if ($this->tryConsume('bool')) {
+            return ['bool'];
+        }
+        if ($this->tryConsume('mixed')) {
+            return ['mixed'];
+        }
+        if ($this->tryConsume('scalar')) {
+            return ['scalar'];
+        }
+
+        // Numeric types (order: numeric-string before numeric)
+        if ($this->tryConsume('numeric-string')) {
+            return ['numeric-string'];
+        }
+        if ($this->tryConsume('numeric')) {
+            return ['numeric'];
+        }
+
+        // Int types (order: specific ranges before plain int)
+        if ($this->tryConsume('positive-int')) {
+            return ['int-range', 1, null];
+        }
+        if ($this->tryConsume('negative-int')) {
+            return ['int-range', null, -1];
+        }
+        if ($this->tryConsume('non-negative-int')) {
+            return ['int-range', 0, null];
+        }
+        if ($this->tryConsume('non-positive-int')) {
+            return ['int-range', null, 0];
+        }
+        if ($this->tryConsume('int')) {
+            if ($this->tryConsume('<')) {
+                $min = $this->parseBound();
+                $this->consume(',');
+                $max = $this->parseBound();
+                $this->consume('>');
+                return ['int-range', $min, $max];
+            }
+            return ['int'];
+        }
+
+        // Float
+        if ($this->tryConsume('float')) {
+            return ['float'];
+        }
+
+        // String types (order: non-empty-string, class-string before string)
+        if ($this->tryConsume('non-empty-string')) {
+            return ['non-empty-string'];
+        }
+        if ($this->tryConsume('class-string')) {
+            return ['class-string'];
+        }
+        if ($this->tryConsume('string')) {
+            return ['string'];
+        }
+
+        // List types (order: non-empty-list before list)
+        if ($this->tryConsume('non-empty-list')) {
+            if ($this->tryConsume('<')) {
+                $valueType = $this->parseUnion();
+                $this->consume('>');
+                return ['list', $valueType, true];
+            }
+            return ['plain-list', true];
+        }
+        if ($this->tryConsume('list')) {
+            if ($this->tryConsume('<')) {
+                $valueType = $this->parseUnion();
+                $this->consume('>');
+                return ['list', $valueType, false];
+            }
+            return ['plain-list', false];
+        }
+
+        // Array types (order: non-empty-array before array)
+        if ($this->tryConsume('non-empty-array')) {
+            return $this->parseArraySuffix(true);
+        }
+        if ($this->tryConsume('array')) {
+            return $this->parseArraySuffix(false);
+        }
+
+        throw new \InvalidArgumentException(
+            \sprintf('Unknown type at position %d in: %s', $this->pos, $this->type),
+        );
+    }
+
+    /**
+     * Parse array suffix: {shape}, <generic>, or plain.
+     *
+     * @return list<mixed> AST node
+     */
+    private function parseArraySuffix(bool $nonEmpty): array
+    {
+        if ($this->tryConsume('{')) {
+            $entries = $this->parseShapeEntries();
+            $this->consume('}');
+            return ['shape', $entries, $nonEmpty];
+        }
+
+        if ($this->tryConsume('<')) {
+            $first = $this->parseUnion();
+            if ($this->tryConsume(',')) {
+                $second = $this->parseUnion();
+                $this->consume('>');
+                return ['generic-array', $first, $second, $nonEmpty];
+            }
+            $this->consume('>');
+            return ['generic-array', null, $first, $nonEmpty];
+        }
+
+        return ['plain-array', $nonEmpty];
+    }
+
+    /**
+     * @return list<array{string|int, list<mixed>, bool}> Shape entries: [key, type, optional]
+     */
+    private function parseShapeEntries(): array
+    {
+        $entries = [];
+
+        while (true) {
+            $this->skipWhitespace();
+            if ($this->peek() === '}') {
+                break;
+            }
+
+            $key = $this->parseShapeKey();
+            $optional = $this->tryConsume('?');
+            $this->consume(':');
+            $type = $this->parseUnion();
+
+            $entries[] = [$key, $type, $optional];
+
+            $this->skipWhitespace();
+            if (!$this->tryConsume(',')) {
+                break;
+            }
+        }
+
+        return $entries;
+    }
+
+    private function parseShapeKey(): string|int
+    {
+        $this->skipWhitespace();
+        $start = $this->pos;
+
+        // Integer key
+        if ($this->pos < $this->len && \ctype_digit($this->type[$this->pos])) {
+            while ($this->pos < $this->len && \ctype_digit($this->type[$this->pos])) {
+                $this->pos++;
+            }
+            return (int) \substr($this->type, $start, $this->pos - $start);
+        }
+
+        // String key (identifier: alphanumeric, underscore, hyphen)
+        while (
+            $this->pos < $this->len
+            && (\ctype_alnum($this->type[$this->pos]) || $this->type[$this->pos] === '_' || $this->type[$this->pos] === '-')
+        ) {
+            $this->pos++;
+        }
+
+        $key = \substr($this->type, $start, $this->pos - $start);
+        if ($key === '' || $key === false) {
+            throw new \InvalidArgumentException(
+                \sprintf('Expected shape key at position %d in: %s', $this->pos, $this->type),
+            );
+        }
+
+        return $key;
+    }
+
+    private function parseBound(): ?int
+    {
+        $this->skipWhitespace();
+        if ($this->tryConsume('min')) {
+            return null;
+        }
+        if ($this->tryConsume('max')) {
+            return null;
+        }
+
+        $negative = $this->tryConsume('-');
+        $start = $this->pos;
+        while ($this->pos < $this->len && \ctype_digit($this->type[$this->pos])) {
+            $this->pos++;
+        }
+
+        if ($this->pos === $start) {
+            throw new \InvalidArgumentException(
+                \sprintf('Expected bound at position %d in: %s', $this->pos, $this->type),
+            );
+        }
+
+        $num = (int) \substr($this->type, $start, $this->pos - $start);
+        return $negative ? -$num : $num;
+    }
+
+    // ---- Lexer helpers ----
+
+    /**
+     * Try to consume a keyword or symbol. For alphabetic keywords, checks word boundary.
+     */
+    private function tryConsume(string $str): bool
+    {
+        $len = \strlen($str);
+        if ($this->pos + $len > $this->len) {
+            return false;
+        }
+
+        if (\substr_compare($this->type, $str, $this->pos, $len) === 0) {
+            // Word boundary check for alphabetic keywords
+            if (\ctype_alpha($str[$len - 1])) {
+                $nextPos = $this->pos + $len;
+                if ($nextPos < $this->len) {
+                    $c = $this->type[$nextPos];
+                    if (\ctype_alnum($c) || $c === '-' || $c === '_') {
+                        return false;
+                    }
+                }
+            }
+            $this->pos += $len;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Consume an expected single character, skipping leading whitespace.
+     */
+    private function consume(string $char): void
+    {
+        $this->skipWhitespace();
+        if ($this->pos >= $this->len || $this->type[$this->pos] !== $char) {
+            throw new \InvalidArgumentException(
+                \sprintf("Expected '%s' at position %d in: %s", $char, $this->pos, $this->type),
+            );
+        }
+        $this->pos++;
+    }
+
+    private function peek(): ?string
+    {
+        return $this->pos < $this->len ? $this->type[$this->pos] : null;
+    }
+
+    private function skipWhitespace(): void
+    {
+        while ($this->pos < $this->len && $this->type[$this->pos] === ' ') {
+            $this->pos++;
+        }
     }
 }

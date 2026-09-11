@@ -41,6 +41,28 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 #[TestRectorFixtures('TestClassToTestCaseRector')]
 final class TestClassToTestCaseRector extends AbstractRector
 {
+    /**
+     * Lifecycle hooks must never be turned into tests: Testo's locator excludes them from the test
+     * set, and a method named setUp/tearDown carrying #[Test] would be run by PHPUnit both as a hook
+     * (by name) and as a test. Match the lifecycle attribute (Testo's, or its already-converted
+     * PHPUnit form) or a reserved PHPUnit lifecycle name.
+     *
+     * @var list<non-empty-string>
+     */
+    private const LIFECYCLE_ATTRIBUTES = [
+        'Testo\\Lifecycle\\BeforeTest',
+        'Testo\\Lifecycle\\AfterTest',
+        'Testo\\Lifecycle\\BeforeClass',
+        'Testo\\Lifecycle\\AfterClass',
+        'PHPUnit\\Framework\\Attributes\\Before',
+        'PHPUnit\\Framework\\Attributes\\After',
+        'PHPUnit\\Framework\\Attributes\\BeforeClass',
+        'PHPUnit\\Framework\\Attributes\\AfterClass',
+    ];
+
+    /** @var list<string> */
+    private const LIFECYCLE_NAMES = ['setup', 'teardown', 'setupbeforeclass', 'teardownafterclass'];
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -146,28 +168,6 @@ final class TestClassToTestCaseRector extends AbstractRector
 
         return false;
     }
-
-    /**
-     * Lifecycle hooks must never be turned into tests: Testo's locator excludes them from the test
-     * set, and a method named setUp/tearDown carrying #[Test] would be run by PHPUnit both as a hook
-     * (by name) and as a test. Match the lifecycle attribute (Testo's, or its already-converted
-     * PHPUnit form) or a reserved PHPUnit lifecycle name.
-     *
-     * @var list<non-empty-string>
-     */
-    private const LIFECYCLE_ATTRIBUTES = [
-        'Testo\\Lifecycle\\BeforeTest',
-        'Testo\\Lifecycle\\AfterTest',
-        'Testo\\Lifecycle\\BeforeClass',
-        'Testo\\Lifecycle\\AfterClass',
-        'PHPUnit\\Framework\\Attributes\\Before',
-        'PHPUnit\\Framework\\Attributes\\After',
-        'PHPUnit\\Framework\\Attributes\\BeforeClass',
-        'PHPUnit\\Framework\\Attributes\\AfterClass',
-    ];
-
-    /** @var list<string> */
-    private const LIFECYCLE_NAMES = ['setup', 'teardown', 'setupbeforeclass', 'teardownafterclass'];
 
     /**
      * Mirrors Testo's locator: a public, non-static method with a `void`/`never` return type that is
