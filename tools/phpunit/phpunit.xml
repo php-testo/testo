@@ -45,16 +45,29 @@
         </testsuite>
     </testsuites>
     <!--
-        Coverage scope must list every directory whose classes the mirror's tests target via
-        #[CoversClass]; PHPUnit 13 raises a (failing) warning for a covered class outside it. The
-        tests cover core plus the plugins/bridges, so include their src too. Mutation scope is set
-        separately in infection.phpunit.json (core + plugin/*/src; bridges not yet mutated here).
+        Coverage scope must list every source a mirror test targets via #[CoversClass]; PHPUnit raises
+        a warning for a covered class outside it. The directories cover core plus the plugin/bridge
+        `src/` trees. Each package's top-level facade (Testo\Assert, Testo\Repeat, …) lives in a
+        `files`-autoloaded php file at the package ROOT, outside `src/`, and tests cover it — so those
+        files are listed one by one below (PHPUnit's <file> takes a literal path: it does NOT expand a
+        `plugin/*/*.php` glob the way <directory> expands `*`, and a <directory> at the package root
+        would recurse back into src/ and tests/). Mutation scope is set separately in
+        infection.phpunit.json (core + plugin/*/src; bridges not yet mutated here).
     -->
     <source>
         <include>
             <directory>../../core</directory>
             <directory>../../plugin/*/src</directory>
             <directory>../../bridge/*/src</directory>
+            <file>../../plugin/assert/Assert.php</file>
+            <file>../../plugin/assert/Expect.php</file>
+            <file>../../plugin/bench/Bench.php</file>
+            <file>../../plugin/facade/Testo.php</file>
+            <file>../../plugin/filter/Filter.php</file>
+            <file>../../plugin/repeat/Repeat.php</file>
+            <file>../../plugin/retry/Retry.php</file>
+            <file>../../plugin/test/Test.php</file>
+            <file>../../bridge/vcr/VCR.php</file>
         </include>
     </source>
 </phpunit>
