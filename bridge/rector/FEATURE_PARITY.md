@@ -28,7 +28,7 @@ Conversion coverage across the three directions supported by `testo/bridge-recto
 | **Data providers** (`#[DataProvider]`/`#[DataSet]` ↔ `->with`) | ✅ *`DataProviderToPhpUnitRector` renames `#[\Testo\Data\DataProvider]` → `#[DataProvider]` and `#[\Testo\Data\DataSet([…], 'label')]` → `#[TestWith([…], 'label')]` (both repeatable, args verbatim)* | ✅ *both `@dataProvider` annotation **and** `#[DataProvider]` attribute → `#[\Testo\Data\DataProvider]`; cross-class external form left as TODO* | 🟡 *inline `->with([ rows ])` → one repeated `#[\Testo\Data\DataSet]` per row; a named `->with('x')` / `dataset()` definition needs a provider — TODO* |
 | **Groups** (`#[Group]`) | ✅ *`GroupToPhpUnitRector` expands variadic → repeated `#[Group]`; `GroupInheritanceToPhpUnitRector` flattens both the class-level inheritance union (parents + traits) and the method-level prototype chain (a leaf method inherits the groups of the same-named parent-class method). Residual: traits are intentionally not consulted at method level — matches Testo, whose prototype walk skips them* | ✅ *`GroupToTestoRector` collapses `@group` annotations **and** repeated `#[Group]` into one variadic `#[\Testo\Filter\Group]`* | ✅ *`->group('a','b')` → `#[\Testo\Filter\Group('a','b')]`* |
 | **ExpectNoAssertions** (`#[\Testo\Assert\ExpectNoAssertions]` ↔ `#[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]`) | ✅ *`ExpectNoAssertionsToPhpUnitRector` (attribute rename; both sides method/function-level only — no fan-out)* | ✅ *`DoesNotPerformAssertionsToTestoRector` (attribute rename)* | ➖ |
-| **Mocks** (`createMock`/`getMockBuilder`/`prophesize`) | ➖ | ⛔ *Testo has no built-in mocking* | ➖ |
+| **Mocks** (`createMock`/`createStub` + `expects`/`method`/`will*`) | ➖ | 🟡 *`CreateMockToDoubleRector` converts onto the Double bridge (`testo/bridge-double`): `createMock`/`createStub` → `Double::for`, and the configuration chain onto `expects`/`allows`/`with`/`returns`/`throws`/`resolves` — the invocation matcher moves onto the verb (`once`→`times(1)`, `exactly`→`times`, `never`→`never`, `atLeastOnce`/`atLeast`/`atMost`→`times(minimum:/maximum:)`, `any`→`allows`), and the method name off `->method()` onto `expects('m')`. All-or-nothing per chain: `willReturnMap`/`willReturnSelf`/`willReturnArgument`, a variable matcher, `getMockBuilder`, `prophesize`, and constraint args inside `with()` (`equalTo`/`anything`) have no faithful target and leave the statement untouched — see `MockToTestoRector` (stub) and TODO.md* | ➖ |
 | **Memory-leak expectations** | ⛔ *no PHPUnit equivalent* | ➖ | ➖ |
 | **Retry / Repeat** (`#[Retry]`/`#[Repeat]`) | 🟡 *`RepeatRetryRector` converts `#[\Testo\Repeat]`/`#[\Testo\Retry]` → PHPUnit `#[Repeat]`/`#[Retry]` (PHPUnit 13.3+): `maxFailures`→`failureThreshold` (+1), Testo defaults made explicit. PHPUnit's are `TARGET_METHOD` only, so a class-level Testo attribute is fanned out onto each test method (a method's own attribute overrides it, not doubled); `markFlaky` is dropped (no PHPUnit equivalent)* | 🟡 *`RepeatRetryToTestoRector` converts `#[Repeat]`/`#[Retry]` → Testo's attributes: `failureThreshold`→`maxFailures` (−1; the default 1 folds to Testo's default 0 and is omitted)* | ➖ |
 | **Fiber** (`#[RunInFiber]`, `Coroutine::spawn/await/concurrently`) | ⛔ *no PHPUnit/Pest equivalent — neither has a fiber/coroutine test attribute or an in-test coroutine scope* | ➖ | ➖ |
@@ -101,9 +101,13 @@ name from the description (kept as the docblock) and folding the fluent modifier
 attributes / body statements. It bails (leaves the statement untouched) on a non-literal description,
 a `use (...)`-capturing closure, or any unrecognised modifier — see `src/PestToTesto/TODO.md`.
 
-The remaining ⛔ rows are intentionally out of scope: a missing target feature (mocking, `arch()`,
+The remaining ⛔ rows are intentionally out of scope: a missing target feature (`arch()`,
 memory-leak, PHPUnit `assertThat` constraints), the substring-vs-regex
 exception-message mismatch, or Pest `uses()` (a function has no base class / traits / `$this`).
+Mocks moved off this list: with the Double bridge there is now a target API, so `createMock`/
+`createStub` and their `expects`/`method`/`will*` chains convert as a documented 🟡
+(`CreateMockToDoubleRector`); only the unmappable links (`willReturnMap`, `prophesize`,
+`with()` constraint objects, …) stay manual.
 Retry/Repeat moved off this list: PHPUnit 13.3 added `#[Repeat]`/`#[Retry]`, so both directions now
 convert as a documented 🟡 (`RepeatRetryRector` / `RepeatRetryToTestoRector`).
 PHPUnit's `markTestIncomplete` moved off this list — it now converts to a Skipped throw with an

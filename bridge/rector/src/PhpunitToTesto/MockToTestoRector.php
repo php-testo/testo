@@ -12,32 +12,32 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 /**
  * STUB — not implemented, not registered.
  *
- * Intended target: PHPUnit/Prophecy mock creation — `createMock()`,
- * `getMockBuilder()`, `createStub()`, `createMockForIntersectionOfInterfaces()`,
- * `prophesize()`.
+ * The convertible mock forms now have a target API — the Double bridge (`testo/bridge-double`) — and
+ * are handled by the registered {@see CreateMockToDoubleRector}: `createMock()`/`createStub()` and
+ * their `expects()`/`method()`/`will*()` chains. This stub documents only what stays out of reach.
  *
- * @todo Unconvertible automatically. Testo ships NO built-in mocking/doubling
- *   facility — there is no target API to rewrite these calls into. The expectation
- *   model (PHPUnit's `->expects()->method()->willReturn()`, Prophecy's promises and
- *   `reveal()`) has no Testo equivalent, so there is nothing to map onto.
- *   Migration must be done manually: introduce a standalone mocking library
- *   (e.g. Mockery, phpspec/prophecy used directly) or hand-write fakes/test doubles.
- *   This rule exists only to document the gap; it never modifies code.
+ * @todo No faithful automatic conversion for the residual forms: `getMockBuilder()->...->getMock()`
+ *   and Prophecy's `prophesize()` (a different creation/expectation model), the return shapes
+ *   `willReturnMap()`/`willReturnSelf()`/`willReturnArgument()`, a variable invocation matcher, and
+ *   PHPUnit constraint objects passed to `with()` (`equalTo()`, `anything()`, composites — the same
+ *   gap as `assertThat`). Migrate these by hand: the matching `\JMac\Testing\Double` /
+ *   `Argument::*` form, a standalone mocking library (Mockery, phpspec/prophecy), or a hand-written
+ *   fake. This rule exists only to document the gap; it never modifies code.
  */
 final class MockToTestoRector extends AbstractRector
 {
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
-            'STUB: PHPUnit/Prophecy mocks have no Testo equivalent — manual migration required (see @todo)',
+            'STUB: mock forms with no faithful Double target (getMockBuilder/prophesize/willReturnMap/with-constraints) — manual migration required (see @todo)',
             [
                 new CodeSample(
                     <<<'PHP'
-                        $dep = $this->createMock(Dependency::class);
+                        $dep = $this->getMockBuilder(Dependency::class)->getMock();
                         PHP,
                     <<<'PHP'
-                        // No Testo equivalent: replace with a manual fake or a third-party mocking library.
-                        $dep = $this->createMock(Dependency::class);
+                        // No faithful Double target: migrate by hand (see CreateMockToDoubleRector for the forms that do convert).
+                        $dep = $this->getMockBuilder(Dependency::class)->getMock();
                         PHP,
                 ),
             ],
