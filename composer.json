@@ -203,9 +203,9 @@
             "@putenv XDEBUG_MODE=coverage",
             "infection --ansi --configuration=tools/phpunit/infection.phpunit.json --logger-github --threads=max --show-mutations=0 --min-msi=0"
         ],
-        "psalm": "psalm",
-        "psalm:baseline": "psalm --set-baseline=psalm-baseline.xml",
-        "psalm:ci": "psalm --output-format=github --shepherd --show-info=false --stats --threads=4",
+        "psalm": "psalm -c tools/psalm/psalm.xml",
+        "psalm:baseline": "psalm -c tools/psalm/psalm.xml --set-baseline=tools/psalm/psalm-baseline.xml",
+        "psalm:ci": "psalm -c tools/psalm/psalm.xml --output-format=github --shepherd --show-info=false --stats --threads=4",
         "test": "testo",
         "test:ci": [
             "@putenv TESTO_CI=1",
