@@ -8,7 +8,7 @@ on:
       - 'bridge/**'
       - 'tests/**'
       - 'testo.php'
-      - '.php-cs-fixer.dist.php'
+      - 'tools/code-style/.php-cs-fixer.dist.php'
       - 'tools/code-style/composer.json'
       - 'composer.json'
       - 'composer.lock'

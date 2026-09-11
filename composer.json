@@ -174,8 +174,8 @@
         }
     },
     "scripts": {
-        "cs:diff": "php-cs-fixer fix --dry-run -v --diff",
-        "cs:fix": "php-cs-fixer fix -v",
+        "cs:diff": "php-cs-fixer fix --dry-run -v --diff --config=tools/code-style/.php-cs-fixer.dist.php",
+        "cs:fix": "php-cs-fixer fix -v --config=tools/code-style/.php-cs-fixer.dist.php",
         "rector": "rector --config=tools/rector/rector.php",
         "rector:ci": "rector --config=tools/rector/rector.php --dry-run --clear-cache --no-progress-bar",
         "infect": [
