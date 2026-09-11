@@ -46,8 +46,8 @@
     <!--
         Coverage scope must list every directory whose classes the mirror's tests target via
         #[CoversClass]; PHPUnit 13 raises a (failing) warning for a covered class outside it. The
-        tests cover core plus the plugins/bridges, so include their src too. Mutation scope stays
-        core-only — that is set separately in infection.phpunit.json.
+        tests cover core plus the plugins/bridges, so include their src too. Mutation scope is set
+        separately in infection.phpunit.json (core + plugin/*/src; bridges not yet mutated here).
     -->
     <source>
         <include>

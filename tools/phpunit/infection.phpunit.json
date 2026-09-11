@@ -2,7 +2,20 @@
     "$schema": "../infection/vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": [
-            "../../core"
+            "../../core",
+            "../../plugin/assert/src",
+            "../../plugin/bench/src",
+            "../../plugin/codecov/src",
+            "../../plugin/convention/src",
+            "../../plugin/data/src",
+            "../../plugin/facade/src",
+            "../../plugin/fiber/src",
+            "../../plugin/filter/src",
+            "../../plugin/inline/src",
+            "../../plugin/lifecycle/src",
+            "../../plugin/repeat/src",
+            "../../plugin/retry/src",
+            "../../plugin/test/src"
         ]
     },
     "timeout": 10,
