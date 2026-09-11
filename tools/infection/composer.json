@@ -1,6 +1,6 @@
 {
     "require": {
-        "infection/infection": "^0.34",
+        "infection/infection": "^0.35",
         "testo/bridge-infection": "0.1.x-dev"
     },
     "repositories": [
