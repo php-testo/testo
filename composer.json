@@ -194,14 +194,14 @@
             "@composer dump-autoload --quiet",
             "rector process --config=bin/rector-phpunit-build.php --no-diffs --no-progress-bar"
         ],
-        "phpunit": "phpunit",
+        "phpunit": "phpunit --configuration tools/phpunit/phpunit.xml",
         "infect:phpunit": [
             "@putenv XDEBUG_MODE=coverage",
-            "infection --configuration=infection.phpunit.json --threads=max --min-msi=0"
+            "infection --configuration=tools/phpunit/infection.phpunit.json --threads=max --min-msi=0"
         ],
         "infect:phpunit:ci": [
             "@putenv XDEBUG_MODE=coverage",
-            "infection --ansi --configuration=infection.phpunit.json --logger-github --threads=max --show-mutations=0 --min-msi=0"
+            "infection --ansi --configuration=tools/phpunit/infection.phpunit.json --logger-github --threads=max --show-mutations=0 --min-msi=0"
         ],
         "psalm": "psalm",
         "psalm:baseline": "psalm --set-baseline=psalm-baseline.xml",

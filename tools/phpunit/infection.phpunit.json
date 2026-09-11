@@ -1,0 +1,17 @@
+{
+    "$schema": "../infection/vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "../../core"
+        ]
+    },
+    "timeout": 10,
+    "testFramework": "phpunit",
+    "phpUnit": {
+        "configDir": "."
+    },
+    "tmpDir": "../../runtime",
+    "logs": {
+        "text": "../../runtime/infection-phpunit.log"
+    }
+}
