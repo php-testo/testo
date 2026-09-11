@@ -107,7 +107,9 @@ final class CoversToCoversClassRector extends AbstractRector
         return $node;
     }
 
-    /** The fully-qualified name of the class-constant the `Covers` attribute targets, or null. */
+    /**
+     * The fully-qualified name of the class-constant the `Covers` attribute targets, or null.
+     */
     private function coveredTarget(Attribute $attribute): ?string
     {
         $value = ($attribute->args[0] ?? null)?->value;
