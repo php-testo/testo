@@ -125,7 +125,7 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
         // A layout-bound namespace skips every test method of the class; otherwise each method is
         // judged on its own (composite data source, or an individually unconvertible test).
         $fqcn = $this->getName($node);
-        $classReason = $this->namespaceReason($fqcn);
+        $classReason = $this->namespaceReason($fqcn) ?? $this->binarySpawnReason($node);
 
         $changed = false;
         foreach ($node->getMethods() as $method) {
@@ -161,6 +161,24 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
         // those paths do not exist in the relocated tests/PhpUnit mirror, so they cannot run here.
         if (\str_contains($fqcn, '\\Acceptance\\')) {
             return 'is an acceptance test that runs an external process by a path absent from the mirror';
+        }
+
+        return null;
+    }
+
+    /**
+     * A test class that spawns the `testo` binary drives it by a repository-root path (`…/vendor/bin/
+     * testo`) baked into a string literal; relocated under tests/PhpUnit that path no longer resolves,
+     * so the process cannot start. Detect it at class level — the path usually sits in a private helper,
+     * not the test method — and skip every test of such a class (same category as an Acceptance test,
+     * but these live under Feature/).
+     */
+    private function binarySpawnReason(Class_ $class): ?string
+    {
+        foreach ((new \PhpParser\NodeFinder())->findInstanceOf([$class], String_::class) as $string) {
+            if (\str_contains($string->value, 'vendor/bin/testo')) {
+                return 'drives the testo binary by a repository-root path absent from the mirror';
+            }
         }
 
         return null;

@@ -11,11 +11,11 @@ declare(strict_types=1);
  * and handing Infection the report via `--coverage` + `--skip-initial-tests` instead covers the
  * plugins too.
  *
- * A handful of converted mirror tests carry no PHPUnit assertions yet (Testo's fluent expectation
- * DSL does not fully convert), so PHPUnit exits non-zero even though the coverage report is written
- * in full. This step must therefore not gate the run: the report is what matters, and Infection
- * re-derives correctness from the mutants, not from this run's pass/fail. Hence the unconditional
- * exit 0.
+ * The step gates: if PHPUnit fails, so does this script, so a broken mirror (a conversion regression,
+ * a newly non-convertible test) stops the run instead of feeding Infection a partial report. The
+ * mirror is kept green for this — tests that only assert through Testo's fluent helpers are tolerated
+ * via `beStrictAboutTestsThatDoNotTestAnything=false`, and the individually unconvertible ones are
+ * skipped by the build's Rector passes.
  *
  * Usage: `php bin/phpunit-coverage.php [coverageDir]` (default runtime/phpunit-cov), run via the
  * composer script, not directly.
@@ -40,7 +40,7 @@ $command = \array_map('escapeshellarg', [
     '--log-junit=' . $root . '/' . $covDir . '/junit.xml',
 ]);
 
-echo "Generating PHPUnit-mirror coverage into {$covDir}/ (best-effort; failures are ignored)\n";
+echo "Generating PHPUnit-mirror coverage into {$covDir}/\n";
 
 $exit = 0;
 \passthru(\implode(' ', $command), $exit);
@@ -51,5 +51,4 @@ if (!\is_file($index)) {
     exit(1);
 }
 
-echo "\nPHPUnit exited with {$exit}; coverage report written — continuing.\n";
-exit(0);
+exit($exit);

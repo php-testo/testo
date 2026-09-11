@@ -24,6 +24,7 @@
          failOnWarning="false"
          failOnPhpunitWarning="false"
          displayDetailsOnTestsThatTriggerWarnings="true"
+         beStrictAboutTestsThatDoNotTestAnything="false"
          colors="true">
     <testsuites>
         <testsuite name="generated">
