@@ -7,7 +7,6 @@ namespace Testo\Tools\StructArmed\Support;
 use PhpParser\Node\Stmt\ClassLike;
 use PhpParser\NodeFinder;
 use PhpParser\ParserFactory;
-use Throwable;
 
 /**
  * Reads class-level PHPDoc tags (@api, @internal) straight from the source, since
@@ -52,7 +51,7 @@ final class ClassAnnotations
 
         try {
             $ast = (new ParserFactory())->createForNewestSupportedVersion()->parse($code) ?? [];
-        } catch (Throwable) {
+        } catch (\Throwable) {
             return [];
         }
 
