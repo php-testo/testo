@@ -17,5 +17,11 @@
         "stryker": {
             "report": "1.x"
         }
+    },
+    "mutators": {
+        "@default": true,
+        "global-ignoreSourceCodeByRegex": [
+            "#\\[TestInline"
+        ]
     }
 }
