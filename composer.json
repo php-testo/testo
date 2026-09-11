@@ -206,6 +206,7 @@
         "psalm": "psalm -c tools/psalm/psalm.xml",
         "psalm:baseline": "psalm -c tools/psalm/psalm.xml --set-baseline=tools/psalm/psalm-baseline.xml",
         "psalm:ci": "psalm -c tools/psalm/psalm.xml --output-format=github --shepherd --show-info=false --stats --threads=4",
+        "structarmed": "structarmed analyse --config=tools/structarmed/structarmed.php --clear-cache",
         "test": "testo",
         "test:ci": [
             "@putenv TESTO_CI=1",

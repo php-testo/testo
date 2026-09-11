@@ -1,0 +1,13 @@
+{
+    "require": {
+        "boundwize/structarmed": "^0.17.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Tools\\StructArmed\\": "src/"
+        }
+    },
+    "config": {
+        "platform-check": false
+    }
+}
