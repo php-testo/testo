@@ -9,8 +9,6 @@ use Boundwize\StructArmed\Rule\RuleInterface;
 use Boundwize\StructArmed\Rule\RuleViolation;
 use Testo\Tools\StructArmed\Support\ClassAnnotations;
 
-use function str_contains;
-
 /**
  * Anything living under an `Internal` namespace segment is implementation detail and
  * must say so with @internal — the folder alone is a convention, the tag is the contract.
@@ -24,7 +22,7 @@ final readonly class InternalNamespaceMustBeAnnotatedInternalRule implements Rul
     public function appliesTo(ClassNode $classNode): bool
     {
         return $classNode->isInLayer($this->layer)
-            && str_contains($classNode->className, '\\Internal\\');
+            && \str_contains($classNode->className, '\\Internal\\');
     }
 
     public function evaluate(ClassNode $classNode): ?RuleViolation

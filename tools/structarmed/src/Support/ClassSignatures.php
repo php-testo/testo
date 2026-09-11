@@ -15,7 +15,6 @@ use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
-use Throwable;
 
 /**
  * Extracts the fully-qualified type names a class exposes on its public surface:
@@ -56,7 +55,7 @@ final class ClassSignatures
 
             $traverser = new NodeTraverser(new NameResolver());
             $ast = $traverser->traverse($ast);
-        } catch (Throwable) {
+        } catch (\Throwable) {
             return [];
         }
 
@@ -112,7 +111,7 @@ final class ClassSignatures
                     self::collect($inner, $types);
                 }
                 break;
-            // A plain Identifier (int, string, void, self, static, ...) carries no namespace: ignore.
+                // A plain Identifier (int, string, void, self, static, ...) carries no namespace: ignore.
         }
     }
 }

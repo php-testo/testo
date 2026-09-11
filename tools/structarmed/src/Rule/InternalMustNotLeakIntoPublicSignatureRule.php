@@ -11,9 +11,6 @@ use Boundwize\StructArmed\Rule\RuleViolation;
 use Testo\Tools\StructArmed\Support\ClassAnnotations;
 use Testo\Tools\StructArmed\Support\ClassSignatures;
 
-use function sprintf;
-use function str_contains;
-
 /**
  * A class on the public surface must not name an internal type in its signature.
  * Internal types are implementation detail; surfacing one in a public or protected
@@ -48,12 +45,12 @@ final readonly class InternalMustNotLeakIntoPublicSignatureRule implements RuleI
         $violations = [];
 
         foreach (ClassSignatures::publicTypes($classNode->file, $classNode->shortName()) as $type) {
-            if (! str_contains($type, self::SEGMENT)) {
+            if (! \str_contains($type, self::SEGMENT)) {
                 continue;
             }
 
             $violations[] = new RuleViolation(
-                message: sprintf(
+                message: \sprintf(
                     '%s [%s] exposes internal type [%s] in its public signature',
                     $classNode->getType(),
                     $classNode->className,
@@ -71,7 +68,7 @@ final readonly class InternalMustNotLeakIntoPublicSignatureRule implements RuleI
 
     private function isInternal(ClassNode $classNode): bool
     {
-        return str_contains($classNode->className, self::SEGMENT)
+        return \str_contains($classNode->className, self::SEGMENT)
             || ClassAnnotations::hasInternal($classNode->file, $classNode->shortName());
     }
 }
