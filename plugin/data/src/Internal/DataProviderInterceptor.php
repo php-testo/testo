@@ -150,50 +150,6 @@ final readonly class DataProviderInterceptor implements TestRunInterceptor
         return $finalResult;
     }
 
-    /**
-     * Run a single data set.
-     *
-     * @param TestInfo $info Test information.
-     * @param non-empty-string $label Unique label for the data set.
-     * @param int<0, max>|null $providerNum Data provider number or null if only one.
-     * @param int<0, max> $datasetNum Data set number.
-     * @param callable(TestInfo): TestResult $next Next interceptor or core logic to run the test.
-     * @param TestIdentity $identity Address of this data set, derived from the batch's.
-     */
-    private function run(
-        TestInfo $info,
-        callable $next,
-        string $label,
-        ?int $providerNum,
-        int $datasetNum,
-        array $arguments,
-        TestIdentity $identity,
-    ): TestResult {
-        $newInfo = $info->with(
-            arguments: $arguments,
-            identity: $identity,
-        );
-
-        // Dispatch dataset starting event
-        $this->eventDispatcher->dispatch(new TestDataSetStarting($newInfo, $label, $providerNum, $datasetNum));
-
-        try {
-            $result = $next($newInfo);
-        } catch (\Throwable $throwable) {
-            # Counts stay empty here; the aggregate's fold stamps each data set's final status.
-            $result = new TestResult(
-                info: $newInfo,
-                status: Status::Error,
-                failure: $throwable,
-            );
-        }
-
-        // Dispatch dataset finished event
-        $this->eventDispatcher->dispatch(new TestDataSetFinished($newInfo, $result, $label, $providerNum, $datasetNum));
-
-        return $result;
-    }
-
     private static function extractDataSets(TestInfo $info, object $attr): iterable
     {
         return match (true) {
@@ -334,5 +290,49 @@ final readonly class DataProviderInterceptor implements TestRunInterceptor
         foreach ($attr->providers as $providerAttr) {
             yield from self::extractDataSets($info, $providerAttr);
         }
+    }
+
+    /**
+     * Run a single data set.
+     *
+     * @param TestInfo $info Test information.
+     * @param non-empty-string $label Unique label for the data set.
+     * @param int<0, max>|null $providerNum Data provider number or null if only one.
+     * @param int<0, max> $datasetNum Data set number.
+     * @param callable(TestInfo): TestResult $next Next interceptor or core logic to run the test.
+     * @param TestIdentity $identity Address of this data set, derived from the batch's.
+     */
+    private function run(
+        TestInfo $info,
+        callable $next,
+        string $label,
+        ?int $providerNum,
+        int $datasetNum,
+        array $arguments,
+        TestIdentity $identity,
+    ): TestResult {
+        $newInfo = $info->with(
+            arguments: $arguments,
+            identity: $identity,
+        );
+
+        // Dispatch dataset starting event
+        $this->eventDispatcher->dispatch(new TestDataSetStarting($newInfo, $label, $providerNum, $datasetNum));
+
+        try {
+            $result = $next($newInfo);
+        } catch (\Throwable $throwable) {
+            # Counts stay empty here; the aggregate's fold stamps each data set's final status.
+            $result = new TestResult(
+                info: $newInfo,
+                status: Status::Error,
+                failure: $throwable,
+            );
+        }
+
+        // Dispatch dataset finished event
+        $this->eventDispatcher->dispatch(new TestDataSetFinished($newInfo, $result, $label, $providerNum, $datasetNum));
+
+        return $result;
     }
 }

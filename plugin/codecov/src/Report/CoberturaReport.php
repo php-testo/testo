@@ -93,6 +93,80 @@ final readonly class CoberturaReport implements CoverageReport
     }
 
     /**
+     * @return array{int<0, max>, int<0, max>} [statements, covered]
+     */
+    private static function countLines(FileCoverage $fileCoverage): array
+    {
+        $statements = 0;
+        $covered = 0;
+
+        foreach ($fileCoverage->lines as $line) {
+            if (!$line->status->isExecutable()) {
+                continue;
+            }
+
+            $statements++;
+            $line->status === LineStatus::Executed and $covered++;
+        }
+
+        return [$statements, $covered];
+    }
+
+    /**
+     * @return array{int<0, max>, int<0, max>} [total branches, covered branches]
+     */
+    private static function countBranches(FileCoverage $fileCoverage): array
+    {
+        $total = 0;
+        $covered = 0;
+
+        foreach ($fileCoverage->functions as $function) {
+            foreach ($function->branches as $branch) {
+                $total += \count($branch->outHit);
+                $covered += \count(\array_filter($branch->outHit));
+            }
+        }
+
+        return [$total, $covered];
+    }
+
+    /**
+     * Builds a map of line number => [total_branches, covered_branches]
+     * for lines that are branch decision points.
+     *
+     * @return array<int, array{int<0, max>, int<0, max>}>
+     */
+    private static function buildLineBranchMap(FileCoverage $fileCoverage): array
+    {
+        $map = [];
+
+        foreach ($fileCoverage->functions as $function) {
+            foreach ($function->branches as $branch) {
+                // Only mark lines with multiple outgoing edges as branch points
+                if (\count($branch->out) < 2) {
+                    continue;
+                }
+
+                $line = $branch->lineStart;
+                $total = \count($branch->outHit);
+                $covered = \count(\array_filter($branch->outHit));
+
+                $map[$line] ??= [0, 0];
+
+                $map[$line][0] += $total;
+                $map[$line][1] += $covered;
+            }
+        }
+
+        return $map;
+    }
+
+    private static function rate(int $covered, int $total): string
+    {
+        return $total === 0 ? '0' : \sprintf('%.4f', $covered / $total);
+    }
+
+    /**
      * Groups files by their relative directory path.
      *
      * @return array<string, list<array{relative: string, coverage: FileCoverage}>>
@@ -194,79 +268,5 @@ final readonly class CoberturaReport implements CoverageReport
 
         $xml->endElement(); // lines
         $xml->endElement(); // class
-    }
-
-    /**
-     * @return array{int<0, max>, int<0, max>} [statements, covered]
-     */
-    private static function countLines(FileCoverage $fileCoverage): array
-    {
-        $statements = 0;
-        $covered = 0;
-
-        foreach ($fileCoverage->lines as $line) {
-            if (!$line->status->isExecutable()) {
-                continue;
-            }
-
-            $statements++;
-            $line->status === LineStatus::Executed and $covered++;
-        }
-
-        return [$statements, $covered];
-    }
-
-    /**
-     * @return array{int<0, max>, int<0, max>} [total branches, covered branches]
-     */
-    private static function countBranches(FileCoverage $fileCoverage): array
-    {
-        $total = 0;
-        $covered = 0;
-
-        foreach ($fileCoverage->functions as $function) {
-            foreach ($function->branches as $branch) {
-                $total += \count($branch->outHit);
-                $covered += \count(\array_filter($branch->outHit));
-            }
-        }
-
-        return [$total, $covered];
-    }
-
-    /**
-     * Builds a map of line number => [total_branches, covered_branches]
-     * for lines that are branch decision points.
-     *
-     * @return array<int, array{int<0, max>, int<0, max>}>
-     */
-    private static function buildLineBranchMap(FileCoverage $fileCoverage): array
-    {
-        $map = [];
-
-        foreach ($fileCoverage->functions as $function) {
-            foreach ($function->branches as $branch) {
-                // Only mark lines with multiple outgoing edges as branch points
-                if (\count($branch->out) < 2) {
-                    continue;
-                }
-
-                $line = $branch->lineStart;
-                $total = \count($branch->outHit);
-                $covered = \count(\array_filter($branch->outHit));
-
-                $map[$line] ??= [0, 0];
-
-                $map[$line][0] += $total;
-                $map[$line][1] += $covered;
-            }
-        }
-
-        return $map;
-    }
-
-    private static function rate(int $covered, int $total): string
-    {
-        return $total === 0 ? '0' : \sprintf('%.4f', $covered / $total);
     }
 }

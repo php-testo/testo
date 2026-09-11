@@ -227,10 +227,136 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     }
 
     /**
+     * Stage 3: Inject data pointers to individual tests before execution.
+     *
+     * The {@see \Testo\Filter\DataPointer} attribute can be used by data providers or test runners to
+     * identify which dataset of which provider is being referred to.
+     *
+     * @param TestInfo $info Test information
+     * @param callable(TestInfo): TestResult $next Next interceptor in the chain
+     *
+     * @return TestResult Test execution result
+     */
+    #[\Override]
+    public function runTest(TestInfo $info, callable $next): TestResult
+    {
+        if ($this->skip) {
+            return $next($info);
+        }
+
+        $pointer = $this->pointers[$info->testDefinition->reflection] ?? null;
+
+        return $pointer === null
+            ? $next($info)
+            : $next($info->withAttribute(DataPointer::class, $pointer));
+    }
+
+    /**
+     * Collect all group names declared on a class, method, or function via {@see Group}.
+     *
+     * More than one {@see Group} may be returned because parent classes, traits, and method
+     * prototypes are traversed — not because the attribute repeats on a single declaration.
+     *
+     * @return list<non-empty-string>
+     */
+    private static function groupNamesOf(\ReflectionClass|\ReflectionFunctionAbstract $reflection): array
+    {
+        $attributes = $reflection instanceof \ReflectionClass
+            ? Reflection::fetchClassAttributes($reflection, attributeClass: Group::class)
+            : Reflection::fetchFunctionAttributes($reflection, attributeClass: Group::class);
+
+        $names = [];
+        foreach ($attributes as $attribute) {
+            foreach ($attribute->newInstance()->names as $name) {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * @return bool True if the needle is found as a whole word in the haystack, false otherwise.
+     */
+    private static function has(string $needle, string $haystack): bool
+    {
+        return \preg_match('/\\b' . \preg_quote($needle, '/') . '\\b$/', $haystack) === 1;
+    }
+
+    /**
+     * Extract {@see \Testo\Filter\DataPointer} from target string and remove indices from target.
+     *
+     * Parses format: `name:providerIndex:datasetIndex` where datasetIndex is optional.
+     * Modifies $target by reference, removing `:providerIndex:datasetIndex` parts.
+     *
+     * Examples:
+     * - "testMethod:0:1" -> target becomes "testMethod", returns DataPointer(0, 1)
+     * - "testMethod:2" -> target becomes "testMethod", returns DataPointer(2, null)
+     * - "testMethod" -> target unchanged, returns null
+     *
+     * @param non-empty-string &$target Name with optional indices. Indices removed after parsing.
+     * @return null|\Testo\Filter\DataPointer DataPointer if indices present, null otherwise
+     */
+    private static function extractDataPointer(string &$target): ?DataPointer
+    {
+        # Expecting that the target must not contain '::'
+        $parts = \explode(':', $target);
+        if (\count($parts) === 1) {
+            return null;
+        }
+
+        $target = $parts[0];
+        return new DataPointer((int) $parts[1], isset($parts[2]) ? (int) $parts[2] : null);
+    }
+
+    /**
+     * Whether the file declares a named class that extends a parent — i.e. it may expose methods
+     * inherited from another file that the token pre-filter cannot see.
+     *
+     * Detected via the `extends` keyword token rather than reflection to keep Stage 1 cheap; an
+     * over-match (e.g. a parent with no matching test) is harmless — Stage 2 filters it out.
+     *
+     * Only `extends` of a named class counts: a named declaration is `class <Name> extends`, so the
+     * tokens right before `extends` are the name (T_STRING) and then the `class` keyword. An
+     * anonymous class (`new class extends ...`, `new class (...) extends ...`) has no name there and
+     * can never be a discoverable test case, so it is ignored. `interface ... extends` is likewise
+     * skipped — the keyword before the name is not `class`.
+     */
+    private static function declaresSubclass(TokenizedFile $file): bool
+    {
+        $tokens = $file->tokens;
+
+        foreach ($tokens as $i => $token) {
+            if (!$token->is(\T_EXTENDS)) {
+                continue;
+            }
+
+            # Token before `extends`, skipping whitespace: the class name for a named declaration.
+            $name = $i - 1;
+            while ($name >= 0 && $tokens[$name]->is(\T_WHITESPACE)) {
+                --$name;
+            }
+            if ($name < 0 || !$tokens[$name]->is(\T_STRING)) {
+                continue;
+            }
+
+            # Token before the name, skipping whitespace: the `class` keyword for a class declaration.
+            $keyword = $name - 1;
+            while ($keyword >= 0 && $tokens[$keyword]->is(\T_WHITESPACE)) {
+                --$keyword;
+            }
+            if ($keyword >= 0 && $tokens[$keyword]->is(\T_CLASS)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Name pass: select the tests of a case that match the configured name filters.
      *
      * Also records {@see DataPointer}s for matched tests so Stage 3 can inject them.
-     *
      *
      * @return array<string, TestDefinition> Matched tests keyed by name
      */
@@ -332,89 +458,6 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
     }
 
     /**
-     * Collect all group names declared on a class, method, or function via {@see Group}.
-     *
-     * More than one {@see Group} may be returned because parent classes, traits, and method
-     * prototypes are traversed — not because the attribute repeats on a single declaration.
-     *
-     * @return list<non-empty-string>
-     */
-    private static function groupNamesOf(\ReflectionClass|\ReflectionFunctionAbstract $reflection): array
-    {
-        $attributes = $reflection instanceof \ReflectionClass
-            ? Reflection::fetchClassAttributes($reflection, attributeClass: Group::class)
-            : Reflection::fetchFunctionAttributes($reflection, attributeClass: Group::class);
-
-        $names = [];
-        foreach ($attributes as $attribute) {
-            foreach ($attribute->newInstance()->names as $name) {
-                $names[] = $name;
-            }
-        }
-
-        return $names;
-    }
-
-    /**
-     * Stage 3: Inject data pointers to individual tests before execution.
-     *
-     * The {@see \Testo\Filter\DataPointer} attribute can be used by data providers or test runners to
-     * identify which dataset of which provider is being referred to.
-     *
-     * @param TestInfo $info Test information
-     * @param callable(TestInfo): TestResult $next Next interceptor in the chain
-     *
-     * @return TestResult Test execution result
-     */
-    #[\Override]
-    public function runTest(TestInfo $info, callable $next): TestResult
-    {
-        if ($this->skip) {
-            return $next($info);
-        }
-
-        $pointer = $this->pointers[$info->testDefinition->reflection] ?? null;
-
-        return $pointer === null
-            ? $next($info)
-            : $next($info->withAttribute(DataPointer::class, $pointer));
-    }
-
-    /**
-     * @return bool True if the needle is found as a whole word in the haystack, false otherwise.
-     */
-    private static function has(string $needle, string $haystack): bool
-    {
-        return \preg_match('/\\b' . \preg_quote($needle, '/') . '\\b$/', $haystack) === 1;
-    }
-
-    /**
-     * Extract {@see \Testo\Filter\DataPointer} from target string and remove indices from target.
-     *
-     * Parses format: `name:providerIndex:datasetIndex` where datasetIndex is optional.
-     * Modifies $target by reference, removing `:providerIndex:datasetIndex` parts.
-     *
-     * Examples:
-     * - "testMethod:0:1" -> target becomes "testMethod", returns DataPointer(0, 1)
-     * - "testMethod:2" -> target becomes "testMethod", returns DataPointer(2, null)
-     * - "testMethod" -> target unchanged, returns null
-     *
-     * @param non-empty-string &$target Name with optional indices. Indices removed after parsing.
-     * @return null|\Testo\Filter\DataPointer DataPointer if indices present, null otherwise
-     */
-    private static function extractDataPointer(string &$target): ?DataPointer
-    {
-        # Expecting that the target must not contain '::'
-        $parts = \explode(':', $target);
-        if (\count($parts) === 1) {
-            return null;
-        }
-
-        $target = $parts[0];
-        return new DataPointer((int) $parts[1], isset($parts[2]) ? (int) $parts[2] : null);
-    }
-
-    /**
      * Check if tokenized file contains any matching classes, functions, or methods.
      *
      * Performs quick matching against tokenized file data without loading full reflections.
@@ -475,50 +518,6 @@ final class FilterInterceptor implements FileLocatorInterceptor, CaseLocatorInte
         # from tokens, so keep it for Stage 2 reflection rather than risk a false negative.
         if ($this->fragment !== [] && self::declaresSubclass($file)) {
             return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Whether the file declares a named class that extends a parent — i.e. it may expose methods
-     * inherited from another file that the token pre-filter cannot see.
-     *
-     * Detected via the `extends` keyword token rather than reflection to keep Stage 1 cheap; an
-     * over-match (e.g. a parent with no matching test) is harmless — Stage 2 filters it out.
-     *
-     * Only `extends` of a named class counts: a named declaration is `class <Name> extends`, so the
-     * tokens right before `extends` are the name (T_STRING) and then the `class` keyword. An
-     * anonymous class (`new class extends ...`, `new class (...) extends ...`) has no name there and
-     * can never be a discoverable test case, so it is ignored. `interface ... extends` is likewise
-     * skipped — the keyword before the name is not `class`.
-     */
-    private static function declaresSubclass(TokenizedFile $file): bool
-    {
-        $tokens = $file->tokens;
-
-        foreach ($tokens as $i => $token) {
-            if (!$token->is(\T_EXTENDS)) {
-                continue;
-            }
-
-            # Token before `extends`, skipping whitespace: the class name for a named declaration.
-            $name = $i - 1;
-            while ($name >= 0 && $tokens[$name]->is(\T_WHITESPACE)) {
-                --$name;
-            }
-            if ($name < 0 || !$tokens[$name]->is(\T_STRING)) {
-                continue;
-            }
-
-            # Token before the name, skipping whitespace: the `class` keyword for a class declaration.
-            $keyword = $name - 1;
-            while ($keyword >= 0 && $tokens[$keyword]->is(\T_WHITESPACE)) {
-                --$keyword;
-            }
-            if ($keyword >= 0 && $tokens[$keyword]->is(\T_CLASS)) {
-                return true;
-            }
         }
 
         return false;

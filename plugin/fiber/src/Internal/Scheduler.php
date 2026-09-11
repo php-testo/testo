@@ -36,7 +36,6 @@ final class Scheduler
     private array $tasks = [];
 
     private int $nextId = 0;
-
     private ?Task $running = null;
 
     /**

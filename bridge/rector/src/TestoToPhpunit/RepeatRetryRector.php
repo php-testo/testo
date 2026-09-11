@@ -156,7 +156,9 @@ final class RepeatRetryRector extends AbstractRector
         return true;
     }
 
-    /** The first class-level attribute with the given name, or null. */
+    /**
+     * The first class-level attribute with the given name, or null.
+     */
     private function classAttribute(Class_ $class, string $name): ?Attribute
     {
         foreach ($class->attrGroups as $attrGroup) {
@@ -247,7 +249,9 @@ final class RepeatRetryRector extends AbstractRector
         return $this->methodHasKind($method, ...self::LIFECYCLE_ATTRIBUTES);
     }
 
-    /** Whether the method carries any attribute named among $names. */
+    /**
+     * Whether the method carries any attribute named among $names.
+     */
     private function methodHasKind(ClassMethod $method, string ...$names): bool
     {
         foreach ($method->attrGroups as $attrGroup) {

@@ -88,6 +88,75 @@ final readonly class PhpUnitXmlReport implements CoverageReport
         );
     }
 
+    private static function writeLineTotals(\XMLWriter $xml, int $executed, int $total): void
+    {
+        $percent = $total === 0 ? '0.00' : \sprintf('%.2f', 100 * $executed / $total);
+
+        $xml->startElement('totals');
+        $xml->startElement('lines');
+        $xml->writeAttribute('total', (string) $total);
+        $xml->writeAttribute('executed', (string) $executed);
+        $xml->writeAttribute('percent', $percent);
+        $xml->endElement(); // lines
+        $xml->endElement(); // totals
+    }
+
+    /**
+     * @return array{int<0, max>, int<0, max>} [statements, executed]
+     */
+    private static function countLines(FileCoverage $fileCoverage): array
+    {
+        $stmts = 0;
+        $executed = 0;
+
+        foreach ($fileCoverage->lines as $lineCoverage) {
+            if (!$lineCoverage->status->isExecutable()) {
+                continue;
+            }
+
+            $stmts++;
+            $lineCoverage->status === LineStatus::Executed and $executed++;
+        }
+
+        return [$stmts, $executed];
+    }
+
+    private static function computeHref(string $absPath, string $sourceRoot): string
+    {
+        $normalized = \str_replace('\\', '/', $absPath);
+
+        if ($sourceRoot !== '' && \str_starts_with($normalized, $sourceRoot . '/')) {
+            return \substr($normalized, \strlen($sourceRoot) + 1) . '.xml';
+        }
+
+        // File outside sourceRoot — flatten to a slug under the output dir.
+        return \ltrim(\str_replace([':', '/'], '_', $normalized), '_') . '.xml';
+    }
+
+    private static function computeRelativeDir(string $absPath, string $sourceRoot): string
+    {
+        $normalized = \str_replace('\\', '/', $absPath);
+
+        if ($sourceRoot === '' || !\str_starts_with($normalized, $sourceRoot . '/')) {
+            return '';
+        }
+
+        $relative = \substr($normalized, \strlen($sourceRoot) + 1);
+        $dir = \dirname($relative);
+
+        return $dir === '.' ? '' : $dir;
+    }
+
+    private static function newXmlWriter(): \XMLWriter
+    {
+        $xml = new \XMLWriter();
+        $xml->openMemory();
+        $xml->setIndent(true);
+        $xml->setIndentString('  ');
+
+        return $xml;
+    }
+
     /**
      * @param list<array{fileCoverage: FileCoverage, href: string, name: string, path: string, stmts: int<0, max>, covered: int<0, max>}> $entries
      */
@@ -174,74 +243,5 @@ final readonly class PhpUnitXmlReport implements CoverageReport
         $xml->endDocument();
 
         \file_put_contents($outputPath, $xml->outputMemory());
-    }
-
-    private static function writeLineTotals(\XMLWriter $xml, int $executed, int $total): void
-    {
-        $percent = $total === 0 ? '0.00' : \sprintf('%.2f', 100 * $executed / $total);
-
-        $xml->startElement('totals');
-        $xml->startElement('lines');
-        $xml->writeAttribute('total', (string) $total);
-        $xml->writeAttribute('executed', (string) $executed);
-        $xml->writeAttribute('percent', $percent);
-        $xml->endElement(); // lines
-        $xml->endElement(); // totals
-    }
-
-    /**
-     * @return array{int<0, max>, int<0, max>} [statements, executed]
-     */
-    private static function countLines(FileCoverage $fileCoverage): array
-    {
-        $stmts = 0;
-        $executed = 0;
-
-        foreach ($fileCoverage->lines as $lineCoverage) {
-            if (!$lineCoverage->status->isExecutable()) {
-                continue;
-            }
-
-            $stmts++;
-            $lineCoverage->status === LineStatus::Executed and $executed++;
-        }
-
-        return [$stmts, $executed];
-    }
-
-    private static function computeHref(string $absPath, string $sourceRoot): string
-    {
-        $normalized = \str_replace('\\', '/', $absPath);
-
-        if ($sourceRoot !== '' && \str_starts_with($normalized, $sourceRoot . '/')) {
-            return \substr($normalized, \strlen($sourceRoot) + 1) . '.xml';
-        }
-
-        // File outside sourceRoot — flatten to a slug under the output dir.
-        return \ltrim(\str_replace([':', '/'], '_', $normalized), '_') . '.xml';
-    }
-
-    private static function computeRelativeDir(string $absPath, string $sourceRoot): string
-    {
-        $normalized = \str_replace('\\', '/', $absPath);
-
-        if ($sourceRoot === '' || !\str_starts_with($normalized, $sourceRoot . '/')) {
-            return '';
-        }
-
-        $relative = \substr($normalized, \strlen($sourceRoot) + 1);
-        $dir = \dirname($relative);
-
-        return $dir === '.' ? '' : $dir;
-    }
-
-    private static function newXmlWriter(): \XMLWriter
-    {
-        $xml = new \XMLWriter();
-        $xml->openMemory();
-        $xml->setIndent(true);
-        $xml->setIndentString('  ');
-
-        return $xml;
     }
 }

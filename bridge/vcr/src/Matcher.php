@@ -23,20 +23,26 @@ enum Matcher: string
 {
     case Method = 'method';
 
-    /** Full request URL, including path and query string. PHP-VCR has no separate "path" matcher. */
+    /**
+     * Full request URL, including path and query string. PHP-VCR has no separate "path" matcher.
+     */
     case Url = 'url';
-
     case Host = 'host';
     case QueryString = 'query_string';
 
-    /** Raw request body — the general choice for JSON/XML/SOAP payloads. */
+    /**
+     * Raw request body — the general choice for JSON/XML/SOAP payloads.
+     */
     case Body = 'body';
 
-    /** Parsed `application/x-www-form-urlencoded` fields; only meaningful for form POSTs. */
+    /**
+     * Parsed `application/x-www-form-urlencoded` fields; only meaningful for form POSTs.
+     */
     case PostFields = 'post_fields';
-
     case Headers = 'headers';
 
-    /** SOAP operation parsed from the SOAP-ENV envelope; only meaningful for SOAP calls. */
+    /**
+     * SOAP operation parsed from the SOAP-ENV envelope; only meaningful for SOAP calls.
+     */
     case SoapOperation = 'soap_operation';
 }
