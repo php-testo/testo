@@ -1,0 +1,57 @@
+name: StructArmed
+
+on:
+  push:
+    paths:
+      - 'core/**'
+      - 'plugin/**'
+      - 'bridge/**'
+      - 'tools/structarmed/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/structarmed.yml'
+  pull_request:
+    paths:
+      - 'core/**'
+      - 'plugin/**'
+      - 'bridge/**'
+      - 'tools/structarmed/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/structarmed.yml'
+
+jobs:
+  structarmed:
+    runs-on: ubuntu-latest
+    name: StructArmed (advisory)
+    # Advisory only: architecture violations are reported for reference and must
+    # never fail the pipeline or block a merge.
+    continue-on-error: true
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The split sub-packages pin testo/testo; in CI the root is a detached
+      # commit (dev-<sha>), so its version must be declared explicitly.
+      - name: Resolve root package version
+        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: highest
+
+      # StructArmed is isolated via bamarni/composer-bin-plugin and not installed by the root install.
+      - name: Install isolated StructArmed
+        run: composer bin structarmed install
+
+      - name: Run StructArmed
+        run: composer structarmed
