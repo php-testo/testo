@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - 'core/**'
-      - 'psalm.xml'
+      - 'tools/psalm/psalm.xml'
       - 'tools/psalm/composer.json'
       - 'composer.json'
       - 'composer.lock'
@@ -12,7 +12,7 @@ on:
   pull_request:
     paths:
       - 'core/**'
-      - 'psalm.xml'
+      - 'tools/psalm/psalm.xml'
       - 'tools/psalm/composer.json'
       - 'composer.json'
       - 'composer.lock'
