@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Bench\Internal;
 
+use Internal\Container\Attribute\ScopeShared;
 use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Assert\State\Assertion\AssertionSuccess;
@@ -21,6 +22,7 @@ use Testo\Core\Log\Level;
 /**
  * @internal
  */
+#[ScopeShared]
 final readonly class BenchHandler
 {
     public function __construct(
@@ -239,7 +241,7 @@ final readonly class BenchHandler
         # peak is reset first so it reflects this iteration only, and the collection cycle keeps
         # garbage from a previous case out of the window.
         \gc_collect_cycles();
-        \memory_reset_peak_usage();
+        \function_exists('memory_reset_peak_usage') and \memory_reset_peak_usage();
         $beforeMem = \memory_get_peak_usage();
         $beforeTime = \hrtime(true);
         for ($i = 0; $i < $calls; ++$i) {

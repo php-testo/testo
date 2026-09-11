@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Common;
 
+use Internal\Container\Attribute\ScopeShared;
 use Testo\Core\Log\Level;
 
 /**
@@ -17,6 +18,7 @@ use Testo\Core\Log\Level;
  *
  * @internal
  */
+#[ScopeShared]
 final readonly class ErrorReporter
 {
     public function __construct(

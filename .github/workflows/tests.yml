@@ -31,6 +31,9 @@ jobs:
       matrix:
         php: [ 8.2, 8.3, 8.4, 8.5 ]
         dependencies: [ lowest , highest ]
+        include:
+          - php: 8.1
+            dependencies: highest
       max-parallel: 2
 
     name: Tests PHP${{ matrix.php }}-${{ matrix.dependencies }}
@@ -52,9 +55,18 @@ jobs:
           coverage: none
 
       - name: Install Composer dependencies
+        if: matrix.php != '8.1'
         uses: ramsey/composer-install@v3
         with:
           dependency-versions: ${{ matrix.dependencies }}
+
+      - name: Install and downgrade for PHP 8.1
+        if: matrix.php == '8.1'
+        uses: php-internal/actions/downgrade@v1
+        with:
+          php-version: '8.1'
+          dependency-versions: ${{ matrix.dependencies }}
+          paths: core plugin bridge tests testo.php
 
       # Bin tools carry deps with a higher PHP floor than the matrix (e.g. tools/double).
       # They install everywhere but only load where the platform allows, so ignore the check.

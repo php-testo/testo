@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Internal;
 
+use Internal\Container\Attribute\ScopeShared;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Internal\Messenger\State;
 use Testo\Application\Internal\Messenger\MutableContainer;
@@ -23,6 +24,7 @@ use Testo\Core\Log\MessageLog;
  *
  * @internal
  */
+#[ScopeShared]
 final readonly class MessengerHub implements Messenger
 {
     private MutableContainer $state;

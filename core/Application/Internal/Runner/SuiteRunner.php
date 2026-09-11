@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Internal\Runner;
 
+use Internal\Container\Attribute\ScopeShared;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Internal\SimpleCaseInstantiator;
 use Testo\Common\ErrorReporter;
@@ -30,6 +31,7 @@ use Testo\Pipeline\Pipeline;
  * @internal
  * @psalm-internal Testo\Application
  */
+#[ScopeShared]
 final readonly class SuiteRunner
 {
     public function __construct(
