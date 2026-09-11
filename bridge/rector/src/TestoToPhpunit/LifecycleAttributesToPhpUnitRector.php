@@ -137,7 +137,9 @@ final class LifecycleAttributesToPhpUnitRector extends AbstractRector
         return $node;
     }
 
-    /** The Testo lifecycle FQN this attribute names, or null when it is not a lifecycle attribute. */
+    /**
+     * The Testo lifecycle FQN this attribute names, or null when it is not a lifecycle attribute.
+     */
     private function matchedLifecycle(Node\Name $name): ?string
     {
         foreach (self::MAP as $testo => $_phpunit) {
