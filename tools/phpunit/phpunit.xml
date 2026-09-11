@@ -6,15 +6,19 @@
     bridge/rector/README.md "Why Testo -> PHPUnit"). Not the primary test runner —
     `composer test` (Testo) is.
 
+    This config lives under tools/phpunit/, next to its isolated PHPUnit install; its paths are
+    therefore relative to this directory. PHPUnit resolves them against the config's own location,
+    and Infection rewrites them against `phpUnit.configDir` from infection.phpunit.json.
+
     executionOrder must NOT include `defects`: Infection disables test-run-history recording for its
     initial coverage run (it injects cacheResult="false"), and since PHPUnit 13.3 defect ordering
     requires that history — with it off the runner orders by nothing and executes zero tests, so
     Infection collects empty coverage and aborts with "No source code was executed".
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="tools/phpunit/vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="tests/bootstrap.php"
-         cacheDirectory="runtime/.phpunit.cache"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="../../tests/bootstrap.php"
+         cacheDirectory="../../runtime/.phpunit.cache"
          executionOrder="depends"
          failOnRisky="false"
          failOnWarning="false"
@@ -23,7 +27,7 @@
          colors="true">
     <testsuites>
         <testsuite name="generated">
-            <directory>tests/PhpUnit</directory>
+            <directory>../../tests/PhpUnit</directory>
             <!--
                 Testo Stub/Fixture classes are support data — test doubles and sample sources Testo's
                 own unit tests reflect on. Some are deliberately named like real test classes (*Test),
@@ -31,12 +35,12 @@
                 COLLECTION; the classes still autoload when a real test references them. The build
                 leaves them unconverted under Stub/ and Fixture/ dirs, so exclude those at any depth.
             -->
-            <exclude>tests/PhpUnit/*/Fixture</exclude>
-            <exclude>tests/PhpUnit/*/*/Fixture</exclude>
-            <exclude>tests/PhpUnit/*/*/*/Fixture</exclude>
-            <exclude>tests/PhpUnit/*/Stub</exclude>
-            <exclude>tests/PhpUnit/*/*/Stub</exclude>
-            <exclude>tests/PhpUnit/*/*/*/Stub</exclude>
+            <exclude>../../tests/PhpUnit/*/Fixture</exclude>
+            <exclude>../../tests/PhpUnit/*/*/Fixture</exclude>
+            <exclude>../../tests/PhpUnit/*/*/*/Fixture</exclude>
+            <exclude>../../tests/PhpUnit/*/Stub</exclude>
+            <exclude>../../tests/PhpUnit/*/*/Stub</exclude>
+            <exclude>../../tests/PhpUnit/*/*/*/Stub</exclude>
         </testsuite>
     </testsuites>
     <!--
@@ -47,9 +51,9 @@
     -->
     <source>
         <include>
-            <directory>core</directory>
-            <directory>plugin/*/src</directory>
-            <directory>bridge/*/src</directory>
+            <directory>../../core</directory>
+            <directory>../../plugin/*/src</directory>
+            <directory>../../bridge/*/src</directory>
         </include>
     </source>
 </phpunit>
