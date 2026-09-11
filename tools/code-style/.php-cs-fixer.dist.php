@@ -28,14 +28,18 @@ function expandWildcardDirs(string ...$patterns): array
 }
 
 $builder = \Spiral\CodeStyle\Builder::create()
+    ->include(__FILE__)
     ->include(__DIR__ . '/../../core');
 
-foreach (expandWildcardDirs(__DIR__ . '/../../plugin/*/src', __DIR__ . '/../../bridge/*/src') as $dir) {
+foreach (expandWildcardDirs(
+    __DIR__ . '/../../plugin/*/src',
+    __DIR__ . '/../../bridge/*/src',
+    __DIR__ . '/../*/src',
+) as $dir) {
     $builder->include($dir);
 }
 
 return $builder
-    ->include(__FILE__)
     // Keep the cache in the root runtime/ (git-ignored); the default is relative to this config's
     // own directory, which would otherwise litter tools/code-style/ with an untracked cache file.
     ->cache(__DIR__ . '/../../runtime/php-cs-fixer.cache')

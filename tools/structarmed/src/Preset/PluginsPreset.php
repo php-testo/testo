@@ -18,4 +18,9 @@ final readonly class PluginsPreset extends AbstractLayerPreset
     {
         return $this->glob('plugin/*/src');
     }
+
+    protected function mayNotDependOn(): array
+    {
+        return ['Bridges'];
+    }
 }
