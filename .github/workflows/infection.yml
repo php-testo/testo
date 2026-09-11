@@ -33,50 +33,11 @@ on:
       - '.github/workflows/infection.yml'
 
 jobs:
-  infection:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        php: [ 8.4 ]
-        dependencies: [ highest ]
-
-    name: Infection PHP${{ matrix.php }}
-
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      # The split sub-packages pin testo/testo; in CI the root is a detached
-      # commit (dev-<sha>), so its version must be declared explicitly.
-      - name: Resolve root package version
-        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          coverage: xdebug
-
-      - name: Install Composer dependencies
-        uses: ramsey/composer-install@v3
-        with:
-          dependency-versions: ${{ matrix.dependencies }}
-
-      # Infection and the bridge runtime deps are isolated via bamarni-bin, not in the root install.
-      # --ignore-platform-req=php lets a higher-floor bridge (double) install here too.
-      - name: Install bin tools
-        run: composer bin all install --ignore-platform-req=php
-
-      - name: Run Infection
-        run: composer infect:ci
-
-  # Second front: mutate core/ with PHPUnit as the runner. Testo is self-hosted, so a mutant on the
-  # run path can break test discovery itself and skew the `infection` job above; PHPUnit shares no
-  # code with the mutated engine, so a mutant can only be caught (or missed) by an assertion. The
-  # suite is the generated tests/PhpUnit mirror (see bridge/rector/README.md "Why Testo -> PHPUnit").
+  # Mutate the engine with PHPUnit as the runner. Testo is self-hosted, so a mutant on its own run
+  # path could break test discovery and fake a pass; PHPUnit shares no code with the mutated engine,
+  # so a mutant is only ever caught (or missed) by an assertion — which is why the native Testo-runner
+  # front was dropped and this is the sole mutation front. The suite is the generated tests/PhpUnit
+  # mirror (see bridge/rector/README.md "Why Testo -> PHPUnit").
   infection-phpunit:
     runs-on: ubuntu-latest
 
