@@ -8,8 +8,6 @@ use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Value\TestType;
 use Testo\Pipeline\Attribute\InterceptorOptions;
-use Testo\Pipeline\Middleware\CaseLocatorInterceptor;
-use Testo\Pipeline\Middleware\FileLocatorInterceptor;
 use Testo\Test;
 use Testo\Test\Internal\TestoAttributesLocatorInterceptor;
 use Testo\Tokenizer\DefinitionLocator;
@@ -23,8 +21,6 @@ use Tests\Test\Unit\Fixture\TestClassWithNeverReturnType;
 
 #[Test]
 #[Covers(TestoAttributesLocatorInterceptor::class)]
-#[Covers(FileLocatorInterceptor::class)]
-#[Covers(CaseLocatorInterceptor::class)]
 final class TestoAttributesLocatorInterceptorTest
 {
     private string $fixturesDir = __DIR__ . '/../Fixture/';

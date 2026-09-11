@@ -12,10 +12,5 @@
     },
     "timeout": 10,
     "testFramework": "testo",
-    "tmpDir": "runtime",
-    "logs": {
-        "stryker": {
-            "report": "1.x"
-        }
-    }
+    "tmpDir": "runtime"
 }

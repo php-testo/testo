@@ -2,7 +2,26 @@
     "$schema": "../infection/vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": [
-            "../../core"
+            "../../core",
+            "../../plugin/assert/src",
+            "../../plugin/bench/src",
+            "../../plugin/codecov/src",
+            "../../plugin/convention/src",
+            "../../plugin/data/src",
+            "../../plugin/facade/src",
+            "../../plugin/fiber/src",
+            "../../plugin/filter/src",
+            "../../plugin/inline/src",
+            "../../plugin/lifecycle/src",
+            "../../plugin/repeat/src",
+            "../../plugin/retry/src",
+            "../../plugin/test/src",
+            "../../bridge/double/src",
+            "../../bridge/mockery/src",
+            "../../bridge/rector/src",
+            "../../bridge/revolt/src",
+            "../../bridge/symfony-console/src",
+            "../../bridge/vcr/src"
         ]
     },
     "timeout": 10,
@@ -12,6 +31,9 @@
     },
     "tmpDir": "../../runtime",
     "logs": {
-        "text": "../../runtime/infection-phpunit.log"
+        "text": "../../runtime/infection-phpunit.log",
+        "stryker": {
+            "report": "1.x"
+        }
     }
 }

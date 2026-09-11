@@ -197,11 +197,13 @@
         "phpunit": "phpunit --configuration tools/phpunit/phpunit.xml",
         "infect:phpunit": [
             "@putenv XDEBUG_MODE=coverage",
-            "infection --configuration=tools/phpunit/infection.phpunit.json --threads=max --min-msi=0"
+            "@php bin/phpunit-coverage.php runtime/phpunit-cov",
+            "infection --configuration=tools/phpunit/infection.phpunit.json --coverage=../../runtime/phpunit-cov --skip-initial-tests --threads=max --min-msi=0"
         ],
         "infect:phpunit:ci": [
             "@putenv XDEBUG_MODE=coverage",
-            "infection --ansi --configuration=tools/phpunit/infection.phpunit.json --logger-github --threads=max --show-mutations=0 --min-msi=0"
+            "@php bin/phpunit-coverage.php runtime/phpunit-cov",
+            "infection --ansi --configuration=tools/phpunit/infection.phpunit.json --coverage=../../runtime/phpunit-cov --skip-initial-tests --logger-github --threads=max --show-mutations=0 --min-msi=0"
         ],
         "psalm": "psalm -c tools/psalm/psalm.xml",
         "psalm:baseline": "psalm -c tools/psalm/psalm.xml --set-baseline=tools/psalm/psalm-baseline.xml",
