@@ -52,7 +52,7 @@
         files are listed one by one below (PHPUnit's <file> takes a literal path: it does NOT expand a
         `plugin/*/*.php` glob the way <directory> expands `*`, and a <directory> at the package root
         would recurse back into src/ and tests/). Mutation scope is set separately in
-        infection.phpunit.json (core + plugin/*/src; bridges not yet mutated here).
+        infection.phpunit.json (core + plugin/*/src + bridge/*/src).
     -->
     <source>
         <include>

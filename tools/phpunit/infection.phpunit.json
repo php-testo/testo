@@ -15,7 +15,13 @@
             "../../plugin/lifecycle/src",
             "../../plugin/repeat/src",
             "../../plugin/retry/src",
-            "../../plugin/test/src"
+            "../../plugin/test/src",
+            "../../bridge/double/src",
+            "../../bridge/mockery/src",
+            "../../bridge/rector/src",
+            "../../bridge/revolt/src",
+            "../../bridge/symfony-console/src",
+            "../../bridge/vcr/src"
         ]
     },
     "timeout": 10,
