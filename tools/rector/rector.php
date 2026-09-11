@@ -5,16 +5,18 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPublicMethodParameterRector;
 
+// This config lives under tools/rector/, next to Rector's isolated install, so its __DIR__-based
+// paths reach back to the project root with ../../.
 return RectorConfig::configure()
     ->withPaths([
-        __DIR__ . '/core',
-        __DIR__ . '/plugin',
-        __DIR__ . '/bridge',
+        __DIR__ . '/../../core',
+        __DIR__ . '/../../plugin',
+        __DIR__ . '/../../bridge',
     ])
     ->withSkip([
-        __DIR__ . '/bridge/rector',
-        __DIR__ . '/bridge/symfony-console/resources/stubs',
-        __DIR__ . '/bin',
+        __DIR__ . '/../../bridge/rector',
+        __DIR__ . '/../../bridge/symfony-console/resources/stubs',
+        __DIR__ . '/../../bin',
         '*/tests/*',
         '*/Stub/*',
         '*/Fixture/*',
@@ -22,18 +24,18 @@ return RectorConfig::configure()
         RemoveUnusedPublicMethodParameterRector::class,
         // RepeatInterceptor uses a closure with use (&$symbols) for batched symbol flushing;
         // Rector's deadCode rules incorrectly remove the body as "unused".
-        __DIR__ . '/plugin/repeat/src/Internal/RepeatInterceptor.php',
+        __DIR__ . '/../../plugin/repeat/src/Internal/RepeatInterceptor.php',
         // DeferredGenerator uses `return $result; yield;` to create a finished generator —
         // a valid PHP trick that Rector converts to an invalid arrow function.
-        __DIR__ . '/plugin/data/src/Internal/DeferredGenerator.php',
+        __DIR__ . '/../../plugin/data/src/Internal/DeferredGenerator.php',
         // CompositeException: constructor-promoting $errors makes the constructor's own
         // doc comment awkward to place. Not promoting for now (see #263 review).
-        __DIR__ . '/plugin/fiber/src/Exception/CompositeException.php',
+        __DIR__ . '/../../plugin/fiber/src/Exception/CompositeException.php',
         // Filter.php: large refactor surface, deferred until it can be reviewed on its own (#263).
-        __DIR__ . '/plugin/filter/Filter.php',
+        __DIR__ . '/../../plugin/filter/Filter.php',
         // DefinitionLocator::functionReflection() looks unused today but is kept intentionally —
         // don't remove "unused" functions from core (#263).
-        __DIR__ . '/core/Tokenizer/DefinitionLocator.php',
+        __DIR__ . '/../../core/Tokenizer/DefinitionLocator.php',
     ])
     ->withPhpSets(php82: true)
     ->withPreparedSets(
