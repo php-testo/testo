@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 use Testo\Bridge\Rector\PhpunitToTesto\AssertCallToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\CoversClassToCoversRector;
+use Testo\Bridge\Rector\PhpunitToTesto\CreateMockToDoubleRector;
 use Testo\Bridge\Rector\PhpunitToTesto\DataProviderAnnotationToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\DataProviderAttributeToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\DoesNotPerformAssertionsToTestoRector;
@@ -61,4 +62,8 @@ return static function (RectorConfig $rectorConfig): void {
 
     # Repeat/Retry method attributes (PHPUnit 13.3+) map onto Testo's #[Repeat]/#[Retry].
     $rectorConfig->rule(RepeatRetryToTestoRector::class);
+
+    # Mocks/stubs onto the Double bridge: createMock/createStub → Double::for, and the
+    # expects()/method()/will*() configuration chain onto expects/allows/with/returns/throws/resolves.
+    $rectorConfig->rule(CreateMockToDoubleRector::class);
 };

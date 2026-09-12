@@ -7,9 +7,15 @@ exist for each so the intent and blockers are discoverable in code.
 
 ## Stubbed (not registered)
 
-- **MockToTestoRector** — `createMock`/`getMockBuilder`/`createStub`/`prophesize`:
-  Testo ships no built-in mocking, so there is no target API. Replace manually with a
-  third-party mocking library or hand-written fakes.
+- **MockToTestoRector** — the mock forms `CreateMockToDoubleRector` (registered, see below)
+  cannot faithfully convert: `prophesize()` (a different creation/expectation model), a
+  `getMockBuilder()` chain with a builder step beyond `disableOriginalConstructor()` (`onlyMethods`,
+  `setConstructorArgs`, `getMockForAbstractClass`, …) or the bare constructor-calling
+  `getMockBuilder(X)->getMock()`, `willReturnMap`, a variable invocation matcher, and the
+  `with()` constraints with no faithful form: `logicalAnd` (Double has `all()`, a whole-argument-list
+  predicate, but no per-argument AND matcher), `equalToWithDelta`/`equalToCanonicalizing` (loose/delta
+  comparison), and a case-insensitive `stringContains` (no `str_contains` equivalent). Replace manually
+  with the matching Double form, a third-party mocking library, or a hand-written fake.
 - **AssertThatConstraintRector** — `assertThat($v, $constraint)`: relies on PHPUnit
   constraint objects (and composites/callbacks) with no Testo equivalent.
 - **ExpectExceptionMessageMatchesRector** — regex message matching; Testo's
@@ -17,6 +23,27 @@ exist for each so the intent and blockers are discoverable in code.
 
 ## Implemented since the first cut
 
+- **CreateMockToDoubleRector** (registered) — converts PHPUnit mocks/stubs onto the Double bridge
+  (`testo/bridge-double`), which gives the previously-missing target API. `$this->createMock(X)` /
+  `$this->createStub(X)` → `\JMac\Testing\Double::for(X)`, `create{Mock,Stub}ForIntersectionOfInterfaces([A, B])`
+  → `Double::for(A, B)`; the configuration chain is rebuilt at statement level so it is never converted
+  in part: the invocation matcher moves off `expects()` onto the verb (`any`→`allows`, everything else
+  keeps `expects` and folds into `times()`/`never()` — `once`→`times(1)`, `exactly($n)`→`times($n)`,
+  `atLeastOnce`→`times(minimum: 1)`, `atLeast`/`atMost`→`times(minimum:/maximum:)`), the method name
+  moves off `->method('m')` onto `expects('m')`/`allows('m')`, `withAnyParameters()` drops away, the
+  returns map `willReturn`/`willReturnOnConsecutiveCalls`→`returns`, `willThrowException`→`throws`,
+  `willReturnCallback`→`resolves`, `willReturnArgument($n)`→`resolves(fn (...$a) => $a[$n])`,
+  `willReturnSelf()`→`returns(<the double>)` (plus the legacy `will($this->returnValue()/
+  throwException()/returnCallback()/onConsecutiveCalls()/returnArgument()/returnSelf())` wrappers), the
+  builder chain `getMockBuilder(X)->disableOriginalConstructor()->getMock()`→`Double::for(X)`, and
+  `with()` constraints map onto `Argument::*` (`anything`→`any`, `identicalTo`→`same`,
+  `isInstanceOf`/`isType`→`type`, `callback`→`satisfies`, `contains`→`contains`,
+  `matchesRegularExpression`→`matches`; `equalTo($x)`→bare `$x`, `isNull`/`isTrue`/`isFalse`→literals;
+  `greaterThan`/`lessThan`/`…OrEqual`, `isEmpty`, `stringContains`, `stringStartsWith`/`EndsWith`,
+  `arrayHasKey`→`satisfies(fn ($value) => …)`; `logicalNot`→`Argument::not(...)`,
+  `logicalOr`→`Argument::any(...)`). A chain carrying an unmappable link — including a `with()`
+  constraint with no faithful form — is left whole for manual work, so a raw `$this->…()` constraint
+  never survives into a class that has lost its TestCase base. See the `MockToTestoRector` stub above.
 - **MarkTestIncompleteRector** (registered) — Testo has no dedicated "incomplete" status, so
   `$this->markTestIncomplete($m)` (also `self::`/`static::`) maps to the nearest one: a
   `throw new \Testo\Core\Exception\SkipTest(...)` (Skipped). Both statuses neither pass nor fail and
