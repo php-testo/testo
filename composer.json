@@ -50,7 +50,7 @@
         "testo/lifecycle": "^0.1.6",
         "testo/repeat": "^0.1.9",
         "testo/retry": "^0.1.5",
-        "testo/test": "^0.1.7",
+        "testo/test": "^0.1.8",
         "yiisoft/injector": "^1.2"
     },
     "require-dev": {
