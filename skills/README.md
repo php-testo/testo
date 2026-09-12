@@ -11,6 +11,7 @@ that an AI coding agent can load on demand.
 | [`testo-data-driven`](testo-data-driven/SKILL.md) | Parameterizing a test — `#[DataSet]`, `#[DataProvider]`, `#[DataZip]`, `#[DataCross]`. |
 | [`testo-flaky-tests`](testo-flaky-tests/SKILL.md) | Stabilizing flaky tests with `#[Retry]` or stress-testing with `#[Repeat]`. |
 | [`testo-async`](testo-async/SKILL.md) | Async tests — `#[RunInFiber]` (plain fibers, deterministic interleaving, `Coroutine::spawn`) and `#[RunInRevolt]` (real async I/O on the Revolt event loop, `testo/bridge-revolt`). |
+| [`testo-test-doubles`](testo-test-doubles/SKILL.md) | Isolating a collaborator — choosing between dummy/stub/spy/mock/fake, then building it with Double (`testo/bridge-double`), Mockery (`testo/bridge-mockery`), or a hand-written fake class. |
 | [`testo-inline-tests`](testo-inline-tests/SKILL.md) | Attaching `#[TestInline]` examples directly to production methods. |
 | [`testo-benchmarks`](testo-benchmarks/SKILL.md) | Writing or tuning `#[Bench]` benchmarks. |
 | [`testo-coverage`](testo-coverage/SKILL.md) | Configuring `CodecovPlugin`, reports, and `#[Covers]`. |

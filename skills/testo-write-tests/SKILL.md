@@ -239,7 +239,7 @@ semantics are covered by the `testo-run-tests` skill — escalate there before a
 
 ## Pitfalls
 
-- Do not mock `enum`s or `final` classes — instantiate real ones.
+- Do not mock `enum`s or `final` classes — instantiate real ones. For stubs, spies, mocks and fakes (Double, Mockery, hand-written), escalate to the `testo-test-doubles` skill.
 - Do not invent attributes. If you need behaviour you haven't seen in `llms.txt`, escalate to `llms-full.txt` before guessing.
 - Do not write `setUp`/`tearDown` — use the lifecycle attributes above.
 - For parameterized tests, escalate to the `testo-data-driven` skill.
