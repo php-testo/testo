@@ -21,19 +21,19 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  *   `disableOriginalConstructor()` (`onlyMethods`, `setConstructorArgs`, `getMockForAbstractClass`, …)
  *   or the bare constructor-calling `getMockBuilder(X)->getMock()`, all of which change what is
  *   doubled; the return shape `willReturnMap()`; a variable invocation matcher; and the `with()`
- *   constraints that have no `Argument::*` equivalent (`stringContains()` — substring, vs Double's
- *   iterable-only `contains`; `greaterThan()`/`lessThan()`, and `logicalOr()`/`logicalAnd()`/
- *   `logicalNot()` composites — the same gap as `assertThat`). Migrate these by hand: the matching
- *   `\JMac\Testing\Double` / `Argument::*` form, a standalone mocking library (Mockery,
- *   phpspec/prophecy), or a hand-written fake. This rule exists only to document the gap; it never
- *   modifies code.
+ *   constraints that have no faithful Double form: `logicalAnd()` (Double's `all()` is a whole-list
+ *   predicate, not a per-argument AND), `equalToWithDelta()`/`equalToCanonicalizing()` (loose/delta
+ *   comparison), and a case-insensitive `stringContains()` (no `str_contains` equivalent). Migrate
+ *   these by hand: the matching `\JMac\Testing\Double` / `Argument::*` form, a standalone mocking
+ *   library (Mockery, phpspec/prophecy), or a hand-written fake. This rule exists only to document the
+ *   gap; it never modifies code.
  */
 final class MockToTestoRector extends AbstractRector
 {
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
-            'STUB: mock forms with no faithful Double target (prophesize/willReturnMap/builder-with-extra-steps/with-constraints) — manual migration required (see @todo)',
+            'STUB: mock forms with no faithful Double target (prophesize/willReturnMap/builder-with-extra-steps/logicalAnd/delta-equality) — manual migration required (see @todo)',
             [
                 new CodeSample(
                     <<<'PHP'
