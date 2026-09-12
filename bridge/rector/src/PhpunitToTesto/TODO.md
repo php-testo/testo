@@ -8,8 +8,10 @@ exist for each so the intent and blockers are discoverable in code.
 ## Stubbed (not registered)
 
 - **MockToTestoRector** — the mock forms `CreateMockToDoubleRector` (registered, see below)
-  cannot faithfully convert: `getMockBuilder()->...->getMock()` and `prophesize()` (a different
-  creation/expectation model), `willReturnMap`/`willReturnSelf`, a variable invocation matcher, and
+  cannot faithfully convert: `prophesize()` (a different creation/expectation model), a
+  `getMockBuilder()` chain with a builder step beyond `disableOriginalConstructor()` (`onlyMethods`,
+  `setConstructorArgs`, `getMockForAbstractClass`, …) or the bare constructor-calling
+  `getMockBuilder(X)->getMock()`, `willReturnMap`, a variable invocation matcher, and
   `with()` constraints with no `Argument::*` equivalent (`stringContains` — substring, whereas Double's
   `contains` is iterable-only; `greaterThan`/`lessThan`, `logicalOr`/`logicalAnd`/`logicalNot`
   composites — the same gap as `AssertThatConstraintRector`). Replace manually with the matching Double
@@ -30,8 +32,10 @@ exist for each so the intent and blockers are discoverable in code.
   `atLeastOnce`→`times(minimum: 1)`, `atLeast`/`atMost`→`times(minimum:/maximum:)`), the method name
   moves off `->method('m')` onto `expects('m')`/`allows('m')`, the returns map
   `willReturn`/`willReturnOnConsecutiveCalls`→`returns`, `willThrowException`→`throws`,
-  `willReturnCallback`→`resolves`, `willReturnArgument($n)`→`resolves(fn (...$a) => $a[$n])` (plus the
-  legacy `will($this->returnValue()/throwException()/returnCallback())` wrappers), and `with()`
+  `willReturnCallback`→`resolves`, `willReturnArgument($n)`→`resolves(fn (...$a) => $a[$n])`,
+  `willReturnSelf()`→`returns(<the double>)` (plus the
+  legacy `will($this->returnValue()/throwException()/returnCallback())` wrappers), the builder chain
+  `getMockBuilder(X)->disableOriginalConstructor()->getMock()`→`Double::for(X)`, and `with()`
   constraints map onto `Argument::*` (`anything`→`any`, `identicalTo`→`same`, `isInstanceOf`/`isType`
   →`type`, `callback`→`satisfies`, `contains`→`contains`, `matchesRegularExpression`→`matches`;
   `equalTo($x)`→bare `$x`). A chain carrying an unmappable link — including a `with()` constraint with
