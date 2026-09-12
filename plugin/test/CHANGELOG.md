@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/test-0.1.7...test-0.1.8) (2026-09-12)
+
+
+### Bug Fixes
+
+* **rector:** keep node position when stripping class-level #[Test] ([f887f5d](https://github.com/php-testo/testo/commit/f887f5dbdec7ad54484dab9bdd0f87e46650a986))
+
 ## [0.1.7](https://github.com/php-testo/testo/compare/test-0.1.6...test-0.1.7) (2026-09-07)
 
 
