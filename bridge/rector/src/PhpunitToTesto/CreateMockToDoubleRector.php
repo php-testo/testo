@@ -34,15 +34,17 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *
  * Two transforms cooperate over Rector's fix-point passes:
  *
- * - `$this->createMock(X)` / `$this->createStub(X)` → `Double::for(X)`, and
- *   `createMockForIntersectionOfInterfaces([A, B])` → `Double::for(A, B)`.
+ * - `$this->createMock(X)` / `$this->createStub(X)` → `Double::for(X)`,
+ *   `createMockForIntersectionOfInterfaces([A, B])` → `Double::for(A, B)`, and the constructor-disabling
+ *   builder chain `getMockBuilder(X)->disableOriginalConstructor()->getMock()` → `Double::for(X)`.
  * - a configuration chain is rebuilt from its outermost call: PHPUnit's invocation matcher moves
  *   off `expects()` and onto the verb — `$this->any()` picks `allows()` (optional), every other
  *   matcher keeps `expects()` (required) and folds into a trailing `times()`/`never()`; the method
  *   name moves from `->method('m')` onto `expects('m')`/`allows('m')`; and the return verbs map
  *   `willReturn`/`willReturnOnConsecutiveCalls` → `returns`, `willThrowException` → `throws`,
  *   `willReturnCallback` → `resolves`, `willReturnArgument($n)` → `resolves(fn (...$a) => $a[$n])`,
- *   plus the legacy `will($this->returnValue()/throwException()/returnCallback())` wrappers.
+ *   `willReturnSelf()` → `returns(<the double>)`, plus the legacy
+ *   `will($this->returnValue()/throwException()/returnCallback())` wrappers.
  * - `->with()` argument constraints become `Argument::*` matchers — `anything()` → `any()`,
  *   `identicalTo()` → `same()`, `isInstanceOf()`/`isType()` → `type()`, `callback()` → `satisfies()`,
  *   `contains()` → `contains()`, `matchesRegularExpression()` → `matches()`; `equalTo($x)` unwraps to
@@ -55,10 +57,11 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Conservative by design: a chain is rewritten only when it carries a PHPUnit mock signal — an
  * `expects()` with a recognised matcher, or one of the `will*` return verbs — so an unrelated
  * fluent chain is left alone. Any link with no faithful counterpart aborts the whole chain rather
- * than converting it in part: `willReturnMap`/`willReturnSelf`, a variable matcher, `getMockBuilder()`,
- * `prophesize()`, or a `with()` constraint that has no `Argument::*` form (`stringContains`,
- * `greaterThan`, `logicalOr`, …) — leaving a raw `$this->…()` constraint would break once the test
- * loses its TestCase base. Those stay for manual migration (see {@see MockToTestoRector} and TODO.md).
+ * than converting it in part: `willReturnMap`, a variable matcher, `prophesize()`, a builder step
+ * beyond `disableOriginalConstructor()` (or the bare constructor-calling `getMockBuilder(X)->getMock()`),
+ * or a `with()` constraint that has no `Argument::*` form (`stringContains`, `greaterThan`,
+ * `logicalOr`, …) — leaving a raw `$this->…()` constraint would break once the test loses its
+ * TestCase base. Those stay for manual migration (see {@see MockToTestoRector} and TODO.md).
  */
 #[TestRectorFixtures('CreateMockToDoubleRector')]
 final class CreateMockToDoubleRector extends AbstractRector
@@ -126,6 +129,12 @@ final class CreateMockToDoubleRector extends AbstractRector
      */
     private function matchMockFactory(MethodCall $node): ?StaticCall
     {
+        # A builder chain (`$this->getMockBuilder(X)->…->getMock()`) roots on the builder, not `$this`,
+        # so it is matched before the `$this->…` factory forms below.
+        if ($this->isName($node->name, 'getMock')) {
+            return $this->builderDouble($node);
+        }
+
         if (!$this->isName($node->var, 'this')) {
             return null;
         }
@@ -136,6 +145,43 @@ final class CreateMockToDoubleRector extends AbstractRector
 
         if ($this->isName($node->name, 'createMockForIntersectionOfInterfaces')) {
             return $this->intersectionDouble($node->args);
+        }
+
+        return null;
+    }
+
+    /**
+     * `$this->getMockBuilder(X)->disableOriginalConstructor()->getMock()` → `Double::for(X)`.
+     *
+     * Only the constructor-disabling builder chain converts. `Double::for()` never runs the target's
+     * real constructor (it instantiates without it), so `disableOriginalConstructor()` merely restates
+     * the Double default and drops away — while a *bare* `getMockBuilder(X)->getMock()` does call the
+     * real constructor, so it is deliberately left alone rather than silently changed. Any other builder
+     * step (`onlyMethods`, `setConstructorArgs`, `getMockForAbstractClass`, …) changes what is doubled
+     * and has no single-call Double form, so the whole chain is left for manual migration.
+     */
+    private function builderDouble(MethodCall $getMock): ?StaticCall
+    {
+        if ($getMock->args !== []) {
+            return null;
+        }
+
+        $sawDisableConstructor = false;
+        $cursor = $getMock->var;
+        while ($cursor instanceof MethodCall) {
+            $name = $this->segmentName($cursor);
+
+            if ($name === 'disableOriginalConstructor' && $cursor->args === []) {
+                $sawDisableConstructor = true;
+                $cursor = $cursor->var;
+                continue;
+            }
+
+            if ($name === 'getMockBuilder' && $this->isName($cursor->var, 'this')) {
+                return $sawDisableConstructor ? $this->doubleFor($cursor->args) : null;
+            }
+
+            return null;
         }
 
         return null;
@@ -181,7 +227,8 @@ final class CreateMockToDoubleRector extends AbstractRector
         }
         $segments = \array_reverse($segments);
 
-        $result = $segments[0]->var;
+        $root = $segments[0]->var;
+        $result = $root;
         $isMock = false;
         $count = \count($segments);
 
@@ -189,6 +236,21 @@ final class CreateMockToDoubleRector extends AbstractRector
             $name = $this->segmentName($segments[$i]);
             if ($name === null) {
                 return null;
+            }
+
+            # `willReturnSelf()` → `returns(<the double>)`: PHPUnit returns the mock object, Double
+            # returns whatever value it is handed, so handing it the chain root reproduces the fluent
+            # self-return. Needs the root expression, which only this scope has, so it is not folded
+            # into rewriteSegment(); an over-complex root that can't be safely cloned aborts the chain.
+            if ($name === 'willReturnSelf') {
+                $self = $this->cloneDoubleRoot($root);
+                if ($self === null) {
+                    return null;
+                }
+
+                $result = new MethodCall($result, new Identifier('returns'), [new Arg($self)]);
+                $isMock = true;
+                continue;
             }
 
             if ($name === 'expects') {
@@ -321,6 +383,30 @@ final class CreateMockToDoubleRector extends AbstractRector
         ]);
 
         return ['resolves', [new Arg($resolver)], true];
+    }
+
+    /**
+     * A fresh copy of the double's root expression, for reuse as the `returns()` argument of a
+     * converted `willReturnSelf()`. Only the two shapes a mock is realistically held in — a local
+     * variable (`$mock`) and a `$this->mock` property — are rebuilt; anything else returns null so the
+     * chain is left for manual migration rather than aliasing a node into two positions of the tree.
+     */
+    private function cloneDoubleRoot(Node\Expr $root): ?Node\Expr
+    {
+        if ($root instanceof Variable && \is_string($root->name)) {
+            return new Variable($root->name);
+        }
+
+        if (
+            $root instanceof Node\Expr\PropertyFetch
+            && $root->var instanceof Variable
+            && \is_string($root->var->name)
+            && $root->name instanceof Identifier
+        ) {
+            return new Node\Expr\PropertyFetch(new Variable($root->var->name), new Identifier($root->name->toString()));
+        }
+
+        return null;
     }
 
     /**
