@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.6](https://github.com/php-testo/testo/compare/bridge-rector-0.2.5...bridge-rector-0.2.6) (2026-09-12)
+
+
+### Features
+
+* **bridge-double:** support Double 0.8.0 ([de046dd](https://github.com/php-testo/testo/commit/de046dd82ccfc688bc7910944b2a35366d1ee8d2))
+* **bridge-rector:** convert PHPUnit mocks onto the Double bridge ([#332](https://github.com/php-testo/testo/issues/332)) ([de046dd](https://github.com/php-testo/testo/commit/de046dd82ccfc688bc7910944b2a35366d1ee8d2))
+
+
+### Bug Fixes
+
+* **rector:** keep node position when stripping class-level #[Test] ([f887f5d](https://github.com/php-testo/testo/commit/f887f5dbdec7ad54484dab9bdd0f87e46650a986))
+
 ## [0.2.5](https://github.com/php-testo/testo/compare/bridge-rector-0.2.4...bridge-rector-0.2.5) (2026-08-27)
 
 
