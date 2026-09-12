@@ -18,11 +18,13 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  *
  * @todo No faithful automatic conversion for the residual forms: `getMockBuilder()->...->getMock()`
  *   and Prophecy's `prophesize()` (a different creation/expectation model), the return shapes
- *   `willReturnMap()`/`willReturnSelf()`/`willReturnArgument()`, a variable invocation matcher, and
- *   PHPUnit constraint objects passed to `with()` (`equalTo()`, `anything()`, composites — the same
- *   gap as `assertThat`). Migrate these by hand: the matching `\JMac\Testing\Double` /
- *   `Argument::*` form, a standalone mocking library (Mockery, phpspec/prophecy), or a hand-written
- *   fake. This rule exists only to document the gap; it never modifies code.
+ *   `willReturnMap()`/`willReturnSelf()`, a variable invocation matcher, and the `with()` constraints
+ *   that have no `Argument::*` equivalent (`stringContains()` — substring, vs Double's iterable-only
+ *   `contains`; `greaterThan()`/`lessThan()`, and `logicalOr()`/`logicalAnd()`/`logicalNot()`
+ *   composites — the same gap as `assertThat`). Migrate these by hand: the matching
+ *   `\JMac\Testing\Double` / `Argument::*` form, a standalone mocking library (Mockery,
+ *   phpspec/prophecy), or a hand-written fake. This rule exists only to document the gap; it never
+ *   modifies code.
  */
 final class MockToTestoRector extends AbstractRector
 {

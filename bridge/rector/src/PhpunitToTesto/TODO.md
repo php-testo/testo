@@ -9,10 +9,11 @@ exist for each so the intent and blockers are discoverable in code.
 
 - **MockToTestoRector** — the mock forms `CreateMockToDoubleRector` (registered, see below)
   cannot faithfully convert: `getMockBuilder()->...->getMock()` and `prophesize()` (a different
-  creation/expectation model), `willReturnMap`/`willReturnSelf`/`willReturnArgument`, a variable
-  invocation matcher, and constraint objects inside `with()` (`equalTo`/`anything`/composites — the
-  same gap as `AssertThatConstraintRector`). Replace manually with the matching Double form, a
-  third-party mocking library, or a hand-written fake.
+  creation/expectation model), `willReturnMap`/`willReturnSelf`, a variable invocation matcher, and
+  `with()` constraints with no `Argument::*` equivalent (`stringContains` — substring, whereas Double's
+  `contains` is iterable-only; `greaterThan`/`lessThan`, `logicalOr`/`logicalAnd`/`logicalNot`
+  composites — the same gap as `AssertThatConstraintRector`). Replace manually with the matching Double
+  form, a third-party mocking library, or a hand-written fake.
 - **AssertThatConstraintRector** — `assertThat($v, $constraint)`: relies on PHPUnit
   constraint objects (and composites/callbacks) with no Testo equivalent.
 - **ExpectExceptionMessageMatchesRector** — regex message matching; Testo's
@@ -22,15 +23,20 @@ exist for each so the intent and blockers are discoverable in code.
 
 - **CreateMockToDoubleRector** (registered) — converts PHPUnit mocks/stubs onto the Double bridge
   (`testo/bridge-double`), which gives the previously-missing target API. `$this->createMock(X)` /
-  `$this->createStub(X)` → `\JMac\Testing\Double::for(X)`; the configuration chain is rebuilt at
-  statement level so it is never converted in part: the invocation matcher moves off `expects()` onto
-  the verb (`any`→`allows`, everything else keeps `expects` and folds into `times()`/`never()` —
-  `once`→`times(1)`, `exactly($n)`→`times($n)`, `atLeastOnce`→`times(minimum: 1)`,
-  `atLeast`/`atMost`→`times(minimum:/maximum:)`), the method name moves off `->method('m')` onto
-  `expects('m')`/`allows('m')`, and the returns map `willReturn`/`willReturnOnConsecutiveCalls`→`returns`,
-  `willThrowException`→`throws`, `willReturnCallback`→`resolves` (plus the legacy
-  `will($this->returnValue()/throwException()/returnCallback())` wrappers). A chain carrying an
-  unmappable link is left whole for manual work — see the `MockToTestoRector` stub above.
+  `$this->createStub(X)` → `\JMac\Testing\Double::for(X)`, `createMockForIntersectionOfInterfaces([A, B])`
+  → `Double::for(A, B)`; the configuration chain is rebuilt at statement level so it is never converted
+  in part: the invocation matcher moves off `expects()` onto the verb (`any`→`allows`, everything else
+  keeps `expects` and folds into `times()`/`never()` — `once`→`times(1)`, `exactly($n)`→`times($n)`,
+  `atLeastOnce`→`times(minimum: 1)`, `atLeast`/`atMost`→`times(minimum:/maximum:)`), the method name
+  moves off `->method('m')` onto `expects('m')`/`allows('m')`, the returns map
+  `willReturn`/`willReturnOnConsecutiveCalls`→`returns`, `willThrowException`→`throws`,
+  `willReturnCallback`→`resolves`, `willReturnArgument($n)`→`resolves(fn (...$a) => $a[$n])` (plus the
+  legacy `will($this->returnValue()/throwException()/returnCallback())` wrappers), and `with()`
+  constraints map onto `Argument::*` (`anything`→`any`, `identicalTo`→`same`, `isInstanceOf`/`isType`
+  →`type`, `callback`→`satisfies`, `contains`→`contains`, `matchesRegularExpression`→`matches`;
+  `equalTo($x)`→bare `$x`). A chain carrying an unmappable link — including a `with()` constraint with
+  no `Argument` form — is left whole for manual work, so a raw `$this->…()` constraint never survives
+  into a class that has lost its TestCase base. See the `MockToTestoRector` stub above.
 - **MarkTestIncompleteRector** (registered) — Testo has no dedicated "incomplete" status, so
   `$this->markTestIncomplete($m)` (also `self::`/`static::`) maps to the nearest one: a
   `throw new \Testo\Core\Exception\SkipTest(...)` (Skipped). Both statuses neither pass nor fail and
