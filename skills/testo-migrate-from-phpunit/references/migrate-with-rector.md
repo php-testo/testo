@@ -4,7 +4,7 @@ Use Rector (via `testo/bridge-rector`) to do the **mechanical** bulk of the conv
 whole scope in one deterministic pass, then finish with an AI/human **structural** pass. This is the
 recommended approach for any non-trivial suite: Rector rewrites hundreds of assert calls (with the
 correct argument-order swap), lifecycle methods, data providers and groups in seconds and never makes
-a typo, and converts the common `createMock`/`createStub` mock chains onto the Double bridge — but the mock forms with no faithful Double target (`getMockBuilder`, `prophesize`, `willReturnMap`, `with()` constraint objects) are left for a finishing pass, so one is mandatory.
+a typo, and converts the common `createMock`/`createStub` mock chains (including `with()` constraints → `Argument::*`) onto the Double bridge — but the mock forms with no faithful Double target (`getMockBuilder`, `prophesize`, `willReturnMap`/`willReturnSelf`, unmappable constraints like `stringContains`) are left for a finishing pass, so one is mandatory.
 
 Prerequisite: you have a **restore point** (skill Phase 1) and an agreed **scope** (skill Phase 2).
 All commands run from the project root. `<php>` is the binary resolved in the skill (`php -r "echo PHP_BINARY;"`).
