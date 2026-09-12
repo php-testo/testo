@@ -1,0 +1,14 @@
+name: Close PRs
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    uses: php-testo/gh-actions/.github/workflows/close-foreign-prs.yml@v1
+    with:
+      upstream-url: https://github.com/php-testo/testo

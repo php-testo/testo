@@ -14,7 +14,9 @@ use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
+use Testo\Core\Definition\TestDefinitions;
 use Testo\Core\Value\Status;
+use Testo\Pipeline\Attribute\CaseInterceptable;
 use Testo\Pipeline\Attribute\Interceptable;
 use Testo\Pipeline\Attribute\FallbackInterceptor;
 use Testo\Pipeline\Internal\AttributesInterceptor;
@@ -317,6 +319,56 @@ final class AttributesInterceptorTest
         Assert::same($result->status, Status::Flaky);
     }
 
+    public function runTestCaseRunsCaseInterceptorOfAMethodLevelCaseInterceptableAttribute(): void
+    {
+        $caseInfo = $this->makeCaseInfoWithTest(TestWithMethodCaseInterceptableAttribute::class);
+
+        $interceptor = new AttributesInterceptor($this->createInterceptorProvider());
+
+        $captured = null;
+        $result = $interceptor->runTestCase($caseInfo, function (CaseInfo $info) use (&$captured): CaseResult {
+            $captured = $info;
+            return new CaseResult([], Status::Passed);
+        });
+
+        // The case fallback interceptor ran for a method-level attribute: it rewrote the status.
+        Assert::same($result->status, Status::Flaky);
+        // A test-level attribute describes its test, not the case: nothing is stamped on the CaseInfo.
+        Assert::same($captured->attributes, []);
+    }
+
+    public function runTestCaseIgnoresAMethodLevelInterceptableWithoutCaseOptIn(): void
+    {
+        // Same case-interceptor fallback, but the attribute is a plain Interceptable: from a method it
+        // must stay out of the case pipeline (a per-test attribute must not reconfigure the whole case).
+        $caseInfo = $this->makeCaseInfoWithTest(TestWithMethodPlainInterceptableCaseAttribute::class);
+
+        $interceptor = new AttributesInterceptor($this->createInterceptorProvider());
+        $terminal = new CaseResult([], Status::Passed);
+
+        $captured = null;
+        $result = $interceptor->runTestCase($caseInfo, function (CaseInfo $info) use (&$captured, $terminal): CaseResult {
+            $captured = $info;
+            return $terminal;
+        });
+
+        Assert::same($result, $terminal);
+        Assert::same($captured, $caseInfo);
+    }
+
+    public function runTestCaseSkipsDeactivatedTestsWhenCollectingCaseInterceptableAttributes(): void
+    {
+        $caseInfo = $this->makeCaseInfoWithTest(TestWithMethodCaseInterceptableAttribute::class, active: false);
+
+        $interceptor = new AttributesInterceptor($this->createInterceptorProvider());
+        $terminal = new CaseResult([], Status::Passed);
+
+        $result = $interceptor->runTestCase($caseInfo, static fn(CaseInfo $info): CaseResult => $terminal);
+
+        // A filtered-out test is not part of the run, so its attribute must not shape the case.
+        Assert::same($result, $terminal);
+    }
+
     public function runTestPreparesPipelineAroundClosureNext(): void
     {
         $caseInfo = $this->makeCaseInfo(new \ReflectionClass(TestWithClassInterceptableAttribute::class));
@@ -362,6 +414,25 @@ final class AttributesInterceptorTest
         );
 
         return new TestInfo('test', $caseInfo, $testDefinition);
+    }
+
+    /**
+     * A case without class attributes whose single test `test` is registered in the definitions.
+     *
+     * @param class-string $class
+     */
+    private function makeCaseInfoWithTest(string $class, bool $active = true): CaseInfo
+    {
+        $definition = new TestDefinition(new \ReflectionMethod($class, 'test'));
+        $definition->active = $active;
+
+        return new CaseInfo(new CaseDefinition(
+            name: 'TestCase',
+            type: 'unit',
+            file: Path::create(__FILE__),
+            reflection: new \ReflectionClass($class),
+            tests: TestDefinitions::fromArray(test: $definition),
+        ), new SuiteIdentity('Core/Pipeline'));
     }
 
     private function makeCaseInfo(?\ReflectionClass $reflection): CaseInfo
@@ -417,6 +488,18 @@ final class TestWithRepeatedInterceptableAttribute
     public function test(): void {}
 }
 
+final class TestWithMethodCaseInterceptableAttribute
+{
+    #[TestMethodCaseInterceptableAttribute]
+    public function test(): void {}
+}
+
+final class TestWithMethodPlainInterceptableCaseAttribute
+{
+    #[TestMethodPlainInterceptableCaseAttribute]
+    public function test(): void {}
+}
+
 #[\Attribute(\Attribute::TARGET_CLASS)]
 #[FallbackInterceptor(TestTagRunInterceptor::class)]
 final class TestClassInterceptableAttribute implements Interceptable {}
@@ -432,6 +515,14 @@ final class TestCaseInterceptableAttribute implements Interceptable {}
 #[\Attribute(\Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
 #[FallbackInterceptor(TestTagRunInterceptor::class)]
 final class TestRepeatableInterceptableAttribute implements Interceptable {}
+
+#[\Attribute(\Attribute::TARGET_METHOD)]
+#[FallbackInterceptor(TestTagCaseRunInterceptor::class)]
+final class TestMethodCaseInterceptableAttribute implements CaseInterceptable {}
+
+#[\Attribute(\Attribute::TARGET_METHOD)]
+#[FallbackInterceptor(TestTagCaseRunInterceptor::class)]
+final class TestMethodPlainInterceptableCaseAttribute implements Interceptable {}
 
 /**
  * Distinguishable effect: tags the result so a real pass-through differs from a no-op.

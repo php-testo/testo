@@ -72,6 +72,7 @@ return new ApplicationConfig(
         require 'plugin/lifecycle/tests/suites.php',
         require 'plugin/repeat/tests/suites.php',
         require 'plugin/retry/tests/suites.php',
+        require 'plugin/skip/tests/suites.php',
         require 'plugin/test/tests/suites.php',
         require 'tests/Testo/suites.php',
         require 'tests/Application/suites.php',

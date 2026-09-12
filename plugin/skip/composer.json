@@ -1,0 +1,42 @@
+{
+    "name": "testo/skip",
+    "description": "Skip attribute plugin for the Testo testing framework.",
+    "license": "BSD-3-Clause",
+    "type": "library",
+    "keywords": [
+        "testo",
+        "skip",
+        "test"
+    ],
+    "authors": [
+        {
+            "name": "Aleksei Gagarin (roxblnfk)",
+            "homepage": "https://github.com/roxblnfk"
+        }
+    ],
+    "funding": [
+        {
+            "type": "boosty",
+            "url": "https://boosty.to/roxblnfk"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "testo/testo": "0.11 - 1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Testo\\Skip\\": "src/"
+        },
+        "files": [
+            "Skip.php"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-1.x": "1.x-dev"
+        }
+    }
+}
