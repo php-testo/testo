@@ -29,6 +29,7 @@ on:  # yamllint disable-line rule:truthy
       - 'convention-[0-9]*'
       - 'data-[0-9]*'
       - 'facade-[0-9]*'
+      - 'error-handler-[0-9]*'
       - 'filter-[0-9]*'
       - 'inline-[0-9]*'
       - 'lifecycle-[0-9]*'
