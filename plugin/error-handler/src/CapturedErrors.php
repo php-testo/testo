@@ -14,7 +14,9 @@ namespace Testo\ErrorHandler;
  */
 final readonly class CapturedErrors
 {
-    /** @param list<CapturedError> $errors */
+    /**
+     * @param list<CapturedError> $errors
+     */
     public function __construct(
         public array $errors,
     ) {}
