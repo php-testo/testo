@@ -7,6 +7,7 @@ namespace Testo\Output\JUnit\Internal;
 use Internal\Path;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
+use Testo\Core\Metric\Scalar;
 use Testo\Core\Value\Status;
 use Testo\Output\Rendering\BenchMapper;
 use Testo\Output\Rendering\StackTrace;
@@ -452,10 +453,13 @@ final class JUnitWriter
         // knowledge to pick the numbers up.
         if ($case->properties !== []) {
             $xml->startElement('properties');
-            foreach ($case->properties as $name => $value) {
+            foreach ($case->properties as $name => $metric) {
                 $xml->startElement('property');
-                $xml->writeAttribute('name', $name);
-                $xml->writeAttribute('value', BenchMapper::formatMetric($value));
+                // A `<property>` carries no dimension of its own, so the unit rides on the name as one
+                // more key segment: `…mean.ms`, `…memory.B`. A bare count stays legible without one.
+                $unit = $metric->unit;
+                $xml->writeAttribute('name', $unit instanceof Scalar ? $name : "{$name}.{$unit->value}");
+                $xml->writeAttribute('value', BenchMapper::formatMetric($metric->value));
                 $xml->endElement();
             }
             $xml->endElement();

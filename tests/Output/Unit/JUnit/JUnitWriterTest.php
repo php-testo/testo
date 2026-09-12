@@ -197,9 +197,11 @@ final class JUnitWriterTest
         foreach ($properties->property as $property) {
             $byName[(string) $property['name']] = (string) $property['value'];
         }
-        Assert::same($byName['bench.iterations'], '1');
-        Assert::same($byName['bench.shift.meanUs'], '5.1');
-        Assert::same($byName['bench.shift.calls'], '20');
+        Assert::same($byName['bench.shift.Benchmark setup.iters'], '1');
+        // The dimension has no `type` attribute to live in here, so it rides on the property name — and
+        // JUnit keeps the native microseconds rather than TeamCity's converted milliseconds.
+        Assert::same($byName['bench.shift.Time results.mean.us'], '5.1');
+        Assert::same($byName['bench.shift.Benchmark setup.calls'], '20');
     }
 
     #[Covers(JUnitWriter::class)]
