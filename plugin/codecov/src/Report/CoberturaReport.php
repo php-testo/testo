@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Codecov\Report;
 
 use Internal\Path;
+use Testo\Codecov\Internal\BranchCoverageAggregator;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineStatus;
@@ -50,7 +51,7 @@ final readonly class CoberturaReport implements CoverageReport
             [$s, $c] = self::countLines($fileCoverage);
             $totalLines += $s;
             $totalLinesCovered += $c;
-            [$b, $bc] = self::countBranches($fileCoverage);
+            [$b, $bc] = BranchCoverageAggregator::countBranches($fileCoverage);
             $totalBranches += $b;
             $totalBranchesCovered += $bc;
         }
@@ -112,55 +113,6 @@ final readonly class CoberturaReport implements CoverageReport
         return [$statements, $covered];
     }
 
-    /**
-     * @return array{int<0, max>, int<0, max>} [total branches, covered branches]
-     */
-    private static function countBranches(FileCoverage $fileCoverage): array
-    {
-        $total = 0;
-        $covered = 0;
-
-        foreach ($fileCoverage->functions as $function) {
-            foreach ($function->branches as $branch) {
-                $total += \count($branch->outHit);
-                $covered += \count(\array_filter($branch->outHit));
-            }
-        }
-
-        return [$total, $covered];
-    }
-
-    /**
-     * Builds a map of line number => [total_branches, covered_branches]
-     * for lines that are branch decision points.
-     *
-     * @return array<int, array{int<0, max>, int<0, max>}>
-     */
-    private static function buildLineBranchMap(FileCoverage $fileCoverage): array
-    {
-        $map = [];
-
-        foreach ($fileCoverage->functions as $function) {
-            foreach ($function->branches as $branch) {
-                // Only mark lines with multiple outgoing edges as branch points
-                if (\count($branch->out) < 2) {
-                    continue;
-                }
-
-                $line = $branch->lineStart;
-                $total = \count($branch->outHit);
-                $covered = \count(\array_filter($branch->outHit));
-
-                $map[$line] ??= [0, 0];
-
-                $map[$line][0] += $total;
-                $map[$line][1] += $covered;
-            }
-        }
-
-        return $map;
-    }
-
     private static function rate(int $covered, int $total): string
     {
         return $total === 0 ? '0' : \sprintf('%.4f', $covered / $total);
@@ -205,7 +157,7 @@ final readonly class CoberturaReport implements CoverageReport
             [$s, $c] = self::countLines($file['coverage']);
             $pkgLines += $s;
             $pkgLinesCovered += $c;
-            [$b, $bc] = self::countBranches($file['coverage']);
+            [$b, $bc] = BranchCoverageAggregator::countBranches($file['coverage']);
             $pkgBranches += $b;
             $pkgBranchesCovered += $bc;
         }
@@ -228,7 +180,7 @@ final readonly class CoberturaReport implements CoverageReport
     private function writeClass(\XMLWriter $xml, string $relativePath, FileCoverage $fileCoverage): void
     {
         [$statements, $covered] = self::countLines($fileCoverage);
-        [$branches, $branchesCovered] = self::countBranches($fileCoverage);
+        [$branches, $branchesCovered] = BranchCoverageAggregator::countBranches($fileCoverage);
 
         $className = \basename($relativePath, '.php');
 
@@ -240,7 +192,7 @@ final readonly class CoberturaReport implements CoverageReport
         $xml->writeAttribute('complexity', '0');
 
         // Build per-line branch map
-        $lineBranches = self::buildLineBranchMap($fileCoverage);
+        $lineBranches = BranchCoverageAggregator::buildLineBranchMap($fileCoverage);
 
         $xml->startElement('lines');
 
