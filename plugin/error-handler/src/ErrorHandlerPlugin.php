@@ -22,7 +22,7 @@ final readonly class ErrorHandlerPlugin implements PluginConfigurator
 {
     /**
      * @param bool $failOnError When true, a captured PHP error fails the test. When false
-     *                          (default) errors are collected but the test result is unchanged.
+     *        (default) errors are collected but the test result is unchanged.
      */
     public function __construct(
         private bool $failOnError = false,

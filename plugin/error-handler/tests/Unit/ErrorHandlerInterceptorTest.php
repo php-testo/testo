@@ -7,12 +7,14 @@ namespace Tests\ErrorHandler\Unit;
 use Internal\Path;
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Common\Messenger;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
+use Testo\Core\Log\Level;
 use Testo\Core\Value\Status;
 use Testo\ErrorHandler\CapturedError;
 use Testo\ErrorHandler\CapturedErrors;
@@ -419,6 +421,129 @@ final class ErrorHandlerInterceptorTest
         }
 
         Assert::same($observed, \E_ALL & ~\E_NOTICE);
+    }
+
+    public function unhandledErrorIsWrittenToStderrChannel(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('to stderr', \E_USER_WARNING);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $result = $interceptor->runTest($info, $next);
+
+        $errors = $result->getAttribute(CapturedErrors::class);
+        Assert::instanceOf($errors, CapturedErrors::class);
+        Assert::false($errors->errors[0]->handled);
+
+        $stderr = $result->messages->channel(Messenger::CHANNEL_STDERR);
+        Assert::same(\count($stderr), 1);
+        Assert::same($stderr[0]->level, Level::Warning);
+        Assert::same($stderr[0]->content, \sprintf('Warning: to stderr in %s on line %d', __FILE__, $errors->errors[0]->line));
+        Assert::same($stderr[0]->context['severity'], \E_USER_WARNING);
+    }
+
+    public function errorDeclinedByPreviousHandlerIsWrittenToStderr(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('declined', \E_USER_NOTICE);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        \set_error_handler(static fn(): bool => false);
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::false($result->getAttribute(CapturedErrors::class)->errors[0]->handled);
+        Assert::same(\count($result->messages->channel(Messenger::CHANNEL_STDERR)), 1);
+    }
+
+    public function errorHandledByPreviousHandlerIsCapturedButKeptOutOfStderr(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('handled upstream', \E_USER_WARNING);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        \set_error_handler(static fn(): bool => true);
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        $errors = $result->getAttribute(CapturedErrors::class);
+        Assert::instanceOf($errors, CapturedErrors::class);
+        Assert::true($errors->errors[0]->handled);
+        Assert::same($result->messages->channel(Messenger::CHANNEL_STDERR), []);
+    }
+
+    public function failModeFailsOnErrorHandledUpstreamToo(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('handled upstream', \E_USER_WARNING);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        \set_error_handler(static fn(): bool => true);
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($result->status, Status::Failed);
+    }
+
+    public function unhandledErrorIsNotPrintedByPhp(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $printed = null;
+        $next = static function (TestInfo $info) use (&$printed): TestResult {
+            \ob_start();
+            \trigger_error('would be printed', \E_USER_NOTICE);
+            $printed = \ob_get_clean();
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $display = \ini_set('display_errors', '1');
+        try {
+            $interceptor->runTest($info, $next);
+        } finally {
+            $display === false or \ini_set('display_errors', $display);
+        }
+
+        Assert::same($printed, '');
+    }
+
+    public function userErrorBecomesAnException(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('fatal by contract', \E_USER_ERROR);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        try {
+            $interceptor->runTest($info, $next);
+            Assert::fail('E_USER_ERROR must not be swallowed');
+        } catch (\ErrorException $e) {
+            Assert::same($e->getMessage(), 'fatal by contract');
+            Assert::same($e->getSeverity(), \E_USER_ERROR);
+        }
     }
 
     public function handlerLeftByTestMarksPassingTestRisky(): void
