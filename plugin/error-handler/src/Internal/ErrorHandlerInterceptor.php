@@ -23,7 +23,9 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * Installs a capturing error handler for the duration of the test and forwards every error to the
  * handler that was active before. Errors silenced with `@` or excluded by `error_reporting()` are
  * forwarded but not captured. Captured errors are stored in the returned {@see TestResult} as a
- * {@see CapturedErrors} attribute.
+ * {@see CapturedErrors} attribute; those the previous handler did not take are also written to the
+ * `stderr` message channel in place of PHP's own printing. `E_USER_ERROR` is thrown as an
+ * {@see \ErrorException}.
  *
  * A passing test that leaves the handler stack changed is reported {@see Status::Risky} unless it
  * carries {@see ExpectErrorHandlerChange}; a test that carries it and leaves the stack unchanged
@@ -72,6 +74,7 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
         }
 
         $result = $result->withAttribute(CapturedErrors::class, new CapturedErrors($scope->errors));
+        $scope->stderr === [] or $result = $result->withMessages(new MessageLog([...$result->messages->all(), ...$scope->stderr]));
 
         if ($this->failOnError && $result->status === Status::Passed) {
             $first = $scope->errors[0];
