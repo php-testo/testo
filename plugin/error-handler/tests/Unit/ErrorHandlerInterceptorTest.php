@@ -369,6 +369,58 @@ final class ErrorHandlerInterceptorTest
         Assert::same($errors->errors[0]->message, 'forwarded');
     }
 
+    public function previousHandlerTurningErrorIntoExceptionLeavesNothingCaptured(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            try {
+                \trigger_error('becomes exception', \E_USER_WARNING);
+            } catch (\ErrorException) {
+                return new TestResult(info: $info, status: Status::Passed);
+            }
+
+            return new TestResult(info: $info, status: Status::Failed, failure: new \RuntimeException('not thrown'));
+        };
+
+        \set_error_handler(static fn(int $severity, string $message): bool => throw new \ErrorException($message, 0, $severity));
+
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($result->status, Status::Passed);
+        Assert::null($result->getAttribute(CapturedErrors::class));
+    }
+
+    public function previousHandlerObservesTheRealErrorReportingLevel(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('probe', \E_USER_WARNING);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $observed = null;
+        \set_error_handler(static function () use (&$observed): bool {
+            $observed = \error_reporting();
+            return true;
+        });
+
+        $level = \error_reporting(\E_ALL & ~\E_NOTICE);
+        try {
+            $interceptor->runTest($info, $next);
+        } finally {
+            \error_reporting($level);
+            \restore_error_handler();
+        }
+
+        Assert::same($observed, \E_ALL & ~\E_NOTICE);
+    }
+
     public function handlerLeftByTestMarksPassingTestRisky(): void
     {
         $interceptor = new ErrorHandlerInterceptor();

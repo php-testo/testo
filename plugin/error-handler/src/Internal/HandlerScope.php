@@ -37,9 +37,12 @@ final class HandlerScope
     public function __construct()
     {
         $this->handler = function (int $severity, string $message, string $file, int $line): bool {
+            // Forwarded first: a previous handler that throws turns the error into control flow of
+            // the test, and then there is nothing to capture.
+            $handled = $this->previous === null || (bool) ($this->previous)($severity, $message, $file, $line);
             (\error_reporting() & $severity) === 0 or $this->errors[] = new CapturedError($severity, $message, $file, $line);
 
-            return $this->previous === null || (bool) ($this->previous)($severity, $message, $file, $line);
+            return $handled;
         };
     }
 
