@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Testo\ErrorHandler\Internal;
 
+use Testo\Common\Messenger;
+use Testo\Core\Log\Level;
+use Testo\Core\Log\Message;
 use Testo\ErrorHandler\CapturedError;
 
 /**
@@ -21,6 +24,9 @@ final class HandlerScope
 {
     /** @var list<CapturedError> */
     public array $errors = [];
+
+    /** @var list<Message> What PHP would have printed for the errors nobody handled. */
+    public array $stderr = [];
 
     private readonly \Closure $handler;
 
@@ -41,14 +47,26 @@ final class HandlerScope
             // the test, and then there is nothing to capture.
             $handled = $this->previous !== null && (bool) ($this->previous)($severity, $message, $file, $line);
 
+            // Left to PHP, E_USER_ERROR ends the script; swallowing it would run the test past a fatal.
+            $severity === \E_USER_ERROR and throw new \ErrorException($message, 0, $severity, $file, $line);
+
             // Unless the previous handler took it, PHP records it for error_get_last() without printing.
             if ((\error_reporting() & $severity) === 0) {
                 return $handled;
             }
 
-            $this->errors[] = new CapturedError($severity, $message, $file, $line);
+            $error = new CapturedError($severity, $message, $file, $line, $handled);
+            $this->errors[] = $error;
+            $handled or $this->stderr[] = new Message(
+                \microtime(true),
+                Messenger::CHANNEL_STDERR,
+                self::level($severity),
+                (string) $error,
+                ['severity' => $severity, 'file' => $file, 'line' => $line],
+            );
 
-            return $this->previous === null || $handled;
+            // Always taken: an unhandled error is reported through the stderr channel instead of PHP's own printing.
+            return true;
         };
     }
 
@@ -156,6 +174,15 @@ final class HandlerScope
         }
 
         return null;
+    }
+
+    private static function level(int $severity): Level
+    {
+        return match ($severity) {
+            \E_NOTICE, \E_USER_NOTICE, \E_DEPRECATED, \E_USER_DEPRECATED => Level::Notice,
+            \E_RECOVERABLE_ERROR => Level::Error,
+            default => Level::Warning,
+        };
     }
 
     private static function pop(int $count): void
