@@ -9,7 +9,7 @@ namespace Testo\ErrorHandler;
  *
  * @api
  */
-final readonly class CapturedError
+final readonly class CapturedError implements \Stringable
 {
     /**
      * @param bool $handled The handler installed before the test took the error (returned true), so
@@ -25,7 +25,10 @@ final readonly class CapturedError
 
     /**
      * The error as PHP itself prints it.
+     *
+     * @return non-empty-string
      */
+    #[\Override]
     public function __toString(): string
     {
         return \sprintf('%s: %s in %s on line %d', self::label($this->severity), $this->message, $this->file, $this->line);
