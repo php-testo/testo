@@ -27,8 +27,7 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
 {
     /**
      * @param bool $failOnError When true, any captured error upgrades a passing test to
-     *                          {@see Status::Failed} with the first error wrapped in an
-     *                          {@see \ErrorException} as the failure.
+     *        {@see Status::Failed} with the first error wrapped in an {@see \ErrorException} as the failure.
      */
     public function __construct(
         private bool $failOnError = false,

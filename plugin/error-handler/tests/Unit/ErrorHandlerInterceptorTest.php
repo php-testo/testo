@@ -246,6 +246,96 @@ final class ErrorHandlerInterceptorTest
         }
     }
 
+    public function silencedErrorIsNotCaptured(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            @\trigger_error('silenced', \E_USER_WARNING);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result->status, Status::Passed);
+        Assert::null($result->getAttribute(CapturedErrors::class));
+    }
+
+    public function errorOutsideErrorReportingIsNotCaptured(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('deprecated', \E_USER_DEPRECATED);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $level = \error_reporting(\E_ALL & ~\E_USER_DEPRECATED);
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \error_reporting($level);
+        }
+
+        Assert::same($result->status, Status::Passed);
+        Assert::null($result->getAttribute(CapturedErrors::class));
+    }
+
+    public function handlerLeftByTestDoesNotShadowOuterHandler(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \set_error_handler(static fn(): bool => true);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $count = 0;
+        \set_error_handler(static function () use (&$count): bool {
+            $count++;
+            return true;
+        });
+
+        try {
+            $interceptor->runTest($info, $next);
+            \trigger_error('after test', \E_USER_NOTICE);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($count, 1);
+    }
+
+    public function handlerLeftByTestDoesNotCaptureSiblingErrorsWhileSuspended(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \set_error_handler(static fn(): bool => true);
+            \Fiber::suspend();
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $outerCount = 0;
+        \set_error_handler(static function () use (&$outerCount): bool {
+            $outerCount++;
+            return true;
+        });
+
+        try {
+            $fiber = new \Fiber(static fn(): TestResult => $interceptor->runTest($info, $next));
+            $fiber->start();
+
+            \trigger_error('fired while suspended', \E_USER_NOTICE);
+            Assert::same($outerCount, 1);
+
+            $fiber->resume();
+            Assert::null($fiber->getReturn()->getAttribute(CapturedErrors::class));
+        } finally {
+            \restore_error_handler();
+        }
+    }
+
     private static function createTestInfo(): TestInfo
     {
         $reflection = new \ReflectionMethod(self::class, 'createTestInfo');
