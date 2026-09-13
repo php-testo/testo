@@ -16,13 +16,17 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
 use Testo\ErrorHandler\CapturedError;
 use Testo\ErrorHandler\CapturedErrors;
+use Testo\ErrorHandler\ExpectErrorHandlerChange;
 use Testo\ErrorHandler\Internal\ErrorHandlerInterceptor;
 use Testo\Test;
+use Tests\ErrorHandler\Stub\HandlerChange;
+use Tests\ErrorHandler\Stub\HandlerChangeCase;
 
 #[Test]
 #[Covers(ErrorHandlerInterceptor::class)]
 #[Covers(CapturedError::class)]
 #[Covers(CapturedErrors::class)]
+#[Covers(ExpectErrorHandlerChange::class)]
 final class ErrorHandlerInterceptorTest
 {
     public function noErrorsPassesResultThrough(): void
@@ -336,10 +340,206 @@ final class ErrorHandlerInterceptorTest
         }
     }
 
-    private static function createTestInfo(): TestInfo
+    public function previousHandlerStillReceivesCapturedErrors(): void
     {
-        $reflection = new \ReflectionMethod(self::class, 'createTestInfo');
-        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__));
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('forwarded', \E_USER_WARNING);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $seen = [];
+        \set_error_handler(static function (int $severity, string $message) use (&$seen): bool {
+            $seen[] = $message;
+            return true;
+        });
+
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($seen, ['forwarded']);
+        $errors = $result->getAttribute(CapturedErrors::class);
+        Assert::instanceOf($errors, CapturedErrors::class);
+        Assert::same($errors->errors[0]->message, 'forwarded');
+    }
+
+    public function handlerLeftByTestMarksPassingTestRisky(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \set_error_handler(static fn(): bool => true);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result->status, Status::Risky);
+        Assert::false($result->messages->isEmpty());
+    }
+
+    public function handlerLeftByTestDoesNotOverrideFailedStatus(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $failure = new \RuntimeException('assertion failure');
+        $next = static function (TestInfo $info) use ($failure): TestResult {
+            \set_error_handler(static fn(): bool => true);
+            return new TestResult(info: $info, status: Status::Failed, failure: $failure);
+        };
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result->status, Status::Failed);
+        Assert::same($result->failure, $failure);
+    }
+
+    public function handlerRemovedByTestMarksPassingTestRiskyAndKeepsOuterHandler(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo();
+        $next = static function (TestInfo $info): TestResult {
+            \restore_error_handler();
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $count = 0;
+        \set_error_handler(static function () use (&$count): bool {
+            $count++;
+            return true;
+        });
+
+        try {
+            $result = $interceptor->runTest($info, $next);
+            \trigger_error('after test', \E_USER_NOTICE);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($result->status, Status::Risky);
+        Assert::same($count, 1);
+    }
+
+    public function declaredHandlerChangeKeepsPassedStatus(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'declared'));
+        $next = static function (TestInfo $info): TestResult {
+            \set_error_handler(static fn(): bool => true);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $count = 0;
+        \set_error_handler(static function () use (&$count): bool {
+            $count++;
+            return true;
+        });
+
+        try {
+            $result = $interceptor->runTest($info, $next);
+            \trigger_error('after test', \E_USER_NOTICE);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($result->status, Status::Passed);
+        Assert::same($count, 1);
+    }
+
+    public function declaredHandlerChangeOnClassAppliesToItsTests(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(HandlerChangeCase::class, 'inherited'));
+        $next = static function (TestInfo $info): TestResult {
+            \set_error_handler(static fn(): bool => true);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result->status, Status::Passed);
+    }
+
+    public function declaredHandlerChangeThatDoesNotHappenIsRisky(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'declared'));
+        $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result->status, Status::Risky);
+    }
+
+    public function undeclaredStubMethodIsHeldToThePlainContract(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'undeclared'));
+        $next = static function (TestInfo $info): TestResult {
+            \set_error_handler(static fn(): bool => true);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result->status, Status::Risky);
+    }
+
+    public function handlerInstalledByTestIsBackAfterResume(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'declared'));
+
+        $ownCount = 0;
+        $next = static function (TestInfo $info) use (&$ownCount): TestResult {
+            \set_error_handler(static function () use (&$ownCount): bool {
+                $ownCount++;
+                return true;
+            });
+            \Fiber::suspend();
+            \trigger_error('after resume', \E_USER_NOTICE);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $outerCount = 0;
+        \set_error_handler(static function () use (&$outerCount): bool {
+            $outerCount++;
+            return true;
+        });
+
+        try {
+            $fiber = new \Fiber(static fn(): TestResult => $interceptor->runTest($info, $next));
+            $fiber->start();
+
+            \trigger_error('fired while suspended', \E_USER_NOTICE);
+            Assert::same($outerCount, 1);
+            Assert::same($ownCount, 0);
+
+            $fiber->resume();
+            Assert::same($ownCount, 1);
+            Assert::same($fiber->getReturn()->status, Status::Passed);
+            Assert::null($fiber->getReturn()->getAttribute(CapturedErrors::class));
+
+            \trigger_error('after test', \E_USER_NOTICE);
+            Assert::same($outerCount, 2);
+        } finally {
+            \restore_error_handler();
+        }
+    }
+
+    private static function createTestInfo(?\ReflectionMethod $reflection = null): TestInfo
+    {
+        $reflection ??= new \ReflectionMethod(self::class, 'createTestInfo');
+        $caseDefinition = new CaseDefinition(
+            name: 'TestCase',
+            type: 'test',
+            file: Path::create(__FILE__),
+            reflection: $reflection->getDeclaringClass(),
+        );
         $caseInfo = new CaseInfo(definition: $caseDefinition, suiteIdentity: new SuiteIdentity('ErrorHandler/Unit'));
         $testDefinition = new TestDefinition(reflection: $reflection);
 
