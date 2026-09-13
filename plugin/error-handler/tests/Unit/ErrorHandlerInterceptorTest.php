@@ -16,6 +16,7 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
 use Testo\ErrorHandler\CapturedError;
 use Testo\ErrorHandler\CapturedErrors;
+use Testo\ErrorHandler\Exception\ErrorHandlerUnchanged;
 use Testo\ErrorHandler\ExpectErrorHandlerChange;
 use Testo\ErrorHandler\Internal\ErrorHandlerInterceptor;
 use Testo\Test;
@@ -215,9 +216,9 @@ final class ErrorHandlerInterceptorTest
         $interceptor = new ErrorHandlerInterceptor();
         $info = self::createTestInfo();
 
-        $outerCount = 0;
-        \set_error_handler(static function () use (&$outerCount): bool {
-            $outerCount++;
+        $outer = [];
+        \set_error_handler(static function (int $severity, string $message) use (&$outer): bool {
+            $outer[] = $message;
             return true;
         });
 
@@ -232,9 +233,9 @@ final class ErrorHandlerInterceptorTest
             $fiber = new \Fiber(static fn(): TestResult => $interceptor->runTest($info, $next));
             $fiber->start();
 
-            // Fired while the test is suspended: must reach the outer handler, not the test.
+            // Fired while the test is suspended: reaches the outer handler directly, not via the test.
             \trigger_error('fired while suspended', \E_USER_NOTICE);
-            Assert::same($outerCount, 1);
+            Assert::same($outer, ['before suspend', 'fired while suspended']);
 
             $fiber->resume();
             Assert::true($fiber->isTerminated());
@@ -245,6 +246,7 @@ final class ErrorHandlerInterceptorTest
             Assert::same(\count($errors->errors), 2);
             Assert::same($errors->errors[0]->message, 'before suspend');
             Assert::same($errors->errors[1]->message, 'after resume');
+            Assert::same($outer, ['before suspend', 'fired while suspended', 'after resume']);
         } finally {
             \restore_error_handler();
         }
@@ -464,7 +466,7 @@ final class ErrorHandlerInterceptorTest
         Assert::same($result->status, Status::Passed);
     }
 
-    public function declaredHandlerChangeThatDoesNotHappenIsRisky(): void
+    public function declaredHandlerChangeThatDoesNotHappenFails(): void
     {
         $interceptor = new ErrorHandlerInterceptor();
         $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'declared'));
@@ -472,7 +474,8 @@ final class ErrorHandlerInterceptorTest
 
         $result = $interceptor->runTest($info, $next);
 
-        Assert::same($result->status, Status::Risky);
+        Assert::same($result->status, Status::Failed);
+        Assert::instanceOf($result->failure, ErrorHandlerUnchanged::class);
     }
 
     public function undeclaredStubMethodIsHeldToThePlainContract(): void
