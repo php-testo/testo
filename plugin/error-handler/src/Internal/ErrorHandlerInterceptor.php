@@ -64,17 +64,8 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
     }
 
     /**
-     * Runs the test with {@see $handler} installed via {@see \set_error_handler()}, keeping it
-     * bound to this test across fiber suspensions.
-     *
-     * set_error_handler()/restore_error_handler() operate on one process-global stack, so under
-     * concurrent (fiber-based) execution — where sibling tests interleave with this one — a plain
-     * install-before/restore-after around $next() would leak errors into the wrong test's
-     * CapturedErrors, and an interleaved resume could pop a sibling's handler instead of ours. On
-     * every suspension we restore whichever handler was active before this test installed its own
-     * (the native stack does that for free); on resumption we re-install this test's handler.
-     * Mirrors {@see \Testo\Bridge\Mockery\Internal\MockeryInterceptor::run()} and
-     * {@see \Testo\Application\Internal\MessengerHub::scope()}.
+     * The handler stack is process-global. Inside a fiber the handler is removed on every suspension
+     * and re-installed on resumption, so errors fired by an interleaved sibling test never land here.
      *
      * @param callable(TestInfo): TestResult $next
      */

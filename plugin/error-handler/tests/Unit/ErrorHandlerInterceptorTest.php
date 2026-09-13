@@ -165,7 +165,6 @@ final class ErrorHandlerInterceptorTest
         $info = self::createTestInfo();
         $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
 
-        // Zero-param closure: PHP discards extra arguments silently, avoiding S1172.
         $count = 0;
         \set_error_handler(static function () use (&$count): bool {
             $count++;
@@ -186,7 +185,6 @@ final class ErrorHandlerInterceptorTest
     {
         $interceptor = new ErrorHandlerInterceptor();
         $info = self::createTestInfo();
-        // Arrow function with no params: throw is a valid expression in PHP 8+.
         $next = static fn(): TestResult => throw new \RuntimeException('unexpected throw');
 
         $count = 0;
@@ -199,7 +197,6 @@ final class ErrorHandlerInterceptorTest
             try {
                 $interceptor->runTest($info, $next);
             } catch (\RuntimeException) {
-                // expected
             }
             \trigger_error('after throw', \E_USER_NOTICE);
         } finally {
@@ -209,13 +206,6 @@ final class ErrorHandlerInterceptorTest
         Assert::same($count, 1);
     }
 
-    /**
-     * The error-handler stack is process-global, and Testo can run tests inside fibers with
-     * sibling tests interleaving on suspend/resume. A plain install-before/restore-after around
-     * $next() would leave this test's handler installed for the entire suspension window, so a
-     * sibling's error fired while this test is suspended would wrongly be captured here instead
-     * of reaching whatever was active before this test started.
-     */
     public function restoresTheOuterHandlerWhileSuspendedAndReinstallsItsOwnOnResume(): void
     {
         $interceptor = new ErrorHandlerInterceptor();
@@ -235,14 +225,10 @@ final class ErrorHandlerInterceptorTest
                 return new TestResult(info: $info, status: Status::Passed);
             };
 
-            // runTest() only takes the fiber-aware branch when a fiber is already active, so
-            // drive it inside our own fiber here — exactly how Testo's scheduler runs a test.
             $fiber = new \Fiber(static fn(): TestResult => $interceptor->runTest($info, $next));
             $fiber->start();
 
-            // While this test is suspended, an error fired by anything else running in the
-            // process (a sibling test interleaving via the scheduler) must fall through to
-            // whatever was active before this test installed its own handler.
+            // Fired while the test is suspended: must reach the outer handler, not the test.
             \trigger_error('fired while suspended', \E_USER_NOTICE);
             Assert::same($outerCount, 1);
 
