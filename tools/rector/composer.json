@@ -1,6 +1,6 @@
 {
     "require": {
-        "rector/rector": "^2.6.4"
+        "rector/rector": "^2.6.7"
     },
     "config": {
         "platform-check": false
