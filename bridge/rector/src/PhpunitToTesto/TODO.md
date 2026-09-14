@@ -20,6 +20,10 @@ exist for each so the intent and blockers are discoverable in code.
   constraint objects (and composites/callbacks) with no Testo equivalent.
 - **ExpectExceptionMessageMatchesRector** — regex message matching; Testo's
   `withMessage()` does literal matching, not PCRE, so conversion would change meaning.
+- **WithoutErrorHandlerRector** — `#[WithoutErrorHandler]` opts one test out of PHPUnit's own
+  error handler; Testo core installs none and the `testo/error-handler` plugin has no per-test
+  opt-out. `#[\Testo\ErrorHandler\ExpectErrorHandlerChange]` is not a counterpart (it declares a
+  deliberate handler-stack change), so the attribute is left for manual handling.
 
 ## Implemented since the first cut
 

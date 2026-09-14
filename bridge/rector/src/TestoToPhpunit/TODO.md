@@ -9,6 +9,10 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   memory-leak assertion or post-test object-liveness hook.
 - **`CancelTestRector`** — `CancelTest` is an external interruption signal with no
   PHPUnit equivalent (not the same as skip/incomplete).
+- **`ExpectErrorHandlerChangeRector`** — `#[\Testo\ErrorHandler\ExpectErrorHandlerChange]` waives
+  the error-handler plugin's risky verdict for a test that leaves a handler installed; PHPUnit runs
+  the same stack check unconditionally and has no attribute that waives it (`#[WithoutErrorHandler]`
+  only stops PHPUnit installing its own handler).
 
 ## Implemented since the first cut
 
