@@ -217,7 +217,7 @@
         "test:cc": [
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",
-            "testo --coverage --coverage-clover=runtime/clover.xml"
+            "testo --coverage --coverage-clover=runtime/clover.xml --type=!bench"
         ]
     }
 }
