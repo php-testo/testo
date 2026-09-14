@@ -8,15 +8,6 @@ description: 'Write or modify tests in a project that uses the Testo PHP testing
 The attribute set, assertion facade, exception expectations, and lifecycle hooks are Testo's own.
 Write them the Testo way described below — don't transliterate idioms from other test frameworks.
 
-## Before you write code
-
-Fetch the canonical API surface:
-
-- `https://php-testo.github.io/llms.txt` — concise index. Always start here.
-- `https://php-testo.github.io/llms-full.txt` — escalate when `llms.txt` doesn't answer the question.
-
-If the project ships an `AGENTS.md`, honour it.
-
 ## Canonical shape of a test class
 
 ```php
