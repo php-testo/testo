@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Testo\Tools\StructArmed\Rule;
 
 use Boundwize\StructArmed\Analyser\ClassNode;
-use Boundwize\StructArmed\Rule\RuleInterface;
+use Boundwize\StructArmed\Rule\ExtendedClassAwareRuleInterface;
 use Boundwize\StructArmed\Rule\RuleViolation;
 use Testo\Tools\StructArmed\Support\ClassAnnotations;
 
@@ -14,7 +14,7 @@ use Testo\Tools\StructArmed\Support\ClassAnnotations;
  * may rely on it, so leaving it open only invites accidental extension. @api classes
  * are deliberately exempt — they may stay open for downstream subclassing.
  */
-final readonly class InternalClassMustBeFinalRule implements RuleInterface
+final readonly class InternalClassMustBeFinalRule implements ExtendedClassAwareRuleInterface
 {
     public function __construct(
         private string $layer,
