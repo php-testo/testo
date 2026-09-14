@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/filter-0.1.7...filter-0.1.8) (2026-09-14)
+
+
+### Code Refactoring
+
+* **core:** mark readonly services as `#[ScopeShared]` ([#327](https://github.com/php-testo/testo/issues/327)) ([529f480](https://github.com/php-testo/testo/commit/529f480d8341f93fbbf61c7b5c4aa69b9a1158d0))
+
 ## [0.1.7](https://github.com/php-testo/testo/compare/filter-0.1.6...filter-0.1.7) (2026-09-07)
 
 

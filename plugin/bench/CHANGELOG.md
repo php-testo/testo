@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.12](https://github.com/php-testo/testo/compare/bench-0.1.11...bench-0.1.12) (2026-09-14)
+
+
+### Code Refactoring
+
+* **core:** mark readonly services as `#[ScopeShared]` ([#327](https://github.com/php-testo/testo/issues/327)) ([529f480](https://github.com/php-testo/testo/commit/529f480d8341f93fbbf61c7b5c4aa69b9a1158d0))
+
 ## [0.1.11](https://github.com/php-testo/testo/compare/bench-0.1.10...bench-0.1.11) (2026-09-07)
 
 
