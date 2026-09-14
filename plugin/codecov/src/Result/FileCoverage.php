@@ -12,6 +12,8 @@ use Testo\Codecov\Config\CoverageLevel;
  * Line coverage is always present. Branch and path coverage (via {@see $functions})
  * is optional and only populated when collected with {@see CoverageLevel::Branch}
  * or {@see CoverageLevel::Path}.
+ *
+ * @api
  */
 final readonly class FileCoverage
 {

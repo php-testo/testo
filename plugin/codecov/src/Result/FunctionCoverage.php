@@ -6,6 +6,8 @@ namespace Testo\Codecov\Result;
 
 /**
  * Branch and path coverage data for a single function or method.
+ *
+ * @api
  */
 final readonly class FunctionCoverage
 {

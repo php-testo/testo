@@ -6,6 +6,8 @@ namespace Testo\Codecov\Result;
 
 /**
  * Aggregated code coverage data across multiple files.
+ *
+ * @api
  */
 final readonly class CoverageResult
 {

@@ -9,6 +9,8 @@ namespace Testo\Codecov\Result;
  *
  * A path is an ordered sequence of branches (identified by their opcode start indices)
  * that were followed during execution.
+ *
+ * @api
  */
 final readonly class PathCoverage
 {

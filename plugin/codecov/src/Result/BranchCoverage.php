@@ -6,6 +6,8 @@ namespace Testo\Codecov\Result;
 
 /**
  * A single branch within a function's control flow graph.
+ *
+ * @api
  */
 final readonly class BranchCoverage
 {
