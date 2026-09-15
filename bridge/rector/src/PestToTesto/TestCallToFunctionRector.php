@@ -13,9 +13,7 @@ use PhpParser\Node\Expr\ArrowFunction;
 use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
-use PhpParser\Node\Expr\New_;
 use PhpParser\Node\Expr\StaticCall;
-use PhpParser\Node\Expr\Throw_;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
@@ -59,7 +57,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - `->group('a','b')`  => `#[\Testo\Filter\Group('a','b')]`
  *   - `->covers(X::class)` => `#[\Testo\Codecov\Covers(X::class)]` (repeatable)
  *   - `->throws(X::class[, 'msg'])` => prepended `\Testo\Expect::exception(X::class)[->withMessage('msg')]`, return type `never`
- *   - `->skip(['reason'])` => prepended `throw new \Testo\Core\Exception\SkipTest('reason')`
+ *   - `->skip(['reason'])` => `#[\Testo\Skip('reason')]`
  *   - `->with([ <rows> ])` => one `#[\Testo\Data\DataSet([...])]` per row (array literal only)
  *
  * Operates at the statements level ({@see StmtsAwareInterface}) so the file/namespace body is
@@ -358,8 +356,10 @@ final class TestCallToFunctionRector extends AbstractRector
     }
 
     /**
-     * `->skip()` / `->skip('reason')` => prepended `throw new \Testo\Core\Exception\SkipTest(['reason'])`.
-     * A conditional skip (`->skip(fn () => …)` / `->skip($bool, 'reason')`) is unsupported.
+     * `->skip()` / `->skip('reason')` => `#[\Testo\Skip(['reason'])]`. Both are unconditional
+     * declarations about the test, which is what the attribute expresses — the test never enters
+     * the pipeline. A conditional skip (`->skip(fn () => …)` / `->skip($bool, 'reason')`) is a
+     * runtime decision and is unsupported.
      *
      * @param array<int, Arg|Node\VariadicPlaceholder> $args
      * @return array{attributes: list<AttributeGroup>, prepend: list<Node\Stmt>, returnType: ?non-empty-string}|null
@@ -375,9 +375,11 @@ final class TestCallToFunctionRector extends AbstractRector
             $skipArgs = [$args[0]];
         }
 
-        $throw = new Throw_(new New_(new FullyQualified('Testo\\Core\\Exception\\SkipTest'), $skipArgs));
-
-        return ['attributes' => [], 'prepend' => [new Expression($throw)], 'returnType' => null];
+        return [
+            'attributes' => [$this->attribute('Testo\\Skip', $skipArgs)],
+            'prepend' => [],
+            'returnType' => null,
+        ];
     }
 
     /**

@@ -23,6 +23,14 @@ exist for each so the intent and blockers are discoverable in code.
 
 ## Implemented since the first cut
 
+- **MarkTestSkippedToSkipAttributeRector** (registered) — a `markTestSkipped('literal')` opening a test
+  method is a statement about the test, not about a path through it, so it becomes `#[\Testo\Skip('literal')]`
+  and the call is dropped. That buys what the throw cannot: Testo keeps such a test out of the per-test
+  pipeline entirely (no `#[BeforeTest]`, no data-provider call, no retries). Everything else keeps
+  converting to a `SkipTest` throw via `MarkTestSkippedToTestoRector`, which is registered right after
+  it — a guarded call, one deeper in the body, and a non-literal message no attribute argument can hold.
+  A call opening `setUp()` also stays a throw: hoisting it to a class-level `#[Skip]` would strip the rest
+  of the hook.
 - **CreateMockToDoubleRector** (registered) — converts PHPUnit mocks/stubs onto the Double bridge
   (`testo/bridge-double`), which gives the previously-missing target API. `$this->createMock(X)` /
   `$this->createStub(X)` → `\JMac\Testing\Double::for(X)`, `create{Mock,Stub}ForIntersectionOfInterfaces([A, B])`
