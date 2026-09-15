@@ -25,7 +25,8 @@ synthesize a class, we synthesize functions.
     - `->group('a','b')`  → `#[\Testo\Filter\Group('a','b')]`
     - `->covers(X::class)` → `#[\Testo\Codecov\Covers(X::class)]`
     - `->throws(X::class[, 'msg'])` → prepended `\Testo\Expect::exception(X)[->withMessage('msg')]`, return type `never`
-    - `->skip(['reason'])` → prepended `throw new \Testo\Core\Exception\SkipTest('reason')`
+    - `->skip(['reason'])` → `#[\Testo\Skip('reason')]` (the modifier is unconditional, so the
+      declarative attribute is the faithful form)
     - `->with([ <rows> ])` → one `#[\Testo\Data\DataSet([...])]` per row (inline array literal only)
 - **`ExpectToAssertRector`** — runs after the structural rule and maps each
   `expect($value)->toX(...)` expectation inside the generated bodies to the matching actual-first
