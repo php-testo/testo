@@ -12,6 +12,16 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
 
 ## Implemented since the first cut
 
+- **`SkipAttributeToPhpUnitRector`** (registered) — unrolls Testo's declarative `#[\Testo\Skip]` into
+  the only skip PHPUnit has: a `$this->markTestSkipped($reason)` call opening the test method, with the
+  attribute dropped. The reason becomes the message; a reason-less attribute emits a bare call (Testo's
+  generated `{testId} is skipped via #[Skip]` text has no counterpart). A class-level attribute is fanned
+  out onto each test method — the same method set `TestClassToTestCaseRector` uses — and removed from the
+  class; a method carrying its own `#[Skip]` keeps its own reason, mirroring Testo's method-wins rule.
+  **Residuals:** (1) the skip becomes a runtime one — PHPUnit runs `setUp()` and the data provider before
+  aborting inside the body, where Testo never lets the test enter the per-test pipeline at all; (2) a
+  `#[Skip]` on a free function or a non-test member is left untouched (no method to host the call, and in
+  Testo the attribute is inert there anyway).
 - **`TestClassToTestCaseRector`** (registered) — adds `extends \PHPUnit\Framework\TestCase` to a Testo
   test class and reconciles discovery. A class-level `#[\Testo\Test]` is removed and a per-method
   `#[\PHPUnit\Framework\Attributes\Test]` is added to every public, non-static method with a `void`/`never`

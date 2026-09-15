@@ -172,6 +172,26 @@ if (!$reachable) {
 }
 ```
 
+### Skipping from a case interceptor — do call `$next`
+
+At **case** level the rule inverts: returning a `CaseResult` without `$next` drops the case whole —
+its `#[BeforeClass]`/`#[AfterClass]` hooks and every test it still had to run. Skip a subset instead:
+
+- Deactivate what you skip — pick your tests out of `$info->definition->tests->getTests()` and set
+  `$definition->active = false` on each of those. Deactivated, not discarded: `getTests()` then
+  yields only the rest, and those are the tests the core runs.
+- Hand back their results yourself, from `CaseInfo::withBatchRunner`: **wrap** the runner already on
+  the case (testo/fiber may have set one), never replace it — and run the handlers yourself when the
+  case carries none — then append one synthetic `TestResult` per skipped test after the inner
+  runner returns.
+- Dispatch `TestPipelineStarting`/`TestPipelineFinished` around each synthetic result, or reporters
+  never render its line, and stamp `summary: Summary::forTest(Status::Skipped)` on it — a result that
+  never passes through the test runner is not counted for you.
+
+The shipped implementation of exactly this shape is `Testo\Skip\Internal\SkipInterceptor` in
+`plugin/skip`, serving the `#[Skip]` attribute (whose contract is in the `testo-write-tests` skill).
+Read it as a reference — it is `@internal` (and `final`), don't import it.
+
 ## Container scopes — provision per-case / per-suite resources
 
 `$container->scope($closure)` runs `$closure` in a **child scope**: services bound inside live only for
@@ -243,9 +263,21 @@ $method = $info->testDefinition->reflection;
 $optedOut = $method->getAttributes(WithoutTransaction::class) !== [];
 ```
 
+An attribute can also bring its own interceptor, so users need no plugin registration at all —
+`#[Retry]`, `#[Repeat]` and `#[Skip]` ship this way. Implement `Testo\Pipeline\Attribute\Interceptable`
+and name the handler with `#[FallbackInterceptor(MyInterceptor::class)]` (repeatable — one per
+pipeline position); the core instantiates the interceptor with the attribute instance as a constructor
+argument when the attribute is found on a class (case and test pipelines) or on a test (test pipeline
+only). If a test-level attribute has to act on the **case** pipeline — take that test out before the
+class-level hooks, say — implement `Testo\Pipeline\Attribute\CaseInterceptable` instead: one interceptor
+instance is spawned per attribute occurrence, so declare `ConflictPolicy::First` in
+`#[InterceptorOptions]` to keep a single one.
+
 ## Pitfalls
 
 - **Skipping**: return a `Status::Skipped` `TestResult`; never `throw SkipTest` from an interceptor.
+  From a **case** interceptor still call `$next` — deactivate the tests you skip and append their
+  results through the batch runner.
 - **Cleanup**: wrap `$next()` in `try/finally`; a later interceptor may throw.
 - **State**: prefer pipeline attributes / container scope over mutable interceptor fields.
 - **Listeners** observe; **interceptors** change behaviour. Don't try to alter a run from a listener.

@@ -87,9 +87,12 @@ Don't ship `#[Repeat(times: 50)]` long-term on a fast suite — CI cost adds up.
    - Use `#[Repeat]`, never `#[Retry]`.
 3. Is the flakiness from shared state inside the suite (ordering)?
    - Don't reach for either attribute. Fix isolation (lifecycle hooks, fresh fixtures).
+4. Is the root cause known but not fixable now (the test has to leave the run for a while)?
+   - `#[Skip('flaky on CI, see ISSUE-123')]` (`Testo\Skip`, package `testo/skip`) — the test stops running but stays counted in reports as Skipped (full contract in the `testo-write-tests` skill). `#[Retry]` is for stabilizing, not skipping.
 
 ## Pitfalls
 
 - A test with `Expect::exception(...)` and `#[Retry]` is almost always wrong — expected exceptions are deterministic by design.
 - Don't use retries to paper over network calls in unit tests — replace the dependency with a fake instead.
 - Throwing `SkipTest` / `CancelTest` from the body short-circuits both `#[Retry]` and `#[Repeat]` — the loop stops immediately and the result keeps the `Skipped` / `Cancelled` status. That's intentional (skipping isn't a failure to retry against), but worth knowing when a "flaky" test is actually skipping on some runs.
+- `#[Skip]` next to `#[Retry]` / `#[Repeat]` wins even harder than that: the test is deactivated before the case collects its tests, so it never enters the per-test pipeline and the retry/repeat loop is not started at all (the case itself still runs, with its class-level hooks).

@@ -41,6 +41,12 @@
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
+        "plugin/skip": {
+            "package-name": "testo/skip",
+            "component": "skip",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
         "plugin/test": {
             "package-name": "testo/test",
             "component": "test",

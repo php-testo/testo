@@ -15,6 +15,7 @@
             "../../plugin/lifecycle/src",
             "../../plugin/repeat/src",
             "../../plugin/retry/src",
+            "../../plugin/skip/src",
             "../../plugin/test/src",
             "../../bridge/double/src",
             "../../bridge/mockery/src",

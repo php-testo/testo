@@ -34,6 +34,7 @@ on:  # yamllint disable-line rule:truthy
       - 'lifecycle-[0-9]*'
       - 'repeat-[0-9]*'
       - 'retry-[0-9]*'
+      - 'skip-[0-9]*'
       - 'test-[0-9]*'
 
 name: 📦 Split publish
