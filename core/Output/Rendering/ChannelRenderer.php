@@ -98,15 +98,15 @@ final class ChannelRenderer
 
     /**
      * Formats a {@see \microtime()} timestamp as `HH:MM:SS.mmm` wall-clock time.
-     *
-     * @return non-empty-string
      */
     private static function formatTime(float $time): string
     {
-        $seconds = (int) $time;
-        $millis = \min(999, (int) \round(($time - (float) $seconds) * 1000.0));
+        $totalSeconds = (int) $time;
+        $millis = \min(999, (int) \round(($time - (float) $totalSeconds) * 1000.0));
+        $s = $totalSeconds % 60;
+        $m = (int) ($totalSeconds / 60) % 60;
+        $h = (int) ($totalSeconds / 3600) % 24;
 
-        /** @var non-empty-string */
-        return \date('H:i:s', $seconds) . \sprintf('.%03d', $millis);
+        return \sprintf('%02d:%02d:%02d.%03d', $h, $m, $s, $millis);
     }
 }
