@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Testo\Output\JUnit\Internal;
 
 use Testo\Core\Value\Status;
+use Testo\Metric\Unit;
+use Testo\Metric\Metric;
 
 /**
  * Captured `<testcase>` payload produced from a single `TestResult`.
@@ -49,7 +51,7 @@ final readonly class JUnitCaseNode
          * benchmark counters, for tests that are benchmarks. Empty for an ordinary test, in which case
          * no `<properties>` element is written at all.
          *
-         * @var array<non-empty-string, int|float>
+         * @var array<non-empty-string, Metric<Unit>>
          */
         public array $properties = [],
     ) {}
