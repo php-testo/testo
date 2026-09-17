@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.48](https://github.com/php-testo/testo/compare/0.10.47...0.10.48) (2026-09-17)
+
+
+### Documentation
+
+* **skills:** drop the `llms.txt` pointers, the skills are the API reference ([28f8d95](https://github.com/php-testo/testo/commit/28f8d95703fdc943015ad5df35c52cb1101b0299))
+* **skills:** place test-declared classes and prefer hand-written doubles ([1af946b](https://github.com/php-testo/testo/commit/1af946b7717959c9751842d3ea908347768fd2be))
+
+
+### Dependencies
+
+* **double:** bumb jasonmccreary/double to ^0.10.0 ([#342](https://github.com/php-testo/testo/issues/342)) ([6b87433](https://github.com/php-testo/testo/commit/6b87433004ec92673b42b311361e037d11968f6b))
+
 ## [0.10.47](https://github.com/php-testo/testo/compare/0.10.46...0.10.47) (2026-09-14)
 
 
