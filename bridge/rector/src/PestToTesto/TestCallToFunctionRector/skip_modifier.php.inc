@@ -8,8 +8,8 @@ it('is work in progress', function () {
 
 /** is work in progress */
 #[\Testo\Test]
+#[\Testo\Skip('not ready')]
 function it_is_work_in_progress(): void
 {
-    throw new \Testo\Core\Exception\SkipTest('not ready');
     doThing();
 }

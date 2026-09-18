@@ -72,7 +72,8 @@ Read the verdict straight from the JSON:
    - `@dataProvider`/`#[DataProvider]` → `#[DataProvider('m')]` (provider `public static`, returns
      `iterable`, labelled rows). `@testWith`/`#[TestWith]` → repeated `#[DataSet([...], 'label')]`.
    - `@group`/`#[Group]` → one variadic `#[Group(...)]` from `Testo\Filter\Group`.
-   - `@covers`/`#[CoversClass]` → `#[Covers(...)]`; `markTestSkipped` → `throw new SkipTest(...)`.
+   - `@covers`/`#[CoversClass]` → `#[Covers(...)]`; a `markTestSkipped` opening the test → `#[Skip(...)]`
+     from `Testo\Skip`, a guarded or non-literal one → `throw new SkipTest(...)`.
    - Mocks: replace with a hand-rolled fake (preferred) — never mock `final`/enums. If the file uses
      a kept mock library, leave it but make it run under Testo. If a fake is non-trivial and the
      orchestrator told you a shared fake exists, use it; do not invent a divergent copy.

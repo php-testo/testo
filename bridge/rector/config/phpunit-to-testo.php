@@ -14,6 +14,7 @@ use Testo\Bridge\Rector\PhpunitToTesto\ExtendsTestCaseToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\GroupToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\LifecycleMethodToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MarkTestIncompleteRector;
+use Testo\Bridge\Rector\PhpunitToTesto\MarkTestSkippedToSkipAttributeRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MarkTestSkippedToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MergeAssertChainRector;
 use Testo\Bridge\Rector\PhpunitToTesto\RepeatRetryToTestoRector;
@@ -35,6 +36,9 @@ return static function (RectorConfig $rectorConfig): void {
     # emptiness) rather than a flat facade call — see TypedAssertCallToTestoRector.
     $rectorConfig->rule(TypedAssertCallToTestoRector::class);
 
+    # A skip that opens a test method is a property of the test: it becomes `#[Skip]`, and only what
+    # is left — a guarded or non-literal skip — falls through to the throw form below.
+    $rectorConfig->rule(MarkTestSkippedToSkipAttributeRector::class);
     $rectorConfig->rule(MarkTestSkippedToTestoRector::class);
 
     # Incomplete has no exact Testo status; mapped to a Skipped throw with an "Incomplete:" reason
