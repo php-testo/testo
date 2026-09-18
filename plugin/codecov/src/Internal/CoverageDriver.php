@@ -11,7 +11,7 @@ use Testo\Codecov\Result\CoverageResult;
 /**
  * Interface for code coverage collection engines.
  *
- * @api
+ * @internal
  */
 interface CoverageDriver
 {

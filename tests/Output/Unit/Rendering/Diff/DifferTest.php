@@ -87,7 +87,7 @@ final class DifferTest
     public function lcsEmitsNoWarnings(): void
     {
         $previous = \set_error_handler(
-            static fn(int $errno, string $errstr): never => throw new \ErrorException($errstr, $errno),
+            static fn(int $errno, string $errstr) => throw new \ErrorException($errstr, $errno),
             \E_WARNING | \E_NOTICE,
         );
         try {

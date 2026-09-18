@@ -14,6 +14,7 @@ use Testo\Bridge\Rector\TestoToPhpunit\GroupInheritanceToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\GroupToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\LifecycleAttributesToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\RepeatRetryRector;
+use Testo\Bridge\Rector\TestoToPhpunit\SkipAttributeToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\TestClassToTestCaseRector;
 use Testo\Bridge\Rector\TestoToPhpunit\ThrowSkipTestToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\TypedAssertChainRector;
@@ -28,6 +29,7 @@ use Testo\Bridge\Rector\TestoToPhpunit\TypedAssertChainRector;
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->rule(AssertCallToPhpUnitRector::class);
     $rectorConfig->rule(ThrowSkipTestToPhpUnitRector::class);
+    $rectorConfig->rule(SkipAttributeToPhpUnitRector::class);
     $rectorConfig->rule(CoversToCoversClassRector::class);
     $rectorConfig->rule(LifecycleAttributesToPhpUnitRector::class);
     $rectorConfig->rule(ExpectExceptionToPhpUnitRector::class);

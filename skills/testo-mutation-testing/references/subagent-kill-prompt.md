@@ -69,7 +69,7 @@ Read the verdict straight from the JSON:
 1. **RECORD** the exact "before" block at `{{FILE}}:{{LINE}}`. Confirm it matches the file as it is now (if it doesn't, a previous mutant was left applied — STOP and report `dirty-source`).
 2. **APPLY** the mutation: edit those lines to the "after" block. Touch nothing else.
 3. **ALREADY KILLED?** Run the whole segment test suite. If a test already FAILS, an earlier mutant's test already covers this one → go to step 6 (revert), report `killed-existing`.
-4. **ADD or STRENGTHEN a test** (mutation still applied). Prefer adding a `#[DataSet]` row or an assertion to the **existing** test that covers this line; create a new test method/file only if none fits. Follow the project's test conventions (read the `testo-write-tests` skill / `https://php-testo.github.io/llms.txt` first).
+4. **ADD or STRENGTHEN a test** (mutation still applied). Prefer adding a `#[DataSet]` row or an assertion to the **existing** test that covers this line; create a new test method/file only if none fits. Follow the project's test conventions (read the `testo-write-tests` skill first).
 5. **RED GATE** (mutation still applied): run your focused test. It **MUST FAIL**. If it passes, your test does not distinguish the mutant — fix it and repeat step 5. (See the equivalence rule below before giving up.)
 6. **REVERT**: edit the "after" lines back to the "before" block from step 1. Re-read those lines and confirm they **equal the original**. If not, STOP and report `revert-failed` — do not leave the source mutated.
 7. **GREEN GATE** (clean source): run your focused test. It **MUST PASS**.

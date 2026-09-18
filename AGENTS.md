@@ -27,18 +27,15 @@ Philosophy: the name derives from East/South Slavic "testo" (dough) — symboliz
 
 ## Required reading before writing or modifying Testo tests
 
-Testo publishes machine-friendly docs in the `llms.txt` format. **Fetch the appropriate one before writing tests, middleware, or extensions** — they describe the public API faithfully, which is hard to reconstruct from source alone.
+Testo ships its agent-facing documentation as **skills** (`testo-*`, listed in [skills/README.md](skills/README.md)). The `llm/skills` Composer plugin installs them into the project's skills directory; otherwise copy them from `vendor/testo/testo/skills/`. **Load the matching skill before writing tests, middleware, or extensions** — start with `testo-write-tests`, escalate to `testo-plugin-author` when extending Testo.
 
-- **<https://php-testo.github.io/llms.txt>** — concise index of Testo's public API: attributes, assertions, configuration entry points. Use this for routine test-writing tasks.
-- **<https://php-testo.github.io/llms-full.txt>** — full expanded documentation: middleware architecture, plugin authoring, dependency injection, console commands, lifecycle hooks, etc. Use this when extending Testo or doing non-trivial customization.
-
-Rule of thumb: start with `llms.txt`; escalate to `llms-full.txt` when the short index does not answer the question. Prefer these sources over guessing from class names or older PHPUnit knowledge — Testo is **not** PHPUnit and the APIs differ.
+When a skill and the installed version disagree on a name, the source under `vendor/testo/` wins. Prefer these over guessing from class names or older PHPUnit knowledge — Testo is **not** PHPUnit and the APIs differ.
 
 ## Pitfalls to avoid
 
-- **Do not assume PHPUnit semantics.** Testo's `Assert` facade, lifecycle, data providers, and exception expectations are its own. Verify against `llms.txt` before writing.
+- **Do not assume PHPUnit semantics.** Testo's `Assert` facade, lifecycle, data providers, and exception expectations are its own. Verify against the `testo-write-tests` skill before writing.
 - **Do not mock enums or `final` classes** — use real instances.
-- **Do not invent attributes.** If you need behavior that is not in `llms.txt`, look in `llms-full.txt` before inventing an attribute or middleware that does not exist.
+- **Do not invent attributes.** If you need behavior no `testo-*` skill describes, look in the installed `vendor/testo/` before inventing an attribute or middleware that does not exist.
 - **Run tests via the Testo CLI** (`vendor/bin/testo`). For programmatic parsing add `--json` — it writes a structured JSON report to stdout; human-readable terminal output is not a stable interface.
 
 # Contributing to Testo itself

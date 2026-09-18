@@ -11,7 +11,7 @@ that an AI coding agent can load on demand.
 | [`testo-data-driven`](testo-data-driven/SKILL.md) | Parameterizing a test — `#[DataSet]`, `#[DataProvider]`, `#[DataZip]`, `#[DataCross]`. |
 | [`testo-flaky-tests`](testo-flaky-tests/SKILL.md) | Stabilizing flaky tests with `#[Retry]` or stress-testing with `#[Repeat]`. |
 | [`testo-async`](testo-async/SKILL.md) | Async tests — `#[RunInFiber]` (plain fibers, deterministic interleaving, `Coroutine::spawn`) and `#[RunInRevolt]` (real async I/O on the Revolt event loop, `testo/bridge-revolt`). |
-| [`testo-test-doubles`](testo-test-doubles/SKILL.md) | Isolating a collaborator — choosing between dummy/stub/spy/mock/fake, then building it with Double (`testo/bridge-double`), Mockery (`testo/bridge-mockery`), or a hand-written fake class. |
+| [`testo-test-doubles`](testo-test-doubles/SKILL.md) | Isolating a collaborator — choosing between dummy/stub/spy/mock/fake, then building it with Double (`testo/bridge-double`), Mockery (`testo/bridge-mockery`), or a hand-written fake class. Also where any class a test declares lives — `Stub/` for stand-ins, `Fixture/` for material. |
 | [`testo-inline-tests`](testo-inline-tests/SKILL.md) | Attaching `#[TestInline]` examples directly to production methods. |
 | [`testo-benchmarks`](testo-benchmarks/SKILL.md) | Writing or tuning `#[Bench]` benchmarks. |
 | [`testo-coverage`](testo-coverage/SKILL.md) | Configuring `CodecovPlugin`, reports, and `#[Covers]`. |
@@ -24,15 +24,15 @@ that an AI coding agent can load on demand.
 
 ### Authoritative source of truth
 
-All skills point at the machine-readable Testo docs and tell the agent to fetch them before writing code:
-
-- **<https://php-testo.github.io/llms.txt>** — concise index of the public API.
-- **<https://php-testo.github.io/llms-full.txt>** — full reference (middleware, plugin authoring, DI, console).
-
-Skills encode *when* to act and *what shape* the answer should take; the authoritative API
-text lives in `llms.txt`. This keeps skills small and resistant to API drift.
+The skills **are** the agent-facing documentation of Testo's public surface — they replace the
+`llms.txt` / `llms-full.txt` pattern. Each skill encodes *when* to act, *what shape* the answer should
+take, and the API it needs; when a name drifts between versions, the installed `vendor/testo/` source
+wins, and the skills say so. Keeping the API text inside the skill that uses it is what lets a change
+in production code be reviewed together with the skill it affects.
 
 ### Installing into a project
 
-Copy the directories you want into the project's `.claude/skills/` (or any skills root the
-agent is configured to read). Each skill is self-contained — no shared files between them.
+`testo/testo` suggests the `llm/skills` Composer plugin, which copies the bundled skills into the
+project's skills directory on install. Without it, copy the directories you want into the project's
+`.claude/skills/` (or any skills root the agent is configured to read). Each skill is self-contained —
+no shared files between them.

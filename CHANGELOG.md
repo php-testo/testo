@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.10.48](https://github.com/php-testo/testo/compare/0.10.47...0.10.48) (2026-09-17)
+
+
+### Documentation
+
+* **skills:** drop the `llms.txt` pointers, the skills are the API reference ([28f8d95](https://github.com/php-testo/testo/commit/28f8d95703fdc943015ad5df35c52cb1101b0299))
+* **skills:** place test-declared classes and prefer hand-written doubles ([1af946b](https://github.com/php-testo/testo/commit/1af946b7717959c9751842d3ea908347768fd2be))
+
+
+### Dependencies
+
+* **double:** bumb jasonmccreary/double to ^0.10.0 ([#342](https://github.com/php-testo/testo/issues/342)) ([6b87433](https://github.com/php-testo/testo/commit/6b87433004ec92673b42b311361e037d11968f6b))
+
+## [0.10.47](https://github.com/php-testo/testo/compare/0.10.46...0.10.47) (2026-09-14)
+
+
+### Features
+
+* **bridge-double:** add the Double test-double bridge ([#298](https://github.com/php-testo/testo/issues/298)) ([6c4d415](https://github.com/php-testo/testo/commit/6c4d4159f241b5088b6db44c7ec0fd900d0292b1))
+* **bridge-double:** support Double 0.8.0 ([de046dd](https://github.com/php-testo/testo/commit/de046dd82ccfc688bc7910944b2a35366d1ee8d2))
+* **bridge-rector:** convert PHPUnit mocks onto the Double bridge ([#332](https://github.com/php-testo/testo/issues/332)) ([de046dd](https://github.com/php-testo/testo/commit/de046dd82ccfc688bc7910944b2a35366d1ee8d2))
+* **testing:** add `PluginTester` for asserting a plugin's wiring ([6c4d415](https://github.com/php-testo/testo/commit/6c4d4159f241b5088b6db44c7ec0fd900d0292b1))
+
+
+### Bug Fixes
+
+* **cs:** check plugin and bridge sources by expanding wildcard include paths ([66488de](https://github.com/php-testo/testo/commit/66488dec0d42285203a21dff18e4e0698e71778c))
+* **rector:** keep node position when stripping class-level #[Test] ([f887f5d](https://github.com/php-testo/testo/commit/f887f5dbdec7ad54484dab9bdd0f87e46650a986))
+
+
+### Documentation
+
+* **skills:** add an Infection toolchain pre-flight to `testo-mutation-testing` ([53b897e](https://github.com/php-testo/testo/commit/53b897e40344178ef2b026367ab318515f23f436))
+
+
+### Code Refactoring
+
+* **core:** mark readonly services as `#[ScopeShared]` ([#327](https://github.com/php-testo/testo/issues/327)) ([529f480](https://github.com/php-testo/testo/commit/529f480d8341f93fbbf61c7b5c4aa69b9a1158d0))
+
 ## [0.10.46](https://github.com/php-testo/testo/compare/0.10.45...0.10.46) (2026-09-07)
 
 

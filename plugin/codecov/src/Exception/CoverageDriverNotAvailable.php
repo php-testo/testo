@@ -6,6 +6,8 @@ namespace Testo\Codecov\Exception;
 
 /**
  * Thrown when no supported coverage driver extension is available.
+ *
+ * @api
  */
 final class CoverageDriverNotAvailable extends \RuntimeException
 {

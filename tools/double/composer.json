@@ -1,6 +1,6 @@
 {
     "require": {
-        "jasonmccreary/double": "dev-master"
+        "jasonmccreary/double": "^0.10.0"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

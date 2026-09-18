@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Output;
 
+use Internal\Container\Attribute\ScopeShared;
+
 /**
  * The process's stdout/stderr as an injectable pair of streams.
  *
@@ -12,6 +14,7 @@ namespace Testo\Output;
  *
  * @api
  */
+#[ScopeShared]
 final readonly class ConsoleStreams
 {
     /** @var resource */

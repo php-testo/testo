@@ -11,8 +11,8 @@ above that, the result is noisy and shouldn't be used to draw conclusions. This 
 bar for reading the RStDev column; the diagnostic engine is more lenient and only emits reports
 once variance is pronounced (RStDev around 10% and up), so a clean report is not a promise of < 2%.
 
-Requires the `BenchmarkPlugin` to be enabled for the suite. Fetch
-`https://php-testo.github.io/llms.txt` for the current `#[Bench]` parameter list — they evolve.
+Requires the `BenchmarkPlugin` to be enabled for the suite. Verify the current `#[Bench]` parameter
+list against the installed `vendor/testo/bench` — it evolves.
 
 ## Canonical shape
 

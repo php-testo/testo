@@ -7,7 +7,7 @@ description: Report and raise line coverage on a Testo project — collect cover
 
 Four phases: **agree on scope** (read-only goes straight to the report; improving is gated — see Phase 1), **collect coverage**, **build the work-list**, **cover** the gaps with subagents. Run every command from the project root (never `cd` into `vendor/bin`).
 
-Related skills: `testo-coverage` (plugin/report wiring, `#[Covers]`), `testo-write-tests` (assertions, lifecycle), `testo-data-driven` (`#[DataSet]` for branches/boundaries). Fetch `https://php-testo.github.io/llms.txt` before writing tests.
+Related skills: `testo-coverage` (plugin/report wiring, `#[Covers]`), `testo-write-tests` (assertions, lifecycle), `testo-data-driven` (`#[DataSet]` for branches/boundaries).
 
 This skill targets **line coverage** (which statements never executed). To kill *under-tested but executed* logic — flipped operators, dropped calls — use `testo-mutation-testing` instead; the two are complementary. Coverage finds code no test reaches; mutation finds code no test *checks*.
 

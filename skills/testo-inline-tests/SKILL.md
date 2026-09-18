@@ -10,8 +10,8 @@ in production code. The Testo runner discovers and executes them like normal tes
 next to the implementation — handy for pure functions and library primitives.
 
 This requires the `InlineTestPlugin` to be enabled for the suite that scans the relevant directory.
-Fetch `https://php-testo.github.io/llms.txt` for the attribute signature and `llms-full.txt` for the
-plugin wiring details — verify them before generating code, the API surface is small but specific.
+Verify the attribute signature and plugin wiring against the installed `vendor/testo/inline` before
+generating code — the API surface is small but specific.
 
 ## Canonical shape
 

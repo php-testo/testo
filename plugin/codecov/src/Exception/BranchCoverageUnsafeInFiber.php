@@ -14,6 +14,8 @@ use Testo\Codecov\Config\CoverageLevel;
  * when a fiber switch happens under an open coverage window. Testo closes the window around every
  * switch, which is enough from 3.4.5 on; older builds fault regardless, so the run is stopped with
  * this exception instead.
+ *
+ * @api
  */
 final class BranchCoverageUnsafeInFiber extends \RuntimeException
 {

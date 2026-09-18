@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Application\Config;
 
+use Internal\Container\Attribute\ScopeShared;
 use Internal\Path;
 use Testo\Application\Config\Plugin\ApplicationPlugins;
 use Testo\Common\PluginConfigurator;
@@ -13,6 +14,7 @@ use Testo\Common\PluginConfigurator;
  *
  * @api
  */
+#[ScopeShared]
 final readonly class ApplicationConfig
 {
     /**

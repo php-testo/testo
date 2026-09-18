@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.2](https://github.com/php-testo/testo/compare/codecov-0.2.1...codecov-0.2.2) (2026-09-14)
+
+
+### Bug Fixes
+
+* **codecov:** populate branch/condition data in Clover reports ([a0a3b80](https://github.com/php-testo/testo/commit/a0a3b809b57c1d5d89c9a69fce1c8d3b4fcb8bae))
+
+
+### Code Refactoring
+
+* **codecov:** share branch aggregation between Clover and Cobertura ([a0a3b80](https://github.com/php-testo/testo/commit/a0a3b809b57c1d5d89c9a69fce1c8d3b4fcb8bae))
+* **core:** mark readonly services as `#[ScopeShared]` ([#327](https://github.com/php-testo/testo/issues/327)) ([529f480](https://github.com/php-testo/testo/commit/529f480d8341f93fbbf61c7b5c4aa69b9a1158d0))
+
 ## [0.2.1](https://github.com/php-testo/testo/compare/codecov-0.2.0...codecov-0.2.1) (2026-08-27)
 
 

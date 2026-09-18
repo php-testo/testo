@@ -10,6 +10,8 @@ namespace Testo\Codecov\Result;
  * Carries the line's coverage status and the list of tests that executed it.
  * Per-test attribution is populated by {@see \Testo\Codecov\Internal\Middleware\CoverageTestInterceptor}
  * via {@see CoverageResult::withTestMethod()} and merged across runs by {@see self::merge()}.
+ *
+ * @api
  */
 final readonly class LineCoverage
 {

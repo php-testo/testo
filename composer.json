@@ -30,7 +30,7 @@
     "require": {
         "php": ">=8.2",
         "ext-tokenizer": "*",
-        "internal/container": "^1.0",
+        "internal/container": "^1.1",
         "internal/destroy": "^1.0",
         "internal/path": "^1.3",
         "psr/container": "1 - 2",
@@ -38,20 +38,21 @@
         "psr/log": "^2.0 || ^3.0",
         "symfony/console": "^6.4 || ^7 || ^8.0",
         "symfony/finder": "^6.4 || ^7 || ^8.0",
-        "testo/assert": "^0.1.14",
+        "testo/assert": "^0.1.15",
         "testo/fiber": "^0.1.3",
-        "testo/bench": "^0.1.11",
-        "testo/bridge-symfony-console": "^0.1.12",
-        "testo/codecov": "^0.2.1",
+        "testo/bench": "^0.1.12",
+        "testo/bridge-symfony-console": "^0.1.13",
+        "testo/codecov": "^0.2.2",
         "testo/convention": "^0.1.5",
         "testo/data": "^0.1.9",
         "testo/error-handler": "^0.1",
-        "testo/filter": "^0.1.7",
+        "testo/filter": "^0.1.8",
         "testo/inline": "^0.1.9",
         "testo/lifecycle": "^0.1.6",
         "testo/repeat": "^0.1.9",
         "testo/retry": "^0.1.5",
-        "testo/test": "^0.1.7",
+        "testo/skip": "^0.1",
+        "testo/test": "^0.1.8",
         "yiisoft/injector": "^1.2"
     },
     "require-dev": {
@@ -107,6 +108,7 @@
             "Tests\\Lifecycle\\": "plugin/lifecycle/tests/",
             "Tests\\Repeat\\": "plugin/repeat/tests/",
             "Tests\\Retry\\": "plugin/retry/tests/",
+            "Tests\\Skip\\": "plugin/skip/tests/",
             "Tests\\Test\\": "plugin/test/tests/"
         },
         "files": [
@@ -134,6 +136,7 @@
                     "testo/lifecycle": "0.1.x-dev",
                     "testo/repeat": "0.1.x-dev",
                     "testo/retry": "0.1.x-dev",
+                    "testo/skip": "0.1.x-dev",
                     "testo/test": "0.1.x-dev"
                 }
             }
@@ -220,7 +223,7 @@
         "test:cc": [
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",
-            "testo --coverage --coverage-clover=runtime/clover.xml"
+            "testo --coverage --coverage-clover=runtime/clover.xml --type=!bench"
         ]
     }
 }

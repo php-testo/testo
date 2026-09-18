@@ -11,8 +11,8 @@ Coverage is opt-in via the **`CodecovPlugin`** in `testo.php`. The plugin needs:
 2. One or more **report writers** — Clover, Cobertura, PHPUnit XML.
 3. Xdebug ≥ 3.1 (in coverage mode) **or** PCOV available on the runner. Without one of them, the plugin will skip. The coverage mode can be set via `xdebug.mode=coverage`, the `-d xdebug.mode=coverage` CLI flag, **or** the `XDEBUG_MODE=coverage` env var — Testo resolves the active mode with `xdebug_info('mode')`, so the env override (used by `composer infect` and IDE coverage runners) counts.
 
-Fetch `https://php-testo.github.io/llms.txt` (and `llms-full.txt` if you need plugin wiring detail)
-before editing — exact class names and constructor parameters are authoritative there.
+Exact class names and constructor parameters are authoritative in the installed `vendor/testo/codecov` —
+verify against it before editing.
 
 ## Canonical wiring in `testo.php`
 
@@ -127,7 +127,7 @@ Rules (this is project policy in many Testo codebases — confirm before changin
 
 - **Class-level `#[Covers]`** when every test in the class covers the same production class. This is the default.
 - **Method-level `#[Covers]`** when tests in the same class cover different classes.
-- Free functions: pass the FQN as a string — `#[Covers('App\\helpers\\format_money')]` (verify against `llms.txt` for the version in use).
+- Free functions: pass the FQN as a string — `#[Covers('App\\helpers\\format_money')]`.
 
 ## Reports cheat-sheet
 

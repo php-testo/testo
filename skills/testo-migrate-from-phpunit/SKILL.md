@@ -18,8 +18,7 @@ discovery is attribute-based, and there is no base class. This skill orchestrate
 
 The PHPUnit → Testo construct mapping (shared by both) lives in `references/phpunit-to-testo-map.md`.
 Run every command from the project root (never `cd` into `vendor/bin`). `<skillDir>` is this skill's
-own directory (the folder holding `SKILL.md`). Fetch `https://php-testo.github.io/llms.txt` before
-writing tests.
+own directory (the folder holding `SKILL.md`).
 
 > Pest → Testo: the bridge ships only `expect()->toX()` → `Assert::*`; the `test()`/`it()`
 > functional→class restructuring is not automatable. Treat a Pest suite as Approach B (AI rewrite)

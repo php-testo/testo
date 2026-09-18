@@ -2,14 +2,15 @@
 
 Reference for the library-free route of `testo-test-doubles`. A hand-written double is an ordinary
 `final class` implementing the collaborator's interface, checked in under `tests/`. It costs a file, and
-buys a readable test, a reusable fixture, and zero dependencies. It is the right default for ports you own.
+buys a readable test, a reusable fixture, and zero dependencies. It is the default route whether or not a
+mocking library is installed; the library is the exception, reached for the cases listed below.
 
 ## When to write one
 
 - The collaborator is an **interface in your codebase** (repository, clock, mailer, gateway port).
 - The double **holds state** the test reads back (saved entities, sent messages).
 - **Three or more tests** would configure the same stub — one fake replaces repeated `allows()` chains.
-- **No mocking library** is installed and the test needs one or two simple doubles.
+- The test needs **one or two simple doubles** — a library buys nothing at that size.
 
 Reach for a library instead when the target is a third-party interface with many methods you would have
 to implement, or when call order is the contract (a hand-rolled ordered mock is more code than it is worth).
@@ -31,15 +32,9 @@ A fake that also records (an in-memory repository exposing `saved` calls) is sti
 
 ## Where it lives
 
-- Directory: **`tests/<Suite>/Stub/`** next to the tests that use it (`tests/Unit/Stub/`, or per module
-  `tests/Billing/Stub/`). Namespace mirrors the path: `Tests\Unit\Stub\SpyMailer`. Testo's own suites use
-  exactly this layout (`tests/Application/Stub/SpyDispatcher.php`, `plugin/codecov/tests/Stub/SpyDriver.php`).
-- Make sure `autoload-dev` maps the `Tests\` prefix onto `tests/`; a fake that is not autoloadable fails
-  with a class-not-found inside the test.
-- Discovery is attribute-based, so a class under a suite's `location` without `#[Test]` is never run as a
-  test. Keep `#[Test]`, `#[Group]` and other test attributes off the fake.
-- One fake per file, one collaborator per fake. A fake for a second interface is a second class, even
-  when the two are always used together.
+**`tests/<Suite>/Stub/`**, one class per file, namespace mirroring the path:
+`tests/Unit/Stub/SpyMailer.php` → `Tests\Unit\Stub\SpyMailer`. Autoloading, test attributes, and the
+`Fixture/` directory the non-double helpers go to — `placement.md`.
 
 ## Shape
 

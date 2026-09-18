@@ -2,7 +2,7 @@
 
 The single source of truth for *what each PHPUnit construct becomes in Testo*. Both migration
 paths use it: the **Rector** path automates the mechanical rows; the **AI-agent** path ports every
-row by hand. When in doubt about an attribute, fetch `https://php-testo.github.io/llms.txt`.
+row by hand. When in doubt about an attribute, read its class in the installed `vendor/testo/`.
 
 Testo is similar in spirit to PHPUnit but **not source-compatible**. Never run a blind regex pass —
 the assertion **argument order flips** (see the pitfalls), and discovery is attribute-based.
@@ -41,7 +41,7 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertEmpty($a)` / `assertNotEmpty($a)` | `Assert::blank($a)` / `Assert::notBlank($a)` **only when `$a` is an array** — `blank()` treats `false`/`0`/`'0'` as valid data, so for other types port by hand. |
 | `$this->expectException(X::class)` before Act | `Expect::exception(X::class)->withMessage(...)->withCode(...)` before Act. Method return type becomes `never`. |
 | `$this->expectExceptionMessageMatches('/.../')` | `withMessageContaining('substring')` if a literal substring suffices; otherwise catch and assert manually. No PCRE. |
-| `$this->markTestSkipped('reason')` | `throw new \Testo\Core\Exception\SkipTest('reason')` from the test body. |
+| `$this->markTestSkipped('reason')` | `#[Skip('reason')]` from **`Testo\Skip`** when the call opens the test unconditionally — the test then never enters the pipeline (no hooks, no provider, no retries). A guarded call, one deeper in the body, or a non-literal message stays runtime: `throw new \Testo\Core\Exception\SkipTest('reason')` from the test body. |
 | `$this->markTestIncomplete('reason')` | No "incomplete" status. Port to `throw new SkipTest('TODO: reason')`, or leave the body empty → `Status::Risky`. |
 | `#[DoesNotPerformAssertions]` / `$this->expectNotToPerformAssertions()` | `#[ExpectNoAssertions]` from **`Testo\Assert`**, on a method or function (not a class) — no method-call form. Two-way contract: a marked test that *does* assert is `Status::Risky`. |
 | `$this->createMock(Foo::class)` | Testo core ships no mocking; the doubling library is `testo/bridge-double`. `$this->createMock`/`createStub` → `\JMac\Testing\Double::for(Foo::class)` and the `expects()->method()->willReturn()` chain → `expects('m')->times(1)->returns(...)`, with `with()` constraints mapped onto `Argument::*` (`anything`→`any`, `isInstanceOf`→`type`, `callback`→`satisfies`, …). The `CreateMockToDoubleRector` Rector rule does all this automatically (also `willReturnSelf` → `returns(<the double>)`, `getMockBuilder(X)->disableOriginalConstructor()->getMock()` → `Double::for(X)`, and comparison/string/`logicalNot`/`logicalOr` constraints via `Argument::satisfies`/`not`/`any`); only `willReturnMap`, `prophesize`, a `getMockBuilder` step beyond `disableOriginalConstructor`, and `with()` constraints with no faithful form (`logicalAnd`, `equalToWithDelta`, case-insensitive `stringContains`) stay manual. Prefer keeping Mockery instead? Add `testo/bridge-mockery` — like the Double bridge, it verifies and isolates mocks after every test (drops the `tearDown()` / `MockeryPHPUnitIntegration` boilerplate) and counts a fulfilled expectation as an assertion, so a mock-only test stays out of `Status::Risky`. **Never** mock `final` classes or enums. |

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Codecov\Report;
 
 use Internal\Path;
+use Testo\Codecov\Internal\BranchCoverageAggregator;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineStatus;
@@ -46,12 +47,16 @@ final readonly class CloverReport implements CoverageReport
 
         $totalStatements = 0;
         $totalCovered = 0;
+        $totalConditionals = 0;
+        $totalCoveredConditionals = 0;
         $fileCount = 0;
 
         foreach ($result->files as $fileCoverage) {
-            [$statements, $covered] = $this->writeFile($xml, $fileCoverage);
+            [$statements, $covered, $conditionals, $coveredConditionals] = $this->writeFile($xml, $fileCoverage);
             $totalStatements += $statements;
             $totalCovered += $covered;
+            $totalConditionals += $conditionals;
+            $totalCoveredConditionals += $coveredConditionals;
             $fileCount++;
         }
 
@@ -60,10 +65,10 @@ final readonly class CloverReport implements CoverageReport
             'files' => $fileCount,
             'statements' => $totalStatements,
             'coveredstatements' => $totalCovered,
-            'elements' => $totalStatements,
-            'coveredelements' => $totalCovered,
-            'conditionals' => 0,
-            'coveredconditionals' => 0,
+            'conditionals' => $totalConditionals,
+            'coveredconditionals' => $totalCoveredConditionals,
+            'elements' => $totalStatements + $totalConditionals,
+            'coveredelements' => $totalCovered + $totalCoveredConditionals,
         ]);
 
         $xml->endElement(); // project
@@ -82,7 +87,8 @@ final readonly class CloverReport implements CoverageReport
     }
 
     /**
-     * @return array{int<0, max>, int<0, max>} [statements, covered]
+     * @return array{int<0, max>, int<0, max>, int<0, max>, int<0, max>}
+     *         [statements, covered, conditionals, covered conditionals]
      */
     private function writeFile(\XMLWriter $xml, FileCoverage $fileCoverage): array
     {
@@ -91,8 +97,17 @@ final readonly class CloverReport implements CoverageReport
 
         $statements = 0;
         $covered = 0;
+        $conditionals = 0;
+        $coveredConditionals = 0;
 
-        // Sort lines by number
+        // Only decision points count as conditionals, so the file metrics equal
+        // the sum of truecount/falsecount over the cond lines written below.
+        $lineBranches = BranchCoverageAggregator::buildLineBranchMap($fileCoverage);
+        foreach ($lineBranches as [$branchTotal, $branchCovered]) {
+            $conditionals += $branchTotal;
+            $coveredConditionals += $branchCovered;
+        }
+
         $lines = $fileCoverage->lines;
         \ksort($lines);
 
@@ -107,23 +122,35 @@ final readonly class CloverReport implements CoverageReport
 
             $xml->startElement('line');
             $xml->writeAttribute('num', (string) $lineNumber);
-            $xml->writeAttribute('type', 'stmt');
-            $xml->writeAttribute('count', (string) $count);
+
+            if (isset($lineBranches[$lineNumber])) {
+                [$branchTotal, $branchCovered] = $lineBranches[$lineNumber];
+
+                // A branch may have more than two outgoing edges (`match` arms), so
+                // truecount/falsecount carry covered/uncovered edge counts, not a literal pair.
+                $xml->writeAttribute('type', 'cond');
+                $xml->writeAttribute('truecount', (string) $branchCovered);
+                $xml->writeAttribute('falsecount', (string) ($branchTotal - $branchCovered));
+            } else {
+                $xml->writeAttribute('type', 'stmt');
+                $xml->writeAttribute('count', (string) $count);
+            }
+
             $xml->endElement();
         }
 
         $this->writeMetrics($xml, [
             'statements' => $statements,
             'coveredstatements' => $covered,
-            'elements' => $statements,
-            'coveredelements' => $covered,
-            'conditionals' => 0,
-            'coveredconditionals' => 0,
+            'conditionals' => $conditionals,
+            'coveredconditionals' => $coveredConditionals,
+            'elements' => $statements + $conditionals,
+            'coveredelements' => $covered + $coveredConditionals,
         ]);
 
         $xml->endElement(); // file
 
-        return [$statements, $covered];
+        return [$statements, $covered, $conditionals, $coveredConditionals];
     }
 
     /**

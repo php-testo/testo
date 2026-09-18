@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Filter\Internal;
 
+use Internal\Container\Attribute\ScopeShared;
 use Internal\Path;
 use Testo\Application\Config\ApplicationConfig;
 use Testo\Application\Config\FinderConfig;
@@ -23,6 +24,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * @psalm-internal Testo\Filter
  */
 #[InterceptorOptions(order: InterceptorOptions::ORDER_FILTER, onConflict: ConflictPolicy::First)]
+#[ScopeShared]
 final readonly class SuiteFilterInterceptor implements SuiteLocatorInterceptor
 {
     public function __construct(

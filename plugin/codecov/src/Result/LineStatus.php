@@ -6,6 +6,8 @@ namespace Testo\Codecov\Result;
 
 /**
  * Represents the coverage status of a single source code line.
+ *
+ * @api
  */
 enum LineStatus: int
 {

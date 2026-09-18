@@ -27,7 +27,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class Init extends Command
 {
-    private const STUB = __DIR__ . '/../../resources/stubs/testo.php';
+    private const STUB = __DIR__ . '/../../resources/stubs/testo.php.stub';
     private const CONFIG_FILENAME = 'testo.php';
     private const KNOWN_SUITES = ['Unit', 'Integration', 'Functional', 'Acceptance', 'Feature', 'E2E', 'Contract'];
     private const SCRIPT_ALL_KEY = 'test';
