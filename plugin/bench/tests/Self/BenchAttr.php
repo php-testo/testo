@@ -8,7 +8,7 @@ use Testo\Bench;
 use Testo\Filter\Group;
 use Testo\Inline\TestInline;
 
-#[Group('bench')]
+#[Group('bench', 'metadata')]
 final class BenchAttr
 {
     #[Bench(
