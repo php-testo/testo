@@ -8,7 +8,8 @@ use Testo\Inline\TestInline;
 
 /**
  * A runnable member of a case: a test, or a non-test such as a lifecycle hook. Interceptors refine
- * its role through the mutable {@see self::$isTest} and {@see self::$active} flags.
+ * its role through the mutable {@see self::$isTest}, {@see self::$active} and {@see self::$skipped}
+ * flags.
  *
  * @api
  */
@@ -27,6 +28,14 @@ final class TestDefinition
          * Whether this member is active. Filtering deactivates a test instead of discarding it.
          */
         public bool $active = true,
+
+        /**
+         * Whether this test is skipped ahead of time. A skipped test stays active: it is reported as
+         * {@see \Testo\Core\Value\Status::Skipped} without its body being run, unlike a deactivated
+         * test, which leaves the results entirely. Nothing that prepares a test body has to engage
+         * for it — a reader of this flag decides that for itself.
+         */
+        public bool $skipped = false,
     ) {}
 
     public function getDescription(): ?string

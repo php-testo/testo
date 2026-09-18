@@ -41,7 +41,7 @@ These line numbers are statements that never ran during the suite. Your job: wri
 ## Before you write anything
 
 1. **Read `{{FILE}}`**, focusing on the uncovered ranges. Group them into untested *behaviours*: an error/guard path, a branch of an `if`/`match`, a whole method, a loop body, an early return. Ignore lines that are unreachable by construction (see the dead-code rule).
-2. **Read the test conventions.** Fetch `https://php-testo.github.io/llms.txt` and follow the `testo-write-tests` skill (assertions, lifecycle), `testo-data-driven` (`#[DataSet]` for branches/boundaries), and `testo-coverage` (`#[Covers]`). Match the surrounding test style exactly.
+2. **Read the test conventions.** Follow the `testo-write-tests` skill (assertions, lifecycle), `testo-data-driven` (`#[DataSet]` for branches/boundaries), and `testo-coverage` (`#[Covers]`). Match the surrounding test style exactly.
 3. **Locate the existing tests.** Open the test file(s) listed above (the `covered_by` entries) — that's where the current coverage comes from and usually where the gaps belong. If the list is `none`, look under `{{TEST_DIR}}` for the segment's conventions and create a new test file following its naming/folder layout.
 
 ## Write the tests

@@ -14,7 +14,7 @@ Two attributes, two different jobs — **concurrency** vs **asynchrony**:
 
 They don't substitute for each other: `#[RunInFiber]` runs no event loop (a suspension waiting on I/O has no resumer), and `#[RunInRevolt]` doesn't interleave tests with each other.
 
-Fetch `https://php-testo.github.io/llms.txt` for the current attribute namespaces and parameters before writing code.
+Verify attribute namespaces and parameters against the installed `vendor/testo/` before writing code — the API is version-specific.
 
 ## `#[RunInFiber]` — plain fibers, Testo-driven
 

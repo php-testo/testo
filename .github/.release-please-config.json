@@ -41,6 +41,12 @@
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
+        "plugin/skip": {
+            "package-name": "testo/skip",
+            "component": "skip",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
         "plugin/test": {
             "package-name": "testo/test",
             "component": "test",
@@ -122,6 +128,12 @@
         "bridge/vcr": {
             "package-name": "testo/bridge-vcr",
             "component": "bridge-vcr",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
+        "bridge/double": {
+            "package-name": "testo/bridge-double",
+            "component": "bridge-double",
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         }

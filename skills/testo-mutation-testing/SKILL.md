@@ -7,8 +7,7 @@ description: Run mutation testing on a Testo project with Infection (via testo/b
 
 A read-only **pre-flight** (Phase 0), then five phases: **agree on scope** (blocking — see Phase 1), **set up** the scratch dir, **generate coverage**, **collect** surviving mutants, **kill** them. Run every command from the project root (never `cd` into `vendor/bin`).
 
-Related skills: `testo-coverage` (coverage setup), `testo-write-tests` (assertions). Fetch
-`https://php-testo.github.io/llms.txt` before editing tests.
+Related skills: `testo-coverage` (coverage setup), `testo-write-tests` (assertions).
 
 ## Phase 0 — Pre-flight (toolchain)
 

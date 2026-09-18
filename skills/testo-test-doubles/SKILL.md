@@ -1,6 +1,6 @@
 ---
 name: testo-test-doubles
-description: 'Isolate a collaborator in a Testo test with a test double — pick the right kind (dummy, stub, spy, mock, fake, partial) and build it with Double (testo/bridge-double), Mockery (testo/bridge-mockery), or a hand-written fake class. Use when the user says "mock", "stub", "spy", "fake", "test double", "in-memory repository", "isolate the dependency", "createMock", "partial mock", "verify it was called", "should receive", or when a test needs a collaborator that touches I/O, time, randomness, or a third-party service.'
+description: 'Isolate a collaborator in a Testo test with a test double — pick the right kind (dummy, stub, spy, mock, fake, partial) and build it with Double (testo/bridge-double), Mockery (testo/bridge-mockery), or a hand-written class — and place any fixture class a test declares. Use when the user says "mock", "stub", "spy", "fake", "test double", "in-memory repository", "isolate the dependency", "createMock", "partial mock", "verify it was called", "should receive"; when a test needs a collaborator that touches I/O, time, randomness, or a third-party service; or when a test declares a helper class of its own and it needs a home.'
 ---
 
 # Test doubles in Testo
@@ -10,11 +10,15 @@ each with its own reference next to this file:
 
 | Route | Reference | Reach for it when |
 |---|---|---|
-| **Double** (`testo/bridge-double`) | `references/double.md` | The project already uses Double, or is choosing a library fresh on PHP 8.3+. One API for stub/spy/mock/partial. |
-| **Mockery** (`testo/bridge-mockery`) | `references/mockery.md` | The project already uses Mockery, or must stay on PHP 8.2. |
-| **Hand-written** fake/stub/spy class | `references/handwritten.md` | The collaborator is a port you own, the double is reused across tests, it holds state, or no library is installed. Always available. |
+| **Hand-written** fake/stub/spy class | `references/handwritten.md` | **The default**, library installed or not: a real class under `tests/` reads without a DSL, is reused across tests, survives a library swap, and holds state. |
+| **Double** (`testo/bridge-double`) | `references/double.md` | A library earns its place: a wide third-party interface, call order as the contract, or the surrounding tests already double this way. Choosing fresh on PHP 8.3+. |
+| **Mockery** (`testo/bridge-mockery`) | `references/mockery.md` | The same cases, when the project already uses Mockery or must stay on PHP 8.2. |
 
-Fetch `https://php-testo.github.io/llms.txt` before writing tests. Run every command from the project root.
+Whichever route you take, every class the test itself declares gets a file and a directory:
+`references/placement.md`. That reference answers the fixture case too, which is where a test lands
+when no double is warranted at all.
+
+Run every command from the project root.
 
 ## Vocabulary
 
@@ -28,6 +32,12 @@ from least to most knowledge about the interaction:
 | **Spy** | Stub that records calls; you inspect them **after** the act | Yes, post hoc | "Was it called, with what?" matters and the test should read Arrange → Act → Assert |
 | **Mock** | Expectations declared **before** the act, checked at teardown | Yes, up front | Call count or order *is* the contract |
 | **Fake** | A working simplified implementation (in-memory repository, fixed clock) | No — behaves for real | The collaborator is stateful or used by many tests |
+
+**Fixture** — the category that is *not* on this ladder. A fixture is a class the test declares as
+**material** rather than as a stand-in: a synthetic value object it feeds the SUT, a target class a data
+provider drives, an interface written to be doubled, a subclass of the SUT that exists to be recognised.
+It replaces nothing, so no rung fits it, and it is placed rather than built — `references/placement.md`.
+Misreading a fixture as "just a helper" is what leaves it stranded at the foot of a test file.
 
 Orthogonal axes, independent of the ladder:
 
@@ -43,7 +53,8 @@ Orthogonal axes, independent of the ladder:
 Choose the lowest rung that expresses the contract:
 
 1. **Real object first.** Value objects, DTOs, enums, `final` classes, pure functions: instantiate them.
-   Never double these.
+   Never double these. A real object the test had to invent is a fixture: `references/placement.md`
+   gives it a file.
 2. **Stub** when the test asserts on what the SUT returns or does with the value.
 3. **Spy** when the test asserts on how the collaborator was used. Prefer it over a mock: the check sits
    in the Assert phase where the reader expects it.
@@ -53,7 +64,7 @@ Choose the lowest rung that expresses the contract:
    configure the same stub. Reference: `references/handwritten.md`.
 
 Double only *collaborators*, never the system under test. A test that doubles the class it is testing
-tests the double.
+tests the double. A subclass of the SUT that exists only to be observed is a fixture, not a double.
 
 ## Step 2 — Pick the tool
 
@@ -67,12 +78,15 @@ php <skillDir>/scripts/precheck.php          # add --root=PATH when not at the p
 the library and its Testo bridge are installed and whether the plugin is registered in `testo.php`, then a
 verdict:
 
-- **DOUBLE: READY** → follow `references/double.md`.
-- **MOCKERY: READY** → follow `references/mockery.md`.
-- Both READY → use the one the surrounding tests already use; for a fresh file prefer Double.
-- Neither → hand-written (`references/handwritten.md`) is the default. Offer to install a bridge only when
-  the user asks for a mocking library or the test would need three or more behaviour-verifying doubles; the
-  install steps live in the matching reference. A project stays on **one** library — never add a second.
+Whatever it prints, a hand-written class (`references/handwritten.md`) stays the first choice; the verdict
+says which library is available for the cases that earn one:
+
+- **DOUBLE: READY** → `references/double.md` for those cases.
+- **MOCKERY: READY** → `references/mockery.md` for those cases.
+- Both READY → the one the surrounding tests already use; for a fresh file prefer Double.
+- Neither → offer to install a bridge only when the user asks for a mocking library or the test would need
+  three or more behaviour-verifying doubles; the install steps live in the matching reference. A project
+  stays on **one** library — never add a second.
 
 A library installed **without its bridge plugin registered** is the trap the pre-flight exists for:
 expectations then silently go unverified and a mock-only test comes out `Status::Risky`. Fix registration

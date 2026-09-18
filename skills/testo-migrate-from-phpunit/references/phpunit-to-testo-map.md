@@ -2,7 +2,7 @@
 
 The single source of truth for *what each PHPUnit construct becomes in Testo*. Both migration
 paths use it: the **Rector** path automates the mechanical rows; the **AI-agent** path ports every
-row by hand. When in doubt about an attribute, fetch `https://php-testo.github.io/llms.txt`.
+row by hand. When in doubt about an attribute, read its class in the installed `vendor/testo/`.
 
 Testo is similar in spirit to PHPUnit but **not source-compatible**. Never run a blind regex pass —
 the assertion **argument order flips** (see the pitfalls), and discovery is attribute-based.

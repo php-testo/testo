@@ -63,25 +63,26 @@ final class TestDefinitions
      *
      * @return array<non-empty-string, TestDefinition>
      */
-    public function filter(?bool $isTest = null, ?bool $active = null): array
+    public function filter(?bool $isTest = null, ?bool $active = null, ?bool $skipped = null): array
     {
         return \array_filter(
             $this->definitions,
             static fn(TestDefinition $d): bool => ($isTest === null || $d->isTest === $isTest)
-                && ($active === null || $d->active === $active),
+                && ($active === null || $d->active === $active)
+                && ($skipped === null || $d->skipped === $skipped),
         );
     }
 
     /**
-     * The case's tests — by default only the active ones, i.e. the definitions to run. Pass
-     * `$active = false` for the deactivated tests alone, or `null` for every test regardless of
-     * state.
+     * The case's tests — by default only the active ones, i.e. the definitions to run or to report
+     * as skipped. Pass `$active = false` for the deactivated tests alone, or `null` for every test
+     * regardless of state; `$skipped = false` narrows down to the tests whose body will run.
      *
      * @return array<non-empty-string, TestDefinition>
      */
-    public function getTests(?bool $active = true): array
+    public function getTests(?bool $active = true, ?bool $skipped = null): array
     {
-        return $this->filter(isTest: true, active: $active);
+        return $this->filter(isTest: true, active: $active, skipped: $skipped);
     }
 
     /**

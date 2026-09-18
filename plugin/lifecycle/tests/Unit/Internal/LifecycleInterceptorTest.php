@@ -10,6 +10,8 @@ use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\Identity\SuiteIdentity;
+use Testo\Core\Context\TestInfo;
+use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinitions;
 use Testo\Core\Value\Status;
@@ -179,11 +181,11 @@ final class LifecycleInterceptorTest
     }
 
     /**
-     * Hooks of a function-based case come from its non-test functions, not from the surviving
-     * tests: an outer case interceptor may prune every test before this interceptor runs, and the
-     * `#[BeforeClass]`/`#[AfterClass]` hooks must still fire.
+     * A case without a single test to run has nothing to set up: an outer case interceptor may
+     * prune every test before this interceptor runs, and then no hook fires and none is published
+     * for the inner pipeline, even though the non-test functions carrying them are still there.
      */
-    public function runsClassHooksForFunctionCaseWhoseTestsWereAllPruned(): void
+    public function runsNoHookForFunctionCaseWhoseTestsWereAllPruned(): void
     {
         # Functions are not autoloadable: load the fixture to reach the counters.
         require_once $this->fixturesDir . 'PrunedFunctionsWithLifecycle.php';
@@ -191,28 +193,82 @@ final class LifecycleInterceptorTest
         PrunedFunctionsState::$afterClassCalls = 0;
         $info = $this->makeFunctionCaseInfoWithoutTests($this->fixturesDir . 'PrunedFunctionsWithLifecycle.php');
 
-        $hooksAtNext = null;
-        $beforeClassAtNext = null;
-        $afterClassAtNext = null;
+        $caseAtNext = null;
         $this->interceptor->runTestCase(
             $info,
-            static function (CaseInfo $case) use (&$hooksAtNext, &$beforeClassAtNext, &$afterClassAtNext): CaseResult {
-                $hooksAtNext = $case->getAttribute(LifecycleInterceptor::class, []);
-                $beforeClassAtNext = PrunedFunctionsState::$beforeClassCalls;
-                $afterClassAtNext = PrunedFunctionsState::$afterClassCalls;
+            static function (CaseInfo $case) use (&$caseAtNext): CaseResult {
+                $caseAtNext = $case;
                 return new CaseResult(results: [], status: Status::Passed);
             },
         );
 
-        # All four hooks were discovered from the case's non-tests and published for the inner pipeline.
-        Assert::array($hooksAtNext)
-            ->hasKeys(BeforeClass::class, AfterClass::class, BeforeTest::class, AfterTest::class);
-        # The class hooks fire exactly once, around the inner pipeline: BeforeClass has already
-        # fired when `$next` runs, AfterClass has not yet.
-        Assert::same($beforeClassAtNext, 1);
-        Assert::same($afterClassAtNext, 0);
-        Assert::same(PrunedFunctionsState::$beforeClassCalls, 1);
-        Assert::same(PrunedFunctionsState::$afterClassCalls, 1);
+        Assert::same($caseAtNext, $info);
+        Assert::same(PrunedFunctionsState::$beforeClassCalls, 0);
+        Assert::same(PrunedFunctionsState::$afterClassCalls, 0);
+    }
+
+    /**
+     * The skipped flag is what sets a fully skipped case apart from a runnable one: its tests
+     * stay active, yet the class hooks must not fire for them.
+     */
+    public function runsNoHookForCaseWhoseTestsAreAllSkipped(): void
+    {
+        require_once $this->fixturesDir . 'PrunedFunctionsWithLifecycle.php';
+        PrunedFunctionsState::$beforeClassCalls = 0;
+        PrunedFunctionsState::$afterClassCalls = 0;
+        $info = $this->makeFunctionCaseInfoWithoutTests($this->fixturesDir . 'PrunedFunctionsWithLifecycle.php');
+        $info->definition->tests->define(new \ReflectionFunction('strlen'))->skipped = true;
+
+        $caseAtNext = null;
+        $this->interceptor->runTestCase(
+            $info,
+            static function (CaseInfo $case) use (&$caseAtNext): CaseResult {
+                $caseAtNext = $case;
+                return new CaseResult(results: [], status: Status::Passed);
+            },
+        );
+
+        Assert::same($caseAtNext, $info);
+        Assert::same(PrunedFunctionsState::$beforeClassCalls, 0);
+        Assert::same(PrunedFunctionsState::$afterClassCalls, 0);
+    }
+
+    /**
+     * Per-test hooks are for a test body: a skipped test gets none, even in a case whose other
+     * tests run and whose hooks are published.
+     */
+    public function runsNoTestHookForASkippedTest(): void
+    {
+        require_once $this->fixturesDir . 'PrunedFunctionsWithLifecycle.php';
+        PrunedFunctionsState::$beforeTestCalls = 0;
+        PrunedFunctionsState::$afterTestCalls = 0;
+        $info = $this->makeFunctionCaseInfoWithoutTests($this->fixturesDir . 'PrunedFunctionsWithLifecycle.php');
+        $info->definition->tests->define(new \ReflectionFunction('strrev'));
+        $skipped = $info->definition->tests->define(new \ReflectionFunction('strlen'));
+        $skipped->skipped = true;
+
+        $caseAtNext = null;
+        $this->interceptor->runTestCase(
+            $info,
+            static function (CaseInfo $case) use (&$caseAtNext): CaseResult {
+                $caseAtNext = $case;
+                return new CaseResult(results: [], status: Status::Passed);
+            },
+        );
+        \assert($caseAtNext instanceof CaseInfo);
+        Assert::array($caseAtNext->getAttribute(LifecycleInterceptor::class, []))
+            ->hasKeys(BeforeTest::class, AfterTest::class);
+
+        $testInfo = new TestInfo(name: 'strlen', caseInfo: $caseAtNext, testDefinition: $skipped);
+        $nextCalled = false;
+        $this->interceptor->runTest($testInfo, static function (TestInfo $test) use (&$nextCalled): TestResult {
+            $nextCalled = true;
+            return new TestResult(info: $test, status: Status::Passed);
+        });
+
+        Assert::true($nextCalled);
+        Assert::same(PrunedFunctionsState::$beforeTestCalls, 0);
+        Assert::same(PrunedFunctionsState::$afterTestCalls, 0);
     }
 
     /**

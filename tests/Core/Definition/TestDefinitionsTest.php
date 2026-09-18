@@ -11,8 +11,9 @@ use Testo\Core\Definition\TestDefinitions;
 use Testo\Test;
 
 /**
- * The case's definitions live in one flat collection; a definition's role (test vs non-test) and
- * whether it is active are mutable flags, and the accessors slice the collection over them.
+ * The case's definitions live in one flat collection; a definition's role (test vs non-test),
+ * whether it is active and whether it is skipped are mutable flags, and the accessors slice the
+ * collection over them.
  */
 #[Test]
 #[Covers(TestDefinitions::class)]
@@ -114,6 +115,22 @@ final class TestDefinitionsTest
         Assert::array($definitions->getTests(active: false))->hasKeys('strlen');
         Assert::array($definitions->getTests(active: null))->hasKeys('strlen');
         Assert::array($definitions->filter(isTest: false))->hasCount(0);
+    }
+
+    /**
+     * A skipped test stays in the active test set — it is still reported — and leaves only the set
+     * of tests whose body runs.
+     */
+    public function skippingATestKeepsItActiveButOutOfTheRunnableSet(): void
+    {
+        $definitions = new TestDefinitions();
+        $definitions->define(new \ReflectionFunction('strlen'))->skipped = true;
+        $definitions->define(new \ReflectionFunction('strrev'));
+
+        Assert::array($definitions->getTests())->hasKeys('strlen', 'strrev');
+        Assert::array($definitions->getTests(skipped: false))->hasKeys('strrev')->doesNotHaveKeys('strlen');
+        Assert::array($definitions->getTests(skipped: true))->hasKeys('strlen')->doesNotHaveKeys('strrev');
+        Assert::array($definitions->filter(skipped: true))->hasCount(1);
     }
 
     /**

@@ -15,8 +15,8 @@ Testo offers five parameterization attributes. Pick by the **shape of the data**
 | `#[DataZip]` | Pair *N* providers by index (1st with 1st, 2nd with 2nd, …). Arguments from each axis are concatenated per row. |
 | `#[DataCross]` | Cartesian product across *N* providers. Each provider contributes its arguments to one slice of the final argument list; combinations multiply. |
 
-Always fetch `https://php-testo.github.io/llms.txt` before writing — the attribute namespaces and
-constructor signatures live there and may evolve.
+Verify attribute namespaces and constructor signatures against the installed `vendor/testo/data`
+before writing — they may evolve.
 
 ## `#[DataSet]` — inline cases
 

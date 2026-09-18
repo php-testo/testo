@@ -73,10 +73,17 @@ final readonly class LifecycleInterceptor implements
 
     /**
      * Collect all the lifecycle hooks and cache them for execution during test runs.
+     *
+     * A case without a test to run (every active test is skipped) has nothing to set up: its hooks
+     * stay silent, class-level and per-test alike.
      */
     #[\Override]
     public function runTestCase(CaseInfo $info, callable $next): CaseResult
     {
+        if ($info->definition->tests->getTests(skipped: false) === []) {
+            return $next($info);
+        }
+
         $result = self::group(self::collectHooks($info->definition));
 
         # Execute BeforeClass hooks
@@ -99,7 +106,7 @@ final readonly class LifecycleInterceptor implements
     {
         /** @var array<class-string<LifecycleAttribute>, non-empty-list<\ReflectionFunctionAbstract>> $hooks */
         $hooks = $info->caseInfo->getAttribute(self::class, []);
-        if ($hooks === []) {
+        if ($hooks === [] || $info->testDefinition->skipped) {
             return $next($info);
         }
 
@@ -155,8 +162,8 @@ final readonly class LifecycleInterceptor implements
     /**
      * The lifecycle-annotated non-test members of the case. Lifecycle-annotated members a finder
      * took for tests were demoted in {@see self::locateTestCases()}, so every hook is a non-test.
-     * Non-tests outlive test filtering: the `#[BeforeClass]`/`#[AfterClass]` hooks run even for a
-     * case whose tests were all filtered out.
+     * Discovery therefore does not depend on which tests survived: deactivating or skipping one
+     * leaves the case's hooks where they are.
      *
      * @return list<\ReflectionFunctionAbstract>
      */

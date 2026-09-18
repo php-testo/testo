@@ -64,7 +64,6 @@ final readonly class AttributesInterceptor implements TestRunInterceptor, TestCa
             $attrs,
         ));
 
-        # Merge and instantiate attributes
         $interceptors = $this->interceptorProvider->fromAttributes(TestRunInterceptor::class, ...$attrs);
         $info = $info->withAttributes(self::groupAttributes($attrs));
 

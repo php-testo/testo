@@ -32,8 +32,8 @@ other test file, production code, or `testo.php` (the orchestrator owns the suit
 ## Authoritative mapping — READ IT FIRST
 
 Read `{{MAP}}` before editing. It is the source of truth for every PHPUnit → Testo construct, the
-worked example, and the pitfalls. Also fetch `https://php-testo.github.io/llms.txt` if you are unsure
-about an attribute. Do **not** invent Testo API from memory.
+worked example, and the pitfalls. If you are unsure about an attribute, read its class in the installed
+`vendor/testo/`. Do **not** invent Testo API from memory.
 
 ## Running tests
 

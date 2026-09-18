@@ -66,6 +66,7 @@
             <file>../../plugin/filter/Filter.php</file>
             <file>../../plugin/repeat/Repeat.php</file>
             <file>../../plugin/retry/Retry.php</file>
+            <file>../../plugin/skip/Skip.php</file>
             <file>../../plugin/test/Test.php</file>
             <file>../../bridge/vcr/VCR.php</file>
         </include>

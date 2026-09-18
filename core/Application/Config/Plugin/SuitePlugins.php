@@ -10,6 +10,7 @@ use Testo\Common\PluginConfigurator;
 use Testo\Facade\FacadePlugin;
 use Testo\Inline\InlineTestPlugin;
 use Testo\Lifecycle\LifecyclePlugin;
+use Testo\Skip\SkipPlugin;
 use Testo\Test\TestPlugin;
 
 $_ = [];
@@ -18,6 +19,7 @@ $_ = [];
 \class_exists(FacadePlugin::class) and $_[] = new FacadePlugin();
 \class_exists(InlineTestPlugin::class) and $_[] = new InlineTestPlugin();
 \class_exists(LifecyclePlugin::class) and $_[] = new LifecyclePlugin();
+\class_exists(SkipPlugin::class) and $_[] = new SkipPlugin();
 \class_exists(TestPlugin::class) and $_[] = new TestPlugin();
 
 \define([__NAMESPACE__ . '\DEFAULT_SUITE_PLUGINS'][0], $_);

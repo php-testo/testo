@@ -8,7 +8,7 @@ description: Set up or edit `testo.php` — the Testo application config. Use wh
 Testo's config is a real PHP file at the project root returning an `ApplicationConfig`. No XML, no JSON.
 This means: full IDE completion, refactoring, and conditional logic (e.g. CI-only suites).
 
-Fetch `https://php-testo.github.io/llms.txt` before introducing new classes — the namespaces here are
+Verify namespaces against the installed `vendor/testo/` before introducing new classes — they are
 the most commonly drifted-on detail.
 
 ## Bootstrap with `init`

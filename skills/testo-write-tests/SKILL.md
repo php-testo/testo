@@ -10,10 +10,9 @@ Write them the Testo way described below — don't transliterate idioms from oth
 
 ## Before you write code
 
-Fetch the canonical API surface:
-
-- `https://php-testo.github.io/llms.txt` — concise index. Always start here.
-- `https://php-testo.github.io/llms-full.txt` — escalate when `llms.txt` doesn't answer the question.
+This skill is the API surface for ordinary tests; sibling `testo-*` skills cover data providers, doubles,
+async, coverage and the rest. When a name here disagrees with the installed version, `vendor/testo/`
+wins — verify against it before relying on memory.
 
 If the project ships an `AGENTS.md`, honour it.
 
@@ -136,6 +135,50 @@ Constraints:
 - Subclasses work: `class MissingExtensionSkip extends SkipTest {}` is still recognized.
 - Return type stays `void`, or `never` if the throw is unconditional.
 
+## Skipping a test with #[Skip]
+
+To skip a test declaratively — without running any of its code — put `Testo\Skip` (from the
+`testo/skip` plugin) on the test method (inherited by an overriding
+method that does not repeat it), the class (skips every test of the case; inherited from parents
+and traits, a method-level reason wins), or a free function:
+
+```php
+use Testo\Skip;
+
+#[Test]
+#[Skip('broken by the pricing rework, see ISSUE-123')]
+public function calculatesTotal(): void { /* ... */ }   // reported as Skipped, body never runs
+```
+
+The test is reported as `Status::Skipped` and counted in the totals; its reason travels in the
+result's failure message `{testId} is skipped via #[Skip] ==> {reason}` (without ` ==> ...` when
+the reason is empty). The JUnit, TeamCity and HTML reports show that message; the terminal prints
+the skipped line without it, and the compact `--json` report only counts the test in
+`totals.skipped`.
+
+`reason` is optional and the attribute is not repeatable — but **always pass a reason that points
+at an issue** (`#[Skip('flaky on CI, see ISSUE-123')]`); a bare `#[Skip]` is how a skipped test rots
+unreviewed. The attribute needs no plugin registration: it wires its own interceptor, from a class,
+a method or a function alike.
+
+Which skipping tool to reach for:
+
+| Tool | Decided by | Visibility | Use when |
+|---|---|---|---|
+| `#[Skip('...')]` | code, ahead of time | always reported; reason in JUnit/TeamCity/HTML | the test is knowingly broken, tracked in an issue, and must be returned to |
+| `throw SkipTest` | test body, at runtime | reported when the run gets there | test isn't applicable in this environment |
+| `#[Group]` + `--group=!x` | runner invocation | invisible — filtered out of reports | a category you sometimes don't run |
+
+Runtime contract of `#[Skip]`: the test is reported at the entry of its pipeline, so
+`#[BeforeTest]`/`#[AfterTest]`, data providers, `#[Retry]`/`#[Repeat]`, fibers and coverage never
+engage, and a data-driven test yields a single Skipped entry (the provider is not called).
+`#[BeforeClass]`/`#[AfterClass]` run when the case still has a test to run; when every test of the
+case is skipped they stay silent and the case class is never constructed (enabled neighbors
+construct it as usual). A run of only `#[Skip]`-marked tests is a success (exit 0). `#[Skip]`
+applies to plain tests only: on a `#[Bench]` or `#[TestInline]` target it is inert — the benchmark
+or inline case runs as usual. The `testo/skip` plugin (`Testo\Skip\SkipPlugin`) is part of the
+default suite plugins; it is what tells the lifecycle hooks about the skip ahead of the run.
+
 ## Tests that intentionally perform no assertions
 
 A test that finishes successfully without recording a single assertion is reported as
@@ -240,7 +283,7 @@ semantics are covered by the `testo-run-tests` skill — escalate there before a
 ## Pitfalls
 
 - Do not mock `enum`s or `final` classes — instantiate real ones. For stubs, spies, mocks and fakes (Double, Mockery, hand-written), escalate to the `testo-test-doubles` skill.
-- Do not invent attributes. If you need behaviour you haven't seen in `llms.txt`, escalate to `llms-full.txt` before guessing.
+- Do not invent attributes. If you need behaviour no `testo-*` skill describes, look for it in the installed `vendor/testo/` before guessing.
 - Do not write `setUp`/`tearDown` — use the lifecycle attributes above.
 - For parameterized tests, escalate to the `testo-data-driven` skill.
 - For flaky-test handling, escalate to the `testo-flaky-tests` skill.
