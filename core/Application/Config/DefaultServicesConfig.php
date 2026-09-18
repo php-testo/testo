@@ -9,10 +9,12 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Application\Internal\MessengerHub;
+use Testo\Application\Internal\StoreRegistry;
 use Testo\Pipeline\Internal\OutputInterceptor;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\Messenger;
 use Testo\Common\PluginConfigurator;
+use Testo\Common\Store\Stores;
 use Testo\Event\TestSuite\TestSuiteFinished;
 use Testo\Event\TestSuite\TestSuiteStarting;
 use Testo\Pipeline\InterceptorCollector;
@@ -62,6 +64,8 @@ final readonly class DefaultServicesConfig implements PluginConfigurator
             EventListenerCollector::class => EventDispatcher::class,
             InterceptorCollector::class => InterceptorProvider::class,
             Messenger::class => MessengerHub::class,
+            StoreConfig::class => static fn(Container $c): StoreConfig => $c->get(ApplicationConfig::class)->stores,
+            Stores::class => StoreRegistry::class,
         ];
     }
 

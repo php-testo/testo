@@ -20,6 +20,7 @@ use Testo\Application\Internal\SuiteFactory;
 use Testo\Application\Internal\SuiteLocator;
 use Testo\Common\PluginConfigurator;
 use Testo\Core\Context\RunResult;
+use Testo\Core\Context\SuiteContext;
 use Testo\Core\Context\SuiteResult;
 use Testo\Core\Value\RunTiming;
 use Testo\Core\Value\Status;
@@ -136,6 +137,11 @@ final readonly class Application
                         &$tests,
                     ): ?SuiteResult {
                         $at = \microtime(true);
+
+                        # Make the current suite resolvable from the container before anything runs —
+                        # discovery interceptors and plugins key per-suite state (stores, impact
+                        # selection) off it, and SuiteInfo does not exist yet at this point.
+                        $container->set(new SuiteContext($config->name));
 
                         # Apply plugins first to have all interceptors before suite files scanning
                         self::applyPlugins($container, self::resolvePlugins($config->plugins, SuitePlugins::class));
