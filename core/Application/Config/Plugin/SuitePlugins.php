@@ -7,6 +7,7 @@ namespace Testo\Application\Config\Plugin;
 use Testo\Assert\AssertPlugin;
 use Testo\Bench\BenchmarkPlugin;
 use Testo\Common\PluginConfigurator;
+use Testo\ErrorHandler\ErrorHandlerPlugin;
 use Testo\Facade\FacadePlugin;
 use Testo\Inline\InlineTestPlugin;
 use Testo\Lifecycle\LifecyclePlugin;
@@ -21,6 +22,7 @@ $_ = [];
 \class_exists(LifecyclePlugin::class) and $_[] = new LifecyclePlugin();
 \class_exists(SkipPlugin::class) and $_[] = new SkipPlugin();
 \class_exists(TestPlugin::class) and $_[] = new TestPlugin();
+\class_exists(ErrorHandlerPlugin::class) and $_[] = new ErrorHandlerPlugin();
 
 \define([__NAMESPACE__ . '\DEFAULT_SUITE_PLUGINS'][0], $_);
 unset($_);
