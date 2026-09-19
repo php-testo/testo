@@ -23,7 +23,7 @@ use Testo\Common\Info;
 
     # As a dependency
     $s = DIRECTORY_SEPARATOR;
-    \str_ends_with(__DIR__, "{$s}vendor{$s}testo{$s}testo{$s}bin") and $paths[] = __DIR__ . '/../../../autoload.php';
+    \str_ends_with(__DIR__, "{$s}vendor{$s}testo{$s}bridge-symfony-console{$s}bin") and $paths[] = __DIR__ . '/../../../autoload.php';
 
     # Fallback to CWD
     $paths[] = 'vendor/autoload.php';
