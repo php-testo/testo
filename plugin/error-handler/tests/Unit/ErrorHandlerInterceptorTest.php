@@ -432,7 +432,14 @@ final class ErrorHandlerInterceptorTest
             return new TestResult(info: $info, status: Status::Passed);
         };
 
-        $result = $interceptor->runTest($info, $next);
+        // The self-run wraps this test in its own capturing handler, which takes every error; the
+        // built-in handler on top leaves the interceptor under test with nothing to forward to.
+        \set_error_handler(null);
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
 
         $errors = $result->getAttribute(CapturedErrors::class);
         Assert::instanceOf($errors, CapturedErrors::class);

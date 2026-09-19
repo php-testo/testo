@@ -86,7 +86,7 @@ final class DifferTest
      */
     public function lcsEmitsNoWarnings(): void
     {
-        $previous = \set_error_handler(
+        \set_error_handler(
             static fn(int $errno, string $errstr) => throw new \ErrorException($errstr, $errno),
             \E_WARNING | \E_NOTICE,
         );
@@ -94,7 +94,7 @@ final class DifferTest
             $diff = (new LcsDiffer())->diff("a\nb\nc", "a\nX\nc");
             Assert::count($diff, 4);
         } finally {
-            \set_error_handler($previous);
+            \restore_error_handler();
         }
     }
 
