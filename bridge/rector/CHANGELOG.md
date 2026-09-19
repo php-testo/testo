@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7](https://github.com/php-testo/testo/compare/bridge-rector-0.2.6...bridge-rector-0.2.7) (2026-09-19)
+
+
+### Features
+
+* **bridge-rector:** convert `#[Skip]` in all three directions ([#340](https://github.com/php-testo/testo/issues/340)) ([6168dca](https://github.com/php-testo/testo/commit/6168dca93cd949c60de4214274b8a348d2939f48))
+
 ## [0.2.6](https://github.com/php-testo/testo/compare/bridge-rector-0.2.5...bridge-rector-0.2.6) (2026-09-14)
 
 

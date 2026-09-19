@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.49](https://github.com/php-testo/testo/compare/0.10.48...0.10.49) (2026-09-19)
+
+
+### Features
+
+* **bridge-rector:** convert `#[Skip]` in all three directions ([#340](https://github.com/php-testo/testo/issues/340)) ([6168dca](https://github.com/php-testo/testo/commit/6168dca93cd949c60de4214274b8a348d2939f48))
+* **core:** flag a test as skipped on its definition ([19638da](https://github.com/php-testo/testo/commit/19638da85d21481af141021b2f8784068600356a))
+* **skip:** add `#[Skip]` attribute to skip tests declaratively ([#314](https://github.com/php-testo/testo/issues/314)) ([19638da](https://github.com/php-testo/testo/commit/19638da85d21481af141021b2f8784068600356a))
+
 ## [0.10.48](https://github.com/php-testo/testo/compare/0.10.47...0.10.48) (2026-09-17)
 
 
