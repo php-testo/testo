@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7](https://github.com/php-testo/testo/compare/lifecycle-0.1.6...lifecycle-0.1.7) (2026-09-19)
+
+
+### Features
+
+* **core:** flag a test as skipped on its definition ([19638da](https://github.com/php-testo/testo/commit/19638da85d21481af141021b2f8784068600356a))
+* **skip:** add `#[Skip]` attribute to skip tests declaratively ([#314](https://github.com/php-testo/testo/issues/314)) ([19638da](https://github.com/php-testo/testo/commit/19638da85d21481af141021b2f8784068600356a))
+
 ## [0.1.6](https://github.com/php-testo/testo/compare/lifecycle-0.1.5...lifecycle-0.1.6) (2026-09-07)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.13...bridge-symfony-console-0.1.14) (2026-09-19)
+
+
+### Bug Fixes
+
+* detecting autoloader when installed as `testo/bridge-symfony-console` ([#346](https://github.com/php-testo/testo/issues/346)) ([ff0e72e](https://github.com/php-testo/testo/commit/ff0e72edab340f90db72bcbec4123c69df3c5ab4))
+
 ## [0.1.13](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.12...bridge-symfony-console-0.1.13) (2026-09-14)
 
 
