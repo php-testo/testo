@@ -39,7 +39,7 @@ final class EntrypointTest
     {
         $entrypoint = $this->installEntrypointWithoutAdjacentAutoloaders();
         $workingDirectory = $this->sandbox->path('run');
-        $this->linkComposerAutoloader($workingDirectory . '/vendor');
+        $this->installComposerAutoloader($workingDirectory . '/vendor');
 
         [$exitCode, $stdout, $stderr] = self::runBinary($entrypoint, '--version', $workingDirectory);
 
@@ -56,64 +56,6 @@ final class EntrypointTest
     public function destroySandbox(): void
     {
         $this->sandbox->destroy();
-    }
-
-    private function installEntrypointAsComposerDependency(): string
-    {
-        $entrypoint = $this->installEntrypoint('vendor/testo/bridge-symfony-console/bin/testo');
-        $vendor = $this->sandbox->path('vendor');
-
-        $this->linkComposerAutoloader($vendor);
-        $this->makeWorkingDirectory();
-
-        return $entrypoint;
-    }
-
-    private function installEntrypointForLocalDevelopment(): string
-    {
-        $entrypoint = $this->installEntrypoint('bridge/symfony-console/bin/testo');
-
-        $this->linkComposerAutoloader($this->sandbox->path('bridge/symfony-console/vendor'));
-        $this->makeWorkingDirectory();
-
-        return $entrypoint;
-    }
-
-    private function installEntrypointWithoutAdjacentAutoloaders(): string
-    {
-        $entrypoint = $this->installEntrypoint('isolated/bin/testo');
-        $this->makeWorkingDirectory();
-
-        return $entrypoint;
-    }
-
-    private function installEntrypoint(string $relativePath): string
-    {
-        $root = \dirname(__DIR__, 4);
-        $entrypoint = $this->sandbox->path($relativePath);
-        $bin = \dirname($entrypoint);
-
-        \is_dir($bin) || \mkdir($bin, 0o755, true) or throw new \RuntimeException("Cannot create {$bin}");
-        \copy($root . '/bridge/symfony-console/bin/testo', $entrypoint)
-            or throw new \RuntimeException("Cannot install the testo entrypoint at {$relativePath}.");
-
-        return $entrypoint;
-    }
-
-    private function linkComposerAutoloader(string $vendor): void
-    {
-        $root = \dirname(__DIR__, 4);
-
-        \is_dir($vendor) || \mkdir($vendor, 0o755, true) or throw new \RuntimeException("Cannot create {$vendor}");
-        \symlink($root . '/vendor/autoload.php', $vendor . '/autoload.php')
-            or throw new \RuntimeException('Cannot link Composer autoloader.');
-        \symlink($root . '/vendor/composer', $vendor . '/composer')
-            or throw new \RuntimeException('Cannot link Composer metadata.');
-    }
-
-    private function makeWorkingDirectory(): void
-    {
-        \mkdir($this->sandbox->path('run')) or throw new \RuntimeException('Cannot create isolated working directory.');
     }
 
     private static function assertRuns(int $exitCode, string $stdout, string $stderr, string $expectation): void
@@ -145,5 +87,61 @@ final class EntrypointTest
         \fclose($pipes[2]);
 
         return [\proc_close($process), $stdout, $stderr];
+    }
+
+    private function installEntrypointAsComposerDependency(): string
+    {
+        $entrypoint = $this->installEntrypoint('vendor/testo/bridge-symfony-console/bin/testo');
+        $vendor = $this->sandbox->path('vendor');
+
+        $this->installComposerAutoloader($vendor);
+        $this->makeWorkingDirectory();
+
+        return $entrypoint;
+    }
+
+    private function installEntrypointForLocalDevelopment(): string
+    {
+        $entrypoint = $this->installEntrypoint('bridge/symfony-console/bin/testo');
+
+        $this->installComposerAutoloader($this->sandbox->path('bridge/symfony-console/vendor'));
+        $this->makeWorkingDirectory();
+
+        return $entrypoint;
+    }
+
+    private function installEntrypointWithoutAdjacentAutoloaders(): string
+    {
+        $entrypoint = $this->installEntrypoint('isolated/bin/testo');
+        $this->makeWorkingDirectory();
+
+        return $entrypoint;
+    }
+
+    private function installEntrypoint(string $relativePath): string
+    {
+        $root = \dirname(__DIR__, 4);
+        $entrypoint = $this->sandbox->path($relativePath);
+        $bin = \dirname($entrypoint);
+
+        \is_dir($bin) || \mkdir($bin, 0o755, true) or throw new \RuntimeException("Cannot create {$bin}");
+        \copy($root . '/bridge/symfony-console/bin/testo', $entrypoint)
+            or throw new \RuntimeException("Cannot install the testo entrypoint at {$relativePath}.");
+
+        return $entrypoint;
+    }
+
+    private function installComposerAutoloader(string $vendor): void
+    {
+        $root = \dirname(__DIR__, 4);
+
+        \is_dir($vendor) || \mkdir($vendor, 0o755, true) or throw new \RuntimeException("Cannot create {$vendor}");
+        \file_put_contents($vendor . '/autoload.php', "<?php return require '{$root}/vendor/autoload.php';")
+            or throw new \RuntimeException('Cannot write Composer autoloader stub.');
+    }
+
+    private function makeWorkingDirectory(): void
+    {
+        \mkdir($this->sandbox->path('run')) or throw new \RuntimeException('Cannot create isolated working directory.');
     }
 }
