@@ -15,9 +15,11 @@ use Testo\Application\Config\RunConfiguration;
 use Testo\Application\Config\Plugin\ApplicationPlugins;
 use Testo\Application\Config\Plugin\PluginCollection;
 use Testo\Application\Config\Plugin\SuitePlugins;
+use Testo\Application\Internal\MessengerHub;
 use Testo\Application\Internal\Runner\SuiteRunner;
 use Testo\Application\Internal\SuiteFactory;
 use Testo\Application\Internal\SuiteLocator;
+use Testo\Common\Messenger;
 use Testo\Common\PluginConfigurator;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Context\SuiteResult;
@@ -102,7 +104,7 @@ final readonly class Application
      */
     public function run(PluginConfigurator|string ...$latePlugins): RunResult
     {
-        return $this->container->scope(static function (Container $container) use ($latePlugins): RunResult {
+        return self::scope($this->container, static function (Container $container) use ($latePlugins): RunResult {
             $startedAt = \microtime(true);
 
             $appConfig = $container->get(ApplicationConfig::class);
@@ -128,7 +130,8 @@ final readonly class Application
             foreach ($container->make(SuiteLocator::class)->locate($appConfig) as $config) {
                 # Resolve a Test Suite from config and
                 # run a separate container scope to isolate services and plugins.
-                $suiteResult = $container->scope(
+                $suiteResult = self::scope(
+                    $container,
                     static function (Container $container) use (
                         $filter,
                         $config,
@@ -211,6 +214,36 @@ final readonly class Application
         return $plugins instanceof PluginCollection
             ? $plugins->toArray()
             : $facade::with(...$plugins)->toArray();
+    }
+
+    /**
+     * Open a container scope and point the messenger at the scope's dispatcher for as long as it is open.
+     *
+     * The messenger is scope-shared and was built on the root dispatcher; a scope gets a clone of its
+     * parent's dispatcher, and that clone alone holds the listeners registered inside the scope — the
+     * renderers, the suite's plugins. Without the switch a message written by a test would be announced
+     * where none of them listens. Scopes nest but never interleave here — suites run one at a time — so a
+     * plain save-and-restore is enough.
+     *
+     * @template T
+     * @param \Closure(Container): T $scope
+     * @return T
+     */
+    private static function scope(Container $container, \Closure $scope): mixed
+    {
+        return $container->scope(static function (Container $container) use ($scope): mixed {
+            $messenger = $container->get(Messenger::class);
+            if (!$messenger instanceof MessengerHub) {
+                return $scope($container);
+            }
+
+            $previous = $messenger->switchDispatcher($container->get(EventDispatcherInterface::class));
+            try {
+                return $scope($container);
+            } finally {
+                $messenger->switchDispatcher($previous);
+            }
+        });
     }
 
     /**

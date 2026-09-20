@@ -6,6 +6,7 @@ namespace Testo\Application\Internal;
 
 use Internal\Container\Attribute\ScopeShared;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Testo\Application\Internal\Messenger\DispatcherSwitch;
 use Testo\Application\Internal\Messenger\State;
 use Testo\Application\Internal\Messenger\MutableContainer;
 use Testo\Common\Messenger;
@@ -28,11 +29,23 @@ use Testo\Core\Log\MessageLog;
 final readonly class MessengerHub implements Messenger
 {
     private MutableContainer $state;
+    private DispatcherSwitch $eventDispatcher;
 
-    public function __construct(
-        private EventDispatcherInterface $eventDispatcher,
-    ) {
+    public function __construct(EventDispatcherInterface $eventDispatcher)
+    {
+        $this->eventDispatcher = new DispatcherSwitch($eventDispatcher);
         $this->state = new MutableContainer(new State($this->eventDispatcher));
+    }
+
+    /**
+     * Announce messages on `$dispatcher` from now on — the dispatcher of the container scope being entered —
+     * and return the one announced on before, for the caller to put back on scope exit.
+     *
+     * @internal
+     */
+    public function switchDispatcher(EventDispatcherInterface $dispatcher): EventDispatcherInterface
+    {
+        return $this->eventDispatcher->switch($dispatcher);
     }
 
     #[\Override]
