@@ -93,7 +93,7 @@ Release tooling parses those lines, so an accurate type puts each change in the 
 
 ## Attribution trailer
 
-When AI assisted with a change, end the commit message with an `Assisted-By:` trailer on its own last line after a blank line (see [CONTRIBUTING.md](../../CONTRIBUTING.md)):
+When AI assisted with a change, end the commit message with an `Assisted-By:` trailer on its own last line after a blank line (see [CONTRIBUTING.md](../../.github/CONTRIBUTING.md)):
 
 ```
 Assisted-By: Claude Opus 5 <noreply@anthropic.com>
