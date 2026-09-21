@@ -60,7 +60,7 @@ final readonly class VCR implements Interceptable
      * @param RecordMode|null $mode Record mode for this test; `null` inherits php-vcr's global default
      *        ({@see RecordMode::NewEpisodes}).
      * @param list<Matcher> $match Request matchers for this test; an empty list inherits php-vcr's
-     *        default (method + URL).
+     *        default (every available matcher).
      */
     public function __construct(
         public string $name,
