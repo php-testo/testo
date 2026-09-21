@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.50](https://github.com/php-testo/testo/compare/0.10.49...0.10.50) (2026-09-21)
+
+
+### Bug Fixes
+
+* **core:** announce messenger events on the dispatcher of the open container scope ([#347](https://github.com/php-testo/testo/issues/347)) ([a53fe83](https://github.com/php-testo/testo/commit/a53fe83353a1a984e313fbb949b1d0d6a9a27efd))
+
 ## [0.10.49](https://github.com/php-testo/testo/compare/0.10.48...0.10.49) (2026-09-19)
 
 
