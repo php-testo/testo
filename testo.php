@@ -50,6 +50,7 @@ return new ApplicationConfig(
                 name: 'sandbox',
                 location: new FinderConfig(
                     include: ['tests/Sandbox'],
+                    exclude: ['tests/Sandbox/Sample'],
                 ),
             ),
         ],
