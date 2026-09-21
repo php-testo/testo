@@ -32,6 +32,7 @@ return new ApplicationConfig(
             'plugin/lifecycle/tests',
             'plugin/repeat/tests',
             'plugin/retry/tests',
+            'plugin/skip/tests',
             'plugin/test/tests',
         ],
     ),
