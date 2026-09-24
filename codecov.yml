@@ -33,7 +33,6 @@ github_checks:
 
 # Per-module coverage delta breakdown (on top of a single report, no extra uploads).
 component_management:
-  default_behavior: "include"
   individual_components:
     - component_id: core_application
       name: Application
@@ -62,6 +61,9 @@ component_management:
     - component_id: plugins
       name: Plugins
       paths: ["plugin/**"]
+    - component_id: bridges
+      name: Bridges
+      paths: ["bridge/**"]
 
 # Exclude things that should not affect coverage from the calculation.
 ignore:
