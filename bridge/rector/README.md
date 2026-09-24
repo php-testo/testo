@@ -17,8 +17,29 @@ Each direction ships a Rector set. Reference it with the typed handle from
 The set files live under `config/`; the constants are absolute paths to those files, so they
 also work with `$rectorConfig->import(...)`.
 
-Conversions that have no faithful counterpart in the target framework (PHPUnit mocks,
-constraints, memory-leak / retry / repeat, Pest higher-order & `arch()` tests, etc.) are
+### Mock sets
+
+Testo core ships no mocking, so test doubles convert through their own sets, one per target library.
+Add one next to `PHPUNIT_TO_TESTO`, or run it on its own:
+
+| Direction          | Set constant                             | Target |
+|--------------------|------------------------------------------|--------|
+| PHPUnit → Double   | `TestoRectorSetList::PHPUNIT_TO_DOUBLE`  | `createMock`/`createStub` and their `expects`/`method`/`will*`/`with` chains → `\JMac\Testing\Double` (`testo/bridge-double`). See `src/PhpunitToDouble/TODO.md`. |
+| PHPUnit → Mockery  | `TestoRectorSetList::PHPUNIT_TO_MOCKERY` | The same chains → `\Mockery::mock()` + `shouldReceive()` (`testo/bridge-mockery`). See `src/PhpunitToMockery/TODO.md`. |
+| Mockery → Double   | `TestoRectorSetList::MOCKERY_TO_DOUBLE`  | `mock`/`spy`, `shouldReceive`/`allows`/`expects`, `shouldHaveReceived`, `Mockery::close()` → Double, after Double's [migration table](https://testdoublephp.com/migrating-from-mockery). See `src/MockeryToDouble/TODO.md`. |
+
+```php
+return RectorConfig::configure()
+    ->withPaths([__DIR__ . '/tests'])
+    ->withSets([TestoRectorSetList::PHPUNIT_TO_TESTO, TestoRectorSetList::PHPUNIT_TO_DOUBLE]);
+```
+
+Each mock rule rewrites a whole configuration statement or none of it. The rules do not track a
+double across statements, though: when one statement on a double is left for manual work while the
+double's factory and its other statements convert, the leftover one is what the finishing pass fixes.
+
+Conversions that have no faithful counterpart in the target framework (constraints,
+memory-leak / retry / repeat, Pest higher-order & `arch()` tests, etc.) are
 **not silently dropped**: each is a documented stub rule plus an entry in the direction's
 `TODO.md`.
 
