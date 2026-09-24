@@ -107,12 +107,14 @@ before writing the test (steps in the reference).
   instance you can double.
 - **Fibers are safe.** Both bridges park their process-global state on every suspension, so doubles work
   under `#[RunInFiber]` / `#[RunInRevolt]` (see `testo-async`).
-- **Migrating from PHPUnit?** `createMock()` chains convert to Double mechanically via `testo/bridge-rector`;
-  the rest of the flow is in `testo-migrate-from-phpunit`.
+- **Migrating doubles?** `testo/bridge-rector` converts them mechanically: PHPUnit `createMock()` chains
+  to Double (`PHPUNIT_TO_DOUBLE`) or Mockery (`PHPUNIT_TO_MOCKERY`), and Mockery to Double
+  (`MOCKERY_TO_DOUBLE`), all in `TestoRectorSetList`. The rest of a PHPUnit migration is in
+  `testo-migrate-from-phpunit`.
 
 ## Related skills
 
 - `testo-write-tests` — `#[Test]`, `Assert`, `Expect`, lifecycle hooks the double sits inside.
 - `testo-configure` — where `plugins:` live in `testo.php` when registering a bridge.
 - `testo-async` — fiber-driven tests that hold doubles across suspensions.
-- `testo-migrate-from-phpunit` — Rector-assisted `createMock()` → `Double::for()` conversion.
+- `testo-migrate-from-phpunit` — Rector-assisted PHPUnit migration, mocks included.

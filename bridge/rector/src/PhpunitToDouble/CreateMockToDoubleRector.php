@@ -2,18 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Testo\Bridge\Rector\PhpunitToTesto;
+namespace Testo\Bridge\Rector\PhpunitToDouble;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\ArrayDimFetch;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrowFunction;
-use PhpParser\Node\Expr\BinaryOp;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\ConstFetch;
-use PhpParser\Node\Expr\Empty_;
-use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
+use PhpParser\Node\Expr\New_;
+use PhpParser\Node\Expr\PropertyFetch;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
@@ -21,10 +22,16 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\Int_;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Expression;
+use PhpParser\Node\VariadicPlaceholder;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\PhpunitConstraint;
+use Testo\Bridge\Rector\Internal\PhpunitMockFactory;
+use Testo\Bridge\Rector\Internal\PredicateVariable;
+use Testo\Bridge\Rector\Internal\ReturnValueMap;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -37,49 +44,56 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *     $dep = \JMac\Testing\Double::for(Dependency::class);
  *     $dep->expects('run')->times(1)->with('x')->returns('y');
  *
- * Two transforms cooperate over Rector's fix-point passes:
+ * Creation ({@see PhpunitMockFactory} reads the PHPUnit side): `createMock(X)`/`createStub(X)`, the
+ * intersection factories and the constructor-disabling builder → `Double::for(...)`, which never runs a
+ * constructor and answers an unconfigured call with a default, as PHPUnit does;
+ * `disableAutoReturnValueGeneration()` adds `->strict()`. A partial double — `createPartialMock(X, ['a'])`,
+ * `onlyMethods(['a'])` — is `Double::for(X)->passthru()` (with `passthru(new X(...))` when the builder runs
+ * the constructor) plus an `allows('a')` per doubled method, so those answer with a default while every
+ * other method runs for real. `createConfiguredMock(X, ['m' => $v])` is `Double::for(X)` plus an
+ * `allows('m')->returns($v)` per entry. The added `allows()` calls are statements of their own, so these
+ * two forms convert when the double is assigned to a variable or property.
  *
- * - `$this->createMock(X)` / `$this->createStub(X)` → `Double::for(X)`,
- *   `create{Mock,Stub}ForIntersectionOfInterfaces([A, B])` → `Double::for(A, B)`, and the
- *   constructor-disabling builder chain `getMockBuilder(X)->disableOriginalConstructor()->getMock()`
- *   → `Double::for(X)`.
- * - a configuration chain is rebuilt from its outermost call: PHPUnit's invocation matcher moves
- *   off `expects()` and onto the verb — `$this->any()` picks `allows()` (optional), every other
- *   matcher keeps `expects()` (required) and folds into a trailing `times()`/`never()`; the method
- *   name moves from `->method('m')` onto `expects('m')`/`allows('m')`; `withAnyParameters()` drops
- *   away (Double's default); and the return verbs map
- *   `willReturn`/`willReturnOnConsecutiveCalls` → `returns`, `willThrowException` → `throws`,
- *   `willReturnCallback` → `resolves`, `willReturnArgument($n)` → `resolves(fn (...$a) => $a[$n])`,
- *   `willReturnSelf()` → `returns(<the double>)`, plus the legacy `will($this->returnValue()/
- *   throwException()/returnCallback()/onConsecutiveCalls()/returnArgument()/returnSelf())` wrappers.
- * - `->with()` argument constraints become `Argument::*` matchers: `anything()` → `any()`,
- *   `identicalTo()` → `same()`, `isInstanceOf()`/`isType()` → `type()`, `callback()` → `satisfies()`,
- *   `contains()` → `contains()`, `matchesRegularExpression()` → `matches()`; `equalTo($x)` unwraps to
- *   the bare `$x` and `isNull()`/`isTrue()`/`isFalse()` to `null`/`true`/`false` (Double matches by
- *   equality by default); the comparison and string constraints Double has no dedicated matcher for
- *   become a predicate — `greaterThan`/`lessThan`/`greaterThanOrEqual`/`lessThanOrEqual`,
- *   `isEmpty`, `stringContains`, `stringStartsWith`/`stringEndsWith`, `arrayHasKey` →
- *   `satisfies(fn ($value) => …)`; and the composites fold in recursively — `logicalNot()` →
- *   `Argument::not(...)` / `Argument::not()->…()`, `logicalOr()` → `Argument::any(...)`. A plain value
- *   passes through.
+ * Configuration chain, rebuilt from its outermost call: PHPUnit's invocation matcher moves off
+ * `expects()` onto the verb — `any()` picks `allows()`, every other matcher keeps `expects()` and folds
+ * into `times()`/`never()` (`once` → `times(1)`, `exactly($n)` → `times($n)`, `atLeastOnce` →
+ * `times(minimum: 1)`, `atLeast`/`atMost` → `times(minimum:/maximum:)`); the method name moves from
+ * `->method('m')` onto the verb; `withAnyParameters()` drops away; the returns map
+ * `willReturn`/`willReturnOnConsecutiveCalls` → `returns`, `willThrowException` → `throws`,
+ * `willReturnCallback` → `resolves`, `willReturnArgument($n)` → `resolves(fn (...$args) => $args[$n])`,
+ * `willReturnSelf()` → `returns(<the double>)`, `willReturnMap($map)` → `resolves(<the map lookup>)`
+ * ({@see ReturnValueMap}), plus the legacy `will($this->returnValue()/…/returnValueMap())` wrappers.
  *
- * Matcher map: `once` → `times(1)`, `exactly($n)` → `times($n)`, `never` → `never()`,
- * `atLeastOnce` → `times(minimum: 1)`, `atLeast($n)` → `times(minimum: $n)`,
- * `atMost($n)` → `times(maximum: $n)`, `any` → `allows()` (no count).
+ * `with()` constraints become `Argument::*` matchers where Double has one: `anything` → `any`,
+ * `identicalTo` → `same`, `isInstanceOf` and the `isType()` names Double's `type()` knows → `type`,
+ * `callback` → `satisfies`, `contains`/`containsEqual` → `contains`, `containsIdentical` →
+ * `contains(Argument::same(...))`, `matchesRegularExpression` → `matches`, `logicalNot` → `not`,
+ * `logicalOr` → `any(...)`; `equalTo($x)` unwraps to `$x` and `isNull`/`isTrue`/`isFalse` to literals.
+ * Every other constraint becomes `Argument::satisfies(fn ($value) => …)` over its own PHP expression
+ * ({@see PhpunitConstraint}) — comparisons, `logicalAnd`/`logicalXor`, delta/case/canonicalizing
+ * equality, string, count, JSON, file and type checks.
  *
  * Conservative by design: a chain is rewritten only when it carries a PHPUnit mock signal — an
- * `expects()` with a recognised matcher, or one of the `will*` return verbs — so an unrelated
- * fluent chain is left alone. Any link with no faithful counterpart aborts the whole chain rather
- * than converting it in part: `willReturnMap`, a variable matcher, `prophesize()`, a builder step
- * beyond `disableOriginalConstructor()` (or the bare constructor-calling `getMockBuilder(X)->getMock()`),
- * or a `with()` constraint with no faithful form (`logicalAnd` — no per-argument AND matcher;
- * `equalToWithDelta`/`equalToCanonicalizing` — loose comparison; a case-insensitive `stringContains`)
- * — leaving a raw `$this->…()` constraint would break once the test loses its TestCase base. Those
- * stay for manual migration (see {@see MockToTestoRector} and TODO.md).
+ * `expects()` with a recognised matcher, or one of the `will*` return verbs — so an unrelated fluent
+ * chain is left alone, and any link with no faithful counterpart aborts the whole chain: a variable
+ * matcher, `prophesize()`, `getMockForAbstractClass()`, a builder step with no Double form, a strict
+ * partial, `stringContains()` with a computed case flag. Leaving a raw `$this->…()` constraint would
+ * break once the test loses its TestCase base. Those stay for manual migration (see
+ * {@see UnconvertibleMockToDoubleRector} and TODO.md).
  */
 #[TestRectorFixtures('CreateMockToDoubleRector')]
 final class CreateMockToDoubleRector extends AbstractRector
 {
+    /**
+     * The type names Double's `Argument::type()` checks natively; any other name it treats as a class.
+     */
+    private const DOUBLE_TYPES = ['int', 'float', 'string', 'bool', 'array', 'object', 'callable', 'iterable', 'null'];
+
+    /**
+     * The variable the predicates of the statement being rebuilt are written over.
+     */
+    private string $predicateName = 'value';
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -110,22 +124,32 @@ final class CreateMockToDoubleRector extends AbstractRector
 
     /**
      * The chain rebuild runs at statement level and the mock-factory rewrite at call level, so the two
-     * never interfere: an unconvertible outer link (e.g. `willReturnSelf()`) leaves the whole statement
-     * alone instead of the inner `expects()->method()` being rewritten on its own by a call-level visit.
+     * never interfere: an unconvertible outer link (e.g. `willReturnSelf()` on a complex root) leaves the
+     * whole statement alone instead of the inner `expects()->method()` being rewritten on its own. The
+     * factories that need statements of their own are expanded at statement level too.
      *
      * @param Expression|MethodCall $node
+     * @return Node|list<Expression>|null
      */
     #[\Override]
-    public function refactor(Node $node): ?Node
+    public function refactor(Node $node): Node|array|null
     {
         if ($node instanceof MethodCall) {
-            return $this->matchMockFactory($node);
+            $factory = PhpunitMockFactory::parse($node);
+            $double = $factory === null ? null : $this->doubleFor($factory);
+
+            return $double === null || $double['setup'] !== [] ? null : $double['double'];
+        }
+
+        if ($node->expr instanceof Assign) {
+            return $this->expandFactoryAssignment($node->expr);
         }
 
         if (!$node->expr instanceof MethodCall) {
             return null;
         }
 
+        $this->predicateName = PredicateVariable::nameFor($node);
         $rebuilt = $this->rebuildMockChain($node->expr);
         if ($rebuilt === null) {
             return null;
@@ -137,93 +161,103 @@ final class CreateMockToDoubleRector extends AbstractRector
     }
 
     /**
-     * `$this->createMock(X)` / `$this->createStub(X)` → `Double::for(X)`, and
-     * `$this->createMockForIntersectionOfInterfaces([A, B])` → `Double::for(A, B)` (an array literal
-     * only — a computed target list has nothing to unpack and is left alone).
-     */
-    private function matchMockFactory(MethodCall $node): ?StaticCall
-    {
-        # A builder chain (`$this->getMockBuilder(X)->…->getMock()`) roots on the builder, not `$this`,
-        # so it is matched before the `$this->…` factory forms below.
-        if ($this->isName($node->name, 'getMock')) {
-            return $this->builderDouble($node);
-        }
-
-        if (!$this->isName($node->var, 'this')) {
-            return null;
-        }
-
-        if ($this->isName($node->name, 'createMock') || $this->isName($node->name, 'createStub')) {
-            return $this->doubleFor($node->args);
-        }
-
-        if (
-            $this->isName($node->name, 'createMockForIntersectionOfInterfaces')
-            || $this->isName($node->name, 'createStubForIntersectionOfInterfaces')
-        ) {
-            return $this->intersectionDouble($node->args);
-        }
-
-        return null;
-    }
-
-    /**
-     * `$this->getMockBuilder(X)->disableOriginalConstructor()->getMock()` → `Double::for(X)`.
+     * `$dep = $this->createPartialMock(X, ['a'])` → `$dep = Double::for(X)->passthru();` followed by
+     * `$dep->allows('a');` — the same for `createConfiguredMock()` with `allows('m')->returns($v)`.
      *
-     * Only the constructor-disabling builder chain converts. `Double::for()` never runs the target's
-     * real constructor (it instantiates without it), so `disableOriginalConstructor()` merely restates
-     * the Double default and drops away — while a *bare* `getMockBuilder(X)->getMock()` does call the
-     * real constructor, so it is deliberately left alone rather than silently changed. Any other builder
-     * step (`onlyMethods`, `setConstructorArgs`, `getMockForAbstractClass`, …) changes what is doubled
-     * and has no single-call Double form, so the whole chain is left for manual migration.
+     * @return list<Expression>|null
      */
-    private function builderDouble(MethodCall $getMock): ?StaticCall
+    private function expandFactoryAssignment(Assign $assign): ?array
     {
-        if ($getMock->args !== []) {
+        if (!$assign->expr instanceof MethodCall) {
             return null;
         }
 
-        $sawDisableConstructor = false;
-        $cursor = $getMock->var;
-        while ($cursor instanceof MethodCall) {
-            $name = $this->segmentName($cursor);
-
-            if ($name === 'disableOriginalConstructor' && $cursor->args === []) {
-                $sawDisableConstructor = true;
-                $cursor = $cursor->var;
-                continue;
-            }
-
-            if ($name === 'getMockBuilder' && $this->isName($cursor->var, 'this')) {
-                return $sawDisableConstructor ? $this->doubleFor($cursor->args) : null;
-            }
-
+        $factory = PhpunitMockFactory::parse($assign->expr);
+        $double = $factory === null ? null : $this->doubleFor($factory);
+        if ($double === null || $double['setup'] === [] || $this->cloneDoubleRoot($assign->var) === null) {
             return null;
         }
 
-        return null;
+        $statements = [new Expression(new Assign($assign->var, $double['double']))];
+        foreach ($double['setup'] as [$method, $return]) {
+            $root = $this->cloneDoubleRoot($assign->var);
+            \assert($root !== null);
+
+            $call = new MethodCall($root, new Identifier('allows'), [new Arg($method)]);
+            if ($return !== null) {
+                $call = new MethodCall($call, new Identifier('returns'), [new Arg($return)]);
+            }
+
+            $statements[] = new Expression($call);
+        }
+
+        return $statements;
     }
 
     /**
-     * @param list<Arg|\PhpParser\Node\VariadicPlaceholder> $args
+     * The Double for a PHPUnit factory: the creation expression, plus the `[method, return]` pairs that
+     * still have to be set up on it (`allows(method)`, with `returns(return)` when one is given). Null
+     * when the factory has no Double form.
+     *
+     * @return array{double: Node\Expr, setup: list<array{0: Node\Expr, 1: Node\Expr|null}>}|null
      */
-    private function intersectionDouble(array $args): ?StaticCall
+    private function doubleFor(PhpunitMockFactory $factory): ?array
     {
-        $first = $args[0] ?? null;
-        if (!$first instanceof Arg || !$first->value instanceof Array_) {
+        if ($factory->configuration !== null) {
+            $setup = [];
+            foreach ($factory->configuration->items as $item) {
+                \assert($item !== null && $item->key !== null);
+                $setup[] = [$item->key, $item->value];
+            }
+
+            return ['double' => $this->doubleCall($factory->targets), 'setup' => $setup];
+        }
+
+        if ($factory->partialMethods === null) {
+            $double = $this->doubleCall($factory->targets);
+
+            return ['double' => $factory->autoReturn ? $double : new MethodCall($double, new Identifier('strict')), 'setup' => []];
+        }
+
+        # A doubled method without auto-return fails when called unconfigured; a passthru double has no
+        # per-method strictness to express that with.
+        if (!$factory->autoReturn && $factory->partialMethods !== []) {
             return null;
         }
 
-        $targets = [];
-        foreach ($first->value->items as $item) {
-            if ($item === null) {
-                return null;
-            }
+        $real = $factory->constructorArgs === null ? [] : [new Arg($this->construct($factory->target(), $factory->constructorArgs))];
 
-            $targets[] = new Arg($item->value);
+        return [
+            'double' => new MethodCall($this->doubleCall([new Arg($factory->target())]), new Identifier('passthru'), $real),
+            'setup' => \array_map(static fn(Node\Expr $method): array => [$method, null], $factory->partialMethods),
+        ];
+    }
+
+    /**
+     * `new X(...$constructorArgs)` — the real instance a passthru double copies its state from, built the
+     * way PHPUnit's builder would have run the constructor. A literal argument list is unpacked in place.
+     */
+    private function construct(Node\Expr $class, Node\Expr $constructorArgs): New_
+    {
+        $className = match (true) {
+            $class instanceof ClassConstFetch && $this->isName($class->name, 'class') && $class->class instanceof Name => $class->class,
+            $class instanceof String_ => new FullyQualified(\ltrim($class->value, '\\')),
+            default => $class,
+        };
+
+        $args = [new Arg($constructorArgs, unpack: true)];
+        if ($constructorArgs instanceof Array_) {
+            $args = [];
+            foreach ($constructorArgs->items as $item) {
+                if ($item === null || $item->key !== null || $item->unpack || $item->byRef) {
+                    $args = [new Arg($constructorArgs, unpack: true)];
+                    break;
+                }
+                $args[] = new Arg($item->value);
+            }
         }
 
-        return $targets === [] ? null : $this->doubleFor($targets);
+        return new New_($className, $args);
     }
 
     /**
@@ -236,11 +270,16 @@ final class CreateMockToDoubleRector extends AbstractRector
      */
     private function rebuildMockChain(MethodCall $node): ?MethodCall
     {
+        # The chain root may itself be a call: a PHPUnit factory (`$this->createMock(X)->method(…)`) or the
+        # Double it has already become (`Double::for(X)->passthru()`). Either one ends the chain.
         $segments = [];
         $cursor = $node;
-        while ($cursor instanceof MethodCall) {
+        while ($cursor instanceof MethodCall && !$this->isFactoryRoot($cursor)) {
             $segments[] = $cursor;
             $cursor = $cursor->var;
+        }
+        if ($segments === []) {
+            return null;
         }
         $segments = \array_reverse($segments);
 
@@ -267,7 +306,7 @@ final class CreateMockToDoubleRector extends AbstractRector
             # self-return. Needs the root expression, which only this scope has, so it is not folded
             # into rewriteSegment(); an over-complex root that can't be safely cloned aborts the chain.
             if ($name === 'willReturnSelf') {
-                $returnSelf = $this->returnSelf($root);
+                $returnSelf = $segments[$i]->args === [] ? $this->returnSelf($root) : null;
                 if ($returnSelf === null) {
                     return null;
                 }
@@ -305,11 +344,23 @@ final class CreateMockToDoubleRector extends AbstractRector
         return $isMock ? $result : null;
     }
 
+    private function isFactoryRoot(MethodCall $call): bool
+    {
+        if (PhpunitMockFactory::parse($call) !== null) {
+            return true;
+        }
+
+        return ($this->isName($call->name, 'strict') || $this->isName($call->name, 'passthru'))
+            && $call->var instanceof StaticCall
+            && $this->isName($call->var->class, 'JMac\\Testing\\Double')
+            && $this->isName($call->var->name, 'for');
+    }
+
     /**
      * Maps a single non-`expects` chain link to `[verb, args, isMockSignal]`, or null when the link
      * has no faithful Double counterpart and the whole chain must be left alone.
      *
-     * @return array{0: non-empty-string, 1: list<Arg|\PhpParser\Node\VariadicPlaceholder>, 2: bool}|null
+     * @return array{0: non-empty-string, 1: list<Arg|VariadicPlaceholder>, 2: bool}|null
      */
     private function rewriteSegment(string $name, MethodCall $segment, Node\Expr $root): ?array
     {
@@ -322,6 +373,7 @@ final class CreateMockToDoubleRector extends AbstractRector
             'willThrowException' => ['throws', $segment->args, true],
             'willReturnCallback' => ['resolves', $segment->args, true],
             'willReturnArgument' => $this->mapReturnArgument($segment->args),
+            'willReturnMap' => $this->mapReturnMap($segment->args),
             'will' => $this->mapWill($segment->args[0] ?? null, $root),
             default => null,
         };
@@ -332,8 +384,8 @@ final class CreateMockToDoubleRector extends AbstractRector
      * bare value). A plain value passes through; a constraint with no faithful matcher aborts the whole
      * chain, since leaving the raw `$this->…()` call would break once the test loses its TestCase base.
      *
-     * @param list<Arg|\PhpParser\Node\VariadicPlaceholder> $args
-     * @return array{0: non-empty-string, 1: list<Arg|\PhpParser\Node\VariadicPlaceholder>, 2: bool}|null
+     * @param list<Arg|VariadicPlaceholder> $args
+     * @return array{0: non-empty-string, 1: list<Arg|VariadicPlaceholder>, 2: bool}|null
      */
     private function mapWith(array $args): ?array
     {
@@ -357,63 +409,64 @@ final class CreateMockToDoubleRector extends AbstractRector
 
     /**
      * Maps a single `with()` argument expression to its Double matcher expression: a plain value passes
-     * through unchanged; a PHPUnit constraint (`$this->equalTo()`, `$this->greaterThan()`,
-     * `$this->logicalNot()`, …) becomes the matching `Argument::*` matcher, a bare value (for `equalTo`,
-     * whose value already matches by equality), or a `satisfies()` predicate for the comparison/string
-     * constraints Double has no dedicated matcher for; an unmappable constraint returns null to abort the
+     * through unchanged; a PHPUnit constraint becomes the matching `Argument::*` matcher, a bare value
+     * (for `equalTo`, whose value already matches by equality), or a `satisfies()` predicate for the
+     * constraints Double has no dedicated matcher for; one with no faithful form returns null to abort the
      * whole chain. Recursive, so `logicalNot`/`logicalOr` can wrap any mappable inner constraint.
      */
     private function mapConstraintValue(Node\Expr $value): ?Node\Expr
     {
-        if (!$this->isConstraintCall($value)) {
+        $name = PhpunitConstraint::name($value);
+        if ($name === null) {
             return $value;
         }
 
-        \assert($value instanceof MethodCall || $value instanceof StaticCall);
-        $name = $value->name instanceof Identifier ? $value->name->toString() : null;
-        $args = $value->args;
-        $first = ($args[0] ?? null) instanceof Arg ? $args[0]->value : null;
+        $args = PhpunitConstraint::arguments($value);
+        if ($args === null) {
+            return null;
+        }
 
-        return match ($name) {
-            'anything' => $this->argument('any'),
-            'equalTo' => $first,
-            'identicalTo' => $first !== null ? $this->argument('same', [new Arg($first)]) : null,
-            'isInstanceOf', 'isType' => $first !== null ? $this->argument('type', [new Arg($first)]) : null,
-            'callback' => $first !== null ? $this->argument('satisfies', [new Arg($first)]) : null,
-            'contains' => $first !== null ? $this->argument('contains', [new Arg($first)]) : null,
-            'matchesRegularExpression' => $first !== null ? $this->argument('matches', [new Arg($first)]) : null,
-            'isNull' => new ConstFetch(new Name('null')),
-            'isTrue' => new ConstFetch(new Name('true')),
-            'isFalse' => new ConstFetch(new Name('false')),
-            'greaterThan' => $first !== null ? $this->satisfies(new BinaryOp\Greater($this->predicateVar(), $first)) : null,
-            'lessThan' => $first !== null ? $this->satisfies(new BinaryOp\Smaller($this->predicateVar(), $first)) : null,
-            'greaterThanOrEqual' => $first !== null ? $this->satisfies(new BinaryOp\GreaterOrEqual($this->predicateVar(), $first)) : null,
-            'lessThanOrEqual' => $first !== null ? $this->satisfies(new BinaryOp\SmallerOrEqual($this->predicateVar(), $first)) : null,
-            'isEmpty' => $this->satisfies(new Empty_($this->predicateVar())),
-            'stringContains' => $this->stringPredicate('str_contains', $args, $first),
-            'stringStartsWith' => $first !== null ? $this->satisfies($this->func('str_starts_with', [$this->predicateVar(), $first])) : null,
-            'stringEndsWith' => $first !== null ? $this->satisfies($this->func('str_ends_with', [$this->predicateVar(), $first])) : null,
-            'arrayHasKey' => $first !== null ? $this->satisfies($this->func('array_key_exists', [$first, $this->predicateVar()])) : null,
-            'logicalNot' => $this->negateConstraint($first),
+        $first = $args[0] ?? null;
+        $single = \count($args) === 1;
+
+        # `isType('integer')`, PHPUnit 12's `isInt()`, … → `Argument::type('int')` for the names Double's
+        # `type()` checks natively; the rest (`numeric`, `scalar`, `resource`) fall through to the predicate.
+        $checkedType = PhpunitConstraint::checkedType($value);
+        if (\in_array($checkedType, self::DOUBLE_TYPES, true)) {
+            return $this->argument('type', [new Arg(new String_($checkedType))]);
+        }
+
+        $dedicated = match ($name) {
+            'anything' => $args === [] ? $this->argument('any') : null,
+            'equalTo' => $single ? $first : null,
+            'identicalTo' => $single ? $this->argument('same', [new Arg($first)]) : null,
+            'isInstanceOf' => $single ? $this->argument('type', [new Arg($first)]) : null,
+            'callback' => $single ? $this->argument('satisfies', [new Arg($first)]) : null,
+            'contains', 'containsEqual' => $single ? $this->argument('contains', [new Arg($first)]) : null,
+            'containsIdentical' => $single ? $this->argument('contains', [new Arg($this->argument('same', [new Arg($first)]))]) : null,
+            'matchesRegularExpression' => $single ? $this->argument('matches', [new Arg($first)]) : null,
+            'isNull' => $args === [] ? new ConstFetch(new Name('null')) : null,
+            'isTrue' => $args === [] ? new ConstFetch(new Name('true')) : null,
+            'isFalse' => $args === [] ? new ConstFetch(new Name('false')) : null,
+            'logicalNot' => $single ? $this->negateConstraint($first) : null,
             'logicalOr' => $this->anyOfConstraints($args),
             default => null,
         };
-    }
+        if ($dedicated !== null) {
+            return $dedicated;
+        }
 
-    /**
-     * True when an expression is a PHPUnit constraint factory call — `$this->equalTo(...)` or the
-     * `self::`/`static::` static forms — as opposed to a plain value passed straight to `with()`.
-     */
-    private function isConstraintCall(Node\Expr $value): bool
-    {
-        return ($value instanceof MethodCall && $this->isName($value->var, 'this'))
-            || ($value instanceof StaticCall && ($this->isName($value->class, 'self') || $this->isName($value->class, 'static')));
+        $constraint = new PhpunitConstraint($this->predicateName);
+        $predicate = $constraint->predicate($value);
+
+        return $predicate === null ? null : $this->argument('satisfies', [new Arg($constraint->closure($predicate))]);
     }
 
     /**
      * `logicalNot($constraint)` → the negated matcher: `Argument::not($value)` for a bare/`equalTo` inner,
      * or `Argument::not()->type()/same()/satisfies()/contains()/matches()/any()` for an inner that maps to
-     * one of the matchers `NegatedArgument` mirrors. Anything else (e.g. negating `anything()`) aborts.
+     * one of the matchers `NegatedArgument` mirrors. Anything else (e.g. negating `anything()`) returns
+     * null and falls through to the predicate.
      */
     private function negateConstraint(?Node\Expr $inner): ?Node\Expr
     {
@@ -444,19 +497,16 @@ final class CreateMockToDoubleRector extends AbstractRector
 
     /**
      * `logicalOr($a, $b, …)` → `Argument::any($a, $b, …)`, each alternative mapped through
-     * {@see mapConstraintValue()} (a value or a nested matcher). Aborts if any alternative is unmappable.
+     * {@see mapConstraintValue()} (a value or a nested matcher). Returns null if any alternative is
+     * unmappable, leaving the predicate to try.
      *
-     * @param list<Arg|\PhpParser\Node\VariadicPlaceholder> $args
+     * @param list<Node\Expr> $args
      */
     private function anyOfConstraints(array $args): ?StaticCall
     {
         $alternatives = [];
         foreach ($args as $arg) {
-            if (!$arg instanceof Arg) {
-                return null;
-            }
-
-            $mapped = $this->mapConstraintValue($arg->value);
+            $mapped = $this->mapConstraintValue($arg);
             if ($mapped === null) {
                 return null;
             }
@@ -465,22 +515,6 @@ final class CreateMockToDoubleRector extends AbstractRector
         }
 
         return $alternatives === [] ? null : $this->argument('any', $alternatives);
-    }
-
-    /**
-     * `stringContains($needle)` → `Argument::satisfies(fn ($value) => str_contains($value, $needle))`.
-     * PHPUnit's optional case-insensitivity flag has no `str_contains` equivalent, so a call carrying a
-     * second argument aborts rather than silently dropping it.
-     *
-     * @param list<Arg|\PhpParser\Node\VariadicPlaceholder> $args
-     */
-    private function stringPredicate(string $function, array $args, ?Node\Expr $needle): ?StaticCall
-    {
-        if ($needle === null || \count($args) !== 1) {
-            return null;
-        }
-
-        return $this->satisfies($this->func($function, [$this->predicateVar(), $needle]));
     }
 
     /**
@@ -495,37 +529,10 @@ final class CreateMockToDoubleRector extends AbstractRector
     }
 
     /**
-     * `Argument::satisfies(fn ($value) => <predicate>)` — the shared shape for every comparison/string
-     * constraint Double expresses through a predicate rather than a dedicated matcher.
-     */
-    private function satisfies(Node\Expr $predicate): StaticCall
-    {
-        $closure = new ArrowFunction([
-            'params' => [new Param($this->predicateVar())],
-            'expr' => $predicate,
-        ]);
-
-        return $this->argument('satisfies', [new Arg($closure)]);
-    }
-
-    private function predicateVar(): Variable
-    {
-        return new Variable('value');
-    }
-
-    /**
-     * @param list<Node\Expr> $args
-     */
-    private function func(string $name, array $args): FuncCall
-    {
-        return new FuncCall(new Name($name), \array_map(static fn(Node\Expr $arg): Arg => new Arg($arg), $args));
-    }
-
-    /**
      * `willReturnArgument($n)` → `resolves(fn (...$args) => $args[$n])`, so the Nth call argument is
      * returned the same way PHPUnit echoes it back.
      *
-     * @param list<Arg|\PhpParser\Node\VariadicPlaceholder> $args
+     * @param list<Arg|VariadicPlaceholder> $args
      * @return array{0: non-empty-string, 1: list<Arg>, 2: bool}|null
      */
     private function mapReturnArgument(array $args): ?array
@@ -544,10 +551,25 @@ final class CreateMockToDoubleRector extends AbstractRector
     }
 
     /**
+     * `willReturnMap($map)` → `resolves(<lookup>)`.
+     *
+     * @param list<Arg|VariadicPlaceholder> $args
+     * @return array{0: non-empty-string, 1: list<Arg>, 2: bool}|null
+     */
+    private function mapReturnMap(array $args): ?array
+    {
+        $map = \count($args) === 1 && $args[0] instanceof Arg && !$args[0]->unpack ? $args[0]->value : null;
+        $resolver = $map === null ? null : ReturnValueMap::resolver($map);
+
+        return $resolver === null ? null : ['resolves', [new Arg($resolver)], true];
+    }
+
+    /**
      * A fresh copy of the double's root expression, for reuse as the `returns()` argument of a
-     * converted `willReturnSelf()`. Only the two shapes a mock is realistically held in — a local
-     * variable (`$mock`) and a `$this->mock` property — are rebuilt; anything else returns null so the
-     * chain is left for manual migration rather than aliasing a node into two positions of the tree.
+     * converted `willReturnSelf()` or as the target of an added `allows()`. Only the two shapes a mock is
+     * realistically held in — a local variable (`$mock`) and a `$this->mock` property — are rebuilt;
+     * anything else returns null so the conversion is left for manual migration rather than aliasing a
+     * node into two positions of the tree.
      */
     private function cloneDoubleRoot(Node\Expr $root): ?Node\Expr
     {
@@ -556,12 +578,12 @@ final class CreateMockToDoubleRector extends AbstractRector
         }
 
         if (
-            $root instanceof Node\Expr\PropertyFetch
+            $root instanceof PropertyFetch
             && $root->var instanceof Variable
             && \is_string($root->var->name)
             && $root->name instanceof Identifier
         ) {
-            return new Node\Expr\PropertyFetch(new Variable($root->var->name), new Identifier($root->name->toString()));
+            return new PropertyFetch(new Variable($root->var->name), new Identifier($root->name->toString()));
         }
 
         return null;
@@ -577,12 +599,12 @@ final class CreateMockToDoubleRector extends AbstractRector
 
     /**
      * Legacy `will($this->returnValue()/throwException()/returnCallback()/onConsecutiveCalls()/
-     * returnArgument()/returnSelf())` → the matching Double verb — the pre-`willReturn*` spelling of the
-     * same return shapes.
+     * returnArgument()/returnSelf()/returnValueMap())` → the matching Double verb — the pre-`willReturn*`
+     * spelling of the same return shapes.
      *
-     * @return array{0: non-empty-string, 1: list<Arg|\PhpParser\Node\VariadicPlaceholder>, 2: bool}|null
+     * @return array{0: non-empty-string, 1: list<Arg|VariadicPlaceholder>, 2: bool}|null
      */
-    private function mapWill(Arg|\PhpParser\Node\VariadicPlaceholder|null $arg, Node\Expr $root): ?array
+    private function mapWill(Arg|VariadicPlaceholder|null $arg, Node\Expr $root): ?array
     {
         if (!$arg instanceof Arg) {
             return null;
@@ -600,6 +622,7 @@ final class CreateMockToDoubleRector extends AbstractRector
             $this->isName($inner->name, 'onConsecutiveCalls') => $inner->args === [] ? null : ['returns', $inner->args, true],
             $this->isName($inner->name, 'returnArgument') => $this->mapReturnArgument($inner->args),
             $this->isName($inner->name, 'returnSelf') => $this->returnSelf($root),
+            $this->isName($inner->name, 'returnValueMap') => $this->mapReturnMap($inner->args),
             default => null,
         };
     }
@@ -624,7 +647,7 @@ final class CreateMockToDoubleRector extends AbstractRector
      *
      * @return array{verb: 'expects'|'allows', call: array{0: non-empty-string, 1: list<Arg>}|null}|null
      */
-    private function analyzeMatcher(Arg|\PhpParser\Node\VariadicPlaceholder|null $arg): ?array
+    private function analyzeMatcher(Arg|VariadicPlaceholder|null $arg): ?array
     {
         if (!$arg instanceof Arg) {
             return null;
@@ -656,9 +679,9 @@ final class CreateMockToDoubleRector extends AbstractRector
     }
 
     /**
-     * @param list<Arg|\PhpParser\Node\VariadicPlaceholder> $args
+     * @param list<Arg> $args
      */
-    private function doubleFor(array $args): StaticCall
+    private function doubleCall(array $args): StaticCall
     {
         return new StaticCall(new FullyQualified('JMac\\Testing\\Double'), new Identifier('for'), $args);
     }
