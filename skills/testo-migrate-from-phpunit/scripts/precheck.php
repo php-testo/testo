@@ -62,7 +62,7 @@ $rectorInstalled = $hasBin('rector') || $exists('vendor', 'rector', 'rector');
 $rectorReady = $bridgeInstalled && $rectorInstalled;
 
 // Locate the bridge's conversion sets, if present, so the scaffolder can wire them.
-$setDir = $path('vendor', 'testo', 'bridge-rector', 'config', 'sets');
+$setDir = $path('vendor', 'testo', 'bridge-rector', 'config');
 $sets = $bridgeInstalled && \is_dir($setDir)
     ? \array_map(static fn(string $f): string => \basename($f, '.php'), \glob($setDir . '/*.php') ?: [])
     : [];

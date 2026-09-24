@@ -4,7 +4,7 @@ Use Rector (via `testo/bridge-rector`) to do the **mechanical** bulk of the conv
 whole scope in one deterministic pass, then finish with an AI/human **structural** pass. This is the
 recommended approach for any non-trivial suite: Rector rewrites hundreds of assert calls (with the
 correct argument-order swap), lifecycle methods, data providers and groups in seconds and never makes
-a typo, and converts the common `createMock`/`createStub` mock chains (including `with()` constraints → `Argument::*`/`satisfies`, `willReturnSelf`, and `getMockBuilder(X)->disableOriginalConstructor()->getMock()`) onto the Double bridge — but the mock forms with no faithful Double target (`prophesize`, `willReturnMap`, a builder step beyond `disableOriginalConstructor`, and unmappable constraints like `logicalAnd`/`equalToWithDelta`) are left for a finishing pass, so one is mandatory.
+a typo. With a mock set added (Stage A2) it also converts the common `createMock`/`createStub` chains onto Double or Mockery. Forms with no faithful target (`prophesize`, `getMockForAbstractClass`, `addMethods`, `withConsecutive`, a variable invocation matcher) stay for a finishing pass, so one is mandatory.
 
 Prerequisite: you have a **restore point** (skill Phase 1) and an agreed **scope** (skill Phase 2).
 All commands run from the project root. `<php>` is the binary resolved in the skill (`php -r "echo PHP_BINARY;"`).
@@ -31,7 +31,9 @@ Scaffold a disposable config scoped to the migration paths (do **not** clobber a
   --path=tests/Unit            # repeat --path for each in-scope dir
 ```
 
-- `--set=phpunit-to-testo` is the default; pass `--set=` only to override.
+- `--set=phpunit-to-testo` is the default. `--set` repeats: when the scope uses PHPUnit mocks, list the
+  mock set for the library the user picked — `--set=phpunit-to-testo --set=phpunit-to-double` (Double,
+  PHP 8.3+) or `--set=phpunit-to-mockery` (Mockery, PHP 8.2). Without one, mocks stay PHPUnit.
 - Write the file at the **project root** (it uses `__DIR__`-relative paths).
 - The script verifies the set exists under `vendor/` before writing and prints the next commands.
 

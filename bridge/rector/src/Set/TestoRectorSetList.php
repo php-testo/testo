@@ -44,4 +44,25 @@ final class TestoRectorSetList
      * @var string
      */
     public const PEST_TO_TESTO = __DIR__ . '/../../config/pest-to-testo.php';
+
+    /**
+     * PHPUnit mocks -> Double. See {@see config/phpunit-to-double.php}.
+     *
+     * @var string
+     */
+    public const PHPUNIT_TO_DOUBLE = __DIR__ . '/../../config/phpunit-to-double.php';
+
+    /**
+     * PHPUnit mocks -> Mockery. See {@see config/phpunit-to-mockery.php}.
+     *
+     * @var string
+     */
+    public const PHPUNIT_TO_MOCKERY = __DIR__ . '/../../config/phpunit-to-mockery.php';
+
+    /**
+     * Mockery -> Double. See {@see config/mockery-to-double.php}.
+     *
+     * @var string
+     */
+    public const MOCKERY_TO_DOUBLE = __DIR__ . '/../../config/mockery-to-double.php';
 }
