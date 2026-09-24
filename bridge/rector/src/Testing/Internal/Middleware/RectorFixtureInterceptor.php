@@ -9,6 +9,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Bridge\Rector\Testing\Internal\FixtureResolver;
 use Testo\Bridge\Rector\Testing\Internal\RectorRunner;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
+use Testo\Codecov\CoverageScope;
+use Testo\Codecov\Covers;
 use Testo\Common\Messenger;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
@@ -60,6 +62,7 @@ final readonly class RectorFixtureInterceptor implements TestRunInterceptor
 
             if ($reflection !== null && $fixtures !== []) {
                 $runner = new RectorRunner($this->messenger, [$reflection->getName()]);
+                $info = self::withRuleCoverage($info, $reflection->getName());
 
                 # A fixture occupies the data set slot of the address, so `--filter=Rule::fixture:0:2`
                 # selects the third fixture — the coordinates the IDE sends back for one data set.
@@ -132,6 +135,22 @@ final readonly class RectorFixtureInterceptor implements TestRunInterceptor
         $this->eventDispatcher->dispatch(new TestBatchFinished($info, $final));
 
         return $final;
+    }
+
+    /**
+     * Scopes the fixtures' coverage to the rule they exercise. Every fixture runs through the one shared
+     * probe method, so there is no test of the rule's own to declare `#[Covers]` on; the harness supplies
+     * the scope instead. A `#[Covers]` / `#[CoversNothing]` on the rule class still wins — list the
+     * helpers the rule delegates to there, next to the rule itself. Without `testo/codecov` there is
+     * nothing to scope.
+     *
+     * @param class-string $rule
+     */
+    private static function withRuleCoverage(TestInfo $info, string $rule): TestInfo
+    {
+        return \class_exists(CoverageScope::class)
+            ? $info->withAttribute(CoverageScope::class, new CoverageScope(new Covers($rule)))
+            : $info;
     }
 
     /**

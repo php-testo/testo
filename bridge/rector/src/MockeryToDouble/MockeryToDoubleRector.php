@@ -39,6 +39,7 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Internal\PhpunitConstraint;
 use Testo\Bridge\Rector\Internal\PredicateVariable;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
+use Testo\Codecov\Covers;
 
 /**
  * Converts Mockery doubles — creation, expectation chains, spy verification and `Mockery::close()` —
@@ -103,6 +104,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * fails after conversion and needs its expected value fixed.
  */
 #[TestRectorFixtures('MockeryToDoubleRector')]
+#[Covers(self::class)]
+#[Covers(PhpunitConstraint::class)]
+#[Covers(PredicateVariable::class)]
 final class MockeryToDoubleRector extends AbstractRector
 {
     /**

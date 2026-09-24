@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Codecov\Internal\Middleware;
 
 use Testo\Codecov\Config\CoverageLevel;
+use Testo\Codecov\CoverageScope;
 use Testo\Codecov\Covers;
 use Testo\Codecov\CoversNothing;
 use Testo\Codecov\Internal\CoverageAttribute;
@@ -25,6 +26,8 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  *
  * Tests marked with {@see CoversNothing} are executed without coverage collection.
  * Tests marked with {@see Covers} have their coverage filtered to the specified targets.
+ * A test that declares neither falls back to the {@see CoverageScope} a plugin attached to its
+ * {@see TestInfo}; carrying one also opts the test in regardless of its type.
  *
  * A test's window stays bound to it across fiber suspensions. The driver collects process-wide and its
  * window cannot nest — a `collect()` from any fiber ends collection for all of them — so a test running
@@ -59,11 +62,14 @@ final readonly class CoverageTestInterceptor implements TestRunInterceptor
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
-        if ($this->testTypes !== [] && !\in_array($info->caseInfo->definition->type, $this->testTypes, true)) {
+        # A plugin-supplied scope opts its test in whatever the type: the plugin asked for the measurement.
+        $scope = $info->getAttribute(CoverageScope::class);
+        if ($scope === null && $this->testTypes !== [] && !\in_array($info->caseInfo->definition->type, $this->testTypes, true)) {
             return $next($info);
         }
 
         $attributes = self::getCoverageAttributes($info);
+        $attributes === [] && $scope instanceof CoverageScope and $attributes = $scope->attributes;
 
         $hasCoversNothing = false;
         $hasCovers = false;
