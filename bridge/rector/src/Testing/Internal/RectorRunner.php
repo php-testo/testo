@@ -6,11 +6,13 @@ namespace Testo\Bridge\Rector\Testing\Internal;
 
 use Psr\Log\LoggerInterface;
 use Rector\Application\ApplicationFileProcessor;
+use Rector\Autoloading\BootstrapFilesIncluder;
 use Rector\Configuration\ConfigurationFactory;
 use Rector\Configuration\Option;
 use Rector\Configuration\Parameter\SimpleParameterProvider;
 use Rector\Contract\Rector\RectorInterface;
 use Rector\DependencyInjection\LazyContainerFactory;
+use Rector\NodeTypeResolver\DependencyInjection\PHPStanServicesFactory;
 use Rector\NodeTypeResolver\Reflection\BetterReflection\SourceLocatorProvider\DynamicSourceLocatorProvider;
 use Rector\PhpParser\NodeTraverser\RectorNodeTraverser;
 use Rector\ValueObject\Error\SystemError;
@@ -65,6 +67,11 @@ final readonly class RectorRunner
         $this->fileProcessor = $rectorConfig->make(ApplicationFileProcessor::class);
         $this->sourceLocator = $rectorConfig->make(DynamicSourceLocatorProvider::class);
         $this->configurationFactory = $rectorConfig->make(ConfigurationFactory::class);
+
+        # Mirror AbstractRectorTestCase: load Rector's stubs (e.g. PHPUnit's TestCase), so a rule
+        # reasoning about a fixture class's ancestry sees the same hierarchy as under the Rector CLI.
+        $rectorConfig->make(BootstrapFilesIncluder::class)
+            ->includeBootstrapFiles($rectorConfig->get(PHPStanServicesFactory::class)->getContainer());
     }
 
     /**
