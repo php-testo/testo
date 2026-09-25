@@ -12,8 +12,6 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
 
 - **AssertThatConstraintRector** — `assertThat($v, $constraint)`: relies on PHPUnit
   constraint objects (and composites/callbacks) with no Testo equivalent.
-- **ExpectExceptionMessageMatchesRector** — regex message matching; Testo's
-  `withMessage()` does literal matching, not PCRE, so conversion would change meaning.
 
 ## Implemented since the first cut
 
@@ -49,10 +47,11 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   head. It operates at the statements level (matches the enclosing `StmtsAwareInterface` node and
   rewrites its `->stmts`): after a `$this->expectException($c)` statement it absorbs the
   uninterrupted run of immediately-following sibling `expectExceptionMessage($m)` /
-  `expectExceptionCode($n)` statements into `\Testo\Expect::exception($c)->withMessage($m)->withCode($n)`
-  and removes them. Conservative: the run stops at the first non-foldable statement (including
-  `expectExceptionMessageMatches`, whose regex has no `withMessage*` counterpart — see the stubbed
-  `ExpectExceptionMessageMatchesRector`), statements are never reordered or pulled across other code,
+  `expectExceptionMessageMatches($re)` / `expectExceptionCode($n)` statements into
+  `\Testo\Expect::exception($c)->withMessageContaining($m)->withMessagePattern($re)->withCode($n)`
+  and removes them. PHPUnit's `expectExceptionMessage()` matches a substring, hence
+  `withMessageContaining()` rather than the exact `withMessage()`. Conservative: the run stops at the
+  first non-foldable statement, statements are never reordered or pulled across other code,
   and a bare `expectExceptionMessage`/`Code` with no preceding `expectException` is left untouched.
 - **GroupToTestoRector** (registered) — collapses every PHPUnit group source on a node — the
   `@group` docblock annotation(s) **and** the repeatable single-name `#[Group]` attribute(s) — into

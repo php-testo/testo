@@ -16,6 +16,6 @@ class SomeTest
 {
     public function test()
     {
-        \Testo\Expect::exception(\RuntimeException::class)->withMessage('boom')->withCode(7);
+        \Testo\Expect::exception(\RuntimeException::class)->withMessageContaining('boom')->withCode(7);
     }
 }

@@ -24,7 +24,7 @@ synthesize a class, we synthesize functions.
   unconverted form, so a later rule could never see it):
     - `->group('a','b')`  → `#[\Testo\Filter\Group('a','b')]`
     - `->covers(X::class)` → `#[\Testo\Codecov\Covers(X::class)]`
-    - `->throws(X::class[, 'msg'])` → prepended `\Testo\Expect::exception(X)[->withMessage('msg')]`, return type `never`
+    - `->throws(X::class[, 'msg'])` → prepended `\Testo\Expect::exception(X)[->withMessageContaining('msg')]`, return type `never`
     - `->skip(['reason'])` → `#[\Testo\Skip('reason')]` (the modifier is unconditional, so the
       declarative attribute is the faithful form)
     - `->with([ <rows> ])` → one `#[\Testo\Data\DataSet([...])]` per row (inline array literal only)

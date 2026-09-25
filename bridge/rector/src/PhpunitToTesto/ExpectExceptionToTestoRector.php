@@ -25,24 +25,26 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * `\Testo\Expect::exception(...)` chain.
  *
  * The head `$this->expectException($c)` (also `self::`/`static::`) becomes
- * `\Testo\Expect::exception($c)`, and each immediately-following sibling
- * `$this->expectExceptionMessage($m)` / `$this->expectExceptionCode($n)` statement is absorbed as a
- * chained `->withMessage($m)` / `->withCode($n)` and removed:
+ * `\Testo\Expect::exception($c)`, and each immediately-following sibling statement is absorbed as a
+ * chained modifier and removed:
+ *   - `expectExceptionMessage($m)` => `->withMessageContaining($m)` — PHPUnit matches a substring,
+ *     so the exact `->withMessage()` would fail tests that passed before;
+ *   - `expectExceptionMessageMatches($re)` => `->withMessagePattern($re)`;
+ *   - `expectExceptionCode($n)` => `->withCode($n)`.
  *
  *     $this->expectException(\RuntimeException::class);
  *     $this->expectExceptionMessage('boom');
  *     $this->expectExceptionCode(7);
  *     // becomes
- *     \Testo\Expect::exception(\RuntimeException::class)->withMessage('boom')->withCode(7);
+ *     \Testo\Expect::exception(\RuntimeException::class)->withMessageContaining('boom')->withCode(7);
  *
  * Because this needs cross-statement reasoning (which calls belong together, ordering, intervening
  * statements), it operates at the statements level: it matches the enclosing
  * {@see StmtsAwareInterface} node and rewrites its `->stmts`.
  *
  * Conservative by design: only an UNINTERRUPTED run of folding calls that are direct siblings right
- * after the `expectException` statement is absorbed. The first non-folding statement (including
- * `expectExceptionMessageMatches`, whose regex argument has no faithful `withMessage*` counterpart)
- * ends the run; statements are never reordered or pulled across other code. A bare
+ * after the `expectException` statement is absorbed. The first non-folding statement ends the run;
+ * statements are never reordered or pulled across other code. A bare
  * `expectExceptionMessage`/`Code` with no preceding `expectException` is left untouched.
  *
  * Only folds inside a class: the expectations belong to a test method, so a run in a free function
@@ -63,7 +65,7 @@ final class ExpectExceptionToTestoRector extends AbstractRector
                         $this->expectExceptionCode(7);
                         PHP,
                     <<<'PHP'
-                        \Testo\Expect::exception(\RuntimeException::class)->withMessage('boom')->withCode(7);
+                        \Testo\Expect::exception(\RuntimeException::class)->withMessageContaining('boom')->withCode(7);
                         PHP,
                 ),
             ],
@@ -166,7 +168,7 @@ final class ExpectExceptionToTestoRector extends AbstractRector
     }
 
     /**
-     * Maps a foldable `$this->expectExceptionMessage/Code(...)` statement to a `[method, args]`
+     * Maps a foldable `$this->expectExceptionMessage/MessageMatches/Code(...)` statement to a `[method, args]`
      * pair for the fluent chain, or null when the statement is not a foldable modifier.
      *
      * @return array{0: non-empty-string, 1: array<int, Arg|\PhpParser\Node\VariadicPlaceholder>}|null
@@ -188,7 +190,8 @@ final class ExpectExceptionToTestoRector extends AbstractRector
         }
 
         return match (true) {
-            $this->isName($expr->name, 'expectExceptionMessage') => ['withMessage', $expr->args],
+            $this->isName($expr->name, 'expectExceptionMessage') => ['withMessageContaining', $expr->args],
+            $this->isName($expr->name, 'expectExceptionMessageMatches') => ['withMessagePattern', $expr->args],
             $this->isName($expr->name, 'expectExceptionCode') => ['withCode', $expr->args],
             default => null,
         };
