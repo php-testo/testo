@@ -31,7 +31,7 @@
         "testo/assert": "^0.1.15",
         "testo/data": "^0.1.9",
         "testo/filter": "^0.1.8",
-        "testo/testo": "0.10.49 - 1"
+        "testo/testo": "0.10.51 - 1"
     },
     "autoload": {
         "psr-4": {
