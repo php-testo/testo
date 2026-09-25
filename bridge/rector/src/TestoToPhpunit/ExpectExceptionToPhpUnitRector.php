@@ -36,17 +36,16 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Because one statement becomes many, this rule matches the wrapping `Stmt\Expression` and returns
  * a `Node[]` (the same decomposition pattern as {@see TypedAssertChainRector}).
  *
- * Mapped modifiers: `withMessage` → `expectExceptionMessage`, `withCode` → `expectExceptionCode`,
- * `withMessagePattern` → `expectExceptionMessageMatches` (both take a PCRE pattern, so this is
- * exact).
+ * Mapped modifiers: `withMessageContaining` → `expectExceptionMessage` (both match a substring, so
+ * this is exact), `withMessage` → `expectExceptionMessage` (lossy: the exact Testo match becomes a
+ * substring match), `withCode` → `expectExceptionCode`, `withMessagePattern` →
+ * `expectExceptionMessageMatches` (both take a PCRE pattern, so this is exact).
  *
  * Conservative by design: if ANY chained modifier has no faithful PHPUnit counterpart, the whole
  * chain is left untouched rather than half-converted, so chains that cannot be fully translated are
- * flagged for manual review. This deliberately includes `withMessageContaining($substring)`: it is
- * substring matching, whereas PHPUnit's only message-matcher (`expectExceptionMessageMatches`) takes
- * a regex, so forwarding a literal substring as a pattern would silently change meaning (the mirror
- * `ExpectExceptionMessageMatchesRector` is blocked for the same reason). `fromMethod`,
- * `withPrevious`, `withoutPrevious` have no PHPUnit equivalent and likewise abort the conversion.
+ * flagged for manual review. `fromMethod`, `withPrevious`, `withoutPrevious` have no PHPUnit
+ * equivalent, and two modifiers landing on the same PHPUnit call (PHPUnit keeps only the last one)
+ * cannot be expressed either; both abort the conversion.
  */
 #[TestRectorFixtures('ExpectExceptionToPhpUnitRector')]
 final class ExpectExceptionToPhpUnitRector extends AbstractRector
@@ -113,6 +112,7 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
         }
 
         $stmts = [$this->expectStmt('expectException', [$this->arg($headArg->value)])];
+        $emitted = [];
 
         foreach (\array_reverse($links) as $link) {
             $modifier = $this->getName($link->name);
@@ -122,6 +122,14 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
                 return null;
             }
 
+            # A repeated PHPUnit expectation overrides the earlier one, while Testo checks both.
+            \assert($mapped->expr instanceof MethodCall);
+            $method = (string) $this->getName($mapped->expr->name);
+            if (isset($emitted[$method])) {
+                return null;
+            }
+
+            $emitted[$method] = true;
             $stmts[] = $mapped;
         }
 
@@ -131,8 +139,8 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
     /**
      * Maps one Testo fluent modifier (with its arguments) to a single PHPUnit `$this->expect*`
      * statement, or null when the modifier has no faithful PHPUnit equivalent. Only `withMessage`,
-     * `withCode` and the regex `withMessagePattern` are translated; everything else (notably the
-     * substring `withMessageContaining`) returns null and aborts the chain conversion.
+     * `withMessageContaining`, `withCode` and the regex `withMessagePattern` are translated;
+     * everything else returns null and aborts the chain conversion.
      *
      * @param non-empty-string $modifier
      * @param array<int, Arg|\PhpParser\Node\VariadicPlaceholder> $args
@@ -145,7 +153,7 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
         }
 
         return match ($modifier) {
-            'withMessage' => $this->expectStmt('expectExceptionMessage', [$this->arg($first)]),
+            'withMessage', 'withMessageContaining' => $this->expectStmt('expectExceptionMessage', [$this->arg($first)]),
             'withCode' => $this->expectStmt('expectExceptionCode', [$this->arg($first)]),
             'withMessagePattern' => $this->expectStmt('expectExceptionMessageMatches', [$this->arg($first)]),
             default => null,

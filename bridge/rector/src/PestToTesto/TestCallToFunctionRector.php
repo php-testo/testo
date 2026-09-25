@@ -56,7 +56,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * form, so it cannot be left for a later rule):
  *   - `->group('a','b')`  => `#[\Testo\Filter\Group('a','b')]`
  *   - `->covers(X::class)` => `#[\Testo\Codecov\Covers(X::class)]` (repeatable)
- *   - `->throws(X::class[, 'msg'])` => prepended `\Testo\Expect::exception(X::class)[->withMessage('msg')]`, return type `never`
+ *   - `->throws(X::class[, 'msg'])` => prepended `\Testo\Expect::exception(X::class)[->withMessageContaining('msg')]`, return type `never`
  *   - `->skip(['reason'])` => `#[\Testo\Skip('reason')]`
  *   - `->with([ <rows> ])` => one `#[\Testo\Data\DataSet([...])]` per row (array literal only)
  *
@@ -330,7 +330,7 @@ final class TestCallToFunctionRector extends AbstractRector
     }
 
     /**
-     * `->throws(X::class[, 'message'])` => prepended `\Testo\Expect::exception(X)[->withMessage('message')]`,
+     * `->throws(X::class[, 'message'])` => prepended `\Testo\Expect::exception(X)[->withMessageContaining('message')]`,
      * forcing the `never` return type. More than two arguments is unsupported.
      *
      * @param array<int, Arg|Node\VariadicPlaceholder> $args
@@ -349,7 +349,7 @@ final class TestCallToFunctionRector extends AbstractRector
                 return null;
             }
 
-            $call = new MethodCall($call, new Identifier('withMessage'), [$args[1]]);
+            $call = new MethodCall($call, new Identifier('withMessageContaining'), [$args[1]]);
         }
 
         return ['attributes' => [], 'prepend' => [new Expression($call)], 'returnType' => 'never'];

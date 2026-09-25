@@ -10,6 +10,6 @@ it('throws with message', function () {
 #[\Testo\Test]
 function it_throws_with_message(): never
 {
-    \Testo\Expect::exception(RuntimeException::class)->withMessage('boom');
+    \Testo\Expect::exception(RuntimeException::class)->withMessageContaining('boom');
     doThing();
 }

@@ -5,7 +5,7 @@ class SomeTest
     public function test()
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('boom');
+        $this->expectExceptionMessageMatches('/boom/');
     }
 }
 -----
@@ -15,6 +15,6 @@ class SomeTest
 {
     public function test()
     {
-        \Testo\Expect::exception(\RuntimeException::class)->withMessageContaining('boom');
+        \Testo\Expect::exception(\RuntimeException::class)->withMessagePattern('/boom/');
     }
 }

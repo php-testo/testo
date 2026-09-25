@@ -38,12 +38,12 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   bare head. It matches the wrapping `Stmt\Expression` and returns `Node[]`, expanding
   `\Testo\Expect::exception($c)->withMessage($m)->withCode($n)` into the separate PHPUnit statements
   `$this->expectException($c); $this->expectExceptionMessage($m); $this->expectExceptionCode($n);`.
-  Mapped modifiers: `withMessage` → `expectExceptionMessage`, `withCode` → `expectExceptionCode`,
-  regex `withMessagePattern` → `expectExceptionMessageMatches`. **Residual:** the substring matcher
-  `withMessageContaining` is intentionally NOT mapped — PHPUnit's only message matcher
-  (`expectExceptionMessageMatches`) takes a PCRE pattern, so forwarding a literal substring would
-  change meaning; a chain using it (or any other unmapped modifier such as `fromMethod`/`withPrevious`)
-  aborts the whole conversion and is left untouched for manual review.
+  Mapped modifiers: substring `withMessageContaining` → `expectExceptionMessage` (also a substring
+  match), `withCode` → `expectExceptionCode`, regex `withMessagePattern` →
+  `expectExceptionMessageMatches`. **Residual:** the exact `withMessage` also maps to
+  `expectExceptionMessage` and so loosens into a substring check. A chain with an unmapped modifier
+  (`fromMethod`/`withPrevious`/`withoutPrevious`) or with two modifiers landing on the same PHPUnit
+  call (PHPUnit keeps only the last) aborts the whole conversion and is left untouched for manual review.
 - **`ExpectExceptionAttributeToPhpUnitRector`** (registered) — converts the attribute form
   `#[\Testo\Assert\ExpectException($class)]` into a `$this->expectException($class);` statement
   prepended to the method body (PHPUnit dropped its `ExpectException` attribute, leaving only the
