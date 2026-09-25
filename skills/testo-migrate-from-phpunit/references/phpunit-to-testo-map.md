@@ -11,10 +11,10 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 
 | Handled automatically by the `phpunit-to-testo` Rector set | Needs AI/human work (no faithful rule) |
 |---|---|
-| assert calls (+ arg-order swap), bare `expectException`, `markTestSkipped`, `setUp`/`tearDown` → attributes, `@dataProvider`/`#[DataProvider]`, `@group`/`#[Group]`, `#[CoversClass]` → `#[Covers]`, `#[DoesNotPerformAssertions]`, with a mock set added: `createMock`/`createStub` (+ intersection, `getMockBuilder(…)->disableOriginalConstructor()->getMock()`) + `expects`/`method`/`will*`/`with` constraints → Double (`phpunit-to-double`) or Mockery (`phpunit-to-mockery`) | **remove `extends TestCase` + reconcile discovery**, the mock forms with no Double/Mockery target (`prophesize`, `getMockForAbstractClass`, `addMethods`, `withConsecutive`, a variable invocation matcher), `assertThat` constraints, `expectExceptionMessageMatches` (regex) |
+| `extends TestCase` removed + `#[Test]` on test methods (also in subclasses of a project base), assert calls (+ arg-order swap), `expectException` with its message (`withMessageContaining`), regex message (`withMessagePattern`) and code, `markTestSkipped`, `setUp`/`tearDown` → attributes, `@dataProvider`/`#[DataProvider]`, `@group`/`#[Group]`, `#[CoversClass]` → `#[Covers]`, `#[DoesNotPerformAssertions]`, with a mock set added: `createMock`/`createStub` (+ intersection, `getMockBuilder(…)->disableOriginalConstructor()->getMock()`) + `expects`/`method`/`will*`/`with` constraints → Double (`phpunit-to-double`) or Mockery (`phpunit-to-mockery`) | tests inherited from a PHPUnit base class in `vendor/`, the mock forms with no Double/Mockery target (`prophesize`, `getMockForAbstractClass`, `addMethods`, `withConsecutive`, a variable invocation matcher), `assertThat` constraints |
 
 > The left column is mechanical; the right column is why **every** migration ends with an AI/human
-> pass — Rector alone leaves the test class still extending `TestCase`, so Testo will not discover it.
+> pass and a test-count check against the PHPUnit run.
 
 ## Translation table
 
@@ -39,8 +39,9 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertArrayHasKey($k, $a)` / `assertArrayNotHasKey` | `Assert::array($a)->hasKeys($k)` / `->doesNotHaveKeys($k)`. Variadic — no `$message` arg. |
 | `$this->assertEqualsCanonicalizing($e, $a)` | `Assert::array($a)->sameElementsAs($e)` — order-insensitive, loose comparison. |
 | `$this->assertEmpty($a)` / `assertNotEmpty($a)` | `Assert::blank($a)` / `Assert::notBlank($a)` **only when `$a` is an array** — `blank()` treats `false`/`0`/`'0'` as valid data, so for other types port by hand. |
-| `$this->expectException(X::class)` before Act | `Expect::exception(X::class)->withMessage(...)->withCode(...)` before Act. Method return type becomes `never`. |
-| `$this->expectExceptionMessageMatches('/.../')` | `withMessageContaining('substring')` if a literal substring suffices; otherwise catch and assert manually. No PCRE. |
+| `$this->expectException(X::class)` before Act | `Expect::exception(X::class)->withCode(...)` before Act. Method return type becomes `never`. |
+| `$this->expectExceptionMessage('...')` | `->withMessageContaining('...')` — PHPUnit matches a substring; `withMessage()` is an exact match and fails where PHPUnit passed. |
+| `$this->expectExceptionMessageMatches('/.../')` | `->withMessagePattern('/.../')`. |
 | `$this->markTestSkipped('reason')` | `#[Skip('reason')]` from **`Testo\Skip`** when the call opens the test unconditionally — the test then never enters the pipeline (no hooks, no provider, no retries). A guarded call, one deeper in the body, or a non-literal message stays runtime: `throw new \Testo\Core\Exception\SkipTest('reason')` from the test body. |
 | `$this->markTestIncomplete('reason')` | No "incomplete" status. Port to `throw new SkipTest('TODO: reason')`, or leave the body empty → `Status::Risky`. |
 | `#[DoesNotPerformAssertions]` / `$this->expectNotToPerformAssertions()` | `#[ExpectNoAssertions]` from **`Testo\Assert`**, on a method or function (not a class) — no method-call form. Two-way contract: a marked test that *does* assert is `Status::Risky`. |
@@ -152,5 +153,8 @@ final class UserServiceTest
 - **Class-level `#[Test]` excludes non-test methods by signature.** Data providers (`public static`, return `iterable`) and helpers are not mistaken for tests, but a public `void` helper *will* be — make helpers `private` or non-`void`.
 - **Don't mock `final` classes or enums.** Instantiate the real type or extract an interface.
 - **Don't run both runners in CI during migration.** Cut over one suite/dir at a time.
+- **Tests inherited from a `vendor/` PHPUnit base** (e.g. a shared `AbstractCollectorTestCase`) cannot be ported in place: the base stays PHPUnit and its assertions are invisible to Testo. Copy those scenarios into a local trait or base with `#[Test]` methods.
+- **A trait method alias is a second test.** `use T { testFoo as private baseTestFoo; }` copies `#[Test]` and `#[DataProvider]` onto the alias. Move the shared body into a private helper without attributes and call it from the overriding test.
+- **Assertion counts differ from PHPUnit** (`Expect::exception()`, a chained `Assert::array()->hasKeys()->…` count differently). Verify the port by the test count, not the assertion count.
 
 For choosing between `#[DataSet]`, `#[DataProvider]`, `#[DataZip]`, `#[DataUnion]`, `#[DataCross]`, see `testo-data-driven`. For lifecycle/assertion detail, see `testo-write-tests`.

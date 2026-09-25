@@ -138,7 +138,9 @@ $config = "<?php\n\n"
     . "    ])\n"
     . "    ->withSets([\n"
     . "{$setLines}\n"
-    . "    ]);\n";
+    . "    ])\n"
+    . "    // The rules emit fully qualified names; import them, leaving global classes (\\RuntimeException) as written.\n"
+    . "    ->withImportNames(importShortClasses: false);\n";
 
 \file_put_contents($outAbs, $config);
 
