@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/php-testo/testo/compare/codecov-0.2.2...codecov-0.2.3) (2026-09-25)
+
+
+### Features
+
+* **codecov:** let a plugin scope a test's coverage through `CoverageScope` ([#352](https://github.com/php-testo/testo/issues/352)) ([7ec3965](https://github.com/php-testo/testo/commit/7ec3965acc66487941c8de551fe343631cbde851))
+
 ## [0.2.2](https://github.com/php-testo/testo/compare/codecov-0.2.1...codecov-0.2.2) (2026-09-14)
 
 

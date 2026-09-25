@@ -1,5 +1,5 @@
 {
-    ".": "0.10.50",
+    ".": "0.10.51",
     "plugin/repeat": "0.1.9",
     "plugin/convention": "0.1.5",
     "plugin/lifecycle": "0.1.7",
@@ -10,7 +10,7 @@
     "plugin/data": "0.1.9",
     "plugin/inline": "0.1.9",
     "plugin/bench": "0.1.12",
-    "plugin/codecov": "0.2.2",
+    "plugin/codecov": "0.2.3",
     "plugin/facade": "0.1.1",
     "plugin/fiber": "0.1.3",
     "plugin/skip": "0.1.1",
@@ -18,7 +18,7 @@
     "bridge/symfony-console": "0.1.14",
     "bridge/infection": "0.1.8",
     "bridge/mockery": "0.1.2",
-    "bridge/rector": "0.2.7",
+    "bridge/rector": "0.3.0",
     "bridge/revolt": "0.1.2",
     "bridge/vcr": "0.1.1"
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0](https://github.com/php-testo/testo/compare/bridge-rector-0.2.7...bridge-rector-0.3.0) (2026-09-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **bridge-rector:** split mock conversions into PHPUnit→Double, PHPUnit→Mockery and Mockery→Double sets ([#351](https://github.com/php-testo/testo/issues/351))
+* **bridge-rector:** `phpunit-to-testo` no longer converts mocks, since the target library is a choice; add `TestoRectorSetList::PHPUNIT_TO_DOUBLE` or `PHPUNIT_TO_MOCKERY` next to it. `CreateMockToDoubleRector` moved to the `Testo\Bridge\Rector\PhpunitToDouble` namespace.
+
+### Features
+
+* **bridge-rector:** convert PHPUnit mocks onto Mockery ([3da4055](https://github.com/php-testo/testo/commit/3da40553c14ac1070b37a3d0a65b893aa2f7f985))
+* **bridge-rector:** split mock conversions into PHPUnit→Double, PHPUnit→Mockery and Mockery→Double sets ([#351](https://github.com/php-testo/testo/issues/351)) ([3da4055](https://github.com/php-testo/testo/commit/3da40553c14ac1070b37a3d0a65b893aa2f7f985))
+* **codecov:** let a plugin scope a test's coverage through `CoverageScope` ([#352](https://github.com/php-testo/testo/issues/352)) ([7ec3965](https://github.com/php-testo/testo/commit/7ec3965acc66487941c8de551fe343631cbde851))
+
 ## [0.2.7](https://github.com/php-testo/testo/compare/bridge-rector-0.2.6...bridge-rector-0.2.7) (2026-09-19)
 
 
