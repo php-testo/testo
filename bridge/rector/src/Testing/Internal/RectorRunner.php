@@ -41,6 +41,7 @@ final readonly class RectorRunner
     private DynamicSourceLocatorProvider $sourceLocator;
     private ConfigurationFactory $configurationFactory;
     private LoggerInterface $channel;
+    private LoggerInterface $errorChannel;
 
     /**
      * @param list<class-string<RectorInterface>> $rules
@@ -48,6 +49,7 @@ final readonly class RectorRunner
     public function __construct(Messenger $messenger, array $rules)
     {
         $this->channel = $messenger->channel('rector-fixture.php');
+        $this->errorChannel = $messenger->channel('rector-errors.json');
         $rectorConfig = (new LazyContainerFactory())->create();
         $rectorConfig->boot();
 
@@ -93,27 +95,24 @@ final readonly class RectorRunner
             $configuration = $this->configurationFactory->createForTests([$inputFile]);
             $result = $this->fileProcessor->processFiles([$inputFile], $configuration);
 
+            # Rector catches a rule's exception, rolls the file back and reports it only as a system
+            # error, which would otherwise surface as a bare "not converted" diff. Serialized while
+            # the temp file still exists: SystemError resolves its absolute path via realpath().
+            $errors = $result->getSystemErrors();
+            if ($errors !== []) {
+                $this->errorChannel->error(\json_encode($errors, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR));
+
+                throw new \RuntimeException(\sprintf(
+                    "Rector failed on fixture \"%s\":\n%s",
+                    $fixturePath->name(),
+                    \implode("\n", \array_map(static fn(SystemError $error): string => $error->getMessage(), $errors)),
+                ));
+            }
+
             $changed = (string) \file_get_contents($inputFile);
         } finally {
             @\unlink($inputFile);
         }
-
-        # Rector catches a rule's exception, rolls the file back and reports it only as a system
-        # error, which would otherwise surface as a bare "not converted" diff.
-        $errors = \array_map(
-            static fn(SystemError $error): string => \sprintf(
-                '%s (line %s): %s',
-                $error->getRectorShortClass() ?? 'Rector',
-                $error->getLine() ?? '?',
-                $error->getMessage(),
-            ),
-            $result->getSystemErrors(),
-        );
-        $errors === [] or throw new \RuntimeException(\sprintf(
-            "Rector failed on fixture \"%s\":\n%s",
-            $fixturePath->name(),
-            \implode("\n", $errors),
-        ));
 
         Assert::same($changed, $expected, \sprintf('Fixture "%s" was not converted as expected', $fixturePath->name()));
     }

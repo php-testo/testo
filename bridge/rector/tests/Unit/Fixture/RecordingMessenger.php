@@ -11,12 +11,18 @@ use Testo\Core\Log\Level;
 use Testo\Core\Log\MessageLog;
 
 /**
- * A messenger that hands out channels and drops whatever is written to them.
+ * A messenger that hands out channels and keeps whatever is written to them, without emitting it.
  */
-final class QuietMessenger implements Messenger
+final class RecordingMessenger implements Messenger
 {
+    /** @var list<array{channel: string, content: string, level: Level}> */
+    public array $logged = [];
+
     #[\Override]
-    public function log(string $channel, string $content, Level $level = Level::Info, array $context = []): void {}
+    public function log(string $channel, string $content, Level $level = Level::Info, array $context = []): void
+    {
+        $this->logged[] = ['channel' => $channel, 'content' => $content, 'level' => $level];
+    }
 
     #[\Override]
     public function channel(string $name): Channel

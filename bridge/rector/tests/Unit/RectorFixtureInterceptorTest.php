@@ -28,7 +28,7 @@ use Testo\Data\MultipleResult;
 use Testo\Event\Test\TestDataSetStarting;
 use Testo\Test;
 use Tests\Bridge\Rector\Unit\Fixture\EscapingFixturesRule;
-use Tests\Bridge\Rector\Unit\Fixture\QuietMessenger;
+use Tests\Bridge\Rector\Unit\Fixture\RecordingMessenger;
 
 #[Test]
 #[Covers(RectorFixtureInterceptor::class)]
@@ -72,7 +72,7 @@ final class RectorFixtureInterceptorTest
      */
     public function everyFixtureIsScopedToItsRule(): void
     {
-        $interceptor = new RectorFixtureInterceptor(self::createDispatcher(), new QuietMessenger());
+        $interceptor = new RectorFixtureInterceptor(self::createDispatcher(), new RecordingMessenger());
         $seen = [];
         $next = static function (TestInfo $i) use (&$seen): TestResult {
             $seen[] = $i;
