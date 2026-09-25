@@ -22,6 +22,8 @@ use Testo\Data\MultipleResult;
 use Testo\Filter\DataPointer;
 use Testo\Test;
 use Tests\Data\Unit\Fixture\CombinatorTarget;
+use Tests\Data\Unit\Fixture\InheritedProviderBase;
+use Tests\Data\Unit\Fixture\InheritedProviderTarget;
 use Tests\Data\Unit\Fixture\InvalidProviderTarget;
 use Tests\Data\Unit\Fixture\MultiProviderTarget;
 use Tests\Data\Unit\Fixture\NonStaticProviderTarget;
@@ -289,7 +291,60 @@ final class DataProviderInterceptorTest
         }
 
         Assert::notNull($caught);
-        Assert::same($caught->getMessage(), 'DataProvider provider must be a callable or method name string.');
+        Assert::same(
+            $caught->getMessage(),
+            'DataProvider method ' . InvalidProviderTarget::class . '::missingProviderMethod() not found.',
+        );
+    }
+
+    /**
+     * A test inherited from an abstract base takes its provider from the class it runs in.
+     */
+    public function resolvesProviderAgainstTheRunningClass(): void
+    {
+        $interceptor = new DataProviderInterceptor(self::createDispatcher());
+        $info = self::createInfoFor(
+            InheritedProviderTarget::class,
+            'target',
+            caseReflection: new \ReflectionClass(InheritedProviderTarget::class),
+        );
+        $seen = [];
+        $next = static function (TestInfo $i) use (&$seen): TestResult {
+            $seen[] = $i->arguments;
+            return new TestResult(info: $i, status: Status::Passed);
+        };
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result->status, Status::Passed);
+        Assert::same($seen, [[1], [2]]);
+    }
+
+    /**
+     * A provider left abstract in the running class is named in the error.
+     */
+    public function throwsWhenProviderMethodIsAbstract(): void
+    {
+        $interceptor = new DataProviderInterceptor(self::createDispatcher());
+        $info = self::createInfoFor(
+            InheritedProviderBase::class,
+            'target',
+            caseReflection: new \ReflectionClass(InheritedProviderBase::class),
+        );
+        $next = static fn(TestInfo $i): TestResult => new TestResult(info: $i, status: Status::Passed);
+
+        $caught = null;
+        try {
+            $interceptor->runTest($info, $next);
+        } catch (\LogicException $e) {
+            $caught = $e;
+        }
+
+        Assert::notNull($caught);
+        Assert::same(
+            $caught->getMessage(),
+            'DataProvider method ' . InheritedProviderBase::class . '::values() is abstract.',
+        );
     }
 
     /**
@@ -359,11 +414,21 @@ final class DataProviderInterceptorTest
      * @param class-string $class
      * @param non-empty-string $method
      * @param array<non-empty-string, mixed> $attributes
+     * @param \ReflectionClass|null $caseReflection The class the test runs in, when it matters.
      */
-    private static function createInfoFor(string $class, string $method, array $attributes = []): TestInfo
-    {
+    private static function createInfoFor(
+        string $class,
+        string $method,
+        array $attributes = [],
+        ?\ReflectionClass $caseReflection = null,
+    ): TestInfo {
         $reflection = new \ReflectionMethod($class, $method);
-        $caseDefinition = new CaseDefinition(name: 'TestCase', type: 'test', file: Path::create(__FILE__));
+        $caseDefinition = new CaseDefinition(
+            name: 'TestCase',
+            type: 'test',
+            file: Path::create(__FILE__),
+            reflection: $caseReflection,
+        );
         $caseInfo = new CaseInfo(suiteIdentity: new SuiteIdentity('Data/Unit'), definition: $caseDefinition);
         $testDefinition = new TestDefinition(reflection: $reflection);
 
