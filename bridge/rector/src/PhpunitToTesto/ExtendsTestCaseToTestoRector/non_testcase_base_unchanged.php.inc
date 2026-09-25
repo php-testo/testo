@@ -1,6 +1,6 @@
 <?php
 
-final class FooTest extends \App\Tests\CustomBase
+final class CustomBaseFooTest extends \App\Tests\CustomBase
 {
     public function testItWorks(): void
     {
