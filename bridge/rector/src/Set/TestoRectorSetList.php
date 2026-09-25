@@ -65,4 +65,12 @@ final class TestoRectorSetList
      * @var string
      */
     public const MOCKERY_TO_DOUBLE = __DIR__ . '/../../config/mockery-to-double.php';
+
+    /**
+     * Testo -> Testo polishing: return types, `final` test classes, class-level `#[Test]`,
+     * `#[ExpectException]`, merged assertion pipes. See {@see config/testo-polish.php}.
+     *
+     * @var string
+     */
+    public const TESTO_POLISH = __DIR__ . '/../../config/testo-polish.php';
 }
