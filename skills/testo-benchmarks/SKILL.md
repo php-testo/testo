@@ -60,7 +60,7 @@ Key parameters:
 
 ## Pass / fail
 
-A benchmark records one assertion: `current` is the fastest, within `tolerance`. It **passes** when `current`'s filtered mean stays within `fastest * (1 + tolerance)`, and **fails** (a real test failure) when an alternative beats it by more. So `#[Bench]` doubles as a guard that your current implementation has not regressed against the alternatives you compare it with.
+A benchmark records one assertion: `current` is the fastest, within `tolerance`. It **passes** when `current`'s filtered mean stays within `fastest * (1 + tolerance)`, and **fails** (a real test failure) when an alternative beats it by more. So `#[Bench]` doubles as a guard that your current implementation has not regressed against the alternatives you compare it with. A failed benchmark still reports its measurements: the result tables, the JSON `benchmarks` block and the TeamCity `bench.*` metadata are emitted either way.
 
 When you compare implementations of *equivalent* speed, the winner is decided by measurement noise and the gate would flake. Set `tolerance: \INF` to compare them without gating on which one wins — the benchmark then only measures and always passes.
 

@@ -6,6 +6,7 @@ namespace Tests\Bench\Unit;
 
 use Testo\Bench\BenchmarkPlugin;
 use Testo\Bench\Internal\Pipeline\BenchFinder;
+use Testo\Bench\Internal\Pipeline\BenchVerdictInterceptor;
 use Testo\Codecov\Covers;
 use Testo\Test;
 use Testo\Testing\Helper\PluginTester;
@@ -17,11 +18,12 @@ use Testo\Testing\Helper\PluginTester;
 #[Covers(BenchmarkPlugin::class)]
 final class BenchmarkPluginTest
 {
-    public function registersOnlyTheBenchFinder(): void
+    public function registersTheBenchFinderAndVerdict(): void
     {
         PluginTester::for(new BenchmarkPlugin())
             ->addsInterceptor(BenchFinder::class)
-            ->addsInterceptors(1)
+            ->addsInterceptor(BenchVerdictInterceptor::class)
+            ->addsInterceptors(2)
             ->addsListeners(0);
     }
 }

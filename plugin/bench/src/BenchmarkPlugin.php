@@ -7,6 +7,7 @@ namespace Testo\Bench;
 use Internal\Container\Container;
 use Testo\Bench;
 use Testo\Bench\Internal\Pipeline\BenchFinder;
+use Testo\Bench\Internal\Pipeline\BenchVerdictInterceptor;
 use Testo\Common\PluginConfigurator;
 use Testo\Pipeline\InterceptorCollector;
 
@@ -21,6 +22,8 @@ final readonly class BenchmarkPlugin implements PluginConfigurator
     #[\Override]
     public function configure(Container $container): void
     {
-        $container->get(InterceptorCollector::class)->addInterceptor(BenchFinder::class);
+        $collector = $container->get(InterceptorCollector::class);
+        $collector->addInterceptor(BenchFinder::class);
+        $collector->addInterceptor(new BenchVerdictInterceptor());
     }
 }

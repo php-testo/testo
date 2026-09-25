@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Testo\Bench\Internal;
 
 use Internal\Container\Attribute\ScopeShared;
-use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Assert\State\Assertion\AssertionSuccess;
 use Testo\Bench;
@@ -166,35 +165,7 @@ final readonly class BenchHandler
 
             EOT);
 
-        self::assertCurrentIsFastest($results, $aliases, $attr->tolerance);
-
         return $result;
-    }
-
-    /**
-     * Records the benchmark's verdict as an assertion on the current test: `current` (always case 0)
-     * should be the fastest, with `$tolerance` headroom over the fastest callable for noise. A pass
-     * records a successful assertion — which also keeps the benchmark from being reported as Risky for
-     * asserting nothing; a miss throws, and the runner turns the assertion failure into a Failed test.
-     *
-     * No-op without the Assert plugin (the {@see \class_exists()} guard), so `testo/bench` stays
-     * independent of it.
-     *
-     * @param list<CaseResult> $results Case results, ordered as measured — index 0 is `current`.
-     * @param list<string> $aliases Case aliases in the same order; `$aliases[0]` is `current`.
-     */
-    private static function assertCurrentIsFastest(array $results, array $aliases, float $tolerance): void
-    {
-        if (!\class_exists(StaticState::class)) {
-            return;
-        }
-
-        $record = self::benchmarkVerdict($results, $aliases, $tolerance);
-
-        $state = StaticState::current();
-        $state === null or $state->history[] = $record;
-
-        $record instanceof AssertionException and throw $record;
     }
 
     private static function normalizeCallable(TestInfo $info, callable|array $callable): \Closure
