@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.1](https://github.com/php-testo/testo/compare/bridge-rector-0.3.0...bridge-rector-0.3.1) (2026-09-25)
+
+
+### Features
+
+* **bridge-rector:** convert expectExceptionMessageMatches to withMessagePattern ([d409881](https://github.com/php-testo/testo/commit/d40988123cd1da485cbc059bfec10830f940da52))
+* **bridge-rector:** log fixture runner system errors to the `rector-errors.json` channel ([b498d28](https://github.com/php-testo/testo/commit/b498d28699910d2f05024ec4572f5b0c05dd0d87))
+
+
+### Bug Fixes
+
+* **bridge-rector:** add lifecycle attributes only in TestCase classes and traits ([03dd7ef](https://github.com/php-testo/testo/commit/03dd7ef5be5cde852a822c9fa9bfca974042b244))
+* **bridge-rector:** convert expectExceptionMessage to withMessageContaining ([d409881](https://github.com/php-testo/testo/commit/d40988123cd1da485cbc059bfec10830f940da52))
+* **bridge-rector:** convert withMessageContaining back to expectExceptionMessage ([d409881](https://github.com/php-testo/testo/commit/d40988123cd1da485cbc059bfec10830f940da52))
+* **bridge-rector:** drop `#[\Override]` left dangling after detaching from `TestCase` ([#353](https://github.com/php-testo/testo/issues/353)) ([29fa870](https://github.com/php-testo/testo/commit/29fa870999eda542726401d5655556b0a501d0a1))
+* **bridge-rector:** mark the tests of a class that extends TestCase through a base ([2f79fb2](https://github.com/php-testo/testo/commit/2f79fb254dcfaee58eff51a3fb0ac9b41dfc8dea))
+* **bridge-rector:** surface Rector system errors in the fixture runner ([#355](https://github.com/php-testo/testo/issues/355)) ([b498d28](https://github.com/php-testo/testo/commit/b498d28699910d2f05024ec4572f5b0c05dd0d87))
+
 ## [0.3.0](https://github.com/php-testo/testo/compare/bridge-rector-0.2.7...bridge-rector-0.3.0) (2026-09-25)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.13](https://github.com/php-testo/testo/compare/bench-0.1.12...bench-0.1.13) (2026-09-25)
+
+
+### Bug Fixes
+
+* **bench:** keep the benchmark result when the verdict fails ([#357](https://github.com/php-testo/testo/issues/357)) ([949a6ed](https://github.com/php-testo/testo/commit/949a6edd06b2ef59905720e2415a74100a9ce31b))
+
 ## [0.1.12](https://github.com/php-testo/testo/compare/bench-0.1.11...bench-0.1.12) (2026-09-14)
 
 
