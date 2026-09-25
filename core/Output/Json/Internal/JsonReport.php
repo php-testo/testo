@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Output\Json\Internal;
 
+use Testo\Core\Context\Identity\TestIdentity;
 use Testo\Core\Context\RunResult;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Log\MessageLog;
@@ -150,9 +151,9 @@ final class JsonReport
 
     /**
      * A data-driven test fails through its data sets: the failure and output live on each set, while
-     * the umbrella result only carries the aggregated status. Every failed set is listed on its own,
-     * addressed by its data-set coordinates; the umbrella is listed only when it has something of its
-     * own to report, or when no set explains the failure.
+     * the umbrella result only carries the aggregated status. Every failed set is listed on its own;
+     * the umbrella is listed only when it has something of its own to report, or when no set explains
+     * the failure.
      *
      * @return list<array<non-empty-string, mixed>>
      */
@@ -165,11 +166,7 @@ final class JsonReport
         $sets = [];
         if ($multiple instanceof MultipleResult) {
             foreach ($multiple->results as $set) {
-                $identity = $set->info->identity;
-                $set->status->isFailure() and $sets[] = self::failure($set, [
-                    'dataProvider' => $identity->dataProvider,
-                    'dataSet' => $identity->dataSet,
-                ]);
+                $set->status->isFailure() and $sets[] = self::failure($set);
             }
         }
 
@@ -179,12 +176,15 @@ final class JsonReport
     }
 
     /**
-     * @param array<non-empty-string, mixed> $coordinates Data-set coordinates of a single set.
+     * Addressed by the test's {@see TestIdentity::fqn()}: a data set carries its `:dataProvider:dataSet`
+     * coordinates, the exact string `--filter` takes back.
+     *
      * @return array<non-empty-string, mixed>
      */
-    private static function failure(TestResult $test, array $coordinates = []): array
+    private static function failure(TestResult $test): array
     {
-        $data = ['test' => self::testId($test)] + $coordinates + [
+        $data = [
+            'test' => $test->info->identity->fqn(),
             'status' => self::statusName($test->status),
         ];
 

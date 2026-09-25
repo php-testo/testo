@@ -46,8 +46,9 @@ interface — parse the JSON. When a human also needs terminal output (CI logs),
   `risky`, `flaky`, `cancelled`, `aborted`); zero counts are omitted.
 - `failures` — every failed/errored test with what you need to fix it: the throwable, its
   `previous` chain (`causedBy`), a stack trace trimmed at the test boundary, and captured
-  output (`stdout`, log channels). A data-driven test is listed once per failed data set, each
-  entry carrying its `dataProvider`/`dataSet` coordinates.
+  output (`stdout`, log channels). `test` is the test's FQN, and `--filter='<test>'` reruns exactly
+  that entry. A data-driven test is listed once per failed data set, its FQN ending in
+  `:dataProvider:dataSet` (`App\Tests\UserServiceTest::createsUser:0:2`).
 - `benchmarks` — present only when the run measured benchmarks (`#[Bench]`), omitted otherwise, so an
   ordinary run's payload is unchanged. One entry per benchmark test — per data set for a repeatable one,
   each carrying its `dataProvider`/`dataSet` — with `iterations`, the ranked `cases`, and `diagnostics`.
@@ -86,8 +87,9 @@ vendor/bin/testo --json --group=db --group=!slow                  # groups: OR t
 vendor/bin/testo --json --type=!bench                             # types: test, inline, bench, profile
 ```
 
-- `--filter` accepts `Class::method`, a FQN (class or function), or a bare fragment
-  (method name, function name, or short class name).
+- `--filter` accepts `Class::method`, a FQN (class or function), a data-set FQN
+  (`Class::method:0:2`, as a `failures[].test` reports it), or a bare fragment (method name,
+  function name, or short class name).
 - `--group` matches `#[Group('name')]`; `--type` matches how the test is declared —
   `test` (`#[Test]`), `inline` (`#[TestInline]`), `bench`, `profile`. For both, values
   OR together and a `!`-prefixed value excludes; exclusion wins over inclusion.
