@@ -25,6 +25,9 @@
         "infection/abstract-testframework-adapter": "^0.5",
         "infection/include-interceptor": "^0.2 || ^1.0"
     },
+    "conflict": {
+        "infection/infection": "<0.33"
+    },
     "autoload": {
         "psr-4": {
             "Testo\\Bridge\\Infection\\": "src/"

@@ -27,7 +27,7 @@
 
 Adapter that lets [Infection](https://github.com/infection/infection) drive Testo as the test framework for mutation testing. Wires Testo's `--filter` / `--teamcity` runtime to Infection's per-mutant invocation contract and consumes the PHPUnit-style coverage XML produced by `testo/codecov` for per-test attribution.
 
-Auto-discovered by Infection through the `infection/extension-installer` plugin — no manual configuration beyond `"testFramework": "testo"` in `infection.json`.
+Auto-discovered by Infection through the `infection/extension-installer` plugin — no manual configuration beyond `"testFramework": "testo"` in `infection.json`. Requires Infection 0.33+, the first version that accepts `testo.php` as the test framework config.
 
 ## Install
 
