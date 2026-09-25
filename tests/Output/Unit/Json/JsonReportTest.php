@@ -254,6 +254,45 @@ final class JsonReportTest
         Assert::same($report['benchmarks'][1]['dataSet'], 1);
     }
 
+    public function eachFailedDataSetIsListedWithItsCoordinatesAndOutput(): void
+    {
+        $identity = self::identity('failingTest');
+        $messages = new MessageLog([new Message(0.0, 'sql-log', Level::Debug, 'SELECT 1')]);
+        $multiple = new MultipleResult([
+            self::test('failingTest', Status::Passed, identity: $identity->toDataSet(0, 0)),
+            self::test('failingTest', Status::Failed, new \RuntimeException('set 1'), $messages, $identity->toDataSet(0, 1)),
+        ]);
+        // A data-driven run reports its failure through the sets; the umbrella holds only the status.
+        $test = self::test('failingTest', Status::Failed)->withAttribute(MultipleResult::class, $multiple);
+
+        $report = self::decode(self::run(Status::Failed, results: [$test]));
+
+        Assert::count($report['failures'], 1);
+        $failed = $report['failures'][0];
+        Assert::same($failed['test'], SampleTestClass::class . '::failingTest');
+        Assert::same($failed['dataProvider'], 0);
+        Assert::same($failed['dataSet'], 1);
+        Assert::same($failed['status'], 'failed');
+        Assert::same($failed['message'], 'set 1');
+        Assert::same($failed['output'], [['channel' => 'sql-log', 'content' => 'SELECT 1']]);
+    }
+
+    public function anUmbrellaWithItsOwnFailureIsListedBeforeItsSets(): void
+    {
+        $identity = self::identity('failingTest');
+        $multiple = new MultipleResult([
+            self::test('failingTest', Status::Error, new \LogicException('set'), identity: $identity->toDataSet(0, 0)),
+        ]);
+        $test = self::test('failingTest', Status::Error, new \LogicException('umbrella'))
+            ->withAttribute(MultipleResult::class, $multiple);
+
+        $report = self::decode(self::run(Status::Failed, results: [$test]));
+
+        $messages = \array_map(static fn(array $f): string => $f['message'], $report['failures']);
+        Assert::same($messages, ['umbrella', 'set']);
+        Assert::false(\array_key_exists('dataSet', $report['failures'][0]));
+    }
+
     /**
      * @return array<non-empty-string, mixed>
      */
@@ -287,6 +326,7 @@ final class JsonReportTest
         Status $status,
         ?\Throwable $failure = null,
         ?MessageLog $messages = null,
+        ?TestIdentity $identity = null,
     ): TestResult {
         $info = new TestInfo(
             name: $method,
@@ -300,6 +340,7 @@ final class JsonReportTest
                 ),
             ),
             testDefinition: new TestDefinition(new \ReflectionMethod(SampleTestClass::class, $method)),
+            identity: $identity,
         );
 
         return new TestResult(
@@ -308,6 +349,13 @@ final class JsonReportTest
             failure: $failure,
             messages: $messages ?? new MessageLog(),
         );
+    }
+
+    private static function identity(string $method): TestIdentity
+    {
+        return (new SuiteIdentity('Output/Unit'))
+            ->toCase(SampleTestClass::class, 'test', Path::create(__FILE__))
+            ->toTest($method);
     }
 
     private static function benchTest(

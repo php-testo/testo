@@ -19,7 +19,8 @@ use Testo\Output\Rendering\StackTrace;
  * The report is intentionally lean: a top-level run summary plus a flat list of
  * failed tests ({@see Status::Failed}/{@see Status::Error}) with everything needed
  * to locate and fix a failure — the throwable, its `previous` chain, the stack
- * trace, and any output the test captured. Passing/skipped/risky tests are
+ * trace, and any output the test captured. A data-driven test contributes one entry
+ * per failed data set. Passing/skipped/risky tests are
  * collapsed into the counts and never listed individually, which keeps the
  * payload small enough to feed straight into an LLM agent reading stdout.
  *
@@ -139,7 +140,7 @@ final class JsonReport
         foreach ($result as $suite) {
             foreach ($suite as $case) {
                 foreach ($case as $test) {
-                    $test->status->isFailure() and $failures[] = self::failure($test);
+                    $test->status->isFailure() and \array_push($failures, ...self::failuresOf($test));
                 }
             }
         }
@@ -148,12 +149,42 @@ final class JsonReport
     }
 
     /**
+     * A data-driven test fails through its data sets: the failure and output live on each set, while
+     * the umbrella result only carries the aggregated status. Every failed set is listed on its own,
+     * addressed by its data-set coordinates; the umbrella is listed only when it has something of its
+     * own to report, or when no set explains the failure.
+     *
+     * @return list<array<non-empty-string, mixed>>
+     */
+    private static function failuresOf(TestResult $test): array
+    {
+        $multiple = \class_exists(MultipleResult::class)
+            ? $test->getAttribute(MultipleResult::class)
+            : null;
+
+        $sets = [];
+        if ($multiple instanceof MultipleResult) {
+            foreach ($multiple->results as $set) {
+                $identity = $set->info->identity;
+                $set->status->isFailure() and $sets[] = self::failure($set, [
+                    'dataProvider' => $identity->dataProvider,
+                    'dataSet' => $identity->dataSet,
+                ]);
+            }
+        }
+
+        $ownReport = $test->failure !== null || self::output($test->messages) !== [];
+
+        return $sets === [] || $ownReport ? [self::failure($test), ...$sets] : $sets;
+    }
+
+    /**
+     * @param array<non-empty-string, mixed> $coordinates Data-set coordinates of a single set.
      * @return array<non-empty-string, mixed>
      */
-    private static function failure(TestResult $test): array
+    private static function failure(TestResult $test, array $coordinates = []): array
     {
-        $data = [
-            'test' => self::testId($test),
+        $data = ['test' => self::testId($test)] + $coordinates + [
             'status' => self::statusName($test->status),
         ];
 
