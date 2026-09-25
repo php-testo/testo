@@ -12,6 +12,8 @@
 # Required secrets:
 #   - RELEASE_TOKEN: a GitHub token (PAT or fine-grained) with `contents: write`
 #     access to every target repo. Same secret is reused for release-please.
+#   - PACKAGIST_TOKEN: Packagist safe API token of the maintainer account, used
+#     to re-crawl a split repo whose tag Packagist missed.
 
 on:  # yamllint disable-line rule:truthy
   push:
@@ -50,6 +52,10 @@ jobs:
   split:
     name: ↪ Subtree push
     runs-on: ubuntu-latest
+    outputs:
+      component: ${{ steps.c.outputs.component }}
+      version: ${{ steps.c.outputs.version }}
+      package: ${{ steps.c.outputs.package }}
     steps:
       - name: ⤵ Checkout monorepo (full history)
         uses: actions/checkout@v7
@@ -72,6 +78,7 @@ jobs:
           echo "component=${component}" >> "$GITHUB_OUTPUT"
           echo "version=${version}"     >> "$GITHUB_OUTPUT"
           echo "directory=${directory}" >> "$GITHUB_OUTPUT"
+          echo "package=$(jq -r .name "${directory}/composer.json")" >> "$GITHUB_OUTPUT"
 
       - name: 🌿 Resolve source branch for the tag
         id: branch
@@ -97,5 +104,23 @@ jobs:
           user_email: '41898282+github-actions[bot]@users.noreply.github.com'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+  packagist:
+    name: 🔎 Verify Packagist
+    needs: split
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⤵ Checkout monorepo
+        uses: actions/checkout@v7
+
+      - name: 🔎 Wait for ${{ needs.split.outputs.package }} ${{ needs.split.outputs.version }}
+        env:
+          PACKAGIST_USERNAME: roxblnfk
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        run: >-
+          bash .github/release-please/verify-packagist.sh
+          "${{ needs.split.outputs.package }}"
+          "${{ needs.split.outputs.version }}"
+          "https://github.com/php-testo/${{ needs.split.outputs.component }}"
 
 ...

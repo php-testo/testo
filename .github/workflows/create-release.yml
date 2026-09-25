@@ -28,6 +28,9 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      # Root testo/testo version released by this run, by release-please or by the guard; empty otherwise.
+      root_version: ${{ steps.release.outputs.release_created == 'true' && steps.release.outputs.version || steps.guard.outputs.version }}
     steps:
       - name: 🎉 Create release
         uses: googleapis/release-please-action@v5
@@ -48,6 +51,7 @@ jobs:
       # exact stuck state. When release-please tags correctly the tag exists
       # and this step is a no-op.
       - name: 🔖 Guard — tag a root-only release release-please skipped
+        id: guard
         if: ${{ steps.release.outputs.prs_created != 'true' }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -84,6 +88,7 @@ jobs:
             --target "${GITHUB_SHA}" \
             --title "${version}" \
             --notes "${notes:-Release ${version}}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
           # Flip the label so the next release-please run no longer sees an
           # outstanding untagged PR. We hit the REST labels API directly rather
@@ -151,5 +156,25 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "chore(release): sync version constraints and Vibe Index badge"
           git push
+
+  # Component packages are verified by split-publish.yml, per tag.
+  packagist:
+    name: 🔎 Verify Packagist
+    needs: release
+    if: ${{ needs.release.outputs.root_version != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⤵ Checkout
+        uses: actions/checkout@v7
+
+      - name: 🔎 Wait for testo/testo ${{ needs.release.outputs.root_version }}
+        env:
+          PACKAGIST_USERNAME: roxblnfk
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        run: >-
+          bash .github/release-please/verify-packagist.sh
+          testo/testo
+          "${{ needs.release.outputs.root_version }}"
+          "https://github.com/${{ github.repository }}"
 
 ...
