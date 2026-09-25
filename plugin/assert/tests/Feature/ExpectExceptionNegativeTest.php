@@ -58,6 +58,24 @@ final class ExpectExceptionNegativeTest
             ->contains('got "actual message"');
     }
 
+    public function failureMessageCarriesTheReason(): void
+    {
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'wrongMessage']);
+
+        Assert::string($result->failure?->getMessage())
+            ->contains('Failed expectation that exception of type')
+            ->contains('Reason: message is "expected message", but got "actual message"');
+    }
+
+    public function failureMessageListsEveryReason(): void
+    {
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'messageAndCodeMismatch']);
+
+        Assert::string($result->failure?->getMessage())
+            ->contains("Reasons:\n- message is")
+            ->contains("\n- code is 42, but got 99");
+    }
+
     public function wrongMessagePattern(): void
     {
         $result = TestRunner::runTest([ExpectExceptionNegative::class, 'wrongMessagePattern']);
