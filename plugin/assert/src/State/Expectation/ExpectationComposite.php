@@ -51,7 +51,9 @@ final class ExpectationComposite extends \LogicException implements Expectation
         string $details = '',
     ): ExpectationFailed {
         $this->success = false;
-        return $this->records[] = new ExpectationFailed($expectation, $context, $reason, $details);
+        $this->records[] = $record = new ExpectationFailed($expectation, $context, $reason, $details);
+        $this->message = $this->buildMessage();
+        return $record;
     }
 
     /**
@@ -109,5 +111,27 @@ final class ExpectationComposite extends \LogicException implements Expectation
         }
 
         return 'Expected that ' . \implode('; ', $parts) . '.';
+    }
+
+    /**
+     * Reporters print the exception message, so it lists every failed sub-expectation: the bare
+     * headline alone reads as if the expected exception was never thrown.
+     */
+    private function buildMessage(): string
+    {
+        $reasons = [];
+        foreach ($this->records as $record) {
+            $record->isSuccess() or $reasons[] = "{$record->getExpectation()}, but {$record->getFailReason()}";
+        }
+
+        $message = "Failed expectation that {$this->expectation}.";
+        $message .= match (\count($reasons)) {
+            0 => '',
+            1 => "\nReason: {$reasons[0]}",
+            default => "\nReasons:\n- " . \implode("\n- ", $reasons),
+        };
+        $this->context === '' or $message .= "\nMeaning: {$this->context}";
+
+        return $message;
     }
 }

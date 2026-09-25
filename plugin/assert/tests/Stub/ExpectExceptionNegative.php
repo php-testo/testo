@@ -70,6 +70,19 @@ final class ExpectExceptionNegative
     }
 
     /**
+     * Wrong message and wrong code at once.
+     */
+    #[Test]
+    public function messageAndCodeMismatch(): never
+    {
+        Expect::exception(\RuntimeException::class)
+            ->withMessage('expected message')
+            ->withCode(42);
+
+        throw new \RuntimeException('actual message', 99);
+    }
+
+    /**
      * Wrong code (single value).
      */
     #[Test]
