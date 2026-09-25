@@ -63,6 +63,7 @@ Rules:
 
 - Provider must be `public static` and return `iterable`.
 - Prefer `yield 'label' => [...]` over numeric keys — labels appear in output.
+- A method name resolves against the class the test runs in, so a test inherited from an abstract base can use a provider the base declares `abstract` and each subclass implements.
 - The constructor takes a single `callable|string` argument. A provider on another class is referenced as a callable string: `#[DataProvider(Other::class . '::method')]` (the method must be `public static`).
 
 ## `#[DataZip]` — index-aligned pairing
