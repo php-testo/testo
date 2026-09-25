@@ -31,6 +31,7 @@ Conversion coverage across the three directions supported by `testo/bridge-recto
 | **ExpectNoAssertions** (`#[\Testo\Assert\ExpectNoAssertions]` ↔ `#[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]`) | ✅ *`ExpectNoAssertionsToPhpUnitRector` (attribute rename; both sides method/function-level only — no fan-out)* | ✅ *`DoesNotPerformAssertionsToTestoRector` (attribute rename)* | ➖ |
 | **Mocks** (`createMock`/`createStub` + `expects`/`method`/`will*`/`with`) | ➖ | ➖ *not part of this set: Testo core ships no mocking, so doubles convert through the mock sets below (Double or Mockery)* | ➖ |
 | **Memory-leak expectations** | ⛔ *no PHPUnit equivalent* | ➖ | ➖ |
+| **Error-handler declarations** (`#[ExpectErrorHandlerChange]` ↔ `#[WithoutErrorHandler]`) | ⛔ *`ExpectErrorHandlerChangeRector` stub: PHPUnit always flags a test that leaves a handler on the stack as risky and has no attribute to waive that* | ⛔ *`WithoutErrorHandlerRector` stub: Testo core installs no error handler and the `testo/error-handler` plugin has no per-test opt-out; the two attributes mean different things* | ➖ |
 | **Retry / Repeat** (`#[Retry]`/`#[Repeat]`) | 🟡 *`RepeatRetryRector` converts `#[\Testo\Repeat]`/`#[\Testo\Retry]` → PHPUnit `#[Repeat]`/`#[Retry]` (PHPUnit 13.3+): `maxFailures`→`failureThreshold` (+1), Testo defaults made explicit. PHPUnit's are `TARGET_METHOD` only, so a class-level Testo attribute is fanned out onto each test method (a method's own attribute overrides it, not doubled); `markFlaky` is dropped (no PHPUnit equivalent)* | 🟡 *`RepeatRetryToTestoRector` converts `#[Repeat]`/`#[Retry]` → Testo's attributes: `failureThreshold`→`maxFailures` (−1; the default 1 folds to Testo's default 0 and is omitted)* | ➖ |
 | **Fiber** (`#[RunInFiber]`, `Coroutine::spawn/await/concurrently`) | ⛔ *no PHPUnit/Pest equivalent — neither has a fiber/coroutine test attribute or an in-test coroutine scope* | ➖ | ➖ |
 | **HTML report** (`HtmlPlugin`, `--log-html`) | ⛔ *not test code — a reporter configured in `testo.php` or by a flag, with nothing in a test file to convert* | ➖ | ➖ |
@@ -120,7 +121,7 @@ attributes / body statements. It bails (leaves the statement untouched) on a non
 a `use (...)`-capturing closure, or any unrecognised modifier — see `src/PestToTesto/TODO.md`.
 
 The remaining ⛔ rows are intentionally out of scope: a missing target feature (`arch()`,
-memory-leak, PHPUnit `assertThat` constraints), the substring-vs-regex
+memory-leak, the error-handler declarations, PHPUnit `assertThat` constraints), the substring-vs-regex
 exception-message mismatch, or Pest `uses()` (a function has no base class / traits / `$this`).
 Mocks moved off this list: they convert through the dedicated mock sets (see "Mock sets" above).
 Retry/Repeat moved off this list: PHPUnit 13.3 added `#[Repeat]`/`#[Retry]`, so both directions now
