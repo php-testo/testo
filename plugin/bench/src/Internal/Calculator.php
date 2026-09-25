@@ -48,15 +48,15 @@ final class Calculator
             )
             : $averages;
 
-        # Standard deviation of the original averages for the relative standard deviation
-        $sd = self::stdev(...$averages);
+        # Calc RMS of the original averages for relative standard deviation calculation
+        $rms = self::rms(...$averages);
         $avg = self::avg(...$averages);
         $rstdev = $avg > 0 ? ($sd / $avg) * 100 : 0.0;
 
         # Standard deviation, average, and relative standard deviation for the filtered iterations
         $fsd = self::stdev(...$filtered);
         $favg = self::avg(...$filtered);
-        $frstdev = $favg > 0 ? ($fsd / $favg) * 100 : 0.0;
+        $frstdev = $favg > 0 ? ($frms / $favg) * 100 : 0.0;
 
         return new CaseResult(
             mean: self::avg(...$averages),
