@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.16](https://github.com/php-testo/testo/compare/assert-0.1.15...assert-0.1.16) (2026-09-25)
+
+
+### Bug Fixes
+
+* **assert:** name the failed checks in an exception expectation's message ([b57cb81](https://github.com/php-testo/testo/commit/b57cb81bb521b5051dbc5749f21ecd25039ae956))
+
 ## [0.1.15](https://github.com/php-testo/testo/compare/assert-0.1.14...assert-0.1.15) (2026-09-14)
 
 

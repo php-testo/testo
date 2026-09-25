@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.10.52](https://github.com/php-testo/testo/compare/0.10.51...0.10.52) (2026-09-25)
+
+
+### Features
+
+* **skills:** import names in the generated Rector migration config ([38d3df0](https://github.com/php-testo/testo/commit/38d3df01e619dd5f6aebf5658b1b660036bc1e53))
+
+
+### Bug Fixes
+
+* **bench:** keep the benchmark result when the verdict fails ([#357](https://github.com/php-testo/testo/issues/357)) ([949a6ed](https://github.com/php-testo/testo/commit/949a6edd06b2ef59905720e2415a74100a9ce31b))
+* **data:** resolve a DataProvider method against the class the test runs in ([2886af7](https://github.com/php-testo/testo/commit/2886af7c40a32d57544d8bc4489d918188847b68))
+* **json:** address a benchmark data set by its identity FQN ([ebb2358](https://github.com/php-testo/testo/commit/ebb2358726b5031c850ba9ce0f8341ac1c233f0d))
+* **json:** address a failed data set by its identity FQN ([273a7f7](https://github.com/php-testo/testo/commit/273a7f7881893f60a9b27893ef2ed7685a1d3b6d))
+* **json:** list aborted tests under failures ([d408e67](https://github.com/php-testo/testo/commit/d408e67a2b1bc8c66585d93b0d3ad59d7a912689))
+* **json:** list each failed data set of a data-driven test ([c48aacf](https://github.com/php-testo/testo/commit/c48aacfdacbcef6180a4bf97904afe66f4c099e3))
+* **terminal:** report a data-driven test that broke before its first data set ([d408e67](https://github.com/php-testo/testo/commit/d408e67a2b1bc8c66585d93b0d3ad59d7a912689))
+* **testing:** name the missing test instead of calling it in TestRunner::runTest() ([f431c23](https://github.com/php-testo/testo/commit/f431c23750b4a314b55d7addf33c708eacca23fe))
+
+
+### Documentation
+
+* **skills:** cover inherited tests, trait aliases and the test count in the migration skill ([38d3df0](https://github.com/php-testo/testo/commit/38d3df01e619dd5f6aebf5658b1b660036bc1e53))
+
 ## [0.10.51](https://github.com/php-testo/testo/compare/0.10.50...0.10.51) (2026-09-25)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/php-testo/testo/compare/data-0.1.9...data-0.1.10) (2026-09-25)
+
+
+### Bug Fixes
+
+* **data:** resolve a DataProvider method against the class the test runs in ([2886af7](https://github.com/php-testo/testo/commit/2886af7c40a32d57544d8bc4489d918188847b68))
+
 ## [0.1.9](https://github.com/php-testo/testo/compare/data-0.1.8...data-0.1.9) (2026-08-27)
 
 

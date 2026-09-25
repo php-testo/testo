@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/php-testo/testo/compare/bridge-infection-0.1.8...bridge-infection-0.1.9) (2026-09-25)
+
+
+### Bug Fixes
+
+* **bridge-infection:** conflict with Infection below 0.33 ([e7ce24a](https://github.com/php-testo/testo/commit/e7ce24a3421826971ea7efab6df3e287b965d17a))
+
 ## [0.1.8](https://github.com/php-testo/testo/compare/bridge-infection-0.1.7...bridge-infection-0.1.8) (2026-06-29)
 
 
