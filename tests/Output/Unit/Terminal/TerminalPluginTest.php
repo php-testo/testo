@@ -74,6 +74,27 @@ final class TerminalPluginTest
         );
     }
 
+    public function aBatchBrokenBeforeItsFirstDataSetReportsItsOwnResult(): void
+    {
+        $info = self::makeTestInfo('failingTest');
+        $aborted = new TestResult(info: $info, status: Status::Aborted, failure: new \LogicException('provider'));
+
+        $output = self::capture(static function (EventDispatcher $dispatcher) use ($info, $aborted): void {
+            $dispatcher->dispatch(new TestBatchStarting($info));
+            $dispatcher->dispatch(new TestBatchFinished($info, $aborted));
+            $dispatcher->dispatch(new TestPipelineFinished($info, $aborted));
+        });
+
+        // No data set carried the failure, so the batch result is the only line that reports it.
+        Assert::same(
+            \array_values(\array_filter(\array_map(\trim(...), \explode("\n", $output)))),
+            [
+                '◆ failingTest',
+                'A failingTest (0ms)',
+            ],
+        );
+    }
+
     public function aTestsStreamedOutputStaysInOnePieceWhileAnotherRuns(): void
     {
         $first = self::makeTestInfo('passingTest');
