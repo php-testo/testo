@@ -13,6 +13,7 @@ use Rector\Contract\Rector\RectorInterface;
 use Rector\DependencyInjection\LazyContainerFactory;
 use Rector\NodeTypeResolver\Reflection\BetterReflection\SourceLocatorProvider\DynamicSourceLocatorProvider;
 use Rector\PhpParser\NodeTraverser\RectorNodeTraverser;
+use Rector\ValueObject\Error\SystemError;
 use Internal\Path;
 use Rector\Testing\Fixture\FixtureSplitter;
 use Testo\Assert;
@@ -90,12 +91,29 @@ final readonly class RectorRunner
             $this->sourceLocator->reset();
             $this->sourceLocator->setFilePath($inputFile);
             $configuration = $this->configurationFactory->createForTests([$inputFile]);
-            $this->fileProcessor->processFiles([$inputFile], $configuration);
+            $result = $this->fileProcessor->processFiles([$inputFile], $configuration);
 
             $changed = (string) \file_get_contents($inputFile);
         } finally {
             @\unlink($inputFile);
         }
+
+        # Rector catches a rule's exception, rolls the file back and reports it only as a system
+        # error, which would otherwise surface as a bare "not converted" diff.
+        $errors = \array_map(
+            static fn(SystemError $error): string => \sprintf(
+                '%s (line %s): %s',
+                $error->getRectorShortClass() ?? 'Rector',
+                $error->getLine() ?? '?',
+                $error->getMessage(),
+            ),
+            $result->getSystemErrors(),
+        );
+        $errors === [] or throw new \RuntimeException(\sprintf(
+            "Rector failed on fixture \"%s\":\n%s",
+            $fixturePath->name(),
+            \implode("\n", $errors),
+        ));
 
         Assert::same($changed, $expected, \sprintf('Fixture "%s" was not converted as expected', $fixturePath->name()));
     }
