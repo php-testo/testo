@@ -51,7 +51,7 @@ interface — parse the JSON. When a human also needs terminal output (CI logs),
   `:dataProvider:dataSet` (`App\Tests\UserServiceTest::createsUser:0:2`).
 - `benchmarks` — present only when the run measured benchmarks (`#[Bench]`), omitted otherwise, so an
   ordinary run's payload is unchanged. One entry per benchmark test — per data set for a repeatable one,
-  each carrying its `dataProvider`/`dataSet` — with `iterations`, the ranked `cases`, and `diagnostics`.
+  whose `test` is then the data-set FQN — with `iterations`, the ranked `cases`, and `diagnostics`.
 
 ```json
 "benchmarks": [

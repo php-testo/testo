@@ -76,8 +76,8 @@ final class JsonReport
      * Walks the result tree and collects every benchmark measurement in encounter order.
      *
      * A repeatable `#[Bench]` puts each scenario in its own data set, so a benchmark test contributes
-     * either one entry (single attribute) or one per set, addressed by its data-set coordinates the way
-     * `--filter=method:1:0` names it.
+     * either one entry (single attribute) or one per set, addressed by its data-set FQN
+     * (`Class::method:1:0`) the way `--filter` takes it.
      *
      * @return list<array<non-empty-string, mixed>>
      */
@@ -103,7 +103,7 @@ final class JsonReport
     private static function benchmarksOf(TestResult $test): array
     {
         if (BenchMapper::supports($test->result)) {
-            return [['test' => self::testId($test)] + BenchMapper::map($test->result)];
+            return [['test' => $test->info->identity->fqn()] + BenchMapper::map($test->result)];
         }
 
         $multiple = \class_exists(MultipleResult::class)
@@ -115,16 +115,8 @@ final class JsonReport
 
         $benchmarks = [];
         foreach ($multiple->results as $set) {
-            if (!BenchMapper::supports($set->result)) {
-                continue;
-            }
-
-            $identity = $set->info->identity;
-            $benchmarks[] = [
-                'test' => self::testId($set),
-                'dataProvider' => $identity->dataProvider,
-                'dataSet' => $identity->dataSet,
-            ] + BenchMapper::map($set->result);
+            BenchMapper::supports($set->result)
+                and $benchmarks[] = ['test' => $set->info->identity->fqn()] + BenchMapper::map($set->result);
         }
 
         return $benchmarks;
@@ -204,22 +196,6 @@ final class JsonReport
         $output === [] or $data['output'] = $output;
 
         return $data;
-    }
-
-    /**
-     * Fully-qualified test identifier: `Class::method` for class-bound tests,
-     * the function FQN for free-function tests.
-     *
-     * @return non-empty-string
-     */
-    private static function testId(TestResult $test): string
-    {
-        $info = $test->info;
-        $class = $info->caseInfo->definition->reflection?->getName();
-
-        return $class !== null
-            ? "{$class}::{$info->name}"
-            : $info->testDefinition->reflection->getName();
     }
 
     /**
