@@ -7,7 +7,10 @@ namespace Tests\Bridge\Rector\Unit;
 use Internal\Path;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Assert;
+use Testo\Bridge\Rector\PhpunitToTesto\DoesNotPerformAssertionsToTestoRector;
 use Testo\Bridge\Rector\Testing\Internal\Middleware\RectorFixtureInterceptor;
+use Testo\Bridge\Rector\Testing\Internal\RectorFixtureProbe;
+use Testo\Codecov\CoverageScope;
 use Testo\Codecov\Covers;
 use Testo\Common\Messenger;
 use Testo\Common\Messenger\Channel;
@@ -62,6 +65,32 @@ final class RectorFixtureInterceptorTest
         Assert::count($started, 1);
     }
 
+    /**
+     * Every fixture runs through one shared probe method, which has no `#[Covers]` of its own, so each
+     * data set carries the rule as its coverage scope — or the fixtures would count toward nothing.
+     */
+    public function everyFixtureIsScopedToItsRule(): void
+    {
+        $interceptor = new RectorFixtureInterceptor(self::createDispatcher(), self::createQuietMessenger());
+        $seen = [];
+        $next = static function (TestInfo $i) use (&$seen): TestResult {
+            $seen[] = $i;
+
+            return new TestResult(info: $i, status: Status::Passed);
+        };
+
+        $interceptor->runTest(self::infoFor(DoesNotPerformAssertionsToTestoRector::class), $next);
+
+        Assert::notBlank($seen);
+        foreach ($seen as $dataSet) {
+            $scope = $dataSet->getAttribute(CoverageScope::class);
+            Assert::instanceOf($scope, CoverageScope::class);
+            Assert::count($scope->attributes, 1);
+            Assert::instanceOf($scope->attributes[0], Covers::class);
+            Assert::same($scope->attributes[0]->classOrFunction, DoesNotPerformAssertionsToTestoRector::class);
+        }
+    }
+
     private static function infoFor(string $ruleClass): TestInfo
     {
         $class = new \ReflectionClass($ruleClass);
@@ -72,7 +101,7 @@ final class RectorFixtureInterceptorTest
             reflection: $class,
         );
         $caseInfo = new CaseInfo(suiteIdentity: new SuiteIdentity('Bridge/Rector'), definition: $caseDefinition);
-        $testDefinition = new TestDefinition(reflection: new \ReflectionMethod($ruleClass, 'fixture'));
+        $testDefinition = new TestDefinition(reflection: new \ReflectionMethod(RectorFixtureProbe::class, 'fixture'));
 
         return new TestInfo(name: 'fixture', caseInfo: $caseInfo, testDefinition: $testDefinition);
     }
@@ -91,6 +120,39 @@ final class RectorFixtureInterceptorTest
             {
                 $this->dispatched[] = $event;
                 return $event;
+            }
+        };
+    }
+
+    /** A messenger that hands out channels and drops whatever is written to them. */
+    private static function createQuietMessenger(): Messenger
+    {
+        return new class() implements Messenger {
+            #[\Override]
+            public function log(string $channel, string $content, Level $level = Level::Info, array $context = []): void {}
+
+            #[\Override]
+            public function channel(string $name): Channel
+            {
+                return new Channel($this, $name);
+            }
+
+            #[\Override]
+            public function scope(\Closure $scope, ?TestIdentity $identity = null): mixed
+            {
+                return $scope();
+            }
+
+            #[\Override]
+            public function fork(\Closure $fork, bool $holdEvents = false): mixed
+            {
+                return $fork();
+            }
+
+            #[\Override]
+            public function getMessages(): MessageLog
+            {
+                return new MessageLog();
             }
         };
     }

@@ -129,6 +129,16 @@ Rules (this is project policy in many Testo codebases — confirm before changin
 - **Method-level `#[Covers]`** when tests in the same class cover different classes.
 - Free functions: pass the FQN as a string — `#[Covers('App\\helpers\\format_money')]`.
 
+### Tests a plugin runs: `CoverageScope`
+
+A plugin whose tests have no method of their own to carry `#[Covers]` (a harness running fixtures through one shared probe) attaches a `Testo\Codecov\CoverageScope` to the `TestInfo` from an interceptor outer to coverage (`order` below `InterceptorOptions::ORDER_COVERAGE`):
+
+```php
+return $next($info->withAttribute(CoverageScope::class, new CoverageScope(new Covers(Rule::class))));
+```
+
+The scope is a default — `#[Covers]` / `#[CoversNothing]` on the test method or its class still win — and it opts the test into collection whatever its type, so it needs no `testTypes` entry in `CodecovPlugin`. `testo/bridge-rector`'s harness scopes each rule's fixtures to the rule this way.
+
 ## Reports cheat-sheet
 
 | Report | Format id | Typical consumer |

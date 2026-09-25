@@ -66,7 +66,8 @@ final readonly class CodecovPlugin implements PluginConfigurator
      * @param CoverageMode $collect Default activation mode. Can be overridden by CLI flags
      *        (`--coverage` → Always, `--no-coverage` → Never).
      * @param list<non-empty-string|\BackedEnum> $testTypes Test types to collect coverage for.
-     *        Empty array means all types. Use {@see TestType} cases or custom string identifiers.
+     *        Empty array means all types. Use {@see TestType} cases or custom string identifiers. A test
+     *        a plugin attached a {@see CoverageScope} to is measured regardless.
      * @param list<CoverageReport> $reports Report generators to run after all tests complete.
      */
     public function __construct(

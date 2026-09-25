@@ -81,3 +81,16 @@ nothing. The reusable harness lives in `src/Testing/` — attach `RectorTestingP
 finder scans the rule sources, and each fixture is run through a freshly-booted Rector container
 and reported as its own data set. Fixtures are `export-ignore`d; the harness ships so downstream
 rule authors can reuse it (`testo/*` are `require-dev` + `suggest`).
+
+### Coverage
+
+Rector runs in the test process, so the fixtures count toward code coverage like any test. Each fixture's coverage is scoped to the rule it exercises (the harness attaches a `Testo\Codecov\CoverageScope`), which keeps the harness itself and the rest of the run out of it. A rule that delegates to helpers of its own widens the scope with `#[Covers]` on the rule class — list the rule too, since a declared `#[Covers]` replaces the default:
+
+```php
+#[TestRectorFixtures('MyRule')]
+#[Covers(MyRule::class)]
+#[Covers(MyHelper::class)]
+final class MyRule extends AbstractRector { /* ... */ }
+```
+
+`#[CoversNothing]` on the rule class keeps its fixtures out of coverage.

@@ -24,6 +24,7 @@ use Testo\Bridge\Rector\Internal\PhpunitMockFactory;
 use Testo\Bridge\Rector\Internal\PredicateVariable;
 use Testo\Bridge\Rector\Internal\ReturnValueMap;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
+use Testo\Codecov\Covers;
 
 /**
  * Converts a PHPUnit mock/stub — creation and its configuration chain — into the equivalent Mockery
@@ -66,6 +67,11 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * untouched for manual migration (see TODO.md).
  */
 #[TestRectorFixtures('CreateMockToMockeryRector')]
+#[Covers(self::class)]
+#[Covers(PhpunitConstraint::class)]
+#[Covers(PhpunitMockFactory::class)]
+#[Covers(PredicateVariable::class)]
+#[Covers(ReturnValueMap::class)]
 final class CreateMockToMockeryRector extends AbstractRector
 {
     /**

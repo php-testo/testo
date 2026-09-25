@@ -157,6 +157,9 @@ public function runTest(TestInfo $info, callable $next): TestResult {
 This keeps the interceptor **stateless** — safer than mutable `$this->current` fields. A container
 `scope` (below) is an even cleaner carrier when the state is a set of services.
 
+The same channel scopes coverage for tests your plugin synthesizes: attach a `Testo\Codecov\CoverageScope`
+under its class name — see `testo-coverage`.
+
 ### Skipping from an interceptor — return, do not throw
 
 `throw new SkipTest(...)` only works inside the test body; from an interceptor it bubbles past the

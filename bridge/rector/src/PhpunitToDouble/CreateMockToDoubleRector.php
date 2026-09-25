@@ -33,6 +33,7 @@ use Testo\Bridge\Rector\Internal\PhpunitMockFactory;
 use Testo\Bridge\Rector\Internal\PredicateVariable;
 use Testo\Bridge\Rector\Internal\ReturnValueMap;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
+use Testo\Codecov\Covers;
 
 /**
  * Converts a PHPUnit mock/stub — creation and its configuration chain — into the equivalent
@@ -82,6 +83,11 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * {@see UnconvertibleMockToDoubleRector} and TODO.md).
  */
 #[TestRectorFixtures('CreateMockToDoubleRector')]
+#[Covers(self::class)]
+#[Covers(PhpunitConstraint::class)]
+#[Covers(PhpunitMockFactory::class)]
+#[Covers(PredicateVariable::class)]
+#[Covers(ReturnValueMap::class)]
 final class CreateMockToDoubleRector extends AbstractRector
 {
     /**
