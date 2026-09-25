@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.10.51](https://github.com/php-testo/testo/compare/0.10.50...0.10.51) (2026-09-25)
+
+
+### Features
+
+* **codecov:** let a plugin scope a test's coverage through `CoverageScope` ([#352](https://github.com/php-testo/testo/issues/352)) ([7ec3965](https://github.com/php-testo/testo/commit/7ec3965acc66487941c8de551fe343631cbde851))
+
+
+### Bug Fixes
+
+* **skills:** let the Rector scaffolder take several sets and find them in the flattened `config/` ([5a0e99e](https://github.com/php-testo/testo/commit/5a0e99ebfffa08709605428a63ea82ae684d992a))
+
+
+### Documentation
+
+* **skills:** document the mock sets ([#351](https://github.com/php-testo/testo/issues/351)) ([5a0e99e](https://github.com/php-testo/testo/commit/5a0e99ebfffa08709605428a63ea82ae684d992a))
+* update codecov badge link ([4aba688](https://github.com/php-testo/testo/commit/4aba68824c29df29a47f11b37bf45f2220d43203))
+
 ## [0.10.50](https://github.com/php-testo/testo/compare/0.10.49...0.10.50) (2026-09-21)
 
 

@@ -42,7 +42,7 @@
         "testo/fiber": "^0.1.3",
         "testo/bench": "^0.1.12",
         "testo/bridge-symfony-console": "^0.1.14",
-        "testo/codecov": "^0.2.2",
+        "testo/codecov": "^0.2.3",
         "testo/convention": "^0.1.5",
         "testo/data": "^0.1.9",
         "testo/filter": "^0.1.8",
@@ -147,7 +147,7 @@
                     "testo/bridge-double": "0.1.x-dev",
                     "testo/bridge-infection": "0.1.x-dev",
                     "testo/bridge-mockery": "0.1.x-dev",
-                    "testo/bridge-rector": "0.2.x-dev",
+                    "testo/bridge-rector": "0.3.x-dev",
                     "testo/bridge-revolt": "0.1.x-dev",
                     "testo/bridge-symfony-console": "0.1.x-dev",
                     "testo/bridge-vcr": "0.1.x-dev"
