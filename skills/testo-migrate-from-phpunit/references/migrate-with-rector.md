@@ -36,6 +36,8 @@ Scaffold a disposable config scoped to the migration paths (do **not** clobber a
   PHP 8.3+) or `--set=phpunit-to-mockery` (Mockery, PHP 8.2). Without one, mocks stay PHPUnit.
 - Write the file at the **project root** (it uses `__DIR__`-relative paths).
 - The script verifies the set exists under `vendor/` before writing and prints the next commands.
+- The config imports the names the rules emit (`use Testo\Assert;` instead of `\Testo\Assert::same()`).
+  Rector appends new `use` lines unsorted; run the project's code-style fixer after applying.
 
 **Gate:** `<php> -l rector-testo-migration.php` → "No syntax errors".
 
@@ -60,8 +62,9 @@ vendor/bin/rector process --config=rector-testo-migration.php
 **Gate:** `git diff --stat` shows the expected files changed. Commit this as a checkpoint
 (`git commit -am "migrate: mechanical Rector pass"`) so the structural pass has a clean base to diff against.
 
-> What Rector did NOT do: every test class still `extends TestCase` and still uses `testFoo()` /
-> `#[Test]` in the PHPUnit discovery model. Testo will not discover these yet — that is Stage A4.
+> Rector detaches each class from `TestCase` and marks its test methods with `#[\Testo\Test]`, including
+> subclasses of a project base class. Tests inherited from a PHPUnit base in `vendor/` are not
+> converted — `scan-residuals.php` and the pitfalls in the mapping cover them.
 
 ## Stage A4 — Plan the structural residue
 
@@ -122,8 +125,9 @@ current batch.
    ```bash
    vendor/bin/testo --json --suite=<name>
    ```
-2. **Gate:** `status: "passed"`. Investigate any `failures[]` — a flipped assertion that slipped
-   through, or a test not discovered (leftover `extends TestCase`).
+2. **Gate:** `status: "passed"` and `totals.total` equals the PHPUnit test count for the scope.
+   Investigate any `failures[]` — a flipped assertion that slipped through — and any missing tests
+   (an undiscovered class drops out of the count without failing).
 3. Remove the scaffolding once green: delete `rector-testo-migration.php`; if the whole project is
    migrated, drop `phpunit.xml`, `phpunit/phpunit` and `tests/bootstrap.php`, and optionally remove
    `testo/bridge-rector` from `require-dev`.
@@ -142,7 +146,7 @@ offer the user a rollback rather than leaving a half-migrated suite.
   the dry-run diff, and report it (the bridge covers arg-order with fixtures, so this should not happen).
 - **`Class "PHPUnit\Framework\TestCase" not found` while running Rector.** Keep `phpunit/phpunit`
   installed *during* migration; remove it only in Stage A6 after the suite is green under Testo.
-- **Tests vanish from the Testo run after Stage A3.** Expected — discovery is reconciled in A4/A5
-  (remove `extends TestCase`, add `#[Test]`). Not a failure.
+- **Tests vanish from the Testo run after Stage A3.** A test method without `#[\Testo\Test]`: usually
+  one inherited from a `vendor/` PHPUnit base. Port it per the mapping's pitfalls.
 - **A file mixes converted and unconverted assertions after apply.** Rector hit an edge case on that
   file; `scan-residuals.php` flags it as `leftover_assert` and the subagent finishes it by hand.

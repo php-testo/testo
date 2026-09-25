@@ -91,9 +91,9 @@ Based on the pre-flight result, offer:
 - **Combine** — Rector-assisted for the mechanical-heavy directories, AI-only for the gnarly ones
   (heavy mocking, custom constraints). Run the two references per slice.
 
-State the trade-off honestly: **Rector ≠ a complete migration.** It never removes `extends TestCase`
-or reconciles discovery, so *every* approach ends with an AI/human structural pass and a full-suite
-verification. The choice is mainly *how much of the mechanical rewriting Rector does for you* vs. the
+State the trade-off honestly: **Rector ≠ a complete migration.** It detaches classes from `TestCase`
+and marks their tests, but mocks and PHPUnit-only constructs are left over, so *every* approach ends
+with an AI/human structural pass and a full-suite verification. The choice is mainly *how much of the mechanical rewriting Rector does for you* vs. the
 AI doing it (where the AI must apply the argument-order flip by hand, more error-prone).
 
 If `precheck.php` says **RECTOR PATH: NOT READY**, default to recommending the bridge install
@@ -145,10 +145,13 @@ After the chosen approach's stages complete, run the shared final pass (detailed
 1. **Full in-scope run:** `vendor/bin/testo --json --suite=<name>`. **Gate:** `status: "passed"`.
    Investigate every `failures[]` — the usual culprits are a flipped comparison, a class still
    `extends TestCase` (undiscovered), or a provider method mistaken for a test.
-2. **Retire the old harness — only once green:** delete the disposable Rector config (Approach A);
+2. **Test count:** `totals.total` equals the test count of the last PHPUnit run over the same scope
+   (record it before migrating). An undiscovered test fails nothing, it just drops out of the count;
+   the assertion count is not comparable between the two runners.
+3. **Retire the old harness — only once green:** delete the disposable Rector config (Approach A);
    when the whole project is migrated, remove `phpunit.xml`, `phpunit/phpunit` from `composer.json`,
    and any `tests/bootstrap.php`. Optionally drop `testo/bridge-rector` from `require-dev`.
-3. **Report** the before/after to the user: files migrated, tests now green under Testo, anything
+4. **Report** the before/after to the user: files migrated, tests now green under Testo, anything
    left on PHPUnit, and any files a subagent reported `blocked` (needs a human decision — usually
    heavy mocking or a PHPUnit-only constraint).
 
