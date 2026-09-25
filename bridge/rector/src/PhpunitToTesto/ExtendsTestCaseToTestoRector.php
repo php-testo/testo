@@ -11,6 +11,7 @@ use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
 use PHPStan\PhpDocParser\Ast\PhpDoc\GenericTagValueNode;
+use PHPStan\Reflection\ReflectionProvider;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfo;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfoFactory;
 use Rector\BetterPhpDocParser\PhpDocManipulator\PhpDocTagRemover;
@@ -25,8 +26,12 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *
  * For a class that **directly** `extends \PHPUnit\Framework\TestCase` (whether written
  * fully-qualified, as a bare imported `TestCase`, or aliased), this rule:
- *   - removes the `extends` clause, and
- *   - marks discovery as attribute-based by adding `#[\Testo\Test]` to every test method.
+ *   - removes the `extends` clause,
+ *   - marks discovery as attribute-based by adding `#[\Testo\Test]` to every test method, and
+ *   - drops `#[\Override]` from methods that no longer override anything (`setUp()` and other
+ *     `TestCase` hooks), since PHP rejects the attribute on a method without a parent declaration.
+ *     A method declared by one of the class's interfaces keeps it, as does every method when an
+ *     interface cannot be resolved.
  *
  * "Test method" mirrors PHPUnit's own discovery: a method carrying the PHPUnit
  * `#[\PHPUnit\Framework\Attributes\Test]` attribute, a method with a `@test` docblock
@@ -51,6 +56,7 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         private readonly PhpDocInfoFactory $phpDocInfoFactory,
         private readonly PhpDocTagRemover $phpDocTagRemover,
         private readonly DocBlockUpdater $docBlockUpdater,
+        private readonly ReflectionProvider $reflectionProvider,
     ) {}
 
     public function getRuleDefinition(): RuleDefinition
@@ -95,8 +101,10 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
 
         $node->extends = null;
 
+        $interfaces = $this->nodeNameResolver->getNames($node->implements);
         foreach ($node->getMethods() as $method) {
             $method->isPublic() and $this->markTestMethod($method);
+            $this->isDeclaredByInterface($method, $interfaces) or $this->removeOverrideAttribute($method);
         }
 
         return $node;
@@ -151,5 +159,39 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         $method->attrGroups[] = new AttributeGroup([
             new Attribute(new FullyQualified('Testo\\Test')),
         ]);
+    }
+
+    /**
+     * @param list<string> $interfaces
+     */
+    private function isDeclaredByInterface(ClassMethod $method, array $interfaces): bool
+    {
+        $name = $this->getName($method->name);
+        foreach ($interfaces as $interface) {
+            if (!$this->reflectionProvider->hasClass($interface)) {
+                return true;
+            }
+
+            if ($name !== null && $this->reflectionProvider->getClass($interface)->hasMethod($name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function removeOverrideAttribute(ClassMethod $method): void
+    {
+        # Trim groups in place: a rebuilt group would lose its source position.
+        $keptGroups = [];
+        foreach ($method->attrGroups as $attrGroup) {
+            $attrGroup->attrs = \array_values(\array_filter(
+                $attrGroup->attrs,
+                fn(Attribute $attr): bool => !$this->isName($attr->name, 'Override'),
+            ));
+            $attrGroup->attrs === [] or $keptGroups[] = $attrGroup;
+        }
+
+        $method->attrGroups = $keptGroups;
     }
 }
