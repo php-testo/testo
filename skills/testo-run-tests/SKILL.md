@@ -46,7 +46,8 @@ interface — parse the JSON. When a human also needs terminal output (CI logs),
   `risky`, `flaky`, `cancelled`, `aborted`); zero counts are omitted.
 - `failures` — every failed/errored test with what you need to fix it: the throwable, its
   `previous` chain (`causedBy`), a stack trace trimmed at the test boundary, and captured
-  output (`stdout`, log channels).
+  output (`stdout`, log channels). A data-driven test is listed once per failed data set, each
+  entry carrying its `dataProvider`/`dataSet` coordinates.
 - `benchmarks` — present only when the run measured benchmarks (`#[Bench]`), omitted otherwise, so an
   ordinary run's payload is unchanged. One entry per benchmark test — per data set for a repeatable one,
   each carrying its `dataProvider`/`dataSet` — with `iterations`, the ranked `cases`, and `diagnostics`.
