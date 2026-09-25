@@ -39,8 +39,8 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   added), or a `test`-prefixed method name (attribute added). Idempotent (skips a method already carrying
   `#[\Testo\Test]`). A detached class has no parent, so `#[\Override]` is dropped from every method an
   implemented interface does not declare (`setUp()` and other `TestCase` hooks); an unresolvable
-  interface keeps all of them. **Residuals:** (1) only a class extending `TestCase` *directly* is converted — an
-  intermediate/custom base is left untouched (convert it at the base); (2) methods are NOT renamed —
+  interface keeps all of them. A class reaching `TestCase` through an intermediate base keeps its `extends` and
+  `#[\Override]` and only gains the `#[\Testo\Test]` marks. **Residual:** methods are NOT renamed —
   Testo discovers by attribute, so keeping `testFoo()` is harmless, and prefix cleanup / call-site
   rewriting is left manual.
 - **ExpectExceptionToTestoRector** (registered) — now folds the fluent chain, not just the bare
