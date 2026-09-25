@@ -59,7 +59,9 @@ final class TestRunner
             }
         }
 
-        throw new InvalidArgument('Test function not found: ' . $testFunction());
+        throw new InvalidArgument(
+            'Test function not found: ' . (\is_string($testFunction) ? $testFunction : \implode('::', $testFunction)) . '()',
+        );
     }
 
     protected static function getTestoApp(): Application
