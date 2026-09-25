@@ -1,6 +1,6 @@
 <?php
 
-class FooTest extends \PHPUnit\Framework\TestCase
+trait DatabaseAware
 {
     protected function setUp(): void
     {
@@ -9,7 +9,7 @@ class FooTest extends \PHPUnit\Framework\TestCase
 -----
 <?php
 
-class FooTest extends \PHPUnit\Framework\TestCase
+trait DatabaseAware
 {
     #[\Testo\Lifecycle\BeforeTest]
     protected function setUp(): void
