@@ -246,12 +246,14 @@ final class JsonReportTest
 
         $report = self::decode(self::run(Status::Passed, results: [$test]));
 
-        // The single umbrella result is not itself an entry; each data set is, addressed by the same
-        // coordinates `--filter=method:0:1` names.
-        Assert::count($report['benchmarks'], 2);
-        Assert::same($report['benchmarks'][0]['dataProvider'], 0);
-        Assert::same($report['benchmarks'][0]['dataSet'], 0);
-        Assert::same($report['benchmarks'][1]['dataSet'], 1);
+        // The single umbrella result is not itself an entry; each data set is, addressed by the FQN
+        // `--filter` takes back.
+        $tests = \array_map(static fn(array $b): string => $b['test'], $report['benchmarks']);
+        Assert::same($tests, [
+            SampleTestClass::class . '::shiftVsPush:0:0',
+            SampleTestClass::class . '::shiftVsPush:0:1',
+        ]);
+        Assert::false(\array_key_exists('dataSet', $report['benchmarks'][0]));
     }
 
     public function eachFailedDataSetIsListedUnderItsFilterAddressWithItsOutput(): void
