@@ -28,6 +28,7 @@ use Testo\Data\MultipleResult;
 use Testo\Event\Test\TestDataSetStarting;
 use Testo\Test;
 use Tests\Bridge\Rector\Unit\Fixture\EscapingFixturesRule;
+use Tests\Bridge\Rector\Unit\Fixture\RecordingMessenger;
 
 #[Test]
 #[Covers(RectorFixtureInterceptor::class)]
@@ -71,7 +72,7 @@ final class RectorFixtureInterceptorTest
      */
     public function everyFixtureIsScopedToItsRule(): void
     {
-        $interceptor = new RectorFixtureInterceptor(self::createDispatcher(), self::createQuietMessenger());
+        $interceptor = new RectorFixtureInterceptor(self::createDispatcher(), new RecordingMessenger());
         $seen = [];
         $next = static function (TestInfo $i) use (&$seen): TestResult {
             $seen[] = $i;
@@ -120,39 +121,6 @@ final class RectorFixtureInterceptorTest
             {
                 $this->dispatched[] = $event;
                 return $event;
-            }
-        };
-    }
-
-    /** A messenger that hands out channels and drops whatever is written to them. */
-    private static function createQuietMessenger(): Messenger
-    {
-        return new class() implements Messenger {
-            #[\Override]
-            public function log(string $channel, string $content, Level $level = Level::Info, array $context = []): void {}
-
-            #[\Override]
-            public function channel(string $name): Channel
-            {
-                return new Channel($this, $name);
-            }
-
-            #[\Override]
-            public function scope(\Closure $scope, ?TestIdentity $identity = null): mixed
-            {
-                return $scope();
-            }
-
-            #[\Override]
-            public function fork(\Closure $fork, bool $holdEvents = false): mixed
-            {
-                return $fork();
-            }
-
-            #[\Override]
-            public function getMessages(): MessageLog
-            {
-                return new MessageLog();
             }
         };
     }

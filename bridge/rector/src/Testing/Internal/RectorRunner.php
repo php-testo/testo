@@ -13,6 +13,7 @@ use Rector\Contract\Rector\RectorInterface;
 use Rector\DependencyInjection\LazyContainerFactory;
 use Rector\NodeTypeResolver\Reflection\BetterReflection\SourceLocatorProvider\DynamicSourceLocatorProvider;
 use Rector\PhpParser\NodeTraverser\RectorNodeTraverser;
+use Rector\ValueObject\Error\SystemError;
 use Internal\Path;
 use Rector\Testing\Fixture\FixtureSplitter;
 use Testo\Assert;
@@ -40,6 +41,7 @@ final readonly class RectorRunner
     private DynamicSourceLocatorProvider $sourceLocator;
     private ConfigurationFactory $configurationFactory;
     private LoggerInterface $channel;
+    private LoggerInterface $errorChannel;
 
     /**
      * @param list<class-string<RectorInterface>> $rules
@@ -47,6 +49,7 @@ final readonly class RectorRunner
     public function __construct(Messenger $messenger, array $rules)
     {
         $this->channel = $messenger->channel('rector-fixture.php');
+        $this->errorChannel = $messenger->channel('rector-errors.json');
         $rectorConfig = (new LazyContainerFactory())->create();
         $rectorConfig->boot();
 
@@ -90,7 +93,26 @@ final readonly class RectorRunner
             $this->sourceLocator->reset();
             $this->sourceLocator->setFilePath($inputFile);
             $configuration = $this->configurationFactory->createForTests([$inputFile]);
-            $this->fileProcessor->processFiles([$inputFile], $configuration);
+            # Rector catches a rule's exception, rolls the file back and reports it only as a system
+            # error, which would otherwise surface as a bare "not converted" diff. Under PHPUnit it
+            # rethrows the exception instead, so that case is folded into the same system error.
+            $crash = null;
+            try {
+                $errors = $this->fileProcessor->processFiles([$inputFile], $configuration)->getSystemErrors();
+            } catch (\Throwable $crash) {
+                $errors = [new SystemError(\sprintf('System error: "%s"', $crash->getMessage()), $inputFile, $crash->getLine())];
+            }
+
+            # Serialized while the temp file still exists: SystemError resolves its absolute path via realpath().
+            if ($errors !== []) {
+                $this->errorChannel->error(\json_encode($errors, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR));
+
+                throw new \RuntimeException(\sprintf(
+                    "Rector failed on fixture \"%s\":\n%s",
+                    $fixturePath->name(),
+                    \implode("\n", \array_map(static fn(SystemError $error): string => $error->getMessage(), $errors)),
+                ), previous: $crash);
+            }
 
             $changed = (string) \file_get_contents($inputFile);
         } finally {
