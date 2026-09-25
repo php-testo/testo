@@ -148,10 +148,13 @@ After the chosen approach's stages complete, run the shared final pass (detailed
 2. **Test count:** `totals.total` equals the test count of the last PHPUnit run over the same scope
    (record it before migrating). An undiscovered test fails nothing, it just drops out of the count;
    the assertion count is not comparable between the two runners.
-3. **Retire the old harness — only once green:** delete the disposable Rector config (Approach A);
+3. **Polish (needs `testo/bridge-rector`):** run the `testo-polish` Rector set over the scope as its own
+   pass, per Stage A6 of `references/migrate-with-rector.md`, then repeat steps 1–2 — the test count
+   must not change.
+4. **Retire the old harness — only once green:** delete the disposable Rector configs (Approach A);
    when the whole project is migrated, remove `phpunit.xml`, `phpunit/phpunit` from `composer.json`,
    and any `tests/bootstrap.php`. Optionally drop `testo/bridge-rector` from `require-dev`.
-4. **Report** the before/after to the user: files migrated, tests now green under Testo, anything
+5. **Report** the before/after to the user: files migrated, tests now green under Testo, anything
    left on PHPUnit, and any files a subagent reported `blocked` (needs a human decision — usually
    heavy mocking or a PHPUnit-only constraint).
 

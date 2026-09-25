@@ -128,7 +128,16 @@ current batch.
 2. **Gate:** `status: "passed"` and `totals.total` equals the PHPUnit test count for the scope.
    Investigate any `failures[]` — a flipped assertion that slipped through — and any missing tests
    (an undiscovered class drops out of the count without failing).
-3. Remove the scaffolding once green: delete `rector-testo-migration.php`; if the whole project is
+3. **Polish pass.** Scaffold a second config with the `testo-polish` set and apply it the same way
+   (dry-run first):
+   ```bash
+   <php> <skillDir>/scripts/scaffold-rector-config.php rector-testo-polish.php --path=tests/Unit --set=testo-polish
+   vendor/bin/rector process --config=rector-testo-polish.php
+   ```
+   It adds `: void`/`: never` and `final`, moves `#[Test]` onto the class and one-statement exception
+   tests into `#[ExpectException]`, and merges assertion pipes, without changing which tests run.
+   **Gate:** the step-2 run again gives `status: "passed"` and the same `totals.total`.
+4. Remove the scaffolding once green: delete `rector-testo-migration.php` and `rector-testo-polish.php`; if the whole project is
    migrated, drop `phpunit.xml`, `phpunit/phpunit` and `tests/bootstrap.php`, and optionally remove
    `testo/bridge-rector` from `require-dev`.
 
