@@ -93,12 +93,17 @@ final readonly class RectorRunner
             $this->sourceLocator->reset();
             $this->sourceLocator->setFilePath($inputFile);
             $configuration = $this->configurationFactory->createForTests([$inputFile]);
-            $result = $this->fileProcessor->processFiles([$inputFile], $configuration);
-
             # Rector catches a rule's exception, rolls the file back and reports it only as a system
-            # error, which would otherwise surface as a bare "not converted" diff. Serialized while
-            # the temp file still exists: SystemError resolves its absolute path via realpath().
-            $errors = $result->getSystemErrors();
+            # error, which would otherwise surface as a bare "not converted" diff. Under PHPUnit it
+            # rethrows the exception instead, so that case is folded into the same system error.
+            $crash = null;
+            try {
+                $errors = $this->fileProcessor->processFiles([$inputFile], $configuration)->getSystemErrors();
+            } catch (\Throwable $crash) {
+                $errors = [new SystemError(\sprintf('System error: "%s"', $crash->getMessage()), $inputFile, $crash->getLine())];
+            }
+
+            # Serialized while the temp file still exists: SystemError resolves its absolute path via realpath().
             if ($errors !== []) {
                 $this->errorChannel->error(\json_encode($errors, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR));
 
@@ -106,7 +111,7 @@ final readonly class RectorRunner
                     "Rector failed on fixture \"%s\":\n%s",
                     $fixturePath->name(),
                     \implode("\n", \array_map(static fn(SystemError $error): string => $error->getMessage(), $errors)),
-                ));
+                ), previous: $crash);
             }
 
             $changed = (string) \file_get_contents($inputFile);
