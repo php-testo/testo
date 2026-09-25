@@ -1,6 +1,6 @@
 <?php
 
-class FooTest
+class FooTest extends \PHPUnit\Framework\TestCase
 {
     protected function tearDown(): void
     {
@@ -9,7 +9,7 @@ class FooTest
 -----
 <?php
 
-class FooTest
+class FooTest extends \PHPUnit\Framework\TestCase
 {
     #[\Testo\Lifecycle\AfterTest]
     protected function tearDown(): void

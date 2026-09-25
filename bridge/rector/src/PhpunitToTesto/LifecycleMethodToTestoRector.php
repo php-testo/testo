@@ -9,9 +9,12 @@ use PhpParser\Node\Attribute;
 use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\ClassMethod;
+use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\Trait_;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\PhpunitTestCaseClass;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -25,6 +28,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * The method body and signature are kept as-is; only the attribute is added when
  * absent (the rule is idempotent — it skips a method that already carries the
  * target attribute). Unrelated methods are left untouched.
+ *
+ * Only methods of a PHPUnit test class (one extending `TestCase`, directly or through a base) and of
+ * traits are touched: `setUp()` is a common name outside PHPUnit too, e.g. a phpbench
+ * `@BeforeMethods` hook, and marking it there would change nothing but mislead.
  */
 #[TestRectorFixtures('LifecycleMethodToTestoRector')]
 final class LifecycleMethodToTestoRector extends AbstractRector
@@ -40,6 +47,10 @@ final class LifecycleMethodToTestoRector extends AbstractRector
         'setUpBeforeClass' => 'Testo\\Lifecycle\\BeforeClass',
         'tearDownAfterClass' => 'Testo\\Lifecycle\\AfterClass',
     ];
+
+    public function __construct(
+        private readonly PhpunitTestCaseClass $testCaseClass,
+    ) {}
 
     public function getRuleDefinition(): RuleDefinition
     {
@@ -66,34 +77,51 @@ final class LifecycleMethodToTestoRector extends AbstractRector
     #[\Override]
     public function getNodeTypes(): array
     {
-        return [ClassMethod::class];
+        return [Class_::class, Trait_::class];
     }
 
     /**
-     * @param ClassMethod $node
+     * @param Class_|Trait_ $node
      */
     #[\Override]
     public function refactor(Node $node): ?Node
     {
-        $method = $this->getName($node->name);
-        if ($method === null || !isset(self::MAP[$method])) {
+        if ($node instanceof Class_ && !$this->testCaseClass->isTestCase($node)) {
             return null;
         }
 
-        $attributeFqcn = self::MAP[$method];
+        $changed = false;
+        foreach ($node->getMethods() as $method) {
+            $this->addLifecycleAttribute($method) and $changed = true;
+        }
 
-        foreach ($node->attrGroups as $attrGroup) {
+        return $changed ? $node : null;
+    }
+
+    /**
+     * @return bool Whether the attribute was added.
+     */
+    private function addLifecycleAttribute(ClassMethod $method): bool
+    {
+        $name = $this->getName($method->name);
+        if ($name === null || !isset(self::MAP[$name])) {
+            return false;
+        }
+
+        $attributeFqcn = self::MAP[$name];
+
+        foreach ($method->attrGroups as $attrGroup) {
             foreach ($attrGroup->attrs as $attr) {
                 if ($this->isName($attr->name, $attributeFqcn)) {
-                    return null;
+                    return false;
                 }
             }
         }
 
-        $node->attrGroups[] = new AttributeGroup([
+        $method->attrGroups[] = new AttributeGroup([
             new Attribute(new FullyQualified($attributeFqcn)),
         ]);
 
-        return $node;
+        return true;
     }
 }

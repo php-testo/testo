@@ -1,6 +1,6 @@
 <?php
 
-class FooTest
+class FooTest extends \PHPUnit\Framework\TestCase
 {
     public static function setUpBeforeClass(): void
     {
@@ -9,7 +9,7 @@ class FooTest
 -----
 <?php
 
-class FooTest
+class FooTest extends \PHPUnit\Framework\TestCase
 {
     #[\Testo\Lifecycle\BeforeClass]
     public static function setUpBeforeClass(): void
