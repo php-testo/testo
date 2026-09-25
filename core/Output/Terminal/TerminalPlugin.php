@@ -33,7 +33,8 @@ use Testo\Output\Terminal\Renderer\TerminalLogger;
 final class TerminalPlugin implements PluginConfigurator
 {
     /**
-     * Ids of the tests currently inside a DataProvider batch.
+     * Ids of the tests currently inside a DataProvider batch, each flagged once a data set of it has
+     * been reported.
      *
      * Keyed by {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId} so concurrently running
      * tests are tracked independently.
@@ -117,10 +118,17 @@ final class TerminalPlugin implements PluginConfigurator
         // Check if this test was inside a DataProvider batch
         $id = $event->testInfo->identity->pipelineId;
         if (isset($this->isBatch[$id])) {
-            // DataProvider test - already handled in dataset events
+            $reported = $this->isBatch[$id];
             unset($this->isBatch[$id]);
-            $this->logger->closeTest($event->testInfo);
-            return;
+
+            // DataProvider test - already handled in dataset events
+            if ($reported) {
+                $this->logger->closeTest($event->testInfo);
+                return;
+            }
+
+            // The batch broke before any data set ran (e.g. the provider threw): its own result is
+            // the only report of the failure.
         }
 
         // Regular test without DataProvider - log it now
@@ -136,7 +144,7 @@ final class TerminalPlugin implements PluginConfigurator
     {
         // Mark that we're inside a batch
         $id = $event->testInfo->identity->pipelineId;
-        $this->isBatch[$id] = true;
+        $this->isBatch[$id] = false;
 
         // Start batch in logger for proper indentation
         $this->logger->batchStartedFromInfo($event->testInfo);
@@ -163,6 +171,7 @@ final class TerminalPlugin implements PluginConfigurator
     private function onTestDataSetFinished(TestDataSetFinished $event): void
     {
         // Handle individual dataset result (name is already set in testStartedFromInfo)
+        $this->isBatch[$event->testInfo->identity->pipelineId] = true;
         $duration = (int) $event->testResult->getAttribute('duration');
         $this->logger->handleTestResult($event->testResult, $duration);
     }

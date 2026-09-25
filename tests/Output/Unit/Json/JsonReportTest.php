@@ -74,7 +74,7 @@ final class JsonReportTest
         Assert::false(\array_key_exists('output', $failed));
     }
 
-    public function onlyFailedAndErrorTestsAreListed(): void
+    public function onlyFailedErrorAndAbortedTestsAreListed(): void
     {
         $report = self::decode(self::run(
             Status::Failed,
@@ -84,11 +84,12 @@ final class JsonReportTest
                 self::test('passingTest', Status::Skipped),
                 self::test('failingTest', Status::Error, new \LogicException('e')),
                 self::test('passingTest', Status::Risky),
+                self::test('failingTest', Status::Aborted, new \LogicException('a')),
             ],
         ));
 
         $statuses = \array_map(static fn(array $f): string => $f['status'], $report['failures']);
-        Assert::same($statuses, ['failed', 'error']);
+        Assert::same($statuses, ['failed', 'error', 'aborted']);
     }
 
     public function previousChainIsReportedAsCausedBy(): void

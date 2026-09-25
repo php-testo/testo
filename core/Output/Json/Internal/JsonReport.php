@@ -123,7 +123,7 @@ final class JsonReport
     }
 
     /**
-     * Walks the result tree and collects every failed/errored test in encounter order.
+     * Walks the result tree and collects every failed, errored or aborted test in encounter order.
      *
      * @return list<array<non-empty-string, mixed>>
      */
@@ -133,7 +133,8 @@ final class JsonReport
         foreach ($result as $suite) {
             foreach ($suite as $case) {
                 foreach ($case as $test) {
-                    $test->status->isFailure() and \array_push($failures, ...self::failuresOf($test));
+                    ($test->status->isFailure() || $test->status === Status::Aborted)
+                        and \array_push($failures, ...self::failuresOf($test));
                 }
             }
         }
