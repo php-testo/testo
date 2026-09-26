@@ -42,6 +42,11 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *     `Assert::count($v, 2)` or `Assert::instanceOf($v, X)` (two args, and not a fluent head anyway)
  *     are never touched.
  *   - Different variable, different type head, or any intervening statement ends the run.
+ *   - Both chains must open with the same set of string comparison modifiers (`ignoringCase()`,
+ *     `ignoringWhitespace(...)`, …), in any order and with the same arguments as written: a modifier
+ *     applies to every check after it and has no off switch, so a strict check appended to a modified
+ *     chain would turn lenient. Equal sets keep every check in its own mode. A chain with a modifier
+ *     after a check never merges.
  *
  * Faithful: the merged chain asserts the type once instead of once per statement, but the subject is
  * the same unchanged variable, so the elided checks were redundant (had the type been wrong, the
@@ -58,6 +63,13 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 #[TestRectorFixtures('MergeAssertChainRector')]
 final class MergeAssertChainRector extends AbstractRector
 {
+    /**
+     * Chain methods that switch the comparison mode of the checks after them instead of asserting.
+     *
+     * @var list<non-empty-string>
+     */
+    private const MODIFIERS = ['ignoringCase', 'ignoringLineEndings', 'ignoringWhitespace', 'ignoringBlankLines', 'ignoringAnsi'];
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -116,20 +128,25 @@ final class MergeAssertChainRector extends AbstractRector
             }
 
             # Collect the matcher tail of this statement, then absorb the uninterrupted run of
-            # following chains that share the identical head (same type + same variable).
+            # following chains that share the identical head (same type + same variable) and the
+            # same comparison modifiers. The absorbed chains drop their modifiers: the ones already
+            # in this chain apply to every check appended after them.
             $links = $head['links'];
+            $absorbed = 0;
             while ($i + 1 < $count) {
                 $next = $stmts[$i + 1];
                 $nextHead = $next instanceof Expression ? $this->parseChain($next) : null;
-                if ($nextHead === null || $nextHead['type'] !== $head['type'] || $nextHead['subject'] !== $head['subject']) {
+                if ($nextHead === null || $nextHead['type'] !== $head['type'] || $nextHead['subject'] !== $head['subject']
+                    || $nextHead['modifiers'] !== $head['modifiers']) {
                     break;
                 }
 
-                $links = [...$links, ...$nextHead['links']];
+                $links = [...$links, ...$nextHead['checks']];
+                ++$absorbed;
                 ++$i;
             }
 
-            if (\count($links) === \count($head['links'])) {
+            if ($absorbed === 0) {
                 # Nothing absorbed — leave the statement exactly as it was.
                 $result[] = $stmt;
                 continue;
@@ -159,7 +176,7 @@ final class MergeAssertChainRector extends AbstractRector
      * Parses a statement into a mergeable `\Testo\Assert::<type>($var)->matcher()…` chain, or null
      * when it is not one.
      *
-     * @return array{type: non-empty-string, subject: non-empty-string, call: StaticCall, links: list<MethodCall>}|null
+     * @return array{type: non-empty-string, subject: non-empty-string, modifiers: array<non-empty-string, string>, call: StaticCall, links: list<MethodCall>, checks: list<MethodCall>}|null
      */
     private function parseChain(Expression $stmt): ?array
     {
@@ -196,11 +213,33 @@ final class MergeAssertChainRector extends AbstractRector
             return null;
         }
 
+        $links = \array_reverse($links); # head-first matcher order
+
+        # Split the leading comparison modifiers from the checks. A modifier after a check changes
+        # the mode mid-chain, which no merge can keep, so such a chain is not mergeable. A repeated
+        # modifier keeps the arguments of its last call, the one that takes effect.
+        $modifiers = [];
+        $checks = [];
+        foreach ($links as $link) {
+            $name = $this->getName($link->name);
+            if ($name !== null && \in_array($name, self::MODIFIERS, true)) {
+                if ($checks !== []) {
+                    return null;
+                }
+                $modifiers[$name] = $this->nodeComparator->printWithoutComments($link->args);
+                continue;
+            }
+            $checks[] = $link;
+        }
+        \ksort($modifiers);
+
         return [
             'type' => $type,
             'subject' => $subject,
+            'modifiers' => $modifiers,
             'call' => $cursor,
-            'links' => \array_reverse($links), # head-first matcher order
+            'links' => $links,
+            'checks' => $checks,
         ];
     }
 

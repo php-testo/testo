@@ -42,6 +42,12 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertMatchesRegularExpression($p, $s)` / `assertDoesNotMatchRegularExpression` (PHPUnit 9: `assertRegExp` / `assertNotRegExp`) | `Assert::string($s)->matchesPattern($p)` / `->notMatchesPattern($p)` — subject first, same full PCRE pattern. Rector converts all four names. |
 | `$this->assertNotTrue($x)` / `assertNotFalse($x)` | `Assert::notSame($x, true)` / `Assert::notSame($x, false)`. |
 | `$this->assertStringContainsString($n, $s)` / `assertStringNotContainsString` | `Assert::string($s)->contains($n)` / `->notContains($n)`. |
+| `$this->assertStringStartsWith($p, $s)` / `assertStringEndsWith` / `assertStringStartsNotWith` / `assertStringEndsNotWith` | `Assert::string($s)->startsWith($p)` / `->endsWith($p)` / `->notStartsWith($p)` / `->notEndsWith($p)`. |
+| `$this->assertStringContainsStringIgnoringCase($n, $s)` / `assertStringNotContainsStringIgnoringCase` | `Assert::string($s)->ignoringCase()->contains($n)` / `->ignoringCase()->notContains($n)`. |
+| `$this->assertStringContainsStringIgnoringLineEndings($n, $s)` | `Assert::string($s)->ignoringLineEndings()->contains($n)`. |
+| `$this->assertStringEqualsStringIgnoringLineEndings($e, $s)` | `Assert::string($s)->ignoringLineEndings()->same($e)`. |
+| `$this->assertStringEqualsStringIgnoringWhitespace($e, $s)` / `assertStringNotEqualsStringIgnoringWhitespace` | `Assert::string($s)->ignoringWhitespace(lineBreaks: true)->same($e)` / `->notSame($e)`. |
+| `$this->assertEqualsIgnoringCase($e, $a)` / `assertNotEqualsIgnoringCase` | `Assert::string($a)->ignoringCase()->same($e)` / `->notSame($e)` when both are strings. PHPUnit also compares other scalars and arrays: port those by hand. |
 | `$this->assertNotContains($n, $h)` | `Assert::iterable($h)->notContains($n)` — strict `===`, like `Assert::contains()`. |
 | `$this->assertObjectHasProperty($p, $o)` / `assertObjectNotHasProperty` | `Assert::object($o)->hasProperty($p)` / `Assert::false(\property_exists($o, $p))`. |
 | `$this->assertIsList($a)` | `Assert::array($a)->isList()`. |

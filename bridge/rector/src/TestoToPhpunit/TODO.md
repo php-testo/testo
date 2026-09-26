@@ -92,7 +92,19 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   `iterable` head the count-based two convert only for a subject (and an expected side) known to be
   an array or a `Countable` iterable. On the `string` head, `matchesPattern`/`notMatchesPattern` map to
   `assertMatchesRegularExpression`/`assertDoesNotMatchRegularExpression` (full PCRE on both sides; an
-  invalid pattern is an error). Matchers with no faithful PHPUnit line (JSON path/structure,
+  invalid pattern is an error), `same`/`notSame` map to `assertSame`/`assertNotSame`, and `notStartsWith`/`notEndsWith` to `assertStringStartsNotWith`/`assertStringEndsNotWith`. The string
+  comparison modifiers emit no line and select the assertion of every check after them:
+  `ignoringCase()` turns `contains`/`notContains` into `assertStringContainsStringIgnoringCase`/
+  `assertStringNotContainsStringIgnoringCase` and `same`/`notSame` into `assertEqualsIgnoringCase`/
+  `assertNotEqualsIgnoringCase`; `ignoringLineEndings()` turns `contains`/`same` into
+  `assertStringContainsStringIgnoringLineEndings`/`assertStringEqualsStringIgnoringLineEndings`;
+  `ignoringWhitespace(true)` turns `same`/`notSame` into `assertStringEqualsStringIgnoringWhitespace`/
+  `assertStringNotEqualsStringIgnoringWhitespace` (a literal flag only); a pattern after
+  `ignoringCase()` keeps its plain assertion, since that mode skips patterns. PHPUnit has no form for
+  the other combinations, so these leave the chain untouched: `startsWith`/`endsWith`/`notStartsWith`/`notEndsWith` after any
+  modifier, `notContains`, `notSame` and the patterns after `ignoringLineEndings()`, the substring
+  and pattern checks after `ignoringWhitespace(true)`, several modes in effect at once, and
+  `ignoringWhitespace()` without line breaks, `ignoringBlankLines()` and `ignoringAnsi()` at all. Matchers with no faithful PHPUnit line (JSON path/structure,
   `every`, `allOf()` with a class name or a pseudo-type, `notEmpty` on the `iterable` head, custom)
   leave the whole chain untouched rather than half-converting. **Message residual:** the emitted
   needle-and-subject assertions (`assertStringStartsWith`, `assertMatchesRegularExpression`, …) carry

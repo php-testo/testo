@@ -78,7 +78,10 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   the subject must be a plain variable (never a call/property fetch, whose repeated evaluation could
   have side effects), the head must take exactly that one argument (so comparison/needle assertions
   like `Assert::count($v, 2)` / `Assert::instanceOf($v, X)` are never touched), and a different
-  variable, a different type head, or any intervening statement ends the run. **Residual (by
+  variable, a different type head, or any intervening statement ends the run. Two string chains
+  merge only when they open with the same comparison modifiers (`ignoringCase()`,
+  `ignoringWhitespace(...)`, …, arguments compared as written), since a modifier applies to every
+  check after it; a chain with a modifier after a check never merges. **Residual (by
   design):** does NOT fold the flat facade calls emitted by `AssertCallToTestoRector` — those
   (`same`/`true`/`count`/…) are `void` static calls or would need a typed head that turns a `TypeError`
   into an `AssertionException`, changing the failure status; so converted PHPUnit `assert*` runs stay
@@ -96,8 +99,19 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   cannot be an object gets `Assert::true(empty($x))`/`Assert::false(empty($x))`, PHPUnit's own check;
   an object or statically-unknown subject is left untouched, since PHPUnit counts a `Countable`.
   `assertStringStartsWith`/`EndsWith` map to `Assert::string($s)->startsWith()`/`endsWith()`,
+  `assertStringStartsNotWith`/`EndsNotWith` to `notStartsWith()`/`notEndsWith()` (PHPUnit throws for an
+  empty prefix or suffix, where `startsWith('')` passes and `notStartsWith('')` fails),
   `assertStringContainsString`/`NotContainsString` to `Assert::string($s)->contains()`/`notContains()`
-  (an empty needle is contained on both sides), `assertMatchesRegularExpression`/
+  (an empty needle is contained on both sides), `assertStringContainsStringIgnoringCase`/
+  `NotContainsStringIgnoringCase` to `Assert::string($s)->ignoringCase()->contains()`/`notContains()`,
+  `assertStringContainsStringIgnoringLineEndings` to `Assert::string($s)->ignoringLineEndings()->contains()`
+  (both sides turn `\r\n` and `\r` into `\n` in needle and haystack),
+  `assertStringEqualsStringIgnoringLineEndings` to `Assert::string($s)->ignoringLineEndings()->same()`,
+  `assertStringEqualsStringIgnoringWhitespace`/`NotEquals` to
+  `Assert::string($s)->ignoringWhitespace(lineBreaks: true)->same()`/`notSame()`, and
+  `assertEqualsIgnoringCase`/`NotEqualsIgnoringCase` to `Assert::string($a)->ignoringCase()->same()`/
+  `notSame()` when both sides are strings (both lowercase with `mb_strtolower()` and compare with
+  `===`), `assertMatchesRegularExpression`/
   `DoesNotMatchRegularExpression` and the PHPUnit 9 `assertRegExp`/`assertNotRegExp` to
   `Assert::string($s)->matchesPattern()`/`notMatchesPattern()` (full PCRE on both sides; an invalid
   pattern is an error, negated or not), `assertNotContains` to
@@ -143,7 +157,17 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   also need a string subject: outside `strict_types` PHPUnit's `string` parameter coerces an int,
   float or `Stringable`, which `Assert::string()` rejects.
 
+  **Whitespace residual:** PHPUnit runs `preg_replace('/\s+/u', ' ')` and `trim()`, while
+  `ignoringWhitespace(lineBreaks: true)` also counts the `\h`/`\v` characters outside `\s` (U+180E)
+  and trims spaces only, so a NUL at either end is trimmed by PHPUnit alone. On invalid UTF-8
+  PHPUnit's `preg_replace()` fails, while Testo falls back to ASCII whitespace.
+
   **Assertions left untouched (no matcher gives PHPUnit's verdict):**
+  - `assertEqualsIgnoringCase`/`NotEqualsIgnoringCase` with a side not known to be a string: PHPUnit
+    also compares other scalars (as strings when one side is a string) and arrays, recursively.
+  - The file variants (`assertFileEqualsIgnoringCase`, `assertStringEqualsFileIgnoringCase`,
+    `assertStringEqualsFileIgnoringWhitespace`, …): the file has to be read first, which a
+    one-statement rewrite does not do.
   - `assertContainsOnlyObject`/`Callable`/`Iterable`/`Numeric`/`Scalar`/`Resource`/`ClosedResource`:
     `allOf()` compares `get_debug_type()`, which reports an object by its class and a resource as
     `resource (stream)`, and knows no pseudo-type.

@@ -8,6 +8,7 @@ use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
@@ -62,6 +63,17 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * `assertMatchesRegularExpression($p, $value)`/`assertDoesNotMatchRegularExpression($p, $value)`: both
  * take a full PCRE pattern and error on an invalid one.
  *
+ * `same($e)`/`notSame($e)` become `assertSame`/`assertNotSame`. The comparison modifiers apply to
+ * every check after them and emit no line of their own: after `ignoringCase()`, `contains`/
+ * `notContains` become `assertStringContainsStringIgnoringCase`/`assertStringNotContainsStringIgnoringCase`
+ * and `same`/`notSame` become `assertEqualsIgnoringCase`/`assertNotEqualsIgnoringCase`; after
+ * `ignoringLineEndings()`, `contains`/`same` become `assertStringContainsStringIgnoringLineEndings`/
+ * `assertStringEqualsStringIgnoringLineEndings`; after `ignoringWhitespace(true)`, `same`/`notSame`
+ * become `assertStringEqualsStringIgnoringWhitespace`/`assertStringNotEqualsStringIgnoringWhitespace`.
+ * The patterns after `ignoringCase()` keep their plain assertions, since that mode skips them. Any
+ * other check after a modifier, several modes at once, and `ignoringWhitespace()` without line
+ * breaks, `ignoringBlankLines()` and `ignoringAnsi()` have no PHPUnit form and leave the chain untouched.
+ *
  * Conservative by design: if the head type or ANY matcher in the chain has no faithful PHPUnit
  * counterpart (JSON path/structure assertions, `every()`, `allOf()` with a class or pseudo-type,
  * custom matchers), the whole chain is left untouched rather than half-converted. Those remain a TODO.
@@ -99,6 +111,39 @@ final class TypedAssertChainRector extends AbstractRector
         'integer' => 'assertContainsOnlyInt',
         'null' => 'assertContainsOnlyNull',
         'string' => 'assertContainsOnlyString',
+    ];
+
+    /**
+     * `<modifiers>:<matcher>` on the `string` head, modifiers sorted, => the PHPUnit assertion
+     * comparing the same way. `ignoringCase()` leaves the patterns alone, so they keep the plain
+     * assertions. A combination missing here has no PHPUnit form.
+     *
+     * @var array<non-empty-string, non-empty-string>
+     */
+    private const MODIFIED_STRING_MATCHERS = [
+        'ignoringCase:contains' => 'assertStringContainsStringIgnoringCase',
+        'ignoringCase:notContains' => 'assertStringNotContainsStringIgnoringCase',
+        'ignoringCase:matchesPattern' => 'assertMatchesRegularExpression',
+        'ignoringCase:notMatchesPattern' => 'assertDoesNotMatchRegularExpression',
+        'ignoringCase:same' => 'assertEqualsIgnoringCase',
+        'ignoringCase:notSame' => 'assertNotEqualsIgnoringCase',
+        'ignoringLineEndings:contains' => 'assertStringContainsStringIgnoringLineEndings',
+        'ignoringLineEndings:same' => 'assertStringEqualsStringIgnoringLineEndings',
+        'ignoringWhitespaceAcrossLineBreaks:same' => 'assertStringEqualsStringIgnoringWhitespace',
+        'ignoringWhitespaceAcrossLineBreaks:notSame' => 'assertStringNotEqualsStringIgnoringWhitespace',
+    ];
+
+    /**
+     * Chain methods of the `string` head that switch the comparison mode of the checks after them.
+     *
+     * @var list<non-empty-string>
+     */
+    private const STRING_MODIFIERS = [
+        'ignoringCase',
+        'ignoringLineEndings',
+        'ignoringWhitespace',
+        'ignoringBlankLines',
+        'ignoringAnsi',
     ];
 
     public function getRuleDefinition(): RuleDefinition
@@ -186,11 +231,27 @@ final class TypedAssertChainRector extends AbstractRector
 
         $stmts = [...$prefix, $this->assertStmt($assertIs, [$this->arg($subject)], $useThis)];
 
+        # The string comparison modifiers emit nothing themselves: they select the PHPUnit assertion
+        # of every check after them.
+        $modes = [];
         foreach (\array_reverse($links) as $link) {
             $matcher = $this->getName($link->name);
+            if ($type === 'string' && $matcher !== null && \in_array($matcher, self::STRING_MODIFIERS, true)) {
+                $mode = $this->stringMode($matcher, $link->args);
+                if ($mode === null) {
+                    return null;
+                }
+                # A repeated `ignoringWhitespace()` replaces the earlier one.
+                if ($matcher === 'ignoringWhitespace') {
+                    unset($modes['ignoringWhitespace'], $modes['ignoringWhitespaceAcrossLineBreaks']);
+                }
+                $modes[$mode] = true;
+                continue;
+            }
+
             $mapped = $matcher === null
                 ? null
-                : $this->mapMatcher($type, $matcher, $link->args, $subject, $useThis, $countable);
+                : $this->mapMatcher($type, $matcher, $link->args, $subject, $useThis, $countable, \array_keys($modes));
             if ($mapped === null) {
                 # Any unmapped matcher aborts the whole conversion — never half-convert.
                 return null;
@@ -252,10 +313,18 @@ final class TypedAssertChainRector extends AbstractRector
      * @param array<int, Arg|VariadicPlaceholder> $args
      * @param bool $countable Whether the subject is an array or a `Countable` iterable, which PHPUnit's
      *        count-based assertions read the way Testo does.
+     * @param list<non-empty-string> $modes The string comparison modes in effect, see {@see self::stringMode()}.
      * @return list<Expression>|null
      */
-    private function mapMatcher(string $type, string $matcher, array $args, Expr $value, bool $useThis, bool $countable): ?array
-    {
+    private function mapMatcher(
+        string $type,
+        string $matcher,
+        array $args,
+        Expr $value,
+        bool $useThis,
+        bool $countable,
+        array $modes = [],
+    ): ?array {
         $iterable = $type === 'array' || $type === 'iterable';
         $first = ($args[0] ?? null) instanceof Arg ? $args[0]->value : null;
 
@@ -263,6 +332,12 @@ final class TypedAssertChainRector extends AbstractRector
         $needleFirst = fn(string $assert): ?array => $first === null
             ? null
             : [$this->assertStmt($assert, [$this->arg($first), $this->arg($value)], $useThis)];
+
+        if ($modes !== []) {
+            \sort($modes);
+            $assert = self::MODIFIED_STRING_MATCHERS[\implode(',', $modes) . ':' . $matcher] ?? null;
+            return $assert === null ? null : $needleFirst($assert);
+        }
 
         return match (true) {
             ($type === 'int' || $type === 'float') && $matcher === 'greaterThan' => $needleFirst('assertGreaterThan'),
@@ -275,8 +350,12 @@ final class TypedAssertChainRector extends AbstractRector
             $type === 'string' && $matcher === 'notContains' => $needleFirst('assertStringNotContainsString'),
             $type === 'string' && $matcher === 'startsWith' => $needleFirst('assertStringStartsWith'),
             $type === 'string' && $matcher === 'endsWith' => $needleFirst('assertStringEndsWith'),
+            $type === 'string' && $matcher === 'notStartsWith' => $needleFirst('assertStringStartsNotWith'),
+            $type === 'string' && $matcher === 'notEndsWith' => $needleFirst('assertStringEndsNotWith'),
             $type === 'string' && $matcher === 'matchesPattern' => $needleFirst('assertMatchesRegularExpression'),
             $type === 'string' && $matcher === 'notMatchesPattern' => $needleFirst('assertDoesNotMatchRegularExpression'),
+            $type === 'string' && $matcher === 'same' => $needleFirst('assertSame'),
+            $type === 'string' && $matcher === 'notSame' => $needleFirst('assertNotSame'),
 
             $iterable && $matcher === 'contains' => $needleFirst('assertContains'),
             $iterable && $matcher === 'notContains' => $needleFirst('assertNotContains'),
@@ -295,6 +374,32 @@ final class TypedAssertChainRector extends AbstractRector
             $type === 'object' && $matcher === 'instanceOf' => $needleFirst('assertInstanceOf'),
             $type === 'object' && $matcher === 'hasProperty' => $needleFirst('assertObjectHasProperty'),
 
+            default => null,
+        };
+    }
+
+    /**
+     * The mode a string modifier call switches on: its name, or `ignoringWhitespaceAcrossLineBreaks`
+     * for `ignoringWhitespace()` with a literal `true`. Null for arguments this rule cannot read.
+     *
+     * @param non-empty-string $modifier
+     * @param array<int, Arg|VariadicPlaceholder> $args
+     */
+    private function stringMode(string $modifier, array $args): ?string
+    {
+        if ($args === []) {
+            return $modifier;
+        }
+
+        $flag = $args[0];
+        if ($modifier !== 'ignoringWhitespace' || \count($args) !== 1 || !$flag instanceof Arg
+            || !$flag->value instanceof ConstFetch) {
+            return null;
+        }
+
+        return match (\strtolower($this->getName($flag->value) ?? '')) {
+            'true' => 'ignoringWhitespaceAcrossLineBreaks',
+            'false' => 'ignoringWhitespace',
             default => null,
         };
     }
