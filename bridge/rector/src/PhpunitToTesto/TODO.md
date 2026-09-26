@@ -102,7 +102,10 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `SplObjectStorage` key lookup gives the same verdict as iterating its objects),
   `assertObjectHasProperty` to `Assert::object($o)->hasProperty()` (`property_exists()` and PHPUnit's
   `ReflectionObject::hasProperty()` agree on private, inherited, static and dynamic properties),
-  `assertIsList` to `Assert::array($a)->isList()`, and
+  `assertIsList` to `Assert::array($a)->isList()`, `assertContainsOnlyArray`/`Bool`/`Float`/`Int`/
+  `Null`/`String` to `Assert::iterable($h)->allOf('int')` and so on (both pass an empty haystack),
+  `assertContainsOnlyInstancesOf` to `allOf(Foo::class)` for a `final` class only, `assertSameSize` to
+  `Assert::iterable($a)->sameSizeAs($e)` when both sides are arrays or `Countable` iterables, and
   `assertIsString`/`Int`/`Float`/`Numeric`/`Array`/`Iterable`/`Object` to the type head of the same
   name (with a message, to `Assert::true(\is_string($x), $message)`, since a head takes none). The
   checks with no Testo matcher (`assertIsBool`, `assertIsCallable`, `assertIsScalar`, the
@@ -115,6 +118,18 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   on `assertArrayHasKey`/`assertArrayNotHasKey` is dropped (mirrors the reverse direction, which emits
   keyed assertions without a message). `assertNotEqualsCanonicalizing` has no counterpart (there is no
   `notSameElementsAs`) and is left untouched.
+
+  **Assertions left untouched (no matcher gives PHPUnit's verdict):**
+  - `assertContainsOnlyObject`/`Callable`/`Iterable`/`Numeric`/`Scalar`/`Resource`/`ClosedResource`:
+    `allOf()` compares `get_debug_type()`, which reports an object by its class and a resource as
+    `resource (stream)`, and knows no pseudo-type.
+  - `assertContainsOnlyInstancesOf` with a non-final class, an interface, a dynamic or relative
+    (`self::class`) name, or a class alias: `allOf()` matches the exact class where PHPUnit runs
+    `instanceof`.
+  - `assertContainsNotOnly*`: there is no negated `allOf()`.
+  - `assertSameSize` with a side that is not an array or a `Countable` iterable: PHPUnit also counts a
+    non-iterable `Countable` (which `sameSizeAs()` does not accept) and throws for a `Traversable`
+    that yields a `Generator` (which Testo counts). `assertNotSameSize` has no matcher.
 - **RepeatRetryToTestoRector** (registered) — converts PHPUnit's `#[Repeat]` / `#[Retry]` method
   attributes (PHPUnit 13.3+) into `#[\Testo\Repeat]` / `#[\Testo\Retry]`. `times`/`maxAttempts` carry
   over verbatim; PHPUnit's `failureThreshold` (aborting failure count, default 1) maps to Testo's

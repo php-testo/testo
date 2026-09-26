@@ -6,12 +6,19 @@ namespace Testo\Bridge\Rector\PhpunitToTesto;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\Empty_;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Scalar\String_;
+use PHPStan\Reflection\ClassReflection;
+use PHPStan\Reflection\ReflectionProvider;
+use PHPStan\Type\ObjectType;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -39,6 +46,11 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - $this->assertNotContains($n, $h)       → \Testo\Assert::iterable($h)->notContains($n)
  *   - $this->assertObjectHasProperty($p, $o) → \Testo\Assert::object($o)->hasProperty($p)
  *   - $this->assertIsList($a)                → \Testo\Assert::array($a)->isList()
+ *   - $this->assertContainsOnlyInt($h)       → \Testo\Assert::iterable($h)->allOf('int'), likewise for
+ *     `Array`/`Bool`/`Float`/`Null`/`String`, and `assertContainsOnlyInstancesOf(Foo::class, $h)` for a
+ *     `final` Foo
+ *   - $this->assertSameSize($e, $a)          → \Testo\Assert::iterable($a)->sameSizeAs($e), when both
+ *     sides are arrays or `Countable` iterables
  *   - $this->assertIsString($x)              → \Testo\Assert::string($x), and so on for the heads
  *
  * Both sides treat an empty substring as contained, compare iterable elements with `===` (as the flat
@@ -138,8 +150,24 @@ final class TypedAssertCallToTestoRector extends AbstractRector
         'assertIsNotWritable' => ['false', 'is_writable'],
     ];
 
+    /**
+     * Native-type `assertContainsOnly*` → the `allOf()` type name, limited to the types whose
+     * `get_debug_type()` spelling is the type itself (an object reports its class, a resource its kind).
+     *
+     * @var array<non-empty-string, non-empty-string>
+     */
+    private const CONTAINS_ONLY = [
+        'assertContainsOnlyArray' => 'array',
+        'assertContainsOnlyBool' => 'bool',
+        'assertContainsOnlyFloat' => 'float',
+        'assertContainsOnlyInt' => 'int',
+        'assertContainsOnlyNull' => 'null',
+        'assertContainsOnlyString' => 'string',
+    ];
+
     public function __construct(
         private readonly PhpunitAssertionCall $assertionCall,
+        private readonly ReflectionProvider $reflectionProvider,
     ) {}
 
     public function getRuleDefinition(): RuleDefinition
@@ -189,6 +217,9 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             $method === 'assertNotContains' => $this->typedChain('iterable', 'notContains', $node->args, keepMessage: true),
             $method === 'assertObjectHasProperty' => $this->typedChain('object', 'hasProperty', $node->args, keepMessage: true),
             $method === 'assertIsList' => $this->subjectChain('array', 'isList', [], $node->args),
+            isset(self::CONTAINS_ONLY[$method]) => $this->subjectChain('iterable', 'allOf', [new Arg(new String_(self::CONTAINS_ONLY[$method]))], $node->args),
+            $method === 'assertContainsOnlyInstancesOf' => $this->containsOnlyInstancesOf($node->args),
+            $method === 'assertSameSize' => $this->sameSize($node->args),
             $method === 'assertEmpty' => $this->emptiness('blank', 'true', $node->args),
             $method === 'assertNotEmpty' => $this->emptiness('notBlank', 'false', $node->args),
             isset(self::TYPE_HEAD[$method]) => $this->typeCheck($method, $node->args),
@@ -292,6 +323,94 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             new Identifier($matcher),
             $matcherArgs,
         );
+    }
+
+    /**
+     * `assertContainsOnlyInstancesOf($class, $h[, $message])` → `Assert::iterable($h)->allOf($class[, $message])`
+     * for a `final` class only: `allOf()` matches the exact class `get_debug_type()` reports, which
+     * coincides with PHPUnit's `instanceof` only when no subclass can exist.
+     *
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function containsOnlyInstancesOf(array $args): ?MethodCall
+    {
+        $class = $args[0] ?? null;
+        if (!$class instanceof Arg) {
+            return null;
+        }
+
+        $reflection = $this->classReflection($class->value);
+        if ($reflection === null || !$reflection->isFinalByKeyword() || $reflection->isAnonymous()) {
+            return null;
+        }
+
+        $args[0] = new Arg($this->classConstant($class->value, $reflection));
+
+        return $this->typedChain('iterable', 'allOf', $args, keepMessage: true);
+    }
+
+    /**
+     * `assertSameSize($e, $a[, $message])` → `Assert::iterable($a)->sameSizeAs($e[, $message])` when both
+     * sides are arrays or `Countable` iterables. Both frameworks then read `count()`; a bare `Traversable`
+     * is left alone, since PHPUnit rejects one that yields a `Generator` while Testo iterates it.
+     *
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function sameSize(array $args): ?MethodCall
+    {
+        $expected = $args[0] ?? null;
+        $actual = $args[1] ?? null;
+        if (!$expected instanceof Arg || !$actual instanceof Arg) {
+            return null;
+        }
+
+        if (!$this->isCountableIterable($expected->value) || !$this->isCountableIterable($actual->value)) {
+            return null;
+        }
+
+        return $this->typedChain('iterable', 'sameSizeAs', $args, keepMessage: true);
+    }
+
+    private function isCountableIterable(Expr $expr): bool
+    {
+        $type = $this->getType($expr);
+
+        return $type->isArray()->yes()
+            || ($type->isIterable()->yes() && (new ObjectType(\Countable::class))->isSuperTypeOf($type)->yes());
+    }
+
+    /**
+     * The existing class a `Foo::class` constant or a `'Foo'` string names, or null when it is dynamic,
+     * relative (`self`, `static`, `parent`) or unknown.
+     */
+    private function classReflection(Expr $expr): ?ClassReflection
+    {
+        $name = match (true) {
+            $expr instanceof ClassConstFetch && $expr->class instanceof Name && $this->isName($expr->name, 'class')
+                && !$expr->class->isSpecialClassName() => $this->getName($expr->class),
+            $expr instanceof String_ => \ltrim($expr->value, '\\'),
+            default => null,
+        };
+
+        if ($name === null || $name === '' || !$this->reflectionProvider->hasClass($name)) {
+            return null;
+        }
+
+        $reflection = $this->reflectionProvider->getClass($name);
+
+        # An alias is rejected: `get_debug_type()` reports the target's name, never the alias.
+        return \strcasecmp($reflection->getName(), $name) === 0 ? $reflection : null;
+    }
+
+    /**
+     * The class expression to emit: a `Foo::class` constant as written, a string as `\Foo::class`,
+     * which drops any leading backslash the string carried.
+     */
+    private function classConstant(Expr $expr, ClassReflection $reflection): Expr
+    {
+        return $expr instanceof ClassConstFetch
+            ? $expr
+            : new ClassConstFetch(new FullyQualified($reflection->getName()), 'class');
     }
 
     /**
