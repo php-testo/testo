@@ -39,13 +39,19 @@ stays manual.
   PHPUnit gives on the edge values. `isType()` names Double's `type()` spells differently are normalised
   (`integer` → `int`, `boolean` → `bool`, `double` → `float`); the rest become predicates. The predicate
   closures name their parameter `$value`, or `$value2`, … when the statement or its scope already uses
-  `$value`.
+  `$value`. PHPUnit's `with()` checks only the listed arguments and ignores extra ones, while Double
+  compares the arity exactly and an unmatched `allows()` answers null without complaint, so the
+  rebuilt `with()` ends in `Argument::remaining()` (appended as `...[Argument::remaining()]` after a
+  spread). An empty `with()` constrains nothing in PHPUnit and drops out like `withAnyParameters()`.
 
 ## Residuals by design
 
 - Comparison: Double matches a plain value with `===` for scalars, PHPUnit's `equalTo` with `==`.
 - `willReturnMap` sees the arguments as passed; PHPUnit also fills in the defaults of omitted optional
   parameters, so a map row listing a default only matches in PHPUnit.
+- `with()` sees the arguments as passed too: PHPUnit fills in the defaults of omitted optional
+  parameters, so `with('abc', null)` matches a `getValue('abc')` call on `getValue($field, $default = null)`
+  in PHPUnit and not in Double.
 - `equalToWithDelta`/`equalToCanonicalizing` reproduce PHPUnit on numbers and on flat arrays; the
   recursive comparison of nested arrays is not reproduced.
 - A double is not tracked across statements: when one statement on a double stays PHPUnit while its

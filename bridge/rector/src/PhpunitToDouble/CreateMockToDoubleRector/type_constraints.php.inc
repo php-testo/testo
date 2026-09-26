@@ -17,9 +17,9 @@ class SomeTest
 {
     public function test()
     {
-        $dep->allows('a')->with(\JMac\Testing\Matching\Argument::type('int'), \JMac\Testing\Matching\Argument::type('int'), \JMac\Testing\Matching\Argument::type('bool'), \JMac\Testing\Matching\Argument::type('float'), \JMac\Testing\Matching\Argument::type('float'))->returns('r');
-        $dep->allows('b')->with(\JMac\Testing\Matching\Argument::type('string'), \JMac\Testing\Matching\Argument::type('array'), \JMac\Testing\Matching\Argument::type('object'), \JMac\Testing\Matching\Argument::type('callable'), \JMac\Testing\Matching\Argument::type('iterable'), \JMac\Testing\Matching\Argument::type('null'))->returns('r');
-        $dep->allows('c')->with(\JMac\Testing\Matching\Argument::satisfies(fn($value) => is_numeric($value)), \JMac\Testing\Matching\Argument::satisfies(fn($value) => is_scalar($value)), \JMac\Testing\Matching\Argument::satisfies(fn($value) => is_resource($value) || gettype($value) === 'resource (closed)'), \JMac\Testing\Matching\Argument::satisfies(fn($value) => gettype($value) === 'resource (closed)'))->returns('r');
-        $dep->allows('d')->with(\JMac\Testing\Matching\Argument::not()->type('int'), \JMac\Testing\Matching\Argument::not()->satisfies(fn($value) => is_numeric($value)))->returns('r');
+        $dep->allows('a')->with(\JMac\Testing\Matching\Argument::type('int'), \JMac\Testing\Matching\Argument::type('int'), \JMac\Testing\Matching\Argument::type('bool'), \JMac\Testing\Matching\Argument::type('float'), \JMac\Testing\Matching\Argument::type('float'), \JMac\Testing\Matching\Argument::remaining())->returns('r');
+        $dep->allows('b')->with(\JMac\Testing\Matching\Argument::type('string'), \JMac\Testing\Matching\Argument::type('array'), \JMac\Testing\Matching\Argument::type('object'), \JMac\Testing\Matching\Argument::type('callable'), \JMac\Testing\Matching\Argument::type('iterable'), \JMac\Testing\Matching\Argument::type('null'), \JMac\Testing\Matching\Argument::remaining())->returns('r');
+        $dep->allows('c')->with(\JMac\Testing\Matching\Argument::satisfies(fn($value) => is_numeric($value)), \JMac\Testing\Matching\Argument::satisfies(fn($value) => is_scalar($value)), \JMac\Testing\Matching\Argument::satisfies(fn($value) => is_resource($value) || gettype($value) === 'resource (closed)'), \JMac\Testing\Matching\Argument::satisfies(fn($value) => gettype($value) === 'resource (closed)'), \JMac\Testing\Matching\Argument::remaining())->returns('r');
+        $dep->allows('d')->with(\JMac\Testing\Matching\Argument::not()->type('int'), \JMac\Testing\Matching\Argument::not()->satisfies(fn($value) => is_numeric($value)), \JMac\Testing\Matching\Argument::remaining())->returns('r');
     }
 }

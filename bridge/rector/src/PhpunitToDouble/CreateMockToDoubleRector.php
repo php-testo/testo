@@ -6,6 +6,7 @@ namespace Testo\Bridge\Rector\PhpunitToDouble;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
+use PhpParser\Node\ArrayItem;
 use PhpParser\Node\Expr\ArrayDimFetch;
 use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ArrowFunction;
@@ -43,7 +44,7 @@ use Testo\Codecov\Covers;
  *     $dep->expects($this->once())->method('run')->with('x')->willReturn('y');
  *     // becomes
  *     $dep = \JMac\Testing\Double::for(Dependency::class);
- *     $dep->expects('run')->times(1)->with('x')->returns('y');
+ *     $dep->expects('run')->times(1)->with('x', \JMac\Testing\Matching\Argument::remaining())->returns('y');
  *
  * Creation ({@see PhpunitMockFactory} reads the PHPUnit side): `createMock(X)`/`createStub(X)`, the
  * intersection factories and the constructor-disabling builder → `Double::for(...)`, which never runs a
@@ -72,7 +73,9 @@ use Testo\Codecov\Covers;
  * `logicalOr` → `any(...)`; `equalTo($x)` unwraps to `$x` and `isNull`/`isTrue`/`isFalse` to literals.
  * Every other constraint becomes `Argument::satisfies(fn ($value) => …)` over its own PHP expression
  * ({@see PhpunitConstraint}) — comparisons, `logicalAnd`/`logicalXor`, delta/case/canonicalizing
- * equality, string, count, JSON, file and type checks.
+ * equality, string, count, JSON, file and type checks. The rebuilt `with()` ends in
+ * `Argument::remaining()`, because PHPUnit ignores the arguments past the listed ones and Double does not;
+ * an empty `with()` drops away like `withAnyParameters()`.
  *
  * Conservative by design: a chain is rewritten only when it carries a PHPUnit mock signal — an
  * `expects()` with a recognised matcher, or one of the `will*` return verbs — so an unrelated fluent
@@ -112,7 +115,7 @@ final class CreateMockToDoubleRector extends AbstractRector
                         PHP,
                     <<<'PHP'
                         $dep = \JMac\Testing\Double::for(Dependency::class);
-                        $dep->expects('run')->times(1)->with('x')->returns('y');
+                        $dep->expects('run')->times(1)->with('x', \JMac\Testing\Matching\Argument::remaining())->returns('y');
                         PHP,
                 ),
             ],
@@ -300,10 +303,10 @@ final class CreateMockToDoubleRector extends AbstractRector
                 return null;
             }
 
-            # `withAnyParameters()` places no constraint at all, which is Double's default, so the link
-            # simply drops out of the rebuilt chain. Not a mock signal on its own — a `will*`/`expects`
-            # elsewhere in the chain still has to confirm it.
-            if ($name === 'withAnyParameters') {
+            # `withAnyParameters()` and an empty `with()` place no constraint at all, which is Double's
+            # default, so the link simply drops out of the rebuilt chain. Not a mock signal on its own — a
+            # `will*`/`expects` elsewhere in the chain still has to confirm it.
+            if ($name === 'withAnyParameters' || ($name === 'with' && $segments[$i]->args === [])) {
                 continue;
             }
 
@@ -390,16 +393,20 @@ final class CreateMockToDoubleRector extends AbstractRector
      * bare value). A plain value passes through; a constraint with no faithful matcher aborts the whole
      * chain, since leaving the raw `$this->…()` call would break once the test loses its TestCase base.
      *
+     * PHPUnit checks only the listed arguments and ignores any further ones the call passes, while Double
+     * matches the arity exactly and an unmatched `allows()` silently answers null. A trailing
+     * `Argument::remaining()` reproduces PHPUnit; after a spread it goes in as a spread of its own, since
+     * a positional argument cannot follow an unpacked one.
+     *
      * @param list<Arg|VariadicPlaceholder> $args
-     * @return array{0: non-empty-string, 1: list<Arg|VariadicPlaceholder>, 2: bool}|null
+     * @return array{0: non-empty-string, 1: list<Arg>, 2: bool}|null
      */
     private function mapWith(array $args): ?array
     {
         $mapped = [];
         foreach ($args as $arg) {
             if (!$arg instanceof Arg) {
-                $mapped[] = $arg;
-                continue;
+                return null;
             }
 
             $constraint = $this->mapConstraintValue($arg->value);
@@ -407,8 +414,14 @@ final class CreateMockToDoubleRector extends AbstractRector
                 return null;
             }
 
-            $mapped[] = new Arg($constraint);
+            $mapped[] = new Arg($constraint, unpack: $arg->unpack);
         }
+
+        $last = \end($mapped);
+        $remaining = $this->argument('remaining');
+        $mapped[] = $last !== false && $last->unpack
+            ? new Arg(new Array_([new ArrayItem($remaining)]), unpack: true)
+            : new Arg($remaining);
 
         return ['with', $mapped, false];
     }

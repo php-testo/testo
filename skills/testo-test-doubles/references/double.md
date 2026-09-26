@@ -99,7 +99,9 @@ Assert::same($service->title(123), 'Dune');
 ```
 
 Argument matching for `with()` — literal scalars/arrays compare with `===`, objects with `==`, or use
-`JMac\Testing\Matching\Argument`:
+`JMac\Testing\Matching\Argument`. The argument count must match exactly unless the list ends in
+`Argument::remaining()`; a PHPUnit `with()` migrated by Rector gets it, since PHPUnit ignores extra
+arguments.
 
 | Matcher | Matches |
 |---|---|

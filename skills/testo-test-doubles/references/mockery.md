@@ -106,7 +106,7 @@ Argument matching for `with()` — literals compare loosely (`==`), objects by i
 | `\Mockery::capture($var)` | anything; stores the value into `$var` |
 | `\Mockery::hasKey('id')` / `\Mockery::contains(1, 2)` / `\Mockery::subset([...])` | array shape checks |
 | `\Mockery::not(5)` / `\Mockery::anyOf(1, 2)` | negation / alternatives |
-| `->andAnyOtherArgs()` | trailing arguments (must be last) |
+| `\Mockery::andAnyOtherArgs()` / `->withAndOthers(...)` | any trailing arguments (the matcher must be last) |
 
 ### Spy
 
