@@ -1,7 +1,5 @@
 <?php
 
-final class ContainsOnlyFinalItem {}
-
 class ContainsOnlyTest
 {
     public function test()
@@ -12,15 +10,12 @@ class ContainsOnlyTest
         $this->assertContainsOnlyBool($flags);
         $this->assertContainsOnlyFloat($ratios);
         $this->assertContainsOnlyNull($holes);
-        $this->assertContainsOnlyInstancesOf(\Closure::class, $callbacks);
+        $this->assertContainsOnlyInstancesOf(\DateTimeInterface::class, $dates);
         $this->assertContainsOnlyInstancesOf('\Closure', $callbacks, 'closures');
-        $this->assertContainsOnlyInstancesOf(ContainsOnlyFinalItem::class, $items);
-
-        // allOf() matches the exact class and reports an object by its class name.
-        $this->assertContainsOnlyInstancesOf(\DateTime::class, $dates);
-        $this->assertContainsOnlyInstancesOf(\Countable::class, $bags);
         $this->assertContainsOnlyInstancesOf($class, $things);
-        $this->assertContainsOnlyInstancesOf(self::class, $tests);
+        self::assertContainsOnlyInstancesOf(self::class, $tests);
+
+        // allOf() reports an object by its class name and knows no pseudo-type.
         $this->assertContainsOnlyObject($objects);
         $this->assertContainsOnlyScalar($scalars);
         $this->assertContainsNotOnlyInt($mixed);
@@ -28,8 +23,6 @@ class ContainsOnlyTest
 }
 -----
 <?php
-
-final class ContainsOnlyFinalItem {}
 
 class ContainsOnlyTest
 {
@@ -41,15 +34,12 @@ class ContainsOnlyTest
         \Testo\Assert::iterable($flags)->allOf('bool');
         \Testo\Assert::iterable($ratios)->allOf('float');
         \Testo\Assert::iterable($holes)->allOf('null');
-        \Testo\Assert::iterable($callbacks)->allOf(\Closure::class);
-        \Testo\Assert::iterable($callbacks)->allOf(\Closure::class, 'closures');
-        \Testo\Assert::iterable($items)->allOf(ContainsOnlyFinalItem::class);
+        \Testo\Assert::iterable($dates)->allInstanceOf(\DateTimeInterface::class);
+        \Testo\Assert::iterable($callbacks)->allInstanceOf('\Closure', 'closures');
+        \Testo\Assert::iterable($things)->allInstanceOf($class);
+        \Testo\Assert::iterable($tests)->allInstanceOf(self::class);
 
-        // allOf() matches the exact class and reports an object by its class name.
-        $this->assertContainsOnlyInstancesOf(\DateTime::class, $dates);
-        $this->assertContainsOnlyInstancesOf(\Countable::class, $bags);
-        $this->assertContainsOnlyInstancesOf($class, $things);
-        $this->assertContainsOnlyInstancesOf(self::class, $tests);
+        // allOf() reports an object by its class name and knows no pseudo-type.
         $this->assertContainsOnlyObject($objects);
         $this->assertContainsOnlyScalar($scalars);
         $this->assertContainsNotOnlyInt($mixed);

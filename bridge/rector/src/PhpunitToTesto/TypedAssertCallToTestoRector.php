@@ -57,8 +57,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - $this->assertObjectHasProperty($p, $o) → \Testo\Assert::object($o)->hasProperty($p)
  *   - $this->assertIsList($a)                → \Testo\Assert::array($a)->isList()
  *   - $this->assertContainsOnlyInt($h)       → \Testo\Assert::iterable($h)->allOf('int'), likewise for
- *     `Array`/`Bool`/`Float`/`Null`/`String`, and `assertContainsOnlyInstancesOf(Foo::class, $h)` for a
- *     `final` Foo
+ *     `Array`/`Bool`/`Float`/`Null`/`String`
+ *   - $this->assertContainsOnlyInstancesOf($c, $h) → \Testo\Assert::iterable($h)->allInstanceOf($c)
  *   - $this->assertSameSize($e, $a)          → \Testo\Assert::iterable($a)->sameSizeAs($e), when both
  *     sides are arrays or `Countable` iterables
  *   - $this->assertJson($s)                  → \Testo\Assert::json($s)
@@ -287,7 +287,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             $method === 'assertObjectHasProperty' => $this->typedChain('object', 'hasProperty', $node->args, keepMessage: true),
             $method === 'assertIsList' => $this->subjectChain('array', 'isList', [], $node->args),
             isset(self::CONTAINS_ONLY[$method]) => $this->subjectChain('iterable', 'allOf', [new Arg(new String_(self::CONTAINS_ONLY[$method]))], $node->args),
-            $method === 'assertContainsOnlyInstancesOf' => $this->containsOnlyInstancesOf($node->args),
+            $method === 'assertContainsOnlyInstancesOf' => $this->typedChain('iterable', 'allInstanceOf', $node->args, keepMessage: true),
             $method === 'assertSameSize' => $this->sameSize($node->args),
             $method === 'assertJson' => $this->json($node->args),
             $method === 'assertEmpty' => $this->emptiness('blank', 'true', $node->args),
@@ -542,30 +542,6 @@ final class TypedAssertCallToTestoRector extends AbstractRector
     }
 
     /**
-     * `assertContainsOnlyInstancesOf($class, $h[, $message])` → `Assert::iterable($h)->allOf($class[, $message])`
-     * for a `final` class only: `allOf()` matches the exact class `get_debug_type()` reports, which
-     * coincides with PHPUnit's `instanceof` only when no subclass can exist.
-     *
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
-     */
-    private function containsOnlyInstancesOf(array $args): ?MethodCall
-    {
-        $class = $args[0] ?? null;
-        if (!$class instanceof Arg) {
-            return null;
-        }
-
-        $reflection = $this->classReflection($class->value);
-        if ($reflection === null || !$reflection->isFinalByKeyword() || $reflection->isAnonymous()) {
-            return null;
-        }
-
-        $args[0] = new Arg($this->classConstant($class->value, $reflection));
-
-        return $this->typedChain('iterable', 'allOf', $args, keepMessage: true);
-    }
-
-    /**
      * `assertSameSize($e, $a[, $message])` → `Assert::iterable($a)->sameSizeAs($e[, $message])` when both
      * sides are arrays or `Countable` iterables. Both frameworks then read `count()`; a bare `Traversable`
      * is left alone, since PHPUnit rejects one that yields a `Generator` while Testo iterates it.
@@ -625,25 +601,9 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             default => null,
         };
 
-        if ($name === null || $name === '' || !$this->reflectionProvider->hasClass($name)) {
-            return null;
-        }
-
-        $reflection = $this->reflectionProvider->getClass($name);
-
-        # An alias is rejected: `get_debug_type()` reports the target's name, never the alias.
-        return \strcasecmp($reflection->getName(), $name) === 0 ? $reflection : null;
-    }
-
-    /**
-     * The class expression to emit: a `Foo::class` constant as written, a string as `\Foo::class`,
-     * which drops any leading backslash the string carried.
-     */
-    private function classConstant(Expr $expr, ClassReflection $reflection): Expr
-    {
-        return $expr instanceof ClassConstFetch
-            ? $expr
-            : new ClassConstFetch(new FullyQualified($reflection->getName()), 'class');
+        return $name === null || $name === '' || !$this->reflectionProvider->hasClass($name)
+            ? null
+            : $this->reflectionProvider->getClass($name);
     }
 
     /**
