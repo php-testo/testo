@@ -97,7 +97,10 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   an object or statically-unknown subject is left untouched, since PHPUnit counts a `Countable`.
   `assertStringStartsWith`/`EndsWith` map to `Assert::string($s)->startsWith()`/`endsWith()`,
   `assertStringContainsString`/`NotContainsString` to `Assert::string($s)->contains()`/`notContains()`
-  (an empty needle is contained on both sides), `assertNotContains` to
+  (an empty needle is contained on both sides), `assertMatchesRegularExpression`/
+  `DoesNotMatchRegularExpression` and the PHPUnit 9 `assertRegExp`/`assertNotRegExp` to
+  `Assert::string($s)->matchesPattern()`/`notMatchesPattern()` (full PCRE on both sides; an invalid
+  pattern is an error, negated or not), `assertNotContains` to
   `Assert::iterable($h)->notContains()` (`===`, like the flat `assertContains` conversion; PHPUnit's
   `SplObjectStorage` key lookup gives the same verdict as iterating its objects),
   `assertObjectHasProperty` to `Assert::object($o)->hasProperty()` (`property_exists()` and PHPUnit's
@@ -132,6 +135,13 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   keyed assertions without a message). `Assert::json()` takes no message either and `json_validate()`
   needs PHP 8.3, so a message on `assertJson` is dropped too. `assertNotEqualsCanonicalizing` has no counterpart (there is no
   `notSameElementsAs`) and is left untouched.
+
+  **Pattern residual:** PHPUnit 9's `assertRegExp`/`assertNotRegExp` ran `preg_match() > 0` with no
+  error check, so a match that fails at runtime (backtrack or JIT stack limit) failed `assertRegExp`
+  and passed `assertNotRegExp`; `matchesPattern()`/`notMatchesPattern()` throw
+  `\InvalidArgumentException` there, as PHPUnit 10+ throws a framework exception. The string matchers
+  also need a string subject: outside `strict_types` PHPUnit's `string` parameter coerces an int,
+  float or `Stringable`, which `Assert::string()` rejects.
 
   **Assertions left untouched (no matcher gives PHPUnit's verdict):**
   - `assertContainsOnlyObject`/`Callable`/`Iterable`/`Numeric`/`Scalar`/`Resource`/`ClosedResource`:

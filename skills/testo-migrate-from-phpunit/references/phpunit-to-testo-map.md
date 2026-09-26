@@ -39,7 +39,7 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertArrayHasKey($k, $a)` / `assertArrayNotHasKey` | `Assert::array($a)->hasKeys($k)` / `->doesNotHaveKeys($k)`. Variadic — no `$message` arg. |
 | `$this->assertEqualsCanonicalizing($e, $a)` | `Assert::array($a)->sameElementsAs($e)` — order-insensitive, loose comparison. |
 | `$this->assertEmpty($a)` / `assertNotEmpty($a)` | `Assert::blank($a)` / `Assert::notBlank($a)` **only when `$a` is an array** — `blank()` treats `false`/`0`/`'0'` as valid data, so for other types port by hand. |
-| `$this->assertMatchesRegularExpression($p, $s)` / `assertDoesNotMatchRegularExpression` | `Assert::string($s)->matchesPattern($p)` / `->notMatchesPattern($p)` — subject first, same full PCRE pattern. |
+| `$this->assertMatchesRegularExpression($p, $s)` / `assertDoesNotMatchRegularExpression` (PHPUnit 9: `assertRegExp` / `assertNotRegExp`) | `Assert::string($s)->matchesPattern($p)` / `->notMatchesPattern($p)` — subject first, same full PCRE pattern. Rector converts all four names. |
 | `$this->assertNotTrue($x)` / `assertNotFalse($x)` | `Assert::notSame($x, true)` / `Assert::notSame($x, false)`. |
 | `$this->assertStringContainsString($n, $s)` / `assertStringNotContainsString` | `Assert::string($s)->contains($n)` / `->notContains($n)`. |
 | `$this->assertNotContains($n, $h)` | `Assert::iterable($h)->notContains($n)` — strict `===`, like `Assert::contains()`. |

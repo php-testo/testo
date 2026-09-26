@@ -53,6 +53,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - $this->assertStringEndsWith($p, $s)    → \Testo\Assert::string($s)->endsWith($p)
  *   - $this->assertStringContainsString($n, $s)    → \Testo\Assert::string($s)->contains($n)
  *   - $this->assertStringNotContainsString($n, $s) → \Testo\Assert::string($s)->notContains($n)
+ *   - $this->assertMatchesRegularExpression($p, $s)      → \Testo\Assert::string($s)->matchesPattern($p),
+ *     also the PHPUnit 9 `assertRegExp`
+ *   - $this->assertDoesNotMatchRegularExpression($p, $s) → \Testo\Assert::string($s)->notMatchesPattern($p),
+ *     also the PHPUnit 9 `assertNotRegExp`
  *   - $this->assertNotContains($n, $h)       → \Testo\Assert::iterable($h)->notContains($n)
  *   - $this->assertObjectHasProperty($p, $o) → \Testo\Assert::object($o)->hasProperty($p)
  *   - $this->assertIsList($a)                → \Testo\Assert::array($a)->isList()
@@ -66,7 +70,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *
  * Both sides treat an empty substring as contained, compare iterable elements with `===` (as the flat
  * `assertContains` conversion does) and check a property with private and dynamic ones included, so
- * these chains keep PHPUnit's verdict.
+ * these chains keep PHPUnit's verdict. An invalid pattern is an error on both sides, negated or not.
  *
  * A type head takes no message, so `assertIsString($x, $message)` becomes
  * `\Testo\Assert::true(\is_string($x), $message)`. The checks with no matcher (`assertIsBool`,
@@ -283,6 +287,10 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             $method === 'assertStringEndsWith' => $this->typedChain('string', 'endsWith', $node->args, keepMessage: true),
             $method === 'assertStringContainsString' => $this->typedChain('string', 'contains', $node->args, keepMessage: true),
             $method === 'assertStringNotContainsString' => $this->typedChain('string', 'notContains', $node->args, keepMessage: true),
+            $method === 'assertMatchesRegularExpression', $method === 'assertRegExp'
+                => $this->typedChain('string', 'matchesPattern', $node->args, keepMessage: true),
+            $method === 'assertDoesNotMatchRegularExpression', $method === 'assertNotRegExp'
+                => $this->typedChain('string', 'notMatchesPattern', $node->args, keepMessage: true),
             $method === 'assertNotContains' => $this->typedChain('iterable', 'notContains', $node->args, keepMessage: true),
             $method === 'assertObjectHasProperty' => $this->typedChain('object', 'hasProperty', $node->args, keepMessage: true),
             $method === 'assertIsList' => $this->subjectChain('array', 'isList', [], $node->args),
