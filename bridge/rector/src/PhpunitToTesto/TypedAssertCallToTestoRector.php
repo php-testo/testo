@@ -6,15 +6,15 @@ namespace Testo\Bridge\Rector\PhpunitToTesto;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Identifier;
-use PHPStan\Analyser\Scope;
-use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\PhpunitAssertionCall;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -44,9 +44,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * `assertArrayHasKey`/`assertArrayNotHasKey` is dropped (documented in TODO.md; mirrors the reverse
  * direction, which emits keyed assertions without a message too).
  *
- * Only rewrites a call inside a class (a test method or a `static` data provider), mirroring
- * {@see AssertCallToTestoRector}; a matching call in a free function or at namespace level is left
- * untouched.
+ * Recognises the same call spellings as {@see AssertCallToTestoRector}, `PHPUnit\Framework\assert*()`
+ * functions included, and likewise only inside a class.
  */
 #[TestRectorFixtures('TypedAssertCallToTestoRector')]
 final class TypedAssertCallToTestoRector extends AbstractRector
@@ -74,6 +73,10 @@ final class TypedAssertCallToTestoRector extends AbstractRector
         'assertArrayNotHasKey' => 'doesNotHaveKeys',
     ];
 
+    public function __construct(
+        private readonly PhpunitAssertionCall $assertionCall,
+    ) {}
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -96,31 +99,17 @@ final class TypedAssertCallToTestoRector extends AbstractRector
     #[\Override]
     public function getNodeTypes(): array
     {
-        return [MethodCall::class, StaticCall::class];
+        return PhpunitAssertionCall::NODE_TYPES;
     }
 
     /**
-     * @param MethodCall|StaticCall $node
+     * @param MethodCall|StaticCall|FuncCall $node
      */
     #[\Override]
     public function refactor(Node $node): ?Node
     {
-        if ($node instanceof MethodCall) {
-            if (!$this->isName($node->var, 'this')) {
-                return null;
-            }
-        } elseif (!$this->isName($node->class, 'self') && !$this->isName($node->class, 'static')) {
-            return null;
-        }
-
-        $method = $this->getName($node->name);
+        $method = $this->assertionCall->name($node);
         if ($method === null) {
-            return null;
-        }
-
-        # An assertion belongs to a test method (or a static data provider); a stray call in a free
-        # function or at namespace level is left as-is — same gate as AssertCallToTestoRector.
-        if (!$this->isInClassScope($node)) {
             return null;
         }
 
@@ -182,15 +171,5 @@ final class TypedAssertCallToTestoRector extends AbstractRector
         }
 
         return new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier($testoMethod), $callArgs);
-    }
-
-    /**
-     * Whether $node sits inside a class. Outside one the assertion is left untouched.
-     */
-    private function isInClassScope(Node $node): bool
-    {
-        $scope = $node->getAttribute(AttributeKey::SCOPE);
-
-        return $scope instanceof Scope && $scope->isInClass();
     }
 }
