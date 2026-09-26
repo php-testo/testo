@@ -165,6 +165,34 @@ interface StringType
     public function endsWith(string $suffix, string $message = ''): static;
 
     /**
+     * Asserts that the string does not start with the given prefix.
+     *
+     * ```php
+     * Assert::string($path)->ignoringCase()->notStartsWith('/tmp/');
+     * ```
+     *
+     * @param non-empty-string $prefix Beginning the string must not have.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the prefix is empty only after normalization.
+     */
+    public function notStartsWith(string $prefix, string $message = ''): static;
+
+    /**
+     * Asserts that the string does not end with the given suffix.
+     *
+     * ```php
+     * Assert::string($output)->ignoringWhitespace()->notEndsWith('ERROR');
+     * ```
+     *
+     * @param non-empty-string $suffix End the string must not have.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the suffix is empty only after normalization.
+     */
+    public function notEndsWith(string $suffix, string $message = ''): static;
+
+    /**
      * Asserts that the string matches the given PCRE pattern.
      *
      * The modifiers other than {@see self::ignoringCase()} normalize the string, never the pattern;

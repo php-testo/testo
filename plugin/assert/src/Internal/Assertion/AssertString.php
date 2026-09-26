@@ -200,6 +200,44 @@ final readonly class AssertString implements StringType
     }
 
     /**
+     * Asserts that the string does not start with the given prefix.
+     *
+     * @param non-empty-string $prefix Beginning the string must not have.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the prefix is empty only after normalization.
+     */
+    #[AssertMethod]
+    #[\Override]
+    public function notStartsWith(string $prefix, string $message = ''): static
+    {
+        $str = 'does not start with ' . $this->describe($prefix);
+        !\str_starts_with($this->subject, $this->argument($prefix, 'notStartsWith'))
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the string starts with it', $message);
+        return $this;
+    }
+
+    /**
+     * Asserts that the string does not end with the given suffix.
+     *
+     * @param non-empty-string $suffix End the string must not have.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the suffix is empty only after normalization.
+     */
+    #[AssertMethod]
+    #[\Override]
+    public function notEndsWith(string $suffix, string $message = ''): static
+    {
+        $str = 'does not end with ' . $this->describe($suffix);
+        !\str_ends_with($this->subject, $this->argument($suffix, 'notEndsWith'))
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the string ends with it', $message);
+        return $this;
+    }
+
+    /**
      * Asserts that the string matches the given PCRE pattern.
      *
      * @param string $pattern Full PCRE pattern with delimiters and flags.

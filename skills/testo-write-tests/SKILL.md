@@ -76,7 +76,7 @@ Assert::fail('explicit failure');
 Typed chains (use when you want a fluent series of checks on one value):
 
 ```php
-Assert::string($s)->contains('foo')->notContains('bar')->startsWith('f')->endsWith('.txt');
+Assert::string($s)->contains('foo')->notContains('bar')->startsWith('f')->endsWith('.txt')->notStartsWith('b')->notEndsWith('.md');
 Assert::string($date)->matchesPattern('/^\d{4}-\d{2}-\d{2}$/')->notMatchesPattern('/\s$/');  // full PCRE; invalid pattern → InvalidArgumentException
 Assert::string($out)->ignoringLineEndings()->same("a\nb\n");        // whole-string ===, never numeric; notSame() too
 Assert::string($html)->ignoringCase()->contains('<title>');          // mb_strtolower() of string and argument
