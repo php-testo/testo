@@ -6,6 +6,7 @@ namespace Testo\Bridge\Rector\PhpunitToTesto;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
+use PhpParser\Node\Expr\Empty_;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
@@ -31,12 +32,22 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - $this->assertArrayHasKey($k, $a)     → \Testo\Assert::array($a)->hasKeys($k)
  *   - $this->assertArrayNotHasKey($k, $a)  → \Testo\Assert::array($a)->doesNotHaveKeys($k)
  *   - $this->assertEqualsCanonicalizing($e, $a) → \Testo\Assert::array($a)->sameElementsAs($e)
+ *   - $this->assertStringStartsWith($p, $s)  → \Testo\Assert::string($s)->startsWith($p)
+ *   - $this->assertStringEndsWith($p, $s)    → \Testo\Assert::string($s)->endsWith($p)
+ *   - $this->assertIsString($x)              → \Testo\Assert::string($x), and so on for the heads
+ *
+ * A type head takes no message, so `assertIsString($x, $message)` becomes
+ * `\Testo\Assert::true(\is_string($x), $message)`. The checks with no matcher (`assertIsBool`,
+ * `assertIsCallable`, `assertIsNot*`, `assertFileExists`, `assertDirectoryExists`, …) become
+ * `Assert::true|false()` over the predicate PHPUnit runs itself.
  *
  * `assertEmpty`/`assertNotEmpty` map to the flat `\Testo\Assert::blank()`/`notBlank()` — but only when
  * the subject's inferred type is an array. Testo's `blank()` treats `false`/`0`/`'0'` as valid
  * (non-blank) data, so converting a call whose subject could be one of those would change meaning;
  * an array can never be `false`/`0`/`'0'`, so there the two notions coincide and the rewrite is
- * faithful. A non-array (or unknown) subject is left untouched — see TODO.md.
+ * faithful. A subject that cannot be an object gets `Assert::true(empty($x))` instead, which is
+ * PHPUnit's own check; an object or unknown subject is left untouched, since PHPUnit counts a
+ * `Countable` — see TODO.md.
  *
  * Message residual: the numeric matchers and `sameElementsAs()`/`blank()`/`notBlank()` all keep a
  * trailing `$message`, so it is preserved there. The array-key matchers (`hasKeys()`/
@@ -71,6 +82,51 @@ final class TypedAssertCallToTestoRector extends AbstractRector
     private const ARRAY_KEY = [
         'assertArrayHasKey' => 'hasKeys',
         'assertArrayNotHasKey' => 'doesNotHaveKeys',
+    ];
+
+    /**
+     * Type assertions → the `Assert::<head>($subject)` type check of the same name.
+     *
+     * @var array<non-empty-string, non-empty-string>
+     */
+    private const TYPE_HEAD = [
+        'assertIsString' => 'string',
+        'assertIsInt' => 'int',
+        'assertIsFloat' => 'float',
+        'assertIsNumeric' => 'numeric',
+        'assertIsArray' => 'array',
+        'assertIsIterable' => 'iterable',
+        'assertIsObject' => 'object',
+    ];
+
+    /**
+     * Assertions with no Testo matcher → `Assert::true|false(\function($subject))`, the check PHPUnit
+     * runs itself. `$message` is preserved.
+     *
+     * @var array<non-empty-string, array{'true'|'false', non-empty-string}>
+     */
+    private const PREDICATE = [
+        'assertIsBool' => ['true', 'is_bool'],
+        'assertIsCallable' => ['true', 'is_callable'],
+        'assertIsScalar' => ['true', 'is_scalar'],
+        'assertIsNotString' => ['false', 'is_string'],
+        'assertIsNotInt' => ['false', 'is_int'],
+        'assertIsNotFloat' => ['false', 'is_float'],
+        'assertIsNotNumeric' => ['false', 'is_numeric'],
+        'assertIsNotArray' => ['false', 'is_array'],
+        'assertIsNotIterable' => ['false', 'is_iterable'],
+        'assertIsNotObject' => ['false', 'is_object'],
+        'assertIsNotBool' => ['false', 'is_bool'],
+        'assertIsNotCallable' => ['false', 'is_callable'],
+        'assertIsNotScalar' => ['false', 'is_scalar'],
+        'assertFileExists' => ['true', 'file_exists'],
+        'assertFileDoesNotExist' => ['false', 'file_exists'],
+        'assertDirectoryExists' => ['true', 'is_dir'],
+        'assertDirectoryDoesNotExist' => ['false', 'is_dir'],
+        'assertIsReadable' => ['true', 'is_readable'],
+        'assertIsNotReadable' => ['false', 'is_readable'],
+        'assertIsWritable' => ['true', 'is_writable'],
+        'assertIsNotWritable' => ['false', 'is_writable'],
     ];
 
     public function __construct(
@@ -117,10 +173,57 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             isset(self::NUMERIC[$method]) => $this->typedChain('numeric', self::NUMERIC[$method], $node->args, keepMessage: true),
             isset(self::ARRAY_KEY[$method]) => $this->typedChain('array', self::ARRAY_KEY[$method], $node->args, keepMessage: false),
             $method === 'assertEqualsCanonicalizing' => $this->typedChain('array', 'sameElementsAs', $node->args, keepMessage: true),
-            $method === 'assertEmpty' => $this->emptiness('blank', $node->args),
-            $method === 'assertNotEmpty' => $this->emptiness('notBlank', $node->args),
+            $method === 'assertStringStartsWith' => $this->typedChain('string', 'startsWith', $node->args, keepMessage: true),
+            $method === 'assertStringEndsWith' => $this->typedChain('string', 'endsWith', $node->args, keepMessage: true),
+            $method === 'assertEmpty' => $this->emptiness('blank', 'true', $node->args),
+            $method === 'assertNotEmpty' => $this->emptiness('notBlank', 'false', $node->args),
+            isset(self::TYPE_HEAD[$method]) => $this->typeCheck($method, $node->args),
+            isset(self::PREDICATE[$method]) => $this->predicate(...self::PREDICATE[$method], args: $node->args),
             default => null,
         };
+    }
+
+    /**
+     * `assertIsString($subject)` → `Assert::string($subject)`. A type head takes no message, so a call
+     * that carries one falls back to the predicate form, which keeps it.
+     *
+     * @param non-empty-string $method
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function typeCheck(string $method, array $args): ?StaticCall
+    {
+        $subject = $args[0] ?? null;
+        if (!$subject instanceof Arg) {
+            return null;
+        }
+
+        if (isset($args[1])) {
+            return $this->predicate('true', 'is_' . self::TYPE_HEAD[$method], $args);
+        }
+
+        return new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier(self::TYPE_HEAD[$method]), [$subject]);
+    }
+
+    /**
+     * `assertX($subject[, $message])` → `Assert::true|false(\predicate($subject)[, $message])`.
+     *
+     * @param 'true'|'false' $assert
+     * @param non-empty-string $function
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function predicate(string $assert, string $function, array $args): ?StaticCall
+    {
+        $subject = $args[0] ?? null;
+        if (!$subject instanceof Arg) {
+            return null;
+        }
+
+        $callArgs = [new Arg(new FuncCall(new FullyQualified($function), [$subject]))];
+        if (($args[1] ?? null) instanceof Arg) {
+            $callArgs[] = $args[1];
+        }
+
+        return new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier($assert), $callArgs);
     }
 
     /**
@@ -153,16 +256,29 @@ final class TypedAssertCallToTestoRector extends AbstractRector
 
     /**
      * `assertEmpty($subject[, $message])` → `Assert::blank($subject[, $message])` (and `notBlank` for
-     * `assertNotEmpty`), but only for an array subject where `blank()` and PHP's `empty()` coincide.
+     * `assertNotEmpty`) for an array subject, where `blank()` and PHP's `empty()` coincide. A subject
+     * that cannot be an object becomes `Assert::true(empty($subject))` (`false` for `assertNotEmpty`),
+     * which is exactly PHPUnit's check; an object may be `Countable`, which PHPUnit counts instead.
      *
      * @param non-empty-string $testoMethod
+     * @param 'true'|'false' $emptyAssert
      * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
      */
-    private function emptiness(string $testoMethod, array $args): ?StaticCall
+    private function emptiness(string $testoMethod, string $emptyAssert, array $args): ?StaticCall
     {
         $subject = $args[0] ?? null;
-        if (!$subject instanceof Arg || !$this->getType($subject->value)->isArray()->yes()) {
+        if (!$subject instanceof Arg) {
             return null;
+        }
+
+        $type = $this->getType($subject->value);
+        if (!$type->isArray()->yes()) {
+            if (!$type->isObject()->no()) {
+                return null;
+            }
+
+            $testoMethod = $emptyAssert;
+            $subject = new Arg(new Empty_($subject->value));
         }
 
         $callArgs = [$subject];
