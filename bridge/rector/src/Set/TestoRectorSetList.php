@@ -73,4 +73,11 @@ final class TestoRectorSetList
      * @var string
      */
     public const TESTO_POLISH = __DIR__ . '/../../config/testo-polish.php';
+
+    /**
+     * Testo -> Testo shift: deprecated Testo API -> its replacement. See {@see config/testo-shift.php}.
+     *
+     * @var string
+     */
+    public const TESTO_SHIFT = __DIR__ . '/../../config/testo-shift.php';
 }

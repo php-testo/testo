@@ -151,6 +151,8 @@ current batch.
    migrated, drop `phpunit.xml`, `phpunit/phpunit` and `tests/bootstrap.php`, and optionally remove
    `testo/bridge-rector` from `require-dev`.
 
+Deprecated Testo API (for example `withMessagePattern()`, now `withMessageMatchingRegex()`) is migrated by the `testo-shift` set: scaffold it with `--set=testo-shift` and run it whenever the project upgrades Testo, not only after a migration.
+
 If the migration cannot be made green, this is where the **restore point** from Phase 1 matters —
 offer the user a rollback rather than leaving a half-migrated suite.
 

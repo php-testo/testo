@@ -66,6 +66,14 @@ leaves it untouched; the per-folder `TODO.md` lists the residuals.
 | **Return types** | ✅ *Rector's `AddVoidReturnTypeWhereNoReturnRector`, `ReturnNeverTypeRector`* |
 | **Assertion pipes** | 🟡 *`MergeAssertChainRector`: adjacent chains with the same typed head on the same variable* |
 
+## Shift set (deprecated Testo → current Testo)
+
+`TESTO_SHIFT` renames deprecated Testo API to its replacement. Each deprecation adds an entry here and to the set.
+
+| Deprecated API | Replacement |
+|---|:---:|
+| `ExpectedException::withMessagePattern()` | ✅ *`withMessageMatchingRegex()`, Rector's `RenameMethodRector` resolved by type* |
+
 ## Remaining work (🧩 — actually tractable)
 
 Pest → Testo opened up once the direction stopped chasing a *class* and targeted **free functions**

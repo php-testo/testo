@@ -115,7 +115,7 @@ public function rejectsNegativeAmount(): never
 }
 ```
 
-Other Expect modifiers: `withMessageContaining(...)`, `withMessageMatchingRegex(...)` (`withMessagePattern()` is its deprecated alias), `withPrevious(class, closure)`, memory-leak expectations.
+Other Expect modifiers: `withMessageContaining(...)`, `withMessageMatchingRegex(...)` (`withMessagePattern()` is its deprecated alias; the `testo-shift` Rector set of `testo/bridge-rector` renames it), `withPrevious(class, closure)`, memory-leak expectations.
 Do **not** use try/catch-based assertions for expected exceptions — `Expect::exception` is the correct API.
 
 ## Marking a test as skipped or cancelled

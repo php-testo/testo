@@ -47,8 +47,9 @@ final readonly class RectorRunner
 
     /**
      * @param list<class-string<RectorInterface>> $rules
+     * @param list<non-empty-string> $sets Set config files to import, for rules that need configuration.
      */
-    public function __construct(Messenger $messenger, array $rules)
+    public function __construct(Messenger $messenger, array $rules, array $sets = [])
     {
         $this->channel = $messenger->channel('rector-fixture.php');
         $this->errorChannel = $messenger->channel('rector-errors.json');
@@ -57,6 +58,10 @@ final readonly class RectorRunner
 
         foreach ($rules as $rule) {
             $rectorConfig->rule($rule);
+        }
+
+        foreach ($sets as $set) {
+            $rectorConfig->import($set);
         }
 
         # Mirror AbstractRectorTestCase: hand the freshly-registered rules to the traverser.
