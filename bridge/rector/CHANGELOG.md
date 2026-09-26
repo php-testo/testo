@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.3](https://github.com/php-testo/testo/compare/bridge-rector-0.3.2...bridge-rector-0.3.3) (2026-09-26)
+
+
+### Features
+
+* **bridge-rector:** import Testo, Mockery and Double names in the polish set ([086bddb](https://github.com/php-testo/testo/commit/086bddb02b4df26803f01c0056f5556460e99829))
+
+
+### Bug Fixes
+
+* **bridge-rector:** drop parent calls to PHPUnit hooks ([803210c](https://github.com/php-testo/testo/commit/803210cd6adfba71d8da9704c2b6d5feae29f606))
+* **bridge-rector:** keep blank lines when a rule drops the last attribute ([129a24a](https://github.com/php-testo/testo/commit/129a24a8005249464aec27be6ae9b08ad51fa165))
+* **bridge-rector:** skip test classes on a PHPUnit base from vendor ([421881b](https://github.com/php-testo/testo/commit/421881bcd5cbc3fb79ba7efffd6dbec54930bf86))
+
 ## [0.3.2](https://github.com/php-testo/testo/compare/bridge-rector-0.3.1...bridge-rector-0.3.2) (2026-09-26)
 
 
