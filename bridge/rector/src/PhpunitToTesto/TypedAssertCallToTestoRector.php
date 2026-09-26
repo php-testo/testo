@@ -51,8 +51,18 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - $this->assertEqualsCanonicalizing($e, $a) → \Testo\Assert::array($a)->sameElementsAs($e)
  *   - $this->assertStringStartsWith($p, $s)  → \Testo\Assert::string($s)->startsWith($p)
  *   - $this->assertStringEndsWith($p, $s)    → \Testo\Assert::string($s)->endsWith($p)
+ *   - $this->assertStringStartsNotWith($p, $s) → \Testo\Assert::string($s)->notStartsWith($p), likewise
+ *     `assertStringEndsNotWith` → `…->notEndsWith($p)`
  *   - $this->assertStringContainsString($n, $s)    → \Testo\Assert::string($s)->contains($n)
  *   - $this->assertStringNotContainsString($n, $s) → \Testo\Assert::string($s)->notContains($n)
+ *   - $this->assertStringContainsStringIgnoringCase($n, $s) → \Testo\Assert::string($s)->ignoringCase()->contains($n),
+ *     likewise `assertStringNotContainsStringIgnoringCase` → `…->ignoringCase()->notContains($n)` and
+ *     `assertStringContainsStringIgnoringLineEndings` → `…->ignoringLineEndings()->contains($n)`
+ *   - $this->assertStringEqualsStringIgnoringLineEndings($e, $s) → \Testo\Assert::string($s)->ignoringLineEndings()->same($e)
+ *   - $this->assertStringEqualsStringIgnoringWhitespace($e, $s) →
+ *     \Testo\Assert::string($s)->ignoringWhitespace(lineBreaks: true)->same($e), and `notSame()` for the negation
+ *   - $this->assertEqualsIgnoringCase($e, $a) → \Testo\Assert::string($a)->ignoringCase()->same($e), and
+ *     `notSame()` for `assertNotEqualsIgnoringCase`; only when both sides are strings
  *   - $this->assertMatchesRegularExpression($p, $s)      → \Testo\Assert::string($s)->matchesPattern($p),
  *     also the PHPUnit 9 `assertRegExp`
  *   - $this->assertDoesNotMatchRegularExpression($p, $s) → \Testo\Assert::string($s)->notMatchesPattern($p),
@@ -70,8 +80,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *
  * Both sides treat an empty substring as contained, compare iterable elements with `===` (as the flat
  * `assertContains` conversion does) and check a property with private and dynamic ones included, so
- * these chains keep PHPUnit's verdict. An invalid pattern is an error on both sides, negated or not.
- *
+ * these chains keep PHPUnit's verdict. An invalid pattern is an error on both sides, negated or not. *
  * A type head takes no message, so `assertIsString($x, $message)` becomes
  * `\Testo\Assert::true(\is_string($x), $message)`. The checks with no matcher (`assertIsBool`,
  * `assertIsCallable`, `assertIsNot*`, `assertFileExists`, `assertDirectoryExists`, …) become
@@ -131,6 +140,33 @@ final class TypedAssertCallToTestoRector extends AbstractRector
     private const ARRAY_KEY = [
         'assertArrayHasKey' => 'hasKeys',
         'assertArrayNotHasKey' => 'doesNotHaveKeys',
+    ];
+
+    /**
+     * String assertions with a comparison mode → `Assert::string($subject)-><modifier>()-><matcher>()`.
+     * `$message` is preserved. PHPUnit's whitespace mode turns every run of whitespace, line breaks
+     * included, into one space and trims, which is `ignoringWhitespace(lineBreaks: true)`.
+     *
+     * @var array<non-empty-string, array{non-empty-string, non-empty-string}>
+     */
+    private const STRING_MODIFIED = [
+        'assertStringContainsStringIgnoringCase' => ['ignoringCase', 'contains'],
+        'assertStringNotContainsStringIgnoringCase' => ['ignoringCase', 'notContains'],
+        'assertStringContainsStringIgnoringLineEndings' => ['ignoringLineEndings', 'contains'],
+        'assertStringEqualsStringIgnoringLineEndings' => ['ignoringLineEndings', 'same'],
+        'assertStringEqualsStringIgnoringWhitespace' => ['ignoringWhitespace', 'same'],
+        'assertStringNotEqualsStringIgnoringWhitespace' => ['ignoringWhitespace', 'notSame'],
+    ];
+
+    /**
+     * Case-insensitive equality → `Assert::string($actual)->ignoringCase()->same|notSame($expected)`,
+     * only when both sides are strings: PHPUnit also compares other scalars and arrays, recursively.
+     *
+     * @var array<non-empty-string, non-empty-string>
+     */
+    private const EQUALS_IGNORING_CASE = [
+        'assertEqualsIgnoringCase' => 'same',
+        'assertNotEqualsIgnoringCase' => 'notSame',
     ];
 
     /**
@@ -285,8 +321,24 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             $method === 'assertEqualsCanonicalizing' => $this->typedChain('array', 'sameElementsAs', $node->args, keepMessage: true),
             $method === 'assertStringStartsWith' => $this->typedChain('string', 'startsWith', $node->args, keepMessage: true),
             $method === 'assertStringEndsWith' => $this->typedChain('string', 'endsWith', $node->args, keepMessage: true),
+            $method === 'assertStringStartsNotWith' => $this->typedChain('string', 'notStartsWith', $node->args, keepMessage: true),
+            $method === 'assertStringEndsNotWith' => $this->typedChain('string', 'notEndsWith', $node->args, keepMessage: true),
             $method === 'assertStringContainsString' => $this->typedChain('string', 'contains', $node->args, keepMessage: true),
             $method === 'assertStringNotContainsString' => $this->typedChain('string', 'notContains', $node->args, keepMessage: true),
+            isset(self::STRING_MODIFIED[$method]) => $this->typedChain(
+                'string',
+                self::STRING_MODIFIED[$method][1],
+                $node->args,
+                keepMessage: true,
+                modifier: self::STRING_MODIFIED[$method][0],
+            ),
+            isset(self::EQUALS_IGNORING_CASE[$method]) && $this->areStrings($node->args) => $this->typedChain(
+                'string',
+                self::EQUALS_IGNORING_CASE[$method],
+                $node->args,
+                keepMessage: true,
+                modifier: 'ignoringCase',
+            ),
             $method === 'assertMatchesRegularExpression', $method === 'assertRegExp'
                 => $this->typedChain('string', 'matchesPattern', $node->args, keepMessage: true),
             $method === 'assertDoesNotMatchRegularExpression', $method === 'assertNotRegExp'
@@ -502,9 +554,15 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * @param non-empty-string $matcher The chained matcher method.
      * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
      * @param bool $keepMessage Whether the matcher accepts (and should keep) the trailing `$message`.
+     * @param non-empty-string|null $modifier A comparison modifier chained between the head and the matcher.
      */
-    private function typedChain(string $head, string $matcher, array $args, bool $keepMessage): ?MethodCall
-    {
+    private function typedChain(
+        string $head,
+        string $matcher,
+        array $args,
+        bool $keepMessage,
+        ?string $modifier = null,
+    ): ?MethodCall {
         $needle = $args[0] ?? null;
         $subject = $args[1] ?? null;
         if (!$needle instanceof Arg || !$subject instanceof Arg) {
@@ -516,11 +574,16 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             $matcherArgs[] = $args[2];
         }
 
-        return new MethodCall(
-            new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier($head), [$subject]),
-            new Identifier($matcher),
-            $matcherArgs,
+        $chain = new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier($head), [$subject]);
+        $modifier === null or $chain = new MethodCall(
+            $chain,
+            new Identifier($modifier),
+            $modifier === 'ignoringWhitespace'
+                ? [new Arg(new ConstFetch(new Name('true')), name: new Identifier('lineBreaks'))]
+                : [],
         );
+
+        return new MethodCall($chain, new Identifier($matcher), $matcherArgs);
     }
 
     /**
@@ -547,6 +610,21 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             new Identifier($matcher),
             $matcherArgs,
         );
+    }
+
+    /**
+     * Whether the first two arguments are both known to be strings.
+     *
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function areStrings(array $args): bool
+    {
+        $expected = $args[0] ?? null;
+        $actual = $args[1] ?? null;
+
+        return $expected instanceof Arg && $actual instanceof Arg
+            && $this->getType($expected->value)->isString()->yes()
+            && $this->getType($actual->value)->isString()->yes();
     }
 
     /**
