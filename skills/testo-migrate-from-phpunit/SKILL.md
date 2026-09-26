@@ -36,7 +36,10 @@ test.** A migration can leave the suite red; the user must be able to roll back 
 3. If it is clean, state the rollback plan explicitly, e.g. *"I'll work on a branch `migrate-to-testo`;
    if the migration fails you can `git checkout <previous-branch>` to discard everything."* Prefer a
    dedicated branch (`git checkout -b migrate-to-testo`) or, at minimum, confirm the current commit is
-   a safe point to reset to.
+   a safe point to reset to. Check `git rev-parse --verify migrate-to-testo` first: a branch left by an
+   earlier attempt sits on an old base. When it exists, ask the user whether to pick a new name, delete
+   the old branch, or continue on it; before continuing, compare its merge base with the current head of
+   the main branch and tell the user when main has moved ahead.
 4. Say plainly: **the test suite may be red during and after migration; the restore point is how we
    undo it if it doesn't pan out.**
 
@@ -88,6 +91,11 @@ counterpart. Keep the list: `testo.php` is written from it (a lost `intl.default
 that passed under PHPUnit), with one `SuiteConfig` per `<testsuite>` and the `<php>` settings at the
 top of the file. For an alternate config such as `phpunit-without-intl.xml`, re-run with
 `--phpunit-config=<file>`.
+
+Compare the project's minimum PHP (`require.php` in its `composer.json`) with the one `testo/testo`
+requires (PHP 8.2; the constraint is in `vendor/testo/testo/composer.json`). When the project supports
+older versions, ask the user how to handle them: raise the project's minimum, keep a PHPUnit job for
+the old versions during the transition, or knowingly accept the gap. The CI matrix follows that answer.
 
 ### 3. Present the approach options and let the user choose
 
@@ -173,8 +181,10 @@ After the chosen approach's stages complete, run the shared final pass (detailed
    and remove the attributes. Remove `phpunit/phpunit` only after that, since without it the vendor
    base no longer loads and test discovery fails.
    **CI:** add a job that runs `vendor/bin/testo` per suite (with the PHP extensions each suite
-   needs) next to the existing one. When the project calls a shared reusable workflow that runs
-   PHPUnit, leave that workflow alone and replace the call in the project's own workflow file.
+   needs) next to the existing one, on the PHP versions agreed in Phase 3 step 2. When the project
+   calls a shared reusable workflow that runs PHPUnit, ask the user before touching the call: replace
+   it with a job of its own, keep it and add a Testo job next to it, or pass the Testo command to the
+   shared workflow if it takes one. The shared workflow itself stays as it is.
 5. **Report** the before/after to the user: files migrated, tests now green under Testo, anything
    left on PHPUnit (list each explicitly: `phpunit.xml*` files, `phpunit/phpunit` and PHPUnit add-ons
    such as watchers in `composer.json`, composer scripts calling `phpunit`, CI jobs, an

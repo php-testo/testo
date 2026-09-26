@@ -34,8 +34,8 @@ Scaffold a disposable config scoped to the migration paths (do **not** clobber a
 - `--set=phpunit-to-testo` is the default. `--set` repeats: when the scope uses PHPUnit mocks, list the
   mock set for the library the user picked — `--set=phpunit-to-testo --set=phpunit-to-double` (Double,
   PHP 8.3+) or `--set=phpunit-to-mockery` (Mockery, PHP 8.2). Without one, mocks stay PHPUnit.
-  Double raises the test suite's minimum PHP to 8.3: if the project supports older versions, tell the
-  user that the CI matrix loses them, or pick Mockery.
+  Double raises the test suite's minimum PHP to 8.3: if the project supports older versions, ask the
+  user before choosing it, with the same options as the PHP check in SKILL.md Phase 3, plus Mockery.
 - Write the file at the **project root** (it uses `__DIR__`-relative paths).
 - The script verifies the set exists under `vendor/` before writing and prints the next commands.
 - The conversion writes Testo, Mockery and Double names fully qualified (`\Testo\Assert::same()`); the
