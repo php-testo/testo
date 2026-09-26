@@ -10,7 +10,6 @@ use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
-use PHPStan\PhpDocParser\Ast\PhpDoc\GenericTagValueNode;
 use PHPStan\Reflection\ReflectionProvider;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfo;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfoFactory;
@@ -19,6 +18,7 @@ use Rector\Comments\NodeDocBlock\DocBlockUpdater;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\PhpDocTagText;
 use Testo\Bridge\Rector\Internal\PhpunitTestCaseClass;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
@@ -154,7 +154,7 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
             $testTags = $phpDocInfo->getTagsByName('test');
             if ($testTags !== []) {
                 foreach ($testTags as $tag) {
-                    $tag->value instanceof GenericTagValueNode and $this->phpDocTagRemover->removeTagValueFromNode($phpDocInfo, $tag);
+                    PhpDocTagText::of($tag) === null or $this->phpDocTagRemover->removeTagValueFromNode($phpDocInfo, $tag);
                 }
                 $this->docBlockUpdater->updateRefactoredNodeWithPhpDocInfo($method);
                 $this->addTestoAttribute($method);

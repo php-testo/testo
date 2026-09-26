@@ -7,7 +7,6 @@ namespace Testo\Bridge\Rector\PhpunitToTesto;
 use PhpParser\Node;
 use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Stmt\ClassMethod;
-use PHPStan\PhpDocParser\Ast\PhpDoc\GenericTagValueNode;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfo;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfoFactory;
 use Rector\BetterPhpDocParser\PhpDocManipulator\PhpDocTagRemover;
@@ -16,6 +15,7 @@ use Rector\PhpAttribute\NodeFactory\PhpAttributeGroupFactory;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\PhpDocTagText;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -90,11 +90,12 @@ final class DataProviderAnnotationToTestoRector extends AbstractRector
 
         $changed = false;
         foreach ($tags as $tag) {
-            if (!$tag->value instanceof GenericTagValueNode) {
+            $text = PhpDocTagText::of($tag);
+            if ($text === null) {
                 continue;
             }
 
-            $name = \strtok($tag->value->value === '' ? ' ' : $tag->value->value, " \t\n\r\0\x0B");
+            $name = \strtok($text === '' ? ' ' : $text, " \t\n\r\0\x0B");
             $name = $name === false ? '' : \trim($name, '()');
             if ($name === '' || \str_contains($name, '::')) {
                 # Empty or cross-class (`Other::method`) provider — leave for manual handling.

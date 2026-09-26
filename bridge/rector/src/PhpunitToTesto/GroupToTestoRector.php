@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Testo\Bridge\Rector\PhpunitToTesto;
 
 use PhpParser\Node;
-use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Attribute;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\Function_;
-use PHPStan\PhpDocParser\Ast\PhpDoc\GenericTagValueNode;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfo;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfoFactory;
 use Rector\BetterPhpDocParser\PhpDocManipulator\PhpDocTagRemover;
@@ -19,6 +18,7 @@ use Rector\PhpAttribute\NodeFactory\PhpAttributeGroupFactory;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\PhpDocTagText;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -99,8 +99,9 @@ final class GroupToTestoRector extends AbstractRector
             }
         }
         foreach ($groupTags as $tag) {
-            if ($tag->value instanceof GenericTagValueNode) {
-                $token = \strtok($tag->value->value === '' ? ' ' : $tag->value->value, " \t\n\r\0\x0B");
+            $text = PhpDocTagText::of($tag);
+            if ($text !== null) {
+                $token = \strtok($text === '' ? ' ' : $text, " \t\n\r\0\x0B");
                 $token === false or $this->collect($names, $token);
             }
         }
@@ -110,21 +111,25 @@ final class GroupToTestoRector extends AbstractRector
         }
 
         # Mutate: drop PHPUnit Group attributes (and any group left empty), drop @group tags,
-        # then append the single Testo Group attribute.
+        # then append the single Testo Group attribute. Groups are trimmed in place: a rebuilt group
+        # would lose its source position.
         $keptGroups = [];
         foreach ($node->attrGroups as $attrGroup) {
-            $keptAttrs = [];
-            foreach ($attrGroup->attrs as $attr) {
-                $this->isName($attr->name, 'PHPUnit\\Framework\\Attributes\\Group') or $keptAttrs[] = $attr;
-            }
-            $keptAttrs === [] or $keptGroups[] = new AttributeGroup($keptAttrs);
+            $attrGroup->attrs = \array_values(\array_filter(
+                $attrGroup->attrs,
+                fn(Attribute $attr): bool => !$this->isName($attr->name, 'PHPUnit\\Framework\\Attributes\\Group'),
+            ));
+            $attrGroup->attrs === [] or $keptGroups[] = $attrGroup;
         }
 
         foreach ($groupTags as $tag) {
-            $tag->value instanceof GenericTagValueNode and $this->phpDocTagRemover->removeTagValueFromNode($phpDocInfo, $tag);
+            PhpDocTagText::of($tag) === null or $this->phpDocTagRemover->removeTagValueFromNode($phpDocInfo, $tag);
         }
 
-        $keptGroups[] = $this->phpAttributeGroupFactory->createFromClassWithItems('Testo\\Filter\\Group', $names);
+        $group = $this->phpAttributeGroupFactory->createFromClassWithItems('Testo\\Filter\\Group', $names);
+        # A position-less group would pull the owner's start line to 0 once it leads the list.
+        $group->setAttribute('startLine', $node->getStartLine());
+        $keptGroups[] = $group;
         $node->attrGroups = $keptGroups;
 
         $phpDocInfo instanceof PhpDocInfo and $this->docBlockUpdater->updateRefactoredNodeWithPhpDocInfo($node);
