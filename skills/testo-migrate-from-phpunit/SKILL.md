@@ -154,8 +154,14 @@ After the chosen approach's stages complete, run the shared final pass (detailed
 4. **Retire the old harness — only once green:** delete the disposable Rector configs (Approach A);
    when the whole project is migrated, remove `phpunit.xml`, `phpunit/phpunit` from `composer.json`,
    and any `tests/bootstrap.php`. Optionally drop `testo/bridge-rector` from `require-dev`.
+   **CI:** add a job that runs `vendor/bin/testo` per suite (with the PHP extensions each suite
+   needs) next to the existing one. When the project calls a shared reusable workflow that runs
+   PHPUnit, leave that workflow alone and replace the call in the project's own workflow file.
 5. **Report** the before/after to the user: files migrated, tests now green under Testo, anything
-   left on PHPUnit, and any files a subagent reported `blocked` (needs a human decision — usually
+   left on PHPUnit (list each explicitly: `phpunit.xml*` files, `phpunit/phpunit` and PHPUnit add-ons
+   such as watchers in `composer.json`, composer scripts calling `phpunit`, CI jobs, an
+   `infection.json*` still set up for PHPUnit, bases from `vendor/` that pull PHPUnit in
+   transitively), and any files a subagent reported `blocked` (needs a human decision — usually
    heavy mocking or a PHPUnit-only constraint).
 
 If a slice cannot be made green, **fall back to the Phase-1 restore point** and report to the user —
