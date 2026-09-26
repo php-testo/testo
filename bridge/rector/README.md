@@ -44,11 +44,11 @@ double's factory and its other statements convert, the leftover one is what the 
 
 - `: void` / `: never` return types (Rector's `AddVoidReturnTypeWhereNoReturnRector`, `ReturnNeverTypeRector`);
 - `final` on a `*Test` class that carries `#[Test]` and has no subclass (`FinalizeTestClassRector`);
-- `#[Test]` moved from the methods onto a `final` class when every public `void`/`never` method is a test or a lifecycle hook (`ClassLevelTestAttributeRector`);
+- `#[Test]` moved from the methods onto a `final` class when every public `void`/`never` method is a test or a lifecycle hook, and off a trait once every class using it has the class attribute (`ClassLevelTestAttributeRector`);
 - a test that opens with a bare `Expect::exception(X::class)` and runs one statement → `#[ExpectException(X::class)]` (`ExpectExceptionToAttributeRector`);
 - adjacent `Assert::<type>($var)` chains on the same variable merged into one pipe (`MergeAssertChainRector`).
 
-Scope it to the whole test tree and nothing else: the return-type rules apply to every method in the paths, and a class is left non-final only when a subclass shows up within them.
+Run it twice: a trait is cleaned up once its users carry the class attribute on disk. Scope it to the whole test tree and nothing else: the return-type rules apply to every method in the paths, and a class is left non-final only when a subclass shows up within them.
 
 Conversions that have no faithful counterpart in the target framework (constraints,
 memory-leak / retry / repeat, Pest higher-order & `arch()` tests, etc.) are

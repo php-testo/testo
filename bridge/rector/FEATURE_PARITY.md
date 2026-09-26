@@ -60,7 +60,7 @@ leaves it untouched; the per-folder `TODO.md` lists the residuals.
 
 | Feature / concept | Testo → Testo |
 |---|:---:|
-| **Class-level `#[Test]`** | ✅ *`ClassLevelTestAttributeRector`: only on a `final` class whose public `void`/`never` and untyped methods are all tests or lifecycle hooks, inherited and trait methods included (read by reflection); a class already carrying `#[Test]` loses the redundant method attributes* |
+| **Class-level `#[Test]`** | ✅ *`ClassLevelTestAttributeRector`: only on a `final` class whose public `void`/`never` and untyped methods are all tests or lifecycle hooks, inherited and trait methods included (read by reflection); a class already carrying `#[Test]` loses the redundant method attributes, and so does a trait whose users within the processed paths are all class-level (seen from the next run on)* |
 | **`#[ExpectException]`** | ✅ *`ExpectExceptionToAttributeRector`: a test whose body is exactly a bare `Expect::exception(X::class)` and one statement. Modifiers, a specimen object, `same: true` or statements before the call keep the method form* |
 | **`final` test classes** | ✅ *`FinalizeTestClassRector`: `*Test` classes carrying `#[Test]`, not `*TestCase`, not abstract, not extended within the processed paths* |
 | **Return types** | ✅ *Rector's `AddVoidReturnTypeWhereNoReturnRector`, `ReturnNeverTypeRector`* |

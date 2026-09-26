@@ -133,6 +133,7 @@ current batch.
    ```bash
    <php> <skillDir>/scripts/scaffold-rector-config.php rector-testo-polish.php --path=tests/Unit --set=testo-polish
    vendor/bin/rector process --config=rector-testo-polish.php
+   vendor/bin/rector process --config=rector-testo-polish.php   # again: cleans up traits
    ```
    It adds `: void`/`: never` and `final`, moves `#[Test]` onto the class and one-statement exception
    tests into `#[ExpectException]`, and merges assertion pipes, without changing which tests run.
