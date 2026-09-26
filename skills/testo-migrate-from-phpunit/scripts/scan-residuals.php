@@ -612,7 +612,7 @@ $checks = [
             return $found === [] ? null : \array_values(\array_unique($found));
         },
         'need' => 'A Testo lifecycle hook still calls a PHPUnit hook of its parent: without a parent it is a fatal error, and on a PHPUnit base Testo runs PHPUnit set-up logic outside PHPUnit. Detach the class from the PHPUnit base first, then drop the call or port what the parent hook did.',
-        'hint' => 'A `parent::` hook call is fine only when the parent is a converted Testo base; see the mapping pitfall "Tests inherited from a vendor/ PHPUnit base".',
+        'hint' => 'Rector drops the plain `parent::hook();` statements of a class it detaches; what is left sits on a vendor PHPUnit base or uses the call\'s result. A `parent::` hook call is fine only when the parent is a converted Testo base; see the mapping pitfall "Tests inherited from a vendor/ PHPUnit base".',
     ],
     'phpunit_test_attr' => [
         'detect' => static function (array $src) use ($untaggedTests): ?array {

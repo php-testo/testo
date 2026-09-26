@@ -7,11 +7,16 @@ namespace Testo\Bridge\Rector\PhpunitToTesto;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\NodeVisitor;
 use PhpParser\Node\Stmt\Trait_;
 use PHPStan\Reflection\ReflectionProvider;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfo;
@@ -36,7 +41,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - drops `#[\Override]` from methods that no longer override anything (`setUp()` and other
  *     `TestCase` hooks), since PHP rejects the attribute on a method without a parent declaration.
  *     A method declared by one of the class's interfaces keeps it, as does every method when an
- *     interface cannot be resolved.
+ *     interface cannot be resolved;
+ *   - drops the `parent::setUp()`-style call statements that resolve into PHPUnit, since PHP rejects
+ *     `parent` in a class without one. A call whose result is used is left for the manual pass.
  *
  * "Test method" mirrors PHPUnit's own discovery: a method carrying the PHPUnit
  * `#[\PHPUnit\Framework\Attributes\Test]` attribute, a method with a `@test` docblock
@@ -48,12 +55,14 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * A class that reaches `TestCase` through an intermediate base (`extends RuleTestCase`) keeps its
  * `extends` and its `#[\Override]` attributes — the base is still there, converted on its own —
  * and only gains `#[\Testo\Test]` on its test methods. Without them Testo would not discover the
- * subclass's tests at all. A base that cannot be resolved, or does not lead to `TestCase`, leaves
- * the class untouched.
+ * subclass's tests at all. Its `parent::` calls to a PHPUnit method the base does not override are
+ * dropped as well. A base that cannot be resolved, or does not lead to `TestCase`, leaves the class
+ * untouched.
  *
  * A base from outside the processed paths, such as a framework's test case in vendor, stays a
- * PHPUnit class. Its subclasses are converted all the same, and the class extending that base gets
- * `#[\Testo\Skip]` with a reason naming it, until the base is rewritten for Testo.
+ * PHPUnit class. Its subclasses are converted all the same, keep their `parent::` calls, and the
+ * class extending that base gets `#[\Testo\Skip]` with a reason naming it, until the base is
+ * rewritten for Testo.
  *
  * A trait gets `#[\Testo\Test]` on the same test methods, since the classes that use it are out of
  * sight: a test method a PHPUnit class takes from a trait would otherwise go undiscovered. Abstract
@@ -130,6 +139,7 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
             $changed = false;
             foreach ($node->getMethods() as $method) {
                 $method->isPublic() && $this->markTestMethod($method) and $changed = true;
+                $vendorBase === null && $this->removePhpunitParentCalls($node, $method) and $changed = true;
             }
 
             $vendorBase !== null && $vendorBase['direct'] && $this->skipOnVendorBase($node, $vendorBase['name'])
@@ -144,6 +154,7 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         foreach ($node->getMethods() as $method) {
             $method->isPublic() and $this->markTestMethod($method);
             $this->isDeclaredByInterface($method, $interfaces) or $this->removeOverrideAttribute($method);
+            $this->removePhpunitParentCalls($node, $method);
         }
 
         return $node;
@@ -178,6 +189,56 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         $class->attrGroups[] = $group;
 
         return true;
+    }
+
+    /**
+     * Drops the `parent::method()` statements that resolve into PHPUnit, which the converted chain no
+     * longer extends: without a parent PHP rejects `parent` at compile time, and on a converted base
+     * the method is gone. A call reaching a method a local base declares stays, as does a call whose
+     * result is used. An anonymous class inside the method has a parent of its own and is not entered.
+     *
+     * @return bool Whether a call was removed.
+     */
+    private function removePhpunitParentCalls(Class_ $class, ClassMethod $method): bool
+    {
+        $name = $class->namespacedName?->toString();
+        if ($name === null || !$this->reflectionProvider->hasClass($name)) {
+            return false;
+        }
+
+        $parents = $this->reflectionProvider->getClass($name)->getParents();
+        $removed = false;
+        $this->traverseNodesWithCallable($method, static function (Node $node) use ($parents, &$removed): ?int {
+            if ($node instanceof Class_) {
+                return NodeVisitor::DONT_TRAVERSE_CHILDREN;
+            }
+
+            if (!$node instanceof Expression
+                || !$node->expr instanceof StaticCall
+                || !$node->expr->class instanceof Name
+                || $node->expr->class->toLowerString() !== 'parent'
+                || !$node->expr->name instanceof Identifier
+            ) {
+                return null;
+            }
+
+            $called = $node->expr->name->toString();
+            foreach ($parents as $parent) {
+                $native = $parent->getNativeReflection();
+                if (!\str_starts_with($parent->getName(), 'PHPUnit\\')
+                    && $native->hasMethod($called)
+                    && !\str_starts_with($native->getMethod($called)->getDeclaringClass()->getName(), 'PHPUnit\\')
+                ) {
+                    return null;
+                }
+            }
+
+            $removed = true;
+
+            return NodeVisitor::REMOVE_NODE;
+        });
+
+        return $removed;
     }
 
     /**

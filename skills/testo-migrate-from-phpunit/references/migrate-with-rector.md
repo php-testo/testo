@@ -65,10 +65,11 @@ vendor/bin/rector process --config=rector-testo-migration.php
 (`git commit -am "migrate: mechanical Rector pass"`) so the structural pass has a clean base to diff against.
 
 > Rector detaches each class from `TestCase` and marks its test methods with `#[\Testo\Test]`, including
-> subclasses of a project base class. A class on a PHPUnit base from `vendor/` (a framework's `TestCase`)
-> is converted as well, but the class extending that base gets `#[\Testo\Skip]` naming it, since the
-> base still runs on PHPUnit. Tests inherited from such a base are not converted. `scan-residuals.php`
-> and the pitfalls in the mapping cover them.
+> subclasses of a project base class, and drops `parent::setUp();`-style statements that call into
+> PHPUnit. A class on a PHPUnit base from `vendor/` (a framework's `TestCase`) is converted as well, but
+> the class extending that base gets `#[\Testo\Skip]` naming it, since the base still runs on PHPUnit.
+> Tests inherited from such a base are not converted. `scan-residuals.php` and the pitfalls in the
+> mapping cover them.
 
 ## Stage A4 — Plan the structural residue
 

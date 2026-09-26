@@ -9,12 +9,12 @@ final class OverrideBlankLinesTest extends \PHPUnit\Framework\TestCase
     {
         $this->value = 1;
 
-        parent::setUp();
+        $this->value++;
     }
 
     public function testFoo(): void
     {
-        \assert($this->value === 1);
+        \assert($this->value === 2);
     }
 }
 -----
@@ -28,12 +28,12 @@ final class OverrideBlankLinesTest
     {
         $this->value = 1;
 
-        parent::setUp();
+        $this->value++;
     }
 
     #[\Testo\Test]
     public function testFoo(): void
     {
-        \assert($this->value === 1);
+        \assert($this->value === 2);
     }
 }
