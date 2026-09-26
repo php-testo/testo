@@ -72,4 +72,72 @@ final class AssertString
             ->withMessageContaining('my wonderful message');
         Assert::string("string")->endsWith('str', 'my wonderful message');
     }
+
+    public function matchesPattern(): never
+    {
+        Assert::string("2026-09-26")->matchesPattern('/^\d{4}-\d{2}-\d{2}$/');
+        Assert::string("string")->matchesPattern('/str/');
+
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('my wonderful message');
+        Assert::string("26.09.2026")->matchesPattern('/^\d{4}-\d{2}-\d{2}$/', 'my wonderful message');
+    }
+
+    public function notMatchesPattern(): never
+    {
+        Assert::string("no trailing space")->notMatchesPattern('/\s$/');
+        Assert::string("string")->notMatchesPattern('/^ring/');
+
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('my wonderful message');
+        Assert::string("trailing space ")->notMatchesPattern('/\s$/', 'my wonderful message');
+    }
+
+    public function matchesPatternWithFlags(): void
+    {
+        Assert::string("Hello World")->matchesPattern('/^hello world$/i')->notMatchesPattern('/^hello world$/');
+        Assert::string("Привет")->matchesPattern('/^\w{6}$/u')->notMatchesPattern('/^\w{6}$/');
+    }
+
+    public function patternMatchersChainWithOtherMatchers(): void
+    {
+        Assert::string("report-2026.json")
+            ->startsWith('report')
+            ->matchesPattern('/-\d{4}\./')
+            ->notMatchesPattern('/\s/')
+            ->endsWith('.json');
+    }
+
+    public function matchesPatternRejectsInvalidPattern(): never
+    {
+        Expect::exception(\InvalidArgumentException::class)
+            ->withMessageContaining('Invalid pattern /(/')
+            ->withMessageContaining('missing closing parenthesis');
+        Assert::string("string")->matchesPattern('/(/');
+    }
+
+    public function notMatchesPatternRejectsInvalidPattern(): never
+    {
+        Expect::exception(\InvalidArgumentException::class)
+            ->withMessageContaining('Invalid pattern no-delimiters');
+        Assert::string("string")->notMatchesPattern('no-delimiters');
+    }
+
+    public function invalidPatternEmitsNoWarning(): void
+    {
+        $warnings = [];
+        \set_error_handler(static function (int $errno, string $errstr) use (&$warnings): bool {
+            $warnings[] = $errstr;
+            return true;
+        });
+
+        try {
+            Assert::string("string")->matchesPattern('/(/');
+        } catch (\InvalidArgumentException) {
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($warnings, []);
+    }
 }
