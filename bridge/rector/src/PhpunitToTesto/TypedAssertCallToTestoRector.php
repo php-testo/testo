@@ -34,7 +34,16 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - $this->assertEqualsCanonicalizing($e, $a) → \Testo\Assert::array($a)->sameElementsAs($e)
  *   - $this->assertStringStartsWith($p, $s)  → \Testo\Assert::string($s)->startsWith($p)
  *   - $this->assertStringEndsWith($p, $s)    → \Testo\Assert::string($s)->endsWith($p)
+ *   - $this->assertStringContainsString($n, $s)    → \Testo\Assert::string($s)->contains($n)
+ *   - $this->assertStringNotContainsString($n, $s) → \Testo\Assert::string($s)->notContains($n)
+ *   - $this->assertNotContains($n, $h)       → \Testo\Assert::iterable($h)->notContains($n)
+ *   - $this->assertObjectHasProperty($p, $o) → \Testo\Assert::object($o)->hasProperty($p)
+ *   - $this->assertIsList($a)                → \Testo\Assert::array($a)->isList()
  *   - $this->assertIsString($x)              → \Testo\Assert::string($x), and so on for the heads
+ *
+ * Both sides treat an empty substring as contained, compare iterable elements with `===` (as the flat
+ * `assertContains` conversion does) and check a property with private and dynamic ones included, so
+ * these chains keep PHPUnit's verdict.
  *
  * A type head takes no message, so `assertIsString($x, $message)` becomes
  * `\Testo\Assert::true(\is_string($x), $message)`. The checks with no matcher (`assertIsBool`,
@@ -175,6 +184,11 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             $method === 'assertEqualsCanonicalizing' => $this->typedChain('array', 'sameElementsAs', $node->args, keepMessage: true),
             $method === 'assertStringStartsWith' => $this->typedChain('string', 'startsWith', $node->args, keepMessage: true),
             $method === 'assertStringEndsWith' => $this->typedChain('string', 'endsWith', $node->args, keepMessage: true),
+            $method === 'assertStringContainsString' => $this->typedChain('string', 'contains', $node->args, keepMessage: true),
+            $method === 'assertStringNotContainsString' => $this->typedChain('string', 'notContains', $node->args, keepMessage: true),
+            $method === 'assertNotContains' => $this->typedChain('iterable', 'notContains', $node->args, keepMessage: true),
+            $method === 'assertObjectHasProperty' => $this->typedChain('object', 'hasProperty', $node->args, keepMessage: true),
+            $method === 'assertIsList' => $this->subjectChain('array', 'isList', [], $node->args),
             $method === 'assertEmpty' => $this->emptiness('blank', 'true', $node->args),
             $method === 'assertNotEmpty' => $this->emptiness('notBlank', 'false', $node->args),
             isset(self::TYPE_HEAD[$method]) => $this->typeCheck($method, $node->args),
@@ -245,6 +259,32 @@ final class TypedAssertCallToTestoRector extends AbstractRector
         $matcherArgs = [$needle];
         if ($keepMessage && ($args[2] ?? null) instanceof Arg) {
             $matcherArgs[] = $args[2];
+        }
+
+        return new MethodCall(
+            new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier($head), [$subject]),
+            new Identifier($matcher),
+            $matcherArgs,
+        );
+    }
+
+    /**
+     * `assertX($subject[, $message])` → `Assert::<head>($subject)-><matcher>(...$matcherArgs[, $message])`.
+     *
+     * @param non-empty-string $head The Testo `Assert::<head>()` type check.
+     * @param non-empty-string $matcher The chained matcher method.
+     * @param list<Arg> $matcherArgs The matcher arguments that precede the message.
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function subjectChain(string $head, string $matcher, array $matcherArgs, array $args): ?MethodCall
+    {
+        $subject = $args[0] ?? null;
+        if (!$subject instanceof Arg) {
+            return null;
+        }
+
+        if (($args[1] ?? null) instanceof Arg) {
+            $matcherArgs[] = $args[1];
         }
 
         return new MethodCall(
