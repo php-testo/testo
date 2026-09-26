@@ -319,8 +319,9 @@ final class JUnitPlugin implements PluginConfigurator
 
         $file = $reflection->getFileName();
         $file = ($file === false || $file === '') ? null : $file;
+        $line = $file === null ? false : $reflection->getStartLine();
 
-        $this->writer->startSuite($name, $file);
+        $this->writer->startSuite($name, $file, $line === false ? null : $line);
     }
 
     private function onTestCaseFinished(TestCaseFinished $event): void

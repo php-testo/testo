@@ -89,11 +89,17 @@ final class JUnitWriter
      * @param non-empty-string $name
      * @param non-empty-string|null $file Optional source-file attribute,
      *        meaningful for the class-layer suite (Infection consumes it).
+     * @param positive-int|null $line Line of `$file` the suite starts at, written as `line`: the
+     *        class declaration of a class-layer suite.
      * @param \DateTimeInterface|null $startedAt When the suite started, written as `timestamp`.
      */
-    public function startSuite(string $name, ?string $file = null, ?\DateTimeInterface $startedAt = null): void
-    {
-        $this->stack[] = new JUnitSuiteNode($name, $file, $startedAt);
+    public function startSuite(
+        string $name,
+        ?string $file = null,
+        ?int $line = null,
+        ?\DateTimeInterface $startedAt = null,
+    ): void {
+        $this->stack[] = new JUnitSuiteNode($name, $file, $line, $startedAt);
     }
 
     /**
@@ -489,6 +495,8 @@ final class JUnitWriter
         $xml->startElement('testsuite');
         $xml->writeAttribute('name', $suite->name);
         $suite->file === null or $xml->writeAttribute('file', $suite->file);
+        // action-junit-report reads `file` and `line` of a suite to annotate its suite-level failures.
+        $suite->line === null or $xml->writeAttribute('line', (string) $suite->line);
         // Local time without an offset, as Ant and JUnit 5 write it: the one ISO 8601 form every
         // consumer parses, including those validating against the strict Ant-derived schema.
         $suite->startedAt === null or $xml->writeAttribute('timestamp', $suite->startedAt->format('Y-m-d\TH:i:s'));
