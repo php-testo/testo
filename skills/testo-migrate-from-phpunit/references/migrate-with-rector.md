@@ -38,8 +38,9 @@ Scaffold a disposable config scoped to the migration paths (do **not** clobber a
   user that the CI matrix loses them, or pick Mockery.
 - Write the file at the **project root** (it uses `__DIR__`-relative paths).
 - The script verifies the set exists under `vendor/` before writing and prints the next commands.
-- The config imports the names the rules emit (`use Testo\Assert;` instead of `\Testo\Assert::same()`).
-  Rector appends new `use` lines unsorted; run the project's code-style fixer after applying.
+- The conversion writes Testo, Mockery and Double names fully qualified (`\Testo\Assert::same()`); the
+  polish pass in Stage A6 imports them and drops `use PHPUnit\…` lines nothing refers to any more.
+  A `withImportNames()` added to the config is harmless but imports every other name as well.
 
 **Gate:** `<php> -l rector-testo-migration.php` → "No syntax errors".
 
@@ -148,7 +149,9 @@ current batch.
    vendor/bin/rector process --config=rector-testo-polish.php   # again: cleans up traits
    ```
    It adds `: void`/`: never` and `final`, moves `#[Test]` onto the class and one-statement exception
-   tests into `#[ExpectException]`, and merges assertion pipes, without changing which tests run.
+   tests into `#[ExpectException]`, merges assertion pipes, and imports the fully qualified Testo,
+   Mockery and Double names, without changing which tests run. Rector appends new `use` lines
+   unsorted; run the project's code-style fixer after applying.
    **Gate:** the step-2 checks again give `status: "passed"` and `IDENTICAL`.
 4. Remove the scaffolding once green: delete `rector-testo-migration.php` and `rector-testo-polish.php`; if the whole project is
    migrated, drop `phpunit.xml`, `phpunit/phpunit` and `tests/bootstrap.php`, and optionally remove

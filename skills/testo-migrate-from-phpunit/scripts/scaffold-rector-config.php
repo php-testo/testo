@@ -126,6 +126,8 @@ $config = "<?php\n\n"
     . " * methods -> attributes, data providers, groups, #[CoversClass] -> #[Covers], bare\n"
     . " * expectException, markTestSkipped; mocks only with phpunit-to-double/-mockery listed).\n"
     . " * What they leave behind is finished by an AI/human pass (see the skill).\n"
+    . " * The conversion rules write Testo, Mockery and Double names fully qualified; the\n"
+    . " * testo-polish set imports them.\n"
     . " *\n"
     . " * Dry-run:  vendor/bin/rector process --config={$out} --dry-run\n"
     . " * Apply:    vendor/bin/rector process --config={$out}\n"
@@ -138,9 +140,7 @@ $config = "<?php\n\n"
     . "    ])\n"
     . "    ->withSets([\n"
     . "{$setLines}\n"
-    . "    ])\n"
-    . "    // The rules emit fully qualified names; import them, leaving global classes (\\RuntimeException) as written.\n"
-    . "    ->withImportNames(importShortClasses: false);\n";
+    . "    ]);\n";
 
 \file_put_contents($outAbs, $config);
 

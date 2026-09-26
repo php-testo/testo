@@ -65,6 +65,7 @@ leaves it untouched; the per-folder `TODO.md` lists the residuals.
 | **`final` test classes** | ✅ *`FinalizeTestClassRector`: `*Test` classes carrying `#[Test]`, not `*TestCase`, not abstract, not extended within the processed paths* |
 | **Return types** | ✅ *Rector's `AddVoidReturnTypeWhereNoReturnRector`, `ReturnNeverTypeRector`* |
 | **Assertion pipes** | 🟡 *`MergeAssertChainRector`: adjacent chains with the same typed head on the same variable* |
+| **Imports** | ✅ *`ImportTestoNamesRector`: fully qualified `Testo\`, `Mockery` and `JMac\Testing\` names get a `use` (or an existing import or alias), unless the short name is taken by another import, a class-like in the file, a class of the same namespace or a short reference to another class; docblock names stay as written. Unused `PHPUnit\` and Mockery imports are removed, counting code and docblock references* |
 
 ## Shift set (deprecated Testo → current Testo)
 
