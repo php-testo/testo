@@ -64,6 +64,15 @@ final class JUnitWriter
      */
     private array $stack = [];
 
+    /**
+     * @param non-empty-string|null $hostname Machine the run executed on, written as `hostname` on
+     *        every top-level `<testsuite>` — the element Ant, JUnit 5 and pytest put it on, and where
+     *        Azure DevOps reads the agent name from. Null omits the attribute.
+     */
+    public function __construct(
+        private readonly ?string $hostname = null,
+    ) {}
+
     public function reset(): void
     {
         $this->rootSuites = [];
@@ -76,10 +85,11 @@ final class JUnitWriter
      * @param non-empty-string $name
      * @param non-empty-string|null $file Optional source-file attribute,
      *        meaningful for the class-layer suite (Infection consumes it).
+     * @param \DateTimeInterface|null $startedAt When the suite started, written as `timestamp`.
      */
-    public function startSuite(string $name, ?string $file = null): void
+    public function startSuite(string $name, ?string $file = null, ?\DateTimeInterface $startedAt = null): void
     {
-        $this->stack[] = new JUnitSuiteNode($name, $file);
+        $this->stack[] = new JUnitSuiteNode($name, $file, $startedAt);
     }
 
     /**
@@ -219,7 +229,7 @@ final class JUnitWriter
         $xml->writeAttribute('time', self::formatTime($totals['time']));
 
         foreach ($this->rootSuites as $suite) {
-            $this->writeSuite($xml, $suite);
+            $this->writeSuite($xml, $suite, topLevel: true);
         }
 
         $xml->endElement(); // testsuites
@@ -472,11 +482,15 @@ final class JUnitWriter
         ];
     }
 
-    private function writeSuite(\XMLWriter $xml, JUnitSuiteNode $suite): void
+    private function writeSuite(\XMLWriter $xml, JUnitSuiteNode $suite, bool $topLevel = false): void
     {
         $xml->startElement('testsuite');
         $xml->writeAttribute('name', $suite->name);
         $suite->file === null or $xml->writeAttribute('file', $suite->file);
+        // Local time without an offset, as Ant and JUnit 5 write it: the one ISO 8601 form every
+        // consumer parses, including those validating against the strict Ant-derived schema.
+        $suite->startedAt === null or $xml->writeAttribute('timestamp', $suite->startedAt->format('Y-m-d\TH:i:s'));
+        $topLevel && $this->hostname !== null and $xml->writeAttribute('hostname', $this->hostname);
         $xml->writeAttribute('tests', (string) $suite->totalTests);
         $xml->writeAttribute('assertions', (string) $suite->totalAssertions);
         $xml->writeAttribute('failures', (string) $suite->totalFailures);

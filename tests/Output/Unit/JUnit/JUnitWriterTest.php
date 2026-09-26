@@ -656,6 +656,52 @@ final class JUnitWriterTest
         Assert::count($case->{'system-err'}, 0);
     }
 
+    #[Covers(JUnitWriter::class)]
+    public function suiteStartTimeIsWrittenAsTimestampWithoutOffset(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('Unit', startedAt: new \DateTimeImmutable('2026-09-26 14:03:07.250', new \DateTimeZone('+04:00')));
+        $writer->startSuite(SampleTestClass::class);
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed));
+        $writer->finishSuite();
+        $writer->finishSuite();
+
+        $suite = self::loadXml($writer->generate('Testo'))->testsuite;
+
+        Assert::same((string) $suite['timestamp'], '2026-09-26T14:03:07');
+        Assert::null($suite->testsuite['timestamp']);
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function hostnameGoesOnTopLevelSuitesOnly(): void
+    {
+        $writer = new JUnitWriter('ci-runner-7');
+        $writer->startSuite('Unit');
+        $writer->startSuite(SampleTestClass::class);
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed));
+        $writer->finishSuite();
+        $writer->finishSuite();
+        $writer->startSuite('Feature');
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        Assert::null($xml['hostname']);
+        Assert::same((string) $xml->testsuite[0]['hostname'], 'ci-runner-7');
+        Assert::same((string) $xml->testsuite[1]['hostname'], 'ci-runner-7');
+        Assert::null($xml->testsuite[0]->testsuite['hostname']);
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function noHostnameLeavesTheAttributeOut(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('Unit');
+        $writer->finishSuite();
+
+        Assert::null(self::loadXml($writer->generate('Testo'))->testsuite['hostname']);
+    }
+
     public function resetClearsAccumulatedState(): void
     {
         // Arrange

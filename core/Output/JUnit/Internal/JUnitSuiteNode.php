@@ -37,9 +37,11 @@ final class JUnitSuiteNode
      * @param non-empty-string|null $file Optional source-file attribute for the
      *        suite. Set on the class-layer suite so Infection can resolve a
      *        `<testsuite>` to a test file via JUnit instead of reflection.
+     * @param \DateTimeInterface|null $startedAt When the suite started; mapped to `timestamp`.
      */
     public function __construct(
         public readonly string $name,
         public readonly ?string $file = null,
+        public readonly ?\DateTimeInterface $startedAt = null,
     ) {}
 }

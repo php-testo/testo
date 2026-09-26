@@ -144,7 +144,8 @@ final class JUnitPlugin implements PluginConfigurator
             static fn(string|\BackedEnum $t): string => $t instanceof \BackedEnum ? $t->value : $t,
             $testTypes,
         );
-        $this->writer = new JUnitWriter();
+        $hostname = \gethostname();
+        $this->writer = new JUnitWriter($hostname === false || $hostname === '' ? null : $hostname);
     }
 
     #[\Override]
@@ -234,7 +235,7 @@ final class JUnitPlugin implements PluginConfigurator
 
     private function onTestSuiteStarting(TestSuiteStarting $event): void
     {
-        $this->writer->startSuite($event->suiteInfo->name);
+        $this->writer->startSuite($event->suiteInfo->name, startedAt: new \DateTimeImmutable());
     }
 
     private function onTestSuiteFinished(TestSuiteFinished $event): void
