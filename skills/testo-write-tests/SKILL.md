@@ -78,6 +78,12 @@ Typed chains (use when you want a fluent series of checks on one value):
 ```php
 Assert::string($s)->contains('foo')->notContains('bar')->startsWith('f')->endsWith('.txt');
 Assert::string($date)->matchesPattern('/^\d{4}-\d{2}-\d{2}$/')->notMatchesPattern('/\s$/');  // full PCRE; invalid pattern → InvalidArgumentException
+Assert::string($html)->ignoringCase()->contains('<title>');          // mb_strtolower() of string and argument
+Assert::string($out)->ignoringLineEndings()->endsWith("done\n");     // \r\n and \r count as \n on both sides
+Assert::string($html)->ignoringWhitespace()->contains("<li>\n<b>Total:</b> 5\n</li>");  // per line: trim, collapse spaces
+Assert::string($sql)->ignoringWhitespace(lineBreaks: true)->startsWith('SELECT id, name FROM');  // one trimmed line
+Assert::string($out)->ignoringBlankLines()->contains("Step 1\nStep 2");  // empty and whitespace-only lines removed
+Assert::string($console)->ignoringAnsi()->contains('[OK] Cache cleared');  // colors, cursor codes, OSC 8 links stripped
 Assert::int($n)->greaterThan(0)->lessThanOrEqual(100);
 Assert::numeric($n)->between(1, 100);  // int, float, or numeric string
 Assert::array($a)->hasKeys('id', 'name')->isList()->hasCount(3)->contains('x')->notContains('y');
@@ -87,6 +93,8 @@ Assert::iterable($users)->allInstanceOf(User::class);  // instanceof: subclasses
 Assert::object($o)->instanceOf(Foo::class)->hasProperty('id');
 Assert::json($s)->isObject()->hasKeys(['data', 'meta'])->assertPath('$.data.id', 42);
 ```
+
+The string modifiers (`ignoringCase()`, `ignoringLineEndings()`, `ignoringWhitespace()`, `ignoringBlankLines()`, `ignoringAnsi()`) return a new chain and apply to every check after them; the chain they were called on stays strict, and there is no way to switch a mode off. They normalize the string and each check argument by the same rules, in a fixed order whatever the call order (ANSI, line endings, whitespace, blank lines, case). An argument that becomes empty after normalization, like `contains('  ')` under `ignoringWhitespace()`, throws `InvalidArgumentException`. Since arguments are trimmed, `contains(' foo ')` no longer checks word boundaries: use `matchesPattern('/\bfoo\b/')`. Patterns run on the string normalized by every modifier except `ignoringCase()` (use the `i` flag); the pattern itself is never changed.
 
 ## Expecting exceptions
 

@@ -27,13 +27,26 @@ final class Support
             $value === false => 'false',
             \is_string($value) => \strlen($value) > 64
                 ? 'string(' . \strlen($value) . ')'
-                : '"' . \str_replace('"', '\\"', $value) . '"',
+                : '"' . \str_replace('"', '\\"', self::escapeControlChars($value)) . '"',
             \is_array($value) => 'array(' . \count($value) . ')',
             \is_resource($value) => 'resource',
             $value instanceof \UnitEnum => $value::class . '::' . $value->name,
             \is_object($value) => $value::class,
             default => (string) $value,
         };
+    }
+
+    /**
+     * Spell out the control characters other than tab and line breaks (`\e`, `\x07`, …), so an ANSI
+     * escape in an asserted string cannot restyle the terminal that prints the message.
+     */
+    public static function escapeControlChars(string $value): string
+    {
+        return (string) \preg_replace_callback(
+            '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/',
+            static fn(array $match): string => $match[0] === "\e" ? '\e' : \sprintf('\x%02X', \ord($match[0])),
+            $value,
+        );
     }
 
     /**
