@@ -1,12 +1,12 @@
 {
-    ".": "0.10.52",
+    ".": "0.10.53",
     "plugin/repeat": "0.1.9",
     "plugin/convention": "0.1.5",
     "plugin/lifecycle": "0.1.7",
     "plugin/retry": "0.1.5",
     "plugin/filter": "0.1.8",
     "plugin/test": "0.1.8",
-    "plugin/assert": "0.1.16",
+    "plugin/assert": "0.1.17",
     "plugin/data": "0.1.10",
     "plugin/inline": "0.1.9",
     "plugin/bench": "0.1.13",
@@ -18,7 +18,7 @@
     "bridge/symfony-console": "0.1.14",
     "bridge/infection": "0.1.9",
     "bridge/mockery": "0.1.2",
-    "bridge/rector": "0.3.1",
+    "bridge/rector": "0.3.2",
     "bridge/revolt": "0.1.2",
     "bridge/vcr": "0.1.1"
 }

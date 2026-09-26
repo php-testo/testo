@@ -23,7 +23,7 @@
         "php": ">=8.2",
         "internal/container": "^1.1",
         "symfony/polyfill-mbstring": "^1.0",
-        "testo/testo": "0.10.52 - 1"
+        "testo/testo": "0.10.53 - 1"
     },
     "autoload": {
         "psr-4": {

@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.10.53](https://github.com/php-testo/testo/compare/0.10.52...0.10.53) (2026-09-26)
+
+
+### Features
+
+* **assert:** add `notStartsWith()` and `notEndsWith()` to string assertions ([6dbfb21](https://github.com/php-testo/testo/commit/6dbfb21c36f8b379fd5500bdd1063ca6e481ccbb))
+* **assert:** add allInstanceOf() to iterable assertions ([54be32c](https://github.com/php-testo/testo/commit/54be32cc5bbba36eda6b362365ac6f76ff48421f))
+* **assert:** add Assert::bool() and Assert::callable() heads ([0e7ab60](https://github.com/php-testo/testo/commit/0e7ab6041212c822cb05aff9bb0166775f2b7b75))
+* **assert:** add comparison modifiers to the string assertions ([2dab6fd](https://github.com/php-testo/testo/commit/2dab6fd5e9b9ef61648be88f5dc0e283c9bb25e0))
+* **assert:** add matchesPattern() and notMatchesPattern() to string assertions ([f0b2633](https://github.com/php-testo/testo/commit/f0b263301a29d4624481d90e0ceed18251b959a3))
+* **assert:** add startsWith() and endsWith() to string assertions ([03f3ec4](https://github.com/php-testo/testo/commit/03f3ec46ea0b5ec24e5b68a509b0ee2f95fd2189))
+* **assert:** add static and return type checks to callable assertions ([c9b0624](https://github.com/php-testo/testo/commit/c9b0624dd127b55c113d9f0f62314da17cb5f3b7))
+* **assert:** compare whole strings with `same()` and `notSame()` ([00bd1ba](https://github.com/php-testo/testo/commit/00bd1ba2102b0dc1c8e4e204b740c3eb9ec9fa80))
+* **bridge-rector:** add the testo-shift set for deprecated Testo API ([c7712e8](https://github.com/php-testo/testo/commit/c7712e80c2487013ae441ed2f778922ae358739f))
+* **bridge-rector:** convert assertContainsOnlyInstancesOf to allInstanceOf() ([2384981](https://github.com/php-testo/testo/commit/238498141301105f9fb4495b11b21f201ea2bcab))
+* **bridge-rector:** convert bool and callable type assertions ([9942755](https://github.com/php-testo/testo/commit/99427552c3970c00e96622553238c26ce7abb112))
+* **bridge-rector:** convert PHPUnit regular-expression assertions to Testo ([9804057](https://github.com/php-testo/testo/commit/980405731952e63997d465f8a1e8acf1a89d6e54))
+* **bridge-rector:** convert the string assertions that ignore case, line endings or whitespace ([76a99c5](https://github.com/php-testo/testo/commit/76a99c5f9438bdf536d4d490a6dcda69c55f987a))
+* **bridge-rector:** drop redundant #[Test] from traits in testo-polish ([f201cac](https://github.com/php-testo/testo/commit/f201cac1a90a9f0a847478137e81e04863bf9265))
+* **json:** report the assertion count in `totals` ([e6f2ff4](https://github.com/php-testo/testo/commit/e6f2ff43e445937b8395957951d549be623f93dd))
+* **junit:** carry the exact test status as `testo:status` ([ba9f2d2](https://github.com/php-testo/testo/commit/ba9f2d2a11a15e323c5de49074a084509e06f341))
+* **junit:** report retried attempts as Surefire flaky and rerun elements ([5c1ba86](https://github.com/php-testo/testo/commit/5c1ba864743a120cefa225a65536ddd463247325))
+* **junit:** ship XML schemas for the report ([5c417cf](https://github.com/php-testo/testo/commit/5c417cf91de4164362a8dc37625c1cc5c4a49a65))
+* **junit:** stamp suites with `timestamp` and `hostname` ([0452b76](https://github.com/php-testo/testo/commit/0452b76322a22ec9d1c180d03189b2c3cb26d206))
+* **junit:** write captured test output to `<system-out>` and `<system-err>` ([086fefa](https://github.com/php-testo/testo/commit/086fefaafca1c4b821654c46e2ddfa4d35724f12))
+* **junit:** write the assertion count on testcases, suites and the root ([227822d](https://github.com/php-testo/testo/commit/227822d8b7b53f92feaaa922c5b5553f0185e95e))
+* **junit:** write the class declaration line on Test Case suites ([13b5538](https://github.com/php-testo/testo/commit/13b55380ab96628ad702fddc3cd299bdc74bbd69))
+* **skills:** carry phpunit.xml settings over and compare JUnit reports per test method ([3f71ce6](https://github.com/php-testo/testo/commit/3f71ce623bc33b2fd14974daceb42a49dd785709))
+
+
+### Bug Fixes
+
+* **bridge-rector:** let converted with() accept extra call arguments like PHPUnit ([662e6e5](https://github.com/php-testo/testo/commit/662e6e5f05428a7f8110ddfdffa56077934ba8f9))
+* **bridge-rector:** run the phpunit-to-testo set serially ([ca813ee](https://github.com/php-testo/testo/commit/ca813ee8a7e561d4f20818fefc76cb0cf31dfc9e))
+* **junit:** cut failure traces at the test function like the terminal ([accf392](https://github.com/php-testo/testo/commit/accf392006a765709c5e948ac1779f1e5cdc7092))
+* **junit:** keep the report well-formed when text carries control bytes or broken UTF-8 ([a88fe81](https://github.com/php-testo/testo/commit/a88fe8127ea1ff1e909002001deed49c8e2aeab3))
+* **skills:** cut scan-residuals false positives and flag PHPUnit leftovers ([b145f4d](https://github.com/php-testo/testo/commit/b145f4dad8f1fd9d5fcfc0f3420b01404ed9dbd8))
+
+
+### Documentation
+
+* **bridge-rector:** map the newly converted assertions in the migration skill ([d75ace5](https://github.com/php-testo/testo/commit/d75ace58876901c18feb050f03562a2ff3079d2a))
+* **skills:** add a testo-polish pass to the migration skill ([8fa48b1](https://github.com/php-testo/testo/commit/8fa48b107cfb6ba1db7469940bee5db8fee9a085))
+* **skills:** cover vendor bases, CI and PHPUnit leftovers in the migration skill ([a8cbbc6](https://github.com/php-testo/testo/commit/a8cbbc62114120b5a09536cc2dfefe32073e5b91))
+* **skills:** show where the assertion count is reported ([4a92588](https://github.com/php-testo/testo/commit/4a92588bc68a78373c0e9d8db44e4fa2b198c2a2))
+
+
+### Code Refactoring
+
+* **assert:** rename the regex checks to `matchesRegex()` and deprecate `withMessagePattern()` ([fec5525](https://github.com/php-testo/testo/commit/fec5525bfad842c10017b1d295a71534fab7213d))
+
 ## [0.10.52](https://github.com/php-testo/testo/compare/0.10.51...0.10.52) (2026-09-25)
 
 
