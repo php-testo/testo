@@ -40,7 +40,7 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `#[\Testo\Test]`). A detached class has no parent, so `#[\Override]` is dropped from every method an
   implemented interface does not declare (`setUp()` and other `TestCase` hooks); an unresolvable
   interface keeps all of them. A class reaching `TestCase` through an intermediate base keeps its `extends` and
-  `#[\Override]` and only gains the `#[\Testo\Test]` marks. **Residual:** methods are NOT renamed —
+  `#[\Override]` and only gains the `#[\Testo\Test]` marks, as do the non-abstract test methods of a trait. **Residual:** methods are NOT renamed —
   Testo discovers by attribute, so keeping `testFoo()` is harmless, and prefix cleanup / call-site
   rewriting is left manual.
 - **ExpectExceptionToTestoRector** (registered) — now folds the fluent chain, not just the bare
