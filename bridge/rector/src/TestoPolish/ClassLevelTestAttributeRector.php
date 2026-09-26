@@ -12,10 +12,12 @@ use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\TraitUse;
+use PhpParser\Node\Stmt\Trait_;
 use PHPStan\Reflection\ReflectionProvider;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\ProcessedClasses;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -37,6 +39,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * source, so an attribute another rule adds to them in the same run is not seen yet and the class
  * is left for the next run. A class that already carries `#[Test]` only loses the method attributes
  * it makes redundant; a test outside the class-level selection keeps its own.
+ *
+ * A trait loses the `#[Test]` of its public `void`/`never` methods once every class that uses it
+ * within the processed paths selects tests by a class-level `#[Test]`. A trait without users, or with
+ * one that is not class-level, renames its methods (`insteadof`, `as`) or is an enum, keeps them.
  */
 #[TestRectorFixtures('ClassLevelTestAttributeRector')]
 final class ClassLevelTestAttributeRector extends AbstractRector
@@ -53,6 +59,7 @@ final class ClassLevelTestAttributeRector extends AbstractRector
 
     public function __construct(
         private readonly ReflectionProvider $reflectionProvider,
+        private readonly ProcessedClasses $processedClasses,
     ) {}
 
     public function getRuleDefinition(): RuleDefinition
@@ -88,15 +95,19 @@ final class ClassLevelTestAttributeRector extends AbstractRector
     #[\Override]
     public function getNodeTypes(): array
     {
-        return [Class_::class];
+        return [Class_::class, Trait_::class];
     }
 
     /**
-     * @param Class_ $node
+     * @param Class_|Trait_ $node
      */
     #[\Override]
     public function refactor(Node $node): ?Node
     {
+        if ($node instanceof Trait_) {
+            return $this->refactorTrait($node);
+        }
+
         if ($node->isAnonymous()) {
             return null;
         }
@@ -151,6 +162,35 @@ final class ClassLevelTestAttributeRector extends AbstractRector
         $node->attrGroups[] = $group;
 
         return $node;
+    }
+
+    /**
+     * Drops the `#[Test]` attributes of a trait that the class-level attribute of every user already
+     * makes redundant. The users are read from the processed files as they are on disk, so a user
+     * that gains its class attribute in this run is seen on the next one.
+     */
+    private function refactorTrait(Trait_ $trait): ?Trait_
+    {
+        $name = $trait->namespacedName?->toString();
+        if ($name === null) {
+            return null;
+        }
+
+        $selected = [];
+        foreach ($trait->getMethods() as $method) {
+            $method->isPublic()
+                && $this->returnsVoidOrNever($method)
+                && $this->hasAttribute($method->attrGroups, [self::TEST])
+                and $selected[] = $method;
+        }
+
+        if ($selected === [] || !$this->processedClasses->isUsedOnlyByClassLevelTests($name)) {
+            return null;
+        }
+
+        $this->removeTestAttribute($selected);
+
+        return $trait;
     }
 
     /**

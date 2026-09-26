@@ -11,7 +11,7 @@ use PhpParser\Node\Stmt\Class_;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
-use Testo\Bridge\Rector\Internal\SubclassFinder;
+use Testo\Bridge\Rector\Internal\ProcessedClasses;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -27,7 +27,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 final class FinalizeTestClassRector extends AbstractRector
 {
     public function __construct(
-        private readonly SubclassFinder $subclassFinder,
+        private readonly ProcessedClasses $processedClasses,
     ) {}
 
     public function getRuleDefinition(): RuleDefinition
@@ -76,7 +76,7 @@ final class FinalizeTestClassRector extends AbstractRector
             return null;
         }
 
-        if (!$this->isTestClass($node) || $this->subclassFinder->hasSubclass($name)) {
+        if (!$this->isTestClass($node) || $this->processedClasses->hasSubclass($name)) {
             return null;
         }
 
