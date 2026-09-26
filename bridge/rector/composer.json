@@ -28,10 +28,10 @@
         "rector/rector": "^2.6.4"
     },
     "require-dev": {
-        "testo/assert": "^0.1.16",
+        "testo/assert": "^0.1.17",
         "testo/data": "^0.1.10",
         "testo/filter": "^0.1.8",
-        "testo/testo": "0.10.52 - 1"
+        "testo/testo": "0.10.53 - 1"
     },
     "autoload": {
         "psr-4": {
