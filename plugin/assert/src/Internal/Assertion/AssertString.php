@@ -74,4 +74,40 @@ final readonly class AssertString implements StringType
             : throw $this->parent->fail($str, 'the substring is found', $message);
         return $this;
     }
+
+    /**
+     * Asserts that the string starts with the given prefix.
+     *
+     * @param string $prefix Expected beginning of the string.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    #[AssertMethod]
+    #[\Override]
+    public function startsWith(string $prefix, string $message = ''): static
+    {
+        $str = 'starts with "' . $prefix . '"';
+        \str_starts_with($this->value, $prefix)
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the string starts differently', $message);
+        return $this;
+    }
+
+    /**
+     * Asserts that the string ends with the given suffix.
+     *
+     * @param string $suffix Expected end of the string.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    #[AssertMethod]
+    #[\Override]
+    public function endsWith(string $suffix, string $message = ''): static
+    {
+        $str = 'ends with "' . $suffix . '"';
+        \str_ends_with($this->value, $suffix)
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the string ends differently', $message);
+        return $this;
+    }
 }

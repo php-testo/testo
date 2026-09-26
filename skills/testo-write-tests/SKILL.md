@@ -76,7 +76,7 @@ Assert::fail('explicit failure');
 Typed chains (use when you want a fluent series of checks on one value):
 
 ```php
-Assert::string($s)->contains('foo')->notContains('bar');
+Assert::string($s)->contains('foo')->notContains('bar')->startsWith('f')->endsWith('.txt');
 Assert::int($n)->greaterThan(0)->lessThanOrEqual(100);
 Assert::numeric($n)->between(1, 100);  // int, float, or numeric string
 Assert::array($a)->hasKeys('id', 'name')->isList()->hasCount(3)->contains('x')->notContains('y');

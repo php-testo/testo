@@ -31,4 +31,22 @@ interface StringType
      * @throws AssertionException when the assertion fails.
      */
     public function notContains(string $needle, string $message = ''): static;
+
+    /**
+     * Asserts that the string starts with the given prefix.
+     *
+     * @param string $prefix Expected beginning of the string.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    public function startsWith(string $prefix, string $message = ''): static;
+
+    /**
+     * Asserts that the string ends with the given suffix.
+     *
+     * @param string $suffix Expected end of the string.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    public function endsWith(string $suffix, string $message = ''): static;
 }
