@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.17](https://github.com/php-testo/testo/compare/assert-0.1.16...assert-0.1.17) (2026-09-26)
+
+
+### Features
+
+* **assert:** add `notStartsWith()` and `notEndsWith()` to string assertions ([6dbfb21](https://github.com/php-testo/testo/commit/6dbfb21c36f8b379fd5500bdd1063ca6e481ccbb))
+* **assert:** add allInstanceOf() to iterable assertions ([54be32c](https://github.com/php-testo/testo/commit/54be32cc5bbba36eda6b362365ac6f76ff48421f))
+* **assert:** add Assert::bool() and Assert::callable() heads ([0e7ab60](https://github.com/php-testo/testo/commit/0e7ab6041212c822cb05aff9bb0166775f2b7b75))
+* **assert:** add comparison modifiers to the string assertions ([2dab6fd](https://github.com/php-testo/testo/commit/2dab6fd5e9b9ef61648be88f5dc0e283c9bb25e0))
+* **assert:** add matchesPattern() and notMatchesPattern() to string assertions ([f0b2633](https://github.com/php-testo/testo/commit/f0b263301a29d4624481d90e0ceed18251b959a3))
+* **assert:** add startsWith() and endsWith() to string assertions ([03f3ec4](https://github.com/php-testo/testo/commit/03f3ec46ea0b5ec24e5b68a509b0ee2f95fd2189))
+* **assert:** add static and return type checks to callable assertions ([c9b0624](https://github.com/php-testo/testo/commit/c9b0624dd127b55c113d9f0f62314da17cb5f3b7))
+* **assert:** compare whole strings with `same()` and `notSame()` ([00bd1ba](https://github.com/php-testo/testo/commit/00bd1ba2102b0dc1c8e4e204b740c3eb9ec9fa80))
+
+
+### Bug Fixes
+
+* **assert:** report an invalid withMessagePattern() pattern as an error ([361ac45](https://github.com/php-testo/testo/commit/361ac458b9862b3ffbc20c32a30309c38a3731db))
+
+
+### Code Refactoring
+
+* **assert:** rename the regex checks to `matchesRegex()` and deprecate `withMessagePattern()` ([fec5525](https://github.com/php-testo/testo/commit/fec5525bfad842c10017b1d295a71534fab7213d))
+
 ## [0.1.16](https://github.com/php-testo/testo/compare/assert-0.1.15...assert-0.1.16) (2026-09-25)
 
 

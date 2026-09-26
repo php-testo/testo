@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.3.2](https://github.com/php-testo/testo/compare/bridge-rector-0.3.1...bridge-rector-0.3.2) (2026-09-26)
+
+
+### Features
+
+* **assert:** add startsWith() and endsWith() to string assertions ([03f3ec4](https://github.com/php-testo/testo/commit/03f3ec46ea0b5ec24e5b68a509b0ee2f95fd2189))
+* **assert:** add static and return type checks to callable assertions ([c9b0624](https://github.com/php-testo/testo/commit/c9b0624dd127b55c113d9f0f62314da17cb5f3b7))
+* **bridge-rector:** add ClassLevelTestAttributeRector ([9c4f567](https://github.com/php-testo/testo/commit/9c4f5672fcdb9c9d3cf90dcf2816ad149a04aeb7))
+* **bridge-rector:** add ExpectExceptionToAttributeRector ([6b7a0d7](https://github.com/php-testo/testo/commit/6b7a0d7b81d6457e686169a58007dcbf54471d4e))
+* **bridge-rector:** add FinalizeTestClassRector ([1ef621c](https://github.com/php-testo/testo/commit/1ef621c0a10d4f06ecd3e897001a27b9ad550321))
+* **bridge-rector:** add the testo-polish set ([13c8fac](https://github.com/php-testo/testo/commit/13c8facfee549161c5ce0bb4f48eb2344b0993b7))
+* **bridge-rector:** add the testo-shift set for deprecated Testo API ([c7712e8](https://github.com/php-testo/testo/commit/c7712e80c2487013ae441ed2f778922ae358739f))
+* **bridge-rector:** convert assertContainsOnlyInstancesOf to allInstanceOf() ([2384981](https://github.com/php-testo/testo/commit/238498141301105f9fb4495b11b21f201ea2bcab))
+* **bridge-rector:** convert assertJson to Assert::json ([8a35827](https://github.com/php-testo/testo/commit/8a358274ccae0364a722d4d531532d647bf0c7f0))
+* **bridge-rector:** convert assertNotTrue and assertNotFalse to Assert::notSame ([42ba8e6](https://github.com/php-testo/testo/commit/42ba8e67efc60160ef883245290b048d3f6298f7))
+* **bridge-rector:** convert bool and callable type assertions ([9942755](https://github.com/php-testo/testo/commit/99427552c3970c00e96622553238c26ce7abb112))
+* **bridge-rector:** convert contains-only and same-size assertions ([210ef07](https://github.com/php-testo/testo/commit/210ef0712ecd5157fa5f48a51057cdf9e5cf9392))
+* **bridge-rector:** convert path permission, math, resource and negated type checks ([48799df](https://github.com/php-testo/testo/commit/48799df11d335ce9bc070d704c28f5732ffdc427))
+* **bridge-rector:** convert PHPUnit regular-expression assertions to Testo ([9804057](https://github.com/php-testo/testo/commit/980405731952e63997d465f8a1e8acf1a89d6e54))
+* **bridge-rector:** convert substring, not-contains, property and list assertions ([75d079a](https://github.com/php-testo/testo/commit/75d079a5c147a98a941fc743ce0849c25ca0fb6c))
+* **bridge-rector:** convert Testo pattern matchers to PHPUnit regular-expression assertions ([1d87843](https://github.com/php-testo/testo/commit/1d8784380ba515864aa502e51c6e5bedd7eb1dcd))
+* **bridge-rector:** convert the string assertions that ignore case, line endings or whitespace ([76a99c5](https://github.com/php-testo/testo/commit/76a99c5f9438bdf536d4d490a6dcda69c55f987a))
+* **bridge-rector:** convert type, file and string-prefix assertions ([ff80cac](https://github.com/php-testo/testo/commit/ff80cac1370fb0a23e530fc2d641fa7b24106e12))
+* **bridge-rector:** decompose Assert::iterable() chains and allInstanceOf() into PHPUnit ([3d92656](https://github.com/php-testo/testo/commit/3d92656b73f7be80f66412da0ddd41d7eae82d97))
+* **bridge-rector:** drop redundant #[Test] from traits in testo-polish ([f201cac](https://github.com/php-testo/testo/commit/f201cac1a90a9f0a847478137e81e04863bf9265))
+
+
+### Bug Fixes
+
+* **bridge-rector:** convert doc tags shadowed by an imported PHPUnit attribute ([c77404c](https://github.com/php-testo/testo/commit/c77404c8c7a06fa75748d77b357af3b030b12757))
+* **bridge-rector:** convert the PHPUnit\Framework\assert*() functions ([2a16699](https://github.com/php-testo/testo/commit/2a166992e76226ebf8cc6334f9a3bcef1c0abc93))
+* **bridge-rector:** fold exception modifiers across plain assignments ([39eb232](https://github.com/php-testo/testo/commit/39eb232308113fbf66d57c8fbb36bd3ab3ad757e))
+* **bridge-rector:** keep testo-polish from adding tests or finalizing extended classes ([b2f6bf2](https://github.com/php-testo/testo/commit/b2f6bf29c3b648f782d37dec196ae4ee59482769))
+* **bridge-rector:** let converted with() accept extra call arguments like PHPUnit ([662e6e5](https://github.com/php-testo/testo/commit/662e6e5f05428a7f8110ddfdffa56077934ba8f9))
+* **bridge-rector:** mark the test methods of traits ([cb620f4](https://github.com/php-testo/testo/commit/cb620f4300d02ca2cc32f186ad06935c9db75519))
+* **bridge-rector:** run the phpunit-to-testo set serially ([ca813ee](https://github.com/php-testo/testo/commit/ca813ee8a7e561d4f20818fefc76cb0cf31dfc9e))
+
+
+### Code Refactoring
+
+* **assert:** rename the regex checks to `matchesRegex()` and deprecate `withMessagePattern()` ([fec5525](https://github.com/php-testo/testo/commit/fec5525bfad842c10017b1d295a71534fab7213d))
+
 ## [0.3.1](https://github.com/php-testo/testo/compare/bridge-rector-0.3.0...bridge-rector-0.3.1) (2026-09-25)
 
 
