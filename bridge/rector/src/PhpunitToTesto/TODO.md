@@ -92,8 +92,16 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `assertEqualsCanonicalizing($e, $a)`→`Assert::array($a)->sameElementsAs($e)`. `assertEmpty`/
   `assertNotEmpty` map to the flat `Assert::blank()`/`notBlank()` **only for an array subject** (via
   PHPStan type inference): `blank()` treats `false`/`0`/`'0'` as valid data, so those notions coincide
-  with PHP's `empty()` only where the subject can never be one of them — an array. A non-array (or
-  statically-unknown) subject is left untouched. Same "only inside a class" gate as
+  with PHP's `empty()` only where the subject can never be one of them — an array. A subject that
+  cannot be an object gets `Assert::true(empty($x))`/`Assert::false(empty($x))`, PHPUnit's own check;
+  an object or statically-unknown subject is left untouched, since PHPUnit counts a `Countable`.
+  `assertStringStartsWith`/`EndsWith` map to `Assert::string($s)->startsWith()`/`endsWith()`, and
+  `assertIsString`/`Int`/`Float`/`Numeric`/`Array`/`Iterable`/`Object` to the type head of the same
+  name (with a message, to `Assert::true(\is_string($x), $message)`, since a head takes none). The
+  checks with no Testo matcher (`assertIsBool`, `assertIsCallable`, `assertIsScalar`, the
+  `assertIsNot*` family, `assertFileExists`, `assertDirectoryExists`, `assertIsReadable`,
+  `assertIsWritable` and their negations) become `Assert::true|false(\is_bool($x))` and so on,
+  running PHPUnit's own predicate. Same "only inside a class" gate as
   `AssertCallToTestoRector`. **Message residual (by design):** the numeric matchers,
   `sameElementsAs()`, `blank()`/`notBlank()` all keep a trailing `$message` — but the array-key
   matchers (`hasKeys`/`doesNotHaveKeys`) are variadic with no message parameter, so a PHPUnit message
