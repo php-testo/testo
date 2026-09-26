@@ -103,6 +103,31 @@ final class JUnitPluginTest
         }
     }
 
+    #[Covers(JUnitPlugin::class)]
+    public function suiteCarriesItsStartTimeAndTheHostname(): void
+    {
+        $path = self::tmpPath();
+        try {
+            $dispatcher = self::wirePlugin(new JUnitPlugin($path));
+            $suiteInfo = self::makeSuiteInfo('CoreSuite');
+            $before = new \DateTimeImmutable('-1 second');
+
+            $dispatcher->dispatch(new SessionStarting());
+            $dispatcher->dispatch(new TestSuiteStarting($suiteInfo));
+            $dispatcher->dispatch(new TestSuiteFinished($suiteInfo, new SuiteResult([], Status::Passed)));
+            $dispatcher->dispatch(self::sessionFinished());
+
+            $suite = self::loadFile($path)->testsuite;
+            $timestamp = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i:s', (string) $suite['timestamp']);
+            Assert::notSame($timestamp, false);
+            \assert($timestamp !== false);
+            Assert::true($timestamp >= $before && $timestamp <= new \DateTimeImmutable('+1 second'));
+            Assert::same((string) $suite['hostname'], (string) \gethostname());
+        } finally {
+            self::cleanup($path);
+        }
+    }
+
     public function dataProviderEmitsCasePerDataSetAndSuppressesPipelineCase(): void
     {
         // Arrange
@@ -649,6 +674,15 @@ final class JUnitPluginTest
         $plugin->configure($container);
 
         return $dispatcher;
+    }
+
+    private static function loadFile(string $path): \SimpleXMLElement
+    {
+        $xml = \simplexml_load_file($path);
+        Assert::notSame($xml, false);
+        \assert($xml !== false);
+
+        return $xml;
     }
 
     private static function sessionFinished(): SessionFinished
