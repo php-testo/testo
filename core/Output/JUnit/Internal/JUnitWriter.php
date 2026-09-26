@@ -385,8 +385,25 @@ final class JUnitWriter
      */
     private static function escapeCdata(string $text): string
     {
-        $safe = \str_replace(']]>', ']]]]><![CDATA[>', $text);
+        $safe = \str_replace(']]>', ']]]]><![CDATA[>', self::xmlSafe($text));
         return '<![CDATA[' . $safe . ']]>';
+    }
+
+    /**
+     * Makes arbitrary text safe to embed in an XML 1.0 document.
+     *
+     * XMLWriter copies bytes as they are, so an ANSI escape, a NUL or a broken UTF-8 sequence in
+     * test output or an exception message would leave the whole report unreadable. Invalid UTF-8
+     * sequences become U+FFFD; characters XML 1.0 forbids are dropped.
+     */
+    private static function xmlSafe(string $text): string
+    {
+        \preg_match('//u', $text) === 1 or $text = \htmlspecialchars_decode(
+            \htmlspecialchars($text, \ENT_NOQUOTES | \ENT_SUBSTITUTE, 'UTF-8'),
+            \ENT_NOQUOTES,
+        );
+
+        return (string) \preg_replace('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $text);
     }
 
     /**
@@ -447,7 +464,7 @@ final class JUnitWriter
     private function writeCase(\XMLWriter $xml, JUnitCaseNode $case): void
     {
         $xml->startElement('testcase');
-        $xml->writeAttribute('name', $case->name);
+        $xml->writeAttribute('name', self::xmlSafe($case->name));
         $case->classname === '' or $xml->writeAttribute('classname', $case->classname);
         $case->file !== null and $xml->writeAttribute('file', $case->file);
         $case->line !== null and $xml->writeAttribute('line', (string) $case->line);
@@ -461,7 +478,7 @@ final class JUnitWriter
         if ($case->datasetIndex !== null) {
             $xml->writeAttribute('testo:data-provider', (string) ($case->providerIndex ?? 0));
             $xml->writeAttribute('testo:data-set', (string) $case->datasetIndex);
-            $case->datasetKey === null or $xml->writeAttribute('testo:data-set-key', (string) $case->datasetKey);
+            $case->datasetKey === null or $xml->writeAttribute('testo:data-set-key', self::xmlSafe((string) $case->datasetKey));
         }
 
         // Measurements a plain testcase has nowhere else to carry. `<properties>` under `<testcase>` is
@@ -482,12 +499,12 @@ final class JUnitWriter
         if ($outcome !== null) {
             if ($outcome->element === 'skipped') {
                 $xml->startElement('skipped');
-                $outcome->message === '' or $xml->writeAttribute('message', $outcome->message);
+                $outcome->message === '' or $xml->writeAttribute('message', self::xmlSafe($outcome->message));
                 $xml->endElement();
             } else {
                 $xml->startElement($outcome->element);
                 $xml->writeAttribute('type', $outcome->type);
-                $outcome->message === '' or $xml->writeAttribute('message', $outcome->message);
+                $outcome->message === '' or $xml->writeAttribute('message', self::xmlSafe($outcome->message));
                 $outcome->details === '' or $xml->writeRaw(self::escapeCdata($outcome->details));
                 $xml->endElement();
             }

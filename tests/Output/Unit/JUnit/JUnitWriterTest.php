@@ -600,6 +600,25 @@ final class JUnitWriterTest
         Assert::same((string) $loaded->testsuite->testcase->failure['message'], 'contains ]]> sequence');
     }
 
+    #[Covers(JUnitWriter::class)]
+    public function controlBytesAndBrokenUtf8KeepTheDocumentWellFormed(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult(
+            'failingTest',
+            Status::Failed,
+            failure: new \RuntimeException("\e[31mred\e[0m \xFF end\0"),
+        ));
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        $failure = $xml->testsuite->testcase->failure;
+        Assert::same((string) $failure['message'], "[31mred[0m \u{FFFD} end");
+        Assert::string((string) $failure)->contains('Stack trace:');
+    }
+
     public function resetClearsAccumulatedState(): void
     {
         // Arrange
