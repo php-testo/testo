@@ -13,9 +13,11 @@ use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\VariadicPlaceholder;
 use PHPStan\Analyser\Scope;
+use PHPStan\Type\ObjectType;
 use Rector\NodeTypeResolver\Node\AttributeKey;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
@@ -49,9 +51,16 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *
  * The local name (`value`, `value2`, ...) is chosen to not shadow a variable already in scope.
  *
+ * The `array` and `iterable` heads share the iterable matchers: `contains`/`notContains`,
+ * `allInstanceOf($c)` → `assertContainsOnlyInstancesOf($c, $value)`, `allOf('int')` →
+ * `assertContainsOnlyInt($value)` for the literal native types whose `get_debug_type()` name is the
+ * type itself, and the count-based `hasCount`/`sameSizeAs`. PHPUnit throws for a `Generator` where
+ * Testo iterates it, so on the `iterable` head those two convert only for a subject (and for
+ * `sameSizeAs`, an expected side) known to be an array or a `Countable` iterable.
+ *
  * Conservative by design: if the head type or ANY matcher in the chain has no faithful PHPUnit
- * counterpart (JSON path/structure assertions, `every()`, `sameSizeAs()`, custom matchers), the
- * whole chain is left untouched rather than half-converted. Those remain a TODO.
+ * counterpart (JSON path/structure assertions, `every()`, `allOf()` with a class or pseudo-type,
+ * custom matchers), the whole chain is left untouched rather than half-converted. Those remain a TODO.
  */
 #[TestRectorFixtures('TypedAssertChainRector')]
 final class TypedAssertChainRector extends AbstractRector
@@ -66,7 +75,26 @@ final class TypedAssertChainRector extends AbstractRector
         'int' => 'assertIsInt',
         'float' => 'assertIsFloat',
         'array' => 'assertIsArray',
+        'iterable' => 'assertIsIterable',
         'object' => 'assertIsObject',
+    ];
+
+    /**
+     * `allOf()` type name, as `allOf()` normalises it, => the PHPUnit assertion checking the same
+     * native type. Only the types whose `get_debug_type()` spelling is the type itself.
+     *
+     * @var array<non-empty-string, non-empty-string>
+     */
+    private const ALL_OF_TO_CONTAINS_ONLY = [
+        'array' => 'assertContainsOnlyArray',
+        'bool' => 'assertContainsOnlyBool',
+        'boolean' => 'assertContainsOnlyBool',
+        'float' => 'assertContainsOnlyFloat',
+        'double' => 'assertContainsOnlyFloat',
+        'int' => 'assertContainsOnlyInt',
+        'integer' => 'assertContainsOnlyInt',
+        'null' => 'assertContainsOnlyNull',
+        'string' => 'assertContainsOnlyString',
     ];
 
     public function getRuleDefinition(): RuleDefinition
@@ -143,6 +171,7 @@ final class TypedAssertChainRector extends AbstractRector
         # The subject is asserted in the head AND in every matcher. If it is anything other than a
         # plain variable (a method call, property fetch, ...) hoisting it into a local avoids
         # re-evaluating it — and re-running its side effects — once per emitted assertion.
+        $countable = $type === 'array' || $this->isCountableIterable($headArg->value);
         $prefix = [];
         $subject = $headArg->value;
         if (!$subject instanceof Variable) {
@@ -155,7 +184,9 @@ final class TypedAssertChainRector extends AbstractRector
 
         foreach (\array_reverse($links) as $link) {
             $matcher = $this->getName($link->name);
-            $mapped = $matcher === null ? null : $this->mapMatcher($type, $matcher, $link->args, $subject, $useThis);
+            $mapped = $matcher === null
+                ? null
+                : $this->mapMatcher($type, $matcher, $link->args, $subject, $useThis, $countable);
             if ($mapped === null) {
                 # Any unmapped matcher aborts the whole conversion — never half-convert.
                 return null;
@@ -215,10 +246,13 @@ final class TypedAssertChainRector extends AbstractRector
      * @param non-empty-string $type
      * @param non-empty-string $matcher
      * @param array<int, Arg|VariadicPlaceholder> $args
+     * @param bool $countable Whether the subject is an array or a `Countable` iterable, which PHPUnit's
+     *        count-based assertions read the way Testo does.
      * @return list<Expression>|null
      */
-    private function mapMatcher(string $type, string $matcher, array $args, Expr $value, bool $useThis): ?array
+    private function mapMatcher(string $type, string $matcher, array $args, Expr $value, bool $useThis, bool $countable): ?array
     {
+        $iterable = $type === 'array' || $type === 'iterable';
         $first = ($args[0] ?? null) instanceof Arg ? $args[0]->value : null;
 
         # `assertX($needle, $value)` — the common "subject is the last argument" shape.
@@ -238,9 +272,14 @@ final class TypedAssertChainRector extends AbstractRector
             $type === 'string' && $matcher === 'startsWith' => $needleFirst('assertStringStartsWith'),
             $type === 'string' && $matcher === 'endsWith' => $needleFirst('assertStringEndsWith'),
 
-            $type === 'array' && $matcher === 'contains' => $needleFirst('assertContains'),
-            $type === 'array' && $matcher === 'notContains' => $needleFirst('assertNotContains'),
-            $type === 'array' && $matcher === 'hasCount' => $needleFirst('assertCount'),
+            $iterable && $matcher === 'contains' => $needleFirst('assertContains'),
+            $iterable && $matcher === 'notContains' => $needleFirst('assertNotContains'),
+            $iterable && $matcher === 'allInstanceOf' => $needleFirst('assertContainsOnlyInstancesOf'),
+            $iterable && $matcher === 'allOf' => $this->allOf($first, $value, $useThis),
+            # PHPUnit throws for a `Generator` where Testo iterates it: only a countable subject converts.
+            $iterable && $countable && $matcher === 'hasCount' => $needleFirst('assertCount'),
+            $iterable && $countable && $matcher === 'sameSizeAs' && $first !== null && $this->isCountableIterable($first)
+                => $needleFirst('assertSameSize'),
             $type === 'array' && $matcher === 'notEmpty' => [$this->assertStmt('assertNotEmpty', [$this->arg($value)], $useThis)],
             $type === 'array' && $matcher === 'isList' => [$this->assertStmt('assertIsList', [$this->arg($value)], $useThis)],
             $type === 'array' && $matcher === 'hasKeys' => $this->keys('assertArrayHasKey', $args, $value, $useThis),
@@ -272,6 +311,26 @@ final class TypedAssertChainRector extends AbstractRector
             $this->assertStmt('assertGreaterThanOrEqual', [$this->arg($lo), $this->arg($value)], $useThis),
             $this->assertStmt('assertLessThanOrEqual', [$this->arg($hi), $this->arg($value)], $useThis),
         ];
+    }
+
+    /**
+     * `allOf('int')` → `assertContainsOnlyInt($value)`, for a literal type name PHPUnit checks the same way.
+     *
+     * @return list<Expression>|null
+     */
+    private function allOf(?Expr $type, Expr $value, bool $useThis): ?array
+    {
+        $assert = $type instanceof String_ ? self::ALL_OF_TO_CONTAINS_ONLY[\strtolower($type->value)] ?? null : null;
+
+        return $assert === null ? null : [$this->assertStmt($assert, [$this->arg($value)], $useThis)];
+    }
+
+    private function isCountableIterable(Expr $expr): bool
+    {
+        $type = $this->getType($expr);
+
+        return $type->isArray()->yes()
+            || ($type->isIterable()->yes() && (new ObjectType(\Countable::class))->isSuperTypeOf($type)->yes());
     }
 
     /**
