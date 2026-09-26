@@ -6,10 +6,19 @@ namespace Testo\Bridge\Rector\PhpunitToTesto;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\Assign;
+use PhpParser\Node\Expr\BinaryOp\Concat;
+use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar;
 use PhpParser\Node\Stmt\Expression;
 use PHPStan\Analyser\Scope;
 use Rector\Contract\PhpParser\Node\StmtsAwareInterface;
@@ -42,9 +51,11 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * statements), it operates at the statements level: it matches the enclosing
  * {@see StmtsAwareInterface} node and rewrites its `->stmts`.
  *
- * Conservative by design: only an UNINTERRUPTED run of folding calls that are direct siblings right
- * after the `expectException` statement is absorbed. The first non-folding statement ends the run;
- * statements are never reordered or pulled across other code. A bare
+ * Conservative by design: only folding calls that are siblings after the `expectException` statement
+ * are absorbed, and the only statements allowed between them are assignments that cannot throw
+ * (`$message = 'Type "float" is not supported.';`). The chain then takes the place of the last
+ * absorbed call, after those assignments. Any other statement ends the run: code that may throw
+ * decides which expectations PHPUnit had registered by then. A bare
  * `expectExceptionMessage`/`Code` with no preceding `expectException` is left untouched.
  *
  * Only folds inside a class: the expectations belong to a test method, so a run in a free function
@@ -117,20 +128,32 @@ final class ExpectExceptionToTestoRector extends AbstractRector
                 $head->args,
             );
 
-            # Absorb the uninterrupted run of expectExceptionMessage/Code siblings.
-            while ($i + 1 < $count) {
-                $next = $stmts[$i + 1];
+            # Absorb the expectExceptionMessage/Code siblings that follow, across assignments that
+            # cannot throw. The chain lands where the last modifier stood, after those assignments,
+            # so a modifier argument they define (`$message = '…';`) is set by then.
+            $between = [];
+            $pending = [];
+            for ($j = $i + 1; $j < $count; ++$j) {
+                $next = $stmts[$j];
                 $modifier = $next instanceof Expression ? $this->matchModifier($next) : null;
-                if ($modifier === null) {
+                if ($modifier !== null) {
+                    $chain = new MethodCall($chain, new Identifier($modifier[0]), $modifier[1]);
+                    \array_push($between, ...$pending);
+                    $pending = [];
+                    $i = $j;
+                    continue;
+                }
+
+                if (!$this->isSafeAssignment($next)) {
                     break;
                 }
 
-                $chain = new MethodCall($chain, new Identifier($modifier[0]), $modifier[1]);
-                ++$i;
+                $pending[] = $next;
             }
 
             \assert($stmt instanceof Expression);
             $stmt->expr = $chain;
+            \array_push($result, ...$between);
             $result[] = $stmt;
             $changed = true;
         }
@@ -195,6 +218,43 @@ final class ExpectExceptionToTestoRector extends AbstractRector
             $this->isName($expr->name, 'expectExceptionCode') => ['withCode', $expr->args],
             default => null,
         };
+    }
+
+    /**
+     * Whether the statement assigns a value that cannot throw to a plain variable: a scalar, a
+     * constant, or a concatenation or array built from them and from variables.
+     */
+    private function isSafeAssignment(Node $stmt): bool
+    {
+        return $stmt instanceof Expression
+            && $stmt->expr instanceof Assign
+            && $stmt->expr->var instanceof Variable
+            && $this->isSafeValue($stmt->expr->expr);
+    }
+
+    private function isSafeValue(Expr $expr): bool
+    {
+        return match (true) {
+            $expr instanceof Scalar, $expr instanceof ConstFetch, $expr instanceof Variable => true,
+            $expr instanceof ClassConstFetch => $expr->class instanceof Name && $expr->name instanceof Identifier,
+            $expr instanceof Concat => $this->isSafeValue($expr->left) && $this->isSafeValue($expr->right),
+            $expr instanceof Array_ => $this->isSafeArray($expr),
+            default => false,
+        };
+    }
+
+    private function isSafeArray(Array_ $array): bool
+    {
+        foreach ($array->items as $item) {
+            if ($item->unpack
+                || ($item->key !== null && !$this->isSafeValue($item->key))
+                || !$this->isSafeValue($item->value)
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
