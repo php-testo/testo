@@ -23,6 +23,7 @@ class SomeTest
     {
         $this->markTestSkipped('the whole case waits for the new API');
     }
+
     #[\Testo\Test]
     public function testB(): void
     {

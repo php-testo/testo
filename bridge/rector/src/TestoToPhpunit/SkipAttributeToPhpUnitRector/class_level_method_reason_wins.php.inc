@@ -24,6 +24,7 @@ class SomeTest
     {
         $this->markTestSkipped('method reason');
     }
+
     #[\Testo\Test]
     public function testB(): void
     {

@@ -10,6 +10,7 @@ use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\Class_;
 use Rector\Rector\AbstractRector;
+use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
@@ -103,6 +104,7 @@ final class CoversToCoversClassRector extends AbstractRector
         }
 
         $node->attrGroups = $keptGroups;
+        DroppedAttributes::keepFormat($node, $this->file->getOldTokens());
 
         return $node;
     }
