@@ -11,7 +11,7 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Log\MessageLog;
 use Testo\Core\Value\Status;
 use Testo\Output\Rendering\BenchMapper;
-use Testo\Output\Rendering\StackTrace;
+use Testo\Output\Terminal\Renderer\Helper;
 
 /**
  * Builds and writes a JUnit XML (PHPUnit dialect) document.
@@ -374,47 +374,20 @@ final class JUnitWriter
         );
     }
 
+    /**
+     * The failure as the terminal prints it: `Class: message`, the throw site, and the stack trace
+     * cut at the test function, so the frames stop at the test instead of running on through the
+     * runner and every interceptor. Each `previous` exception follows under `Caused by:`, cut the
+     * same way. A trace the test function is absent from (the failure came from framework code
+     * around the test) is kept whole; the `File:` line names the throw site either way.
+     */
     private static function formatTrace(TestResult $result): string
     {
-        $failure = $result->failure;
-        if ($failure === null) {
-            return '';
-        }
-
-        $boundary = $result->info->testDefinition->reflection;
-        $parts = [];
-        $current = $failure;
-
-        do {
-            $class = $current::class;
-            $file = $current->getFile();
-            $line = $current->getLine();
-            $trace = self::formatTraceFrames(StackTrace::cutStackTrace($current->getTrace(), $boundary, false));
-
-            $parts[] = "{$class}\nFile: {$file}:{$line}\n\nStack trace:\n{$trace}";
-        } while ($current = $current->getPrevious());
-
-        return \implode("\n\nCaused by:\n", $parts);
-    }
-
-    /**
-     * @param list<array<string, mixed>> $trace
-     */
-    private static function formatTraceFrames(array $trace): string
-    {
-        $lines = [];
-
-        foreach ($trace as $i => $frame) {
-            $location = isset($frame['file'])
-                ? "{$frame['file']}({$frame['line']})"
-                : '[internal function]';
-            $call = isset($frame['class'])
-                ? "{$frame['class']}{$frame['type']}{$frame['function']}()"
-                : "{$frame['function']}()";
-            $lines[] = "#{$i} {$location}: {$call}";
-        }
-
-        return \implode("\n", $lines);
+        return $result->failure === null ? '' : Helper::formatException(
+            $result->failure,
+            $result->info->testDefinition->reflection,
+            maxPreviousDepth: \PHP_INT_MAX,
+        );
     }
 
     /**

@@ -17,4 +17,23 @@ final class SampleTestClass
      * Sample description line.
      */
     public function describedTest(): void {}
+
+    public function throwingTest(): never
+    {
+        $this->throwFromHelper();
+    }
+
+    public function wrappingTest(): never
+    {
+        try {
+            $this->throwFromHelper();
+        } catch (\LogicException $e) {
+            throw new \RuntimeException('wrapped', 0, $e);
+        }
+    }
+
+    private function throwFromHelper(): never
+    {
+        throw new \LogicException('thrown from a helper');
+    }
 }

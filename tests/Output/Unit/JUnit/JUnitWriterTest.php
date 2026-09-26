@@ -784,6 +784,86 @@ final class JUnitWriterTest
     }
 
     #[Covers(JUnitWriter::class)]
+    public function failureTraceStopsAtTheTestFunction(): void
+    {
+        $failure = self::thrownBy('throwingTest');
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult('throwingTest', Status::Failed, failure: $failure));
+        $writer->finishSuite();
+
+        $details = (string) self::loadXml($writer->generate('Testo'))->testsuite->testcase->failure;
+
+        Assert::string($details)->startsWith(
+            "LogicException: thrown from a helper\nFile: {$failure->getFile()}:{$failure->getLine()}\n\nStack trace:\n",
+        );
+        $frames = self::framesOf($details);
+        Assert::count($frames, 2);
+        Assert::string($frames[0])->endsWith(SampleTestClass::class . '->throwFromHelper()');
+        Assert::string($frames[1])->startsWith('#1 ')->endsWith(SampleTestClass::class . '->throwingTest()');
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function previousExceptionsAreCutAtTheTestFunctionToo(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult('wrappingTest', Status::Error, failure: self::thrownBy('wrappingTest')));
+        $writer->finishSuite();
+
+        $details = (string) self::loadXml($writer->generate('Testo'))->testsuite->testcase->error;
+
+        $parts = \explode("\n\nCaused by:\n", $details);
+        Assert::count($parts, 2);
+        Assert::string($parts[0])->startsWith('RuntimeException: wrapped');
+        Assert::count(self::framesOf($parts[0]), 1);
+        Assert::string($parts[1])->startsWith('LogicException: thrown from a helper');
+        $frames = self::framesOf($parts[1]);
+        Assert::count($frames, 2);
+        Assert::string($frames[1])->endsWith(SampleTestClass::class . '->wrappingTest()');
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function aTraceWithoutTheTestFunctionKeepsTheThrowSite(): void
+    {
+        $line = __LINE__ + 1;
+        $failure = new \RuntimeException('raised around the test');
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult('throwingTest', Status::Aborted, failure: $failure));
+        $writer->finishSuite();
+
+        $details = (string) self::loadXml($writer->generate('Testo'))->testsuite->testcase->error;
+
+        Assert::string($details)->contains('File: ' . __FILE__ . ':' . $line);
+        Assert::string(self::framesOf($details)[0])->endsWith(self::class . '->' . __FUNCTION__ . '()');
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function discardedAttemptTracesStopAtTheTestFunction(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(
+            self::makeResult('throwingTest', Status::Flaky),
+            discardedAttempts: [self::makeResult('throwingTest', Status::Failed, failure: self::thrownBy('throwingTest'))],
+        );
+        $writer->addTestResult(
+            self::makeResult('throwingTest', Status::Failed, failure: self::thrownBy('throwingTest')),
+            discardedAttempts: [self::makeResult('throwingTest', Status::Error, failure: self::thrownBy('throwingTest'))],
+        );
+        $writer->finishSuite();
+
+        $cases = self::loadXml($writer->generate('Testo'))->testsuite->testcase;
+
+        foreach ([$cases[0]->flakyFailure->stackTrace, $cases[1]->rerunError->stackTrace] as $stackTrace) {
+            $frames = self::framesOf((string) $stackTrace);
+            Assert::count($frames, 2);
+            Assert::string($frames[1])->endsWith(SampleTestClass::class . '->throwingTest()');
+        }
+    }
+
+    #[Covers(JUnitWriter::class)]
     public function reportValidatesAgainstTheBundledSchema(): void
     {
         $writer = new JUnitWriter(hostname: 'ci-runner');
@@ -971,6 +1051,32 @@ final class JUnitWriterTest
             status: $status,
             attributes: ['duration' => 0],
         );
+    }
+
+    /**
+     * Runs a {@see SampleTestClass} method and returns what it threw. Every frame past that method
+     * (this helper, the test, the runner) stands for the framework code a real test is called through.
+     *
+     * @param non-empty-string $method
+     */
+    private static function thrownBy(string $method): \Throwable
+    {
+        try {
+            (new SampleTestClass())->{$method}();
+        } catch (\Throwable $e) {
+            return $e;
+        }
+    }
+
+    /**
+     * @return list<string> The `#n ...` frame lines of one formatted exception.
+     */
+    private static function framesOf(string $details): array
+    {
+        return \array_values(\array_filter(
+            \explode("\n", $details),
+            static fn(string $line): bool => \str_starts_with($line, '#'),
+        ));
     }
 
     private static function loadXml(string $raw): \SimpleXMLElement
