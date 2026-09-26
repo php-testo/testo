@@ -48,6 +48,10 @@ final class JUnitWriter
      * JUnit dialect (and aren't carried in the per-line coverage XML either).
      *
      * Mapped to the `testo:` prefix declared on the root `<testsuites>` element.
+     * The URI is also where the schemas are published: `junit.xsd` for the
+     * report as a whole and `testo.xsd` for the attributes of this namespace.
+     *
+     * @link https://php-testo.github.io/schema/junit/1
      */
     public const TESTO_NS = 'https://php-testo.github.io/schema/junit/1';
 
@@ -123,15 +127,15 @@ final class JUnitWriter
      *
      * @param non-empty-string|null $overrideName Replaces the test name (used for data-provider rows).
      * @param int|null $providerIndex Index of the data-provider attribute, when this row
-     *        belongs to a data-provider batch. Stamped as `testo:provider-index`.
+     *        belongs to a data-provider batch. Stamped as `testo:data-provider`.
      *        Null providerIndex on a dataset row is normalised to `0` on emit so the
-     *        attribute is always present alongside `testo:dataset-index`.
+     *        attribute is always present alongside `testo:data-set`.
      * @param int|null $datasetIndex Zero-based dataset position within the provider.
-     *        Stamped as `testo:dataset-index`. Setting this turns the testcase into
+     *        Stamped as `testo:data-set`. Setting this turns the testcase into
      *        a "dataset row" — the trio of testo: attributes is emitted only when
      *        this is non-null.
      * @param string|int|null $datasetKey The original dataset label (yield key).
-     *        Stamped as `testo:dataset-key` for diagnostics.
+     *        Stamped as `testo:data-set-key` for diagnostics.
      * @param list<TestResult> $discardedAttempts Failed attempts a retry policy threw away before
      *        this result, in run order. Each becomes a `<flakyFailure>`/`<flakyError>` child when
      *        the result is successful, a `<rerunFailure>`/`<rerunError>` child otherwise.
@@ -545,6 +549,11 @@ final class JUnitWriter
         $case->line !== null and $xml->writeAttribute('line', (string) $case->line);
         $xml->writeAttribute('assertions', (string) $case->assertions);
         $xml->writeAttribute('time', self::formatTime($case->time));
+
+        // The JUnit children fold eight statuses into four outcomes (risky and aborted become
+        // `<error>`, cancelled becomes `<skipped>`, flaky passes); the exact one travels here, in
+        // the lowercase form the `--json` totals use.
+        $xml->writeAttribute('testo:status', \strtolower($case->status->name));
 
         // Testo-private dataset coordinates. Only present on data-provider rows
         // (datasetIndex != null). The CLI accepts `Class::method:provider:dataset`

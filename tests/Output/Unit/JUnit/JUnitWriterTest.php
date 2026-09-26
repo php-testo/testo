@@ -763,6 +763,26 @@ final class JUnitWriterTest
         Assert::count($case->flakyFailure, 0);
     }
 
+    #[Covers(JUnitWriter::class)]
+    public function everyTestcaseCarriesTheExactTestoStatus(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        foreach ([Status::Passed, Status::Flaky, Status::Risky, Status::Aborted, Status::Cancelled] as $status) {
+            $writer->addTestResult(self::makeResult('passingTest', $status));
+        }
+        $writer->finishSuite();
+
+        $dom = new \DOMDocument();
+        Assert::true($dom->loadXML($writer->generate('Testo')));
+        $statuses = [];
+        foreach ($dom->getElementsByTagName('testcase') as $case) {
+            $statuses[] = $case->getAttributeNS(JUnitWriter::TESTO_NS, 'status');
+        }
+
+        Assert::same($statuses, ['passed', 'flaky', 'risky', 'aborted', 'cancelled']);
+    }
+
     public function resetClearsAccumulatedState(): void
     {
         // Arrange
