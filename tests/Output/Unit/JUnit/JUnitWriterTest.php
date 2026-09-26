@@ -12,6 +12,7 @@ use Testo\Bench\Dto\Line;
 use Testo\Bench\Dto\Snap;
 use Testo\Bench\Dto\ValueRel;
 use Testo\Codecov\Covers;
+use Testo\Common\Messenger;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\Identity\SuiteIdentity;
 use Testo\Core\Context\TestInfo;
@@ -19,6 +20,9 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Exception\SkipTest;
+use Testo\Core\Log\Level;
+use Testo\Core\Log\Message;
+use Testo\Core\Log\MessageLog;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Output\JUnit\Internal\JUnitWriter;
@@ -619,6 +623,39 @@ final class JUnitWriterTest
         Assert::string((string) $failure)->contains('Stack trace:');
     }
 
+    #[Covers(JUnitWriter::class)]
+    public function nativeOutputGoesToSystemOutAndSuppressedErrorsToSystemErr(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed, messages: new MessageLog([
+            new Message(0.1, Messenger::CHANNEL_STDOUT, Level::Info, "first line\n"),
+            new Message(0.2, Messenger::CHANNEL_STDERR, Level::Error, "listener failed\n"),
+            new Message(0.3, 'retry', Level::Warning, "Attempt 1 failed.\n"),
+            new Message(0.4, Messenger::CHANNEL_STDOUT, Level::Info, 'tail ]]> <b>'),
+        ])));
+        $writer->finishSuite();
+
+        $case = self::loadXml($writer->generate('Testo'))->testsuite->testcase;
+
+        Assert::same((string) $case->{'system-out'}, "first line\ntail ]]> <b>");
+        Assert::same((string) $case->{'system-err'}, "listener failed\n");
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function aTestWithoutOutputWritesNoOutputElements(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed));
+        $writer->finishSuite();
+
+        $case = self::loadXml($writer->generate('Testo'))->testsuite->testcase;
+
+        Assert::count($case->{'system-out'}, 0);
+        Assert::count($case->{'system-err'}, 0);
+    }
+
     public function resetClearsAccumulatedState(): void
     {
         // Arrange
@@ -645,6 +682,7 @@ final class JUnitWriterTest
         int $durationMs = 0,
         ?\Throwable $failure = null,
         ?int $assertions = null,
+        MessageLog $messages = new MessageLog(),
     ): TestResult {
         $reflection = new \ReflectionMethod(SampleTestClass::class, $method);
 
@@ -667,6 +705,7 @@ final class JUnitWriterTest
             status: $status,
             failure: $failure,
             attributes: ['duration' => $durationMs],
+            messages: $messages,
             summary: $assertions === null ? new Summary() : new Summary(metrics: ['assertions' => $assertions]),
         );
     }
