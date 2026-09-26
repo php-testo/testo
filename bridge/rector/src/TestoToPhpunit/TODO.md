@@ -84,8 +84,15 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   `Assert::array()->isList()`→`assertIsList`, `Assert::array()->sameElementsAs()`→`assertEqualsCanonicalizing`,
   …) into separate `assert*` statements, expanding 1→N where needed. A non-variable subject (e.g.
   `Assert::array($log->all())->isList()`) is hoisted into a scope-safe `$value` local so it is
-  evaluated once. Matchers with no faithful PHPUnit line (JSON path/structure, `every`, `sameSizeAs`,
-  custom) leave the whole chain untouched rather than half-converting.
+  evaluated once. The `iterable` head maps to `assertIsIterable`, and it shares the iterable matchers
+  with `array`: `contains`/`notContains`, `allInstanceOf`→`assertContainsOnlyInstancesOf`,
+  `allOf('int')`→`assertContainsOnlyInt` (likewise `array`/`bool`/`float`/`null`/`string` and the
+  `integer`/`boolean`/`double` aliases `allOf()` accepts), `hasCount`→`assertCount` and
+  `sameSizeAs`→`assertSameSize`. PHPUnit throws for a `Generator` where Testo counts it, so on the
+  `iterable` head the count-based two convert only for a subject (and an expected side) known to be
+  an array or a `Countable` iterable. Matchers with no faithful PHPUnit line (JSON path/structure,
+  `every`, `allOf()` with a class name or a pseudo-type, `notEmpty` on the `iterable` head, custom)
+  leave the whole chain untouched rather than half-converting.
 - **`RepeatRetryRector`** (registered) — converts **method-level** `#[\Testo\Repeat]` /
   `#[\Testo\Retry]` into PHPUnit's `#[Repeat]` / `#[Retry]` (available since PHPUnit 13.3). Testo's
   `maxFailures` (tolerated failures, default 0) maps to PHPUnit's `failureThreshold` (aborting failure
