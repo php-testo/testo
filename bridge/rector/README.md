@@ -17,6 +17,8 @@ Each direction ships a Rector set. Reference it with the typed handle from
 The set files live under `config/`; the constants are absolute paths to those files, so they
 also work with `$rectorConfig->import(...)`.
 
+`PHPUNIT_TO_TESTO` switches Rector to serial processing. A class that reaches `TestCase` through a project base class is recognised by the base's ancestry, and a parallel worker can read that base after another worker has already detached it, leaving the subclass's tests without `#[Test]` and silently undiscovered. Do not re-enable `withParallel()` for this set.
+
 ### Mock sets
 
 Testo core ships no mocking, so test doubles convert through their own sets, one per target library.

@@ -157,6 +157,8 @@ offer the user a rollback rather than leaving a half-migrated suite.
 - **`Class "PHPUnit\Framework\TestCase" not found` while running Rector.** Keep `phpunit/phpunit`
   installed *during* migration; remove it only in Stage A6 after the suite is green under Testo.
 - **Tests vanish from the Testo run after Stage A3.** A test method without `#[\Testo\Test]`: usually
-  one inherited from a `vendor/` PHPUnit base. Port it per the mapping's pitfalls.
+  one inherited from a `vendor/` PHPUnit base. Port it per the mapping's pitfalls. The conversion set
+  runs Rector serially; a `->withParallel()` in the config races on shared base classes and drops
+  the attribute from their subclasses, so remove it.
 - **A file mixes converted and unconverted assertions after apply.** Rector hit an edge case on that
   file; `scan-residuals.php` flags it as `leftover_assert` and the subagent finishes it by hand.
