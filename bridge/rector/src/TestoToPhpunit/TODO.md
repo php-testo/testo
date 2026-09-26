@@ -90,9 +90,13 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   `integer`/`boolean`/`double` aliases `allOf()` accepts), `hasCount`→`assertCount` and
   `sameSizeAs`→`assertSameSize`. PHPUnit throws for a `Generator` where Testo counts it, so on the
   `iterable` head the count-based two convert only for a subject (and an expected side) known to be
-  an array or a `Countable` iterable. Matchers with no faithful PHPUnit line (JSON path/structure,
+  an array or a `Countable` iterable. On the `string` head, `matchesPattern`/`notMatchesPattern` map to
+  `assertMatchesRegularExpression`/`assertDoesNotMatchRegularExpression` (full PCRE on both sides; an
+  invalid pattern is an error). Matchers with no faithful PHPUnit line (JSON path/structure,
   `every`, `allOf()` with a class name or a pseudo-type, `notEmpty` on the `iterable` head, custom)
-  leave the whole chain untouched rather than half-converting.
+  leave the whole chain untouched rather than half-converting. **Message residual:** the emitted
+  needle-and-subject assertions (`assertStringStartsWith`, `assertMatchesRegularExpression`, …) carry
+  no message, so a matcher's `$message` is dropped.
 - **`RepeatRetryRector`** (registered) — converts **method-level** `#[\Testo\Repeat]` /
   `#[\Testo\Retry]` into PHPUnit's `#[Repeat]` / `#[Retry]` (available since PHPUnit 13.3). Testo's
   `maxFailures` (tolerated failures, default 0) maps to PHPUnit's `failureThreshold` (aborting failure

@@ -58,6 +58,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Testo iterates it, so on the `iterable` head those two convert only for a subject (and for
  * `sameSizeAs`, an expected side) known to be an array or a `Countable` iterable.
  *
+ * On the `string` head, `matchesPattern($p)`/`notMatchesPattern($p)` become
+ * `assertMatchesRegularExpression($p, $value)`/`assertDoesNotMatchRegularExpression($p, $value)`: both
+ * take a full PCRE pattern and error on an invalid one.
+ *
  * Conservative by design: if the head type or ANY matcher in the chain has no faithful PHPUnit
  * counterpart (JSON path/structure assertions, `every()`, `allOf()` with a class or pseudo-type,
  * custom matchers), the whole chain is left untouched rather than half-converted. Those remain a TODO.
@@ -271,6 +275,8 @@ final class TypedAssertChainRector extends AbstractRector
             $type === 'string' && $matcher === 'notContains' => $needleFirst('assertStringNotContainsString'),
             $type === 'string' && $matcher === 'startsWith' => $needleFirst('assertStringStartsWith'),
             $type === 'string' && $matcher === 'endsWith' => $needleFirst('assertStringEndsWith'),
+            $type === 'string' && $matcher === 'matchesPattern' => $needleFirst('assertMatchesRegularExpression'),
+            $type === 'string' && $matcher === 'notMatchesPattern' => $needleFirst('assertDoesNotMatchRegularExpression'),
 
             $iterable && $matcher === 'contains' => $needleFirst('assertContains'),
             $iterable && $matcher === 'notContains' => $needleFirst('assertNotContains'),
