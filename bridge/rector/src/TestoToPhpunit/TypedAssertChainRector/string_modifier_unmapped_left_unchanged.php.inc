@@ -8,7 +8,7 @@ class SomeTest
         \Testo\Assert::string($s)->ignoringCase()->endsWith('z');
         \Testo\Assert::string($s)->ignoringLineEndings()->notContains("a\n");
         \Testo\Assert::string($s)->ignoringLineEndings()->endsWith("z\n");
-        \Testo\Assert::string($s)->ignoringLineEndings()->matchesPattern('/^a$/m');
+        \Testo\Assert::string($s)->ignoringLineEndings()->matchesRegex('/^a$/m');
         \Testo\Assert::string($s)->ignoringCase()->ignoringLineEndings()->contains("a\n");
         \Testo\Assert::string($s)->ignoringLineEndings()->contains("a\n")->ignoringCase()->contains('b');
         \Testo\Assert::string($s)->contains('a')->ignoringCase()->startsWith('b');

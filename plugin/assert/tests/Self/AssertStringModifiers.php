@@ -99,20 +99,20 @@ final class AssertStringModifiers
         $string->notContains('HELLO')->notContains("Hello\n  World")->notContains("Hello\nWorld");
     }
 
-    public function ignoringLineEndingsNormalizesOnlyThePatternSubject(): void
+    public function ignoringLineEndingsNormalizesOnlyTheRegexSubject(): void
     {
-        Assert::string("foo\r\nbar")->notMatchesPattern('/^foo$/m');
-        Assert::string("foo\r\nbar")->ignoringLineEndings()->matchesPattern('/^foo$/m')->notMatchesPattern('/\r/');
-        Assert::string("foo\nbar")->ignoringLineEndings()->notMatchesPattern("/foo\r\nbar/");
+        Assert::string("foo\r\nbar")->notMatchesRegex('/^foo$/m');
+        Assert::string("foo\r\nbar")->ignoringLineEndings()->matchesRegex('/^foo$/m')->notMatchesRegex('/\r/');
+        Assert::string("foo\nbar")->ignoringLineEndings()->notMatchesRegex("/foo\r\nbar/");
     }
 
-    public function ignoringCaseDoesNotAffectPatterns(): void
+    public function ignoringCaseDoesNotAffectRegexChecks(): void
     {
         Assert::string("HELLO")
             ->ignoringCase()
-            ->matchesPattern('/^HELLO$/')
-            ->notMatchesPattern('/hello/')
-            ->matchesPattern('/hello/i');
+            ->matchesRegex('/^HELLO$/')
+            ->notMatchesRegex('/hello/')
+            ->matchesRegex('/hello/i');
     }
 
     public function ignoringWhitespaceTrimsAndCollapsesEachLine(): void
@@ -122,7 +122,7 @@ final class AssertStringModifiers
             ->contains("Hello World\nsecond line")
             ->startsWith('Hello World')
             ->endsWith('second line')
-            ->notMatchesPattern('/  /');
+            ->notMatchesRegex('/  /');
     }
 
     public function ignoringWhitespaceNormalizesTheArgumentLineByLine(): void
@@ -161,8 +161,8 @@ final class AssertStringModifiers
             ->startsWith("SELECT id, name\nFROM")
             ->contains('id, name FROM')
             ->endsWith('users')
-            ->matchesPattern('/^SELECT.*users$/')
-            ->notMatchesPattern('/^FROM/m');
+            ->matchesRegex('/^SELECT.*users$/')
+            ->notMatchesRegex('/^FROM/m');
     }
 
     public function ignoringWhitespaceLastCallWins(): void
@@ -179,18 +179,18 @@ final class AssertStringModifiers
             ->contains('a b');
     }
 
-    public function ignoringWhitespacePatternsSeeLines(): void
+    public function ignoringWhitespaceRegexChecksSeeLines(): void
     {
         Assert::string("  foo  \n\tbar ")
             ->ignoringWhitespace()
-            ->matchesPattern('/^foo$/m')
-            ->matchesPattern('/^bar$/m')
-            ->notMatchesPattern('/\s$/m');
+            ->matchesRegex('/^foo$/m')
+            ->matchesRegex('/^bar$/m')
+            ->notMatchesRegex('/\s$/m');
     }
 
-    public function wordBoundaryNeedsAPattern(): void
+    public function wordBoundaryNeedsARegex(): void
     {
-        Assert::string("seafood")->ignoringWhitespace()->contains(' food ')->notMatchesPattern('/\bfood\b/');
+        Assert::string("seafood")->ignoringWhitespace()->contains(' food ')->notMatchesRegex('/\bfood\b/');
     }
 
     public function ignoringBlankLinesRemovesEmptyAndWhitespaceOnlyLines(): void
@@ -200,7 +200,7 @@ final class AssertStringModifiers
             ->contains("Step 1\nStep 2")
             ->startsWith('Step 1')
             ->endsWith('Step 2')
-            ->notMatchesPattern('/\n\n/');
+            ->notMatchesRegex('/\n\n/');
     }
 
     public function ignoringBlankLinesKeepsIndentation(): void
@@ -280,9 +280,9 @@ final class AssertStringModifiers
         Assert::string("status: OK")->ignoringAnsi()->endsWith("\e[32mOK\e[0m");
     }
 
-    public function ignoringAnsiStripsThePatternSubject(): void
+    public function ignoringAnsiStripsTheRegexSubject(): void
     {
-        Assert::string("\e[32mOK\e[0m")->ignoringAnsi()->matchesPattern('/^OK$/')->notMatchesPattern('/\e/');
+        Assert::string("\e[32mOK\e[0m")->ignoringAnsi()->matchesRegex('/^OK$/')->notMatchesRegex('/\e/');
     }
 
     /**
@@ -298,11 +298,11 @@ final class AssertStringModifiers
     #[DataSet(["a\r\nb", ['ignoringLineEndings'], 'startsWith', "\n", "starts with \"\n\" (ignoring line endings)"], 'startsWith, line endings')]
     #[DataSet(["a\r\nb", ['ignoringLineEndings'], 'endsWith', "a\n", "ends with \"a\n\" (ignoring line endings)"], 'endsWith, line endings')]
     #[DataSet(["Done\r\n", ['ignoringCase', 'ignoringLineEndings'], 'endsWith', "fail\n", "ends with \"fail\n\" (ignoring line endings, ignoring case)"], 'both modifiers')]
-    #[DataSet(["foo\r\nbar", ['ignoringLineEndings', 'ignoringCase'], 'notMatchesPattern', '/^foo$/m', 'does not match pattern /^foo$/m (ignoring line endings):'], 'pattern, line endings')]
-    #[DataSet(['HELLO', ['ignoringCase'], 'matchesPattern', '/hello/', 'matches pattern /hello/: the pattern does not match'], 'pattern, case')]
+    #[DataSet(["foo\r\nbar", ['ignoringLineEndings', 'ignoringCase'], 'notMatchesRegex', '/^foo$/m', 'does not match regex /^foo$/m (ignoring line endings):'], 'regex, line endings')]
+    #[DataSet(['HELLO', ['ignoringCase'], 'matchesRegex', '/hello/', 'matches regex /hello/: the regex does not match'], 'regex, case')]
     #[DataSet(["a  b", ['ignoringWhitespace'], 'contains', 'a c', 'contains "a c" (ignoring whitespace)'], 'contains, whitespace')]
     #[DataSet(["a\nb", ['ignoringWhitespace'], 'contains', 'a b', 'contains "a b" (ignoring whitespace)'], 'whitespace keeps line breaks')]
-    #[DataSet(["a\nb", ['ignoringWhitespace'], 'notMatchesPattern', '/^b/m', 'does not match pattern /^b/m (ignoring whitespace)'], 'pattern, whitespace')]
+    #[DataSet(["a\nb", ['ignoringWhitespace'], 'notMatchesRegex', '/^b/m', 'does not match regex /^b/m (ignoring whitespace)'], 'regex, whitespace')]
     #[DataSet(["a\n\nb", ['ignoringBlankLines'], 'startsWith', 'b', 'starts with "b" (ignoring blank lines)'], 'startsWith, blank lines')]
     #[DataSet(["\e[1mOK\e[0m", ['ignoringAnsi'], 'endsWith', 'KO', 'ends with "KO" (ignoring ANSI codes)'], 'endsWith, ansi')]
     #[DataSet(["a\n b", ['ignoringBlankLines', 'ignoringAnsi', 'ignoringWhitespace', 'ignoringCase', 'ignoringLineEndings'], 'contains', 'x', 'contains "x" (ignoring ANSI codes, ignoring line endings, ignoring whitespace, ignoring blank lines, ignoring case)'], 'every modifier')]
@@ -364,7 +364,7 @@ final class AssertStringModifiers
         Expect::exception(AssertionException::class)
             ->withMessageContaining('`"\e[31mFAIL\e[0m"`')
             ->withMessageContaining('contains "\e[1mOK" (ignoring ANSI codes)')
-            ->withMessagePattern('/\A[^\x1B]*\z/');
+            ->withMessageMatchingRegex('/\A[^\x1B]*\z/');
         Assert::string("\e[31mFAIL\e[0m")->ignoringAnsi()->contains("\e[1mOK");
     }
 }

@@ -17,7 +17,7 @@ use Testo\Assert\State\Assertion\AssertionException;
  * {@see \InvalidArgumentException}, since it would match any string. Failure messages show the
  * original string and argument followed by the active modes, e.g. `contains "Error" (ignoring case)`.
  *
- * The patterns run against the string normalized by every mode except {@see self::ignoringCase()};
+ * The regex checks run against the string normalized by every mode except {@see self::ignoringCase()};
  * the pattern itself is never changed.
  *
  * @note This interface is not intended to be implemented by userland code.
@@ -29,7 +29,7 @@ interface StringType
      * Compare case-insensitively: the string and each check argument are lowercased with
      * `mb_strtolower()`, so `ПРИВЕТ` matches `привет` while `STRASSE` does not match `Straße`.
      *
-     * Does not apply to the patterns: use the `i` flag there.
+     * Does not apply to the regex checks: use the `i` flag there.
      *
      * ```php
      * Assert::string($html)->ignoringCase()->contains('<title>');
@@ -52,11 +52,11 @@ interface StringType
      * the other Unicode spaces) becomes one space. Line breaks stay; a whitespace-only line becomes empty.
      *
      * With `$lineBreaks`, every run of whitespace including line breaks becomes one space and the whole
-     * text is trimmed, so the result is a single line — also for the patterns.
+     * text is trimmed, so the result is a single line — also for the regex checks.
      *
      * Invalid UTF-8 is normalized with the ASCII whitespace only. A second call replaces the first.
      * The edges of an argument are trimmed too, so `contains(" foo ")` no longer requires word
-     * boundaries: use `matchesPattern('/\bfoo\b/')` for that.
+     * boundaries: use `matchesRegex('/\bfoo\b/')` for that.
      *
      * ```php
      * Assert::string($html)->ignoringWhitespace()->contains("<li>\n<b>Total:</b> 5\n</li>");
@@ -203,7 +203,7 @@ interface StringType
      * @throws AssertionException when the assertion fails.
      * @throws \InvalidArgumentException when the pattern is invalid.
      */
-    public function matchesPattern(string $pattern, string $message = ''): static;
+    public function matchesRegex(string $pattern, string $message = ''): static;
 
     /**
      * Asserts that the string does not match the given PCRE pattern.
@@ -216,5 +216,5 @@ interface StringType
      * @throws AssertionException when the assertion fails.
      * @throws \InvalidArgumentException when the pattern is invalid.
      */
-    public function notMatchesPattern(string $pattern, string $message = ''): static;
+    public function notMatchesRegex(string $pattern, string $message = ''): static;
 }

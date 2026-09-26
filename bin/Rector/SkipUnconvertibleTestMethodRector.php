@@ -201,7 +201,7 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
         }
 
         // An `Expect::exception()` chain carrying a modifier that ExpectExceptionToPhpUnitRector cannot
-        // translate (only withMessage/withCode/withMessagePattern are mapped — the substring
+        // translate (only withMessage/withCode/withMessageMatchingRegex are mapped — the substring
         // withMessageContaining, fromMethod, withPrevious, … are not) is left as a `Testo\Expect::`
         // call, which needs the Testo runtime state absent under PHPUnit and would fatal with
         // StateNotFound. Skip such a method. (A chain with only mapped modifiers converts fine and is
@@ -217,7 +217,7 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
     }
 
     /** Modifiers ExpectExceptionToPhpUnitRector can translate; any other on the chain aborts it. */
-    private const MAPPED_EXPECT_MODIFIERS = ['withMessage', 'withCode', 'withMessagePattern'];
+    private const MAPPED_EXPECT_MODIFIERS = ['withMessage', 'withCode', 'withMessageMatchingRegex', 'withMessagePattern'];
 
     /**
      * Whether the body holds a `Testo\Expect::exception(...)` chain with at least one modifier that has

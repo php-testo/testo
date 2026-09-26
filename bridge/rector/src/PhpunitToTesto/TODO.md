@@ -48,7 +48,7 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   rewrites its `->stmts`): after a `$this->expectException($c)` statement it absorbs the
   following sibling `expectExceptionMessage($m)` /
   `expectExceptionMessageMatches($re)` / `expectExceptionCode($n)` statements into
-  `\Testo\Expect::exception($c)->withMessageContaining($m)->withMessagePattern($re)->withCode($n)`
+  `\Testo\Expect::exception($c)->withMessageContaining($m)->withMessageMatchingRegex($re)->withCode($n)`
   and removes them. PHPUnit's `expectExceptionMessage()` matches a substring, hence
   `withMessageContaining()` rather than the exact `withMessage()`. Conservative: only assignments that
   cannot throw (`$message = '…';`) may stand between the calls, and the chain takes the place of the
@@ -113,7 +113,7 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `notSame()` when both sides are strings (both lowercase with `mb_strtolower()` and compare with
   `===`), `assertMatchesRegularExpression`/
   `DoesNotMatchRegularExpression` and the PHPUnit 9 `assertRegExp`/`assertNotRegExp` to
-  `Assert::string($s)->matchesPattern()`/`notMatchesPattern()` (full PCRE on both sides; an invalid
+  `Assert::string($s)->matchesRegex()`/`notMatchesRegex()` (full PCRE on both sides; an invalid
   pattern is an error, negated or not), `assertNotContains` to
   `Assert::iterable($h)->notContains()` (`===`, like the flat `assertContains` conversion; PHPUnit's
   `SplObjectStorage` key lookup gives the same verdict as iterating its objects),
@@ -152,7 +152,7 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
 
   **Pattern residual:** PHPUnit 9's `assertRegExp`/`assertNotRegExp` ran `preg_match() > 0` with no
   error check, so a match that fails at runtime (backtrack or JIT stack limit) failed `assertRegExp`
-  and passed `assertNotRegExp`; `matchesPattern()`/`notMatchesPattern()` throw
+  and passed `assertNotRegExp`; `matchesRegex()`/`notMatchesRegex()` throw
   `\InvalidArgumentException` there, as PHPUnit 10+ throws a framework exception. The string matchers
   also need a string subject: outside `strict_types` PHPUnit's `string` parameter coerces an int,
   float or `Stringable`, which `Assert::string()` rejects.

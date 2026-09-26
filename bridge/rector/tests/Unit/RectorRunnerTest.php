@@ -25,7 +25,7 @@ final class RectorRunnerTest
         $runner = new RectorRunner(new RecordingMessenger(), [ThrowingRule::class]);
 
         Expect::exception(\RuntimeException::class)
-            ->withMessagePattern('/^Rector failed on fixture "throwing_rule\.php\.inc":\n.*rule crashed/');
+            ->withMessageMatchingRegex('/^Rector failed on fixture "throwing_rule\.php\.inc":\n.*rule crashed/');
 
         $runner->assertConverts(Path::create(self::FIXTURE));
     }

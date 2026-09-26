@@ -38,7 +38,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *
  * Mapped modifiers: `withMessageContaining` → `expectExceptionMessage` (both match a substring, so
  * this is exact), `withMessage` → `expectExceptionMessage` (lossy: the exact Testo match becomes a
- * substring match), `withCode` → `expectExceptionCode`, `withMessagePattern` →
+ * substring match), `withCode` → `expectExceptionCode`, `withMessageMatchingRegex` and its deprecated alias `withMessagePattern` →
  * `expectExceptionMessageMatches` (both take a PCRE pattern, so this is exact).
  *
  * Conservative by design: if ANY chained modifier has no faithful PHPUnit counterpart, the whole
@@ -139,7 +139,7 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
     /**
      * Maps one Testo fluent modifier (with its arguments) to a single PHPUnit `$this->expect*`
      * statement, or null when the modifier has no faithful PHPUnit equivalent. Only `withMessage`,
-     * `withMessageContaining`, `withCode` and the regex `withMessagePattern` are translated;
+     * `withMessageContaining`, `withCode` and the regex `withMessageMatchingRegex`/`withMessagePattern` are translated;
      * everything else returns null and aborts the chain conversion.
      *
      * @param non-empty-string $modifier
@@ -155,7 +155,7 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
         return match ($modifier) {
             'withMessage', 'withMessageContaining' => $this->expectStmt('expectExceptionMessage', [$this->arg($first)]),
             'withCode' => $this->expectStmt('expectExceptionCode', [$this->arg($first)]),
-            'withMessagePattern' => $this->expectStmt('expectExceptionMessageMatches', [$this->arg($first)]),
+            'withMessageMatchingRegex', 'withMessagePattern' => $this->expectStmt('expectExceptionMessageMatches', [$this->arg($first)]),
             default => null,
         };
     }

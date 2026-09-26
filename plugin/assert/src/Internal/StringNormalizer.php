@@ -100,7 +100,7 @@ final readonly class StringNormalizer
     /**
      * Apply every active mode.
      *
-     * @param bool $withCase Whether to fold the case too; patterns run on the unfolded text.
+     * @param bool $withCase Whether to fold the case too; regex checks run on the unfolded text.
      */
     public function normalize(string $value, bool $withCase = true): string
     {

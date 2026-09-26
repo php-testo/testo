@@ -25,7 +25,7 @@ class RegularExpressionFunctionCallTest
 {
     public function test()
     {
-        \Testo\Assert::string($id)->matchesPattern('/^id-\d+$/', 'id format');
-        \Testo\Assert::string($id)->notMatchesPattern('/\s/');
+        \Testo\Assert::string($id)->matchesRegex('/^id-\d+$/', 'id format');
+        \Testo\Assert::string($id)->notMatchesRegex('/\s/');
     }
 }

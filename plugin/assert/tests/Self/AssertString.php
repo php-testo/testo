@@ -73,54 +73,54 @@ final class AssertString
         Assert::string("string")->endsWith('str', 'my wonderful message');
     }
 
-    public function matchesPattern(): never
+    public function matchesRegex(): never
     {
-        Assert::string("2026-09-26")->matchesPattern('/^\d{4}-\d{2}-\d{2}$/');
-        Assert::string("string")->matchesPattern('/str/');
+        Assert::string("2026-09-26")->matchesRegex('/^\d{4}-\d{2}-\d{2}$/');
+        Assert::string("string")->matchesRegex('/str/');
 
         Expect::exception(AssertionException::class)
             ->withMessageContaining('my wonderful message');
-        Assert::string("26.09.2026")->matchesPattern('/^\d{4}-\d{2}-\d{2}$/', 'my wonderful message');
+        Assert::string("26.09.2026")->matchesRegex('/^\d{4}-\d{2}-\d{2}$/', 'my wonderful message');
     }
 
-    public function notMatchesPattern(): never
+    public function notMatchesRegex(): never
     {
-        Assert::string("no trailing space")->notMatchesPattern('/\s$/');
-        Assert::string("string")->notMatchesPattern('/^ring/');
+        Assert::string("no trailing space")->notMatchesRegex('/\s$/');
+        Assert::string("string")->notMatchesRegex('/^ring/');
 
         Expect::exception(AssertionException::class)
             ->withMessageContaining('my wonderful message');
-        Assert::string("trailing space ")->notMatchesPattern('/\s$/', 'my wonderful message');
+        Assert::string("trailing space ")->notMatchesRegex('/\s$/', 'my wonderful message');
     }
 
-    public function matchesPatternWithFlags(): void
+    public function matchesRegexWithFlags(): void
     {
-        Assert::string("Hello World")->matchesPattern('/^hello world$/i')->notMatchesPattern('/^hello world$/');
-        Assert::string("Привет")->matchesPattern('/^\w{6}$/u')->notMatchesPattern('/^\w{6}$/');
+        Assert::string("Hello World")->matchesRegex('/^hello world$/i')->notMatchesRegex('/^hello world$/');
+        Assert::string("Привет")->matchesRegex('/^\w{6}$/u')->notMatchesRegex('/^\w{6}$/');
     }
 
-    public function patternMatchersChainWithOtherMatchers(): void
+    public function regexMatchersChainWithOtherMatchers(): void
     {
         Assert::string("report-2026.json")
             ->startsWith('report')
-            ->matchesPattern('/-\d{4}\./')
-            ->notMatchesPattern('/\s/')
+            ->matchesRegex('/-\d{4}\./')
+            ->notMatchesRegex('/\s/')
             ->endsWith('.json');
     }
 
-    public function matchesPatternRejectsInvalidPattern(): never
+    public function matchesRegexRejectsInvalidPattern(): never
     {
         Expect::exception(\InvalidArgumentException::class)
             ->withMessageContaining('Invalid pattern /(/')
             ->withMessageContaining('missing closing parenthesis');
-        Assert::string("string")->matchesPattern('/(/');
+        Assert::string("string")->matchesRegex('/(/');
     }
 
-    public function notMatchesPatternRejectsInvalidPattern(): never
+    public function notMatchesRegexRejectsInvalidPattern(): never
     {
         Expect::exception(\InvalidArgumentException::class)
             ->withMessageContaining('Invalid pattern no-delimiters');
-        Assert::string("string")->notMatchesPattern('no-delimiters');
+        Assert::string("string")->notMatchesRegex('no-delimiters');
     }
 
     public function invalidPatternEmitsNoWarning(): void
@@ -132,7 +132,7 @@ final class AssertString
         });
 
         try {
-            Assert::string("string")->matchesPattern('/(/');
+            Assert::string("string")->matchesRegex('/(/');
         } catch (\InvalidArgumentException) {
         } finally {
             \restore_error_handler();

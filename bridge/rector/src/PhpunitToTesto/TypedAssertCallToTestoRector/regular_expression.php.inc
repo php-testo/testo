@@ -17,9 +17,9 @@ class RegularExpressionAssertTest
 {
     public function test()
     {
-        \Testo\Assert::string($date)->matchesPattern('/^\d{4}-\d{2}-\d{2}$/');
-        \Testo\Assert::string($date)->notMatchesPattern('/\s$/', 'no trailing space');
-        \Testo\Assert::string($name)->matchesPattern('/^a/i', 'starts with a');
-        \Testo\Assert::string($name)->notMatchesPattern('/^b/');
+        \Testo\Assert::string($date)->matchesRegex('/^\d{4}-\d{2}-\d{2}$/');
+        \Testo\Assert::string($date)->notMatchesRegex('/\s$/', 'no trailing space');
+        \Testo\Assert::string($name)->matchesRegex('/^a/i', 'starts with a');
+        \Testo\Assert::string($name)->notMatchesRegex('/^b/');
     }
 }

@@ -15,6 +15,6 @@ class SomeTest
 {
     public function test()
     {
-        \Testo\Expect::exception(\RuntimeException::class)->withMessagePattern('/boom/');
+        \Testo\Expect::exception(\RuntimeException::class)->withMessageMatchingRegex('/boom/');
     }
 }
