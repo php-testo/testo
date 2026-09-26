@@ -78,6 +78,7 @@ Typed chains (use when you want a fluent series of checks on one value):
 ```php
 Assert::string($s)->contains('foo')->notContains('bar')->startsWith('f')->endsWith('.txt');
 Assert::string($date)->matchesPattern('/^\d{4}-\d{2}-\d{2}$/')->notMatchesPattern('/\s$/');  // full PCRE; invalid pattern → InvalidArgumentException
+Assert::string($out)->ignoringLineEndings()->same("a\nb\n");        // whole-string ===, never numeric; notSame() too
 Assert::string($html)->ignoringCase()->contains('<title>');          // mb_strtolower() of string and argument
 Assert::string($out)->ignoringLineEndings()->endsWith("done\n");     // \r\n and \r count as \n on both sides
 Assert::string($html)->ignoringWhitespace()->contains("<li>\n<b>Total:</b> 5\n</li>");  // per line: trim, collapse spaces
@@ -94,7 +95,7 @@ Assert::object($o)->instanceOf(Foo::class)->hasProperty('id');
 Assert::json($s)->isObject()->hasKeys(['data', 'meta'])->assertPath('$.data.id', 42);
 ```
 
-The string modifiers (`ignoringCase()`, `ignoringLineEndings()`, `ignoringWhitespace()`, `ignoringBlankLines()`, `ignoringAnsi()`) return a new chain and apply to every check after them; the chain they were called on stays strict, and there is no way to switch a mode off. They normalize the string and each check argument by the same rules, in a fixed order whatever the call order (ANSI, line endings, whitespace, blank lines, case). An argument that becomes empty after normalization, like `contains('  ')` under `ignoringWhitespace()`, throws `InvalidArgumentException`. Since arguments are trimmed, `contains(' foo ')` no longer checks word boundaries: use `matchesPattern('/\bfoo\b/')`. Patterns run on the string normalized by every modifier except `ignoringCase()` (use the `i` flag); the pattern itself is never changed.
+The string modifiers (`ignoringCase()`, `ignoringLineEndings()`, `ignoringWhitespace()`, `ignoringBlankLines()`, `ignoringAnsi()`) return a new chain and apply to every check after them; the chain they were called on stays strict, and there is no way to switch a mode off. They normalize the string and each check argument by the same rules, in a fixed order whatever the call order (ANSI, line endings, whitespace, blank lines, case). A substring, prefix or suffix that becomes empty after normalization, like `contains('  ')` under `ignoringWhitespace()`, throws `InvalidArgumentException`; `same('')` stays a valid check. On failure `same()` diffs the normalized strings. Since arguments are trimmed, `contains(' foo ')` no longer checks word boundaries: use `matchesPattern('/\bfoo\b/')`. Patterns run on the string normalized by every modifier except `ignoringCase()` (use the `i` flag); the pattern itself is never changed.
 
 ## Expecting exceptions
 
