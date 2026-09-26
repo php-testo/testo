@@ -64,6 +64,7 @@ Assert::notSame($a, $b);
 Assert::equals($result, '1');         // loose ==
 Assert::true($flag);
 Assert::false($flag);
+Assert::bool($flag);                  // type check, no chain: only true/false pass, 0/1/'true'/null fail
 Assert::null($value);
 Assert::blank($value);                // null, '', [], or 0-count
 Assert::notBlank($value);             // inverse of blank(); false/0/'0' count as non-blank
@@ -92,6 +93,7 @@ Assert::array($a)->sameElementsAs([3, 2, 1]);  // order-insensitive, keys ignore
 Assert::iterable($ids)->allOf('int');          // exact get_debug_type() of every element
 Assert::iterable($users)->allInstanceOf(User::class);  // instanceof: subclasses and implementations pass
 Assert::object($o)->instanceOf(Foo::class)->hasProperty('id');
+Assert::callable($handler);   // is_callable() in the assertion's scope: private/protected methods fail; no chain methods
 Assert::json($s)->isObject()->hasKeys(['data', 'meta'])->assertPath('$.data.id', 42);
 ```
 
