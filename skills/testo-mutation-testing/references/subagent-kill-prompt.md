@@ -53,7 +53,7 @@ Whole segment test suite (the already-killed check):
 Read the verdict straight from the JSON:
 
 ```json
-{ "status": "passed", "totals": { "total": 1, "passed": 1 }, "failures": [] }
+{ "status": "passed", "totals": { "total": 1, "assertions": 2, "passed": 1 }, "failures": [] }
 ```
 
 `status` is `"passed"` or `"failed"`; `failures[]` names the failing tests. (The process exit code is non-zero on failure too.)

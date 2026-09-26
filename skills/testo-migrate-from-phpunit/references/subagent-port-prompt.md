@@ -47,7 +47,7 @@ of the verbose tree, and writes nothing to disk:
 Read the verdict straight from the JSON:
 
 ```json
-{ "status": "passed", "totals": { "total": 3, "passed": 3 }, "failures": [] }
+{ "status": "passed", "totals": { "total": 3, "assertions": 5, "passed": 3 }, "failures": [] }
 ```
 
 `status` is `"passed"` or `"failed"`; `failures[]` names failing tests. (Exit code is non-zero on failure.)
