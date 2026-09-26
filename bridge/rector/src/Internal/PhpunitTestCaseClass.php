@@ -27,7 +27,38 @@ final class PhpunitTestCaseClass
     public function __construct(
         private readonly ReflectionProvider $reflectionProvider,
         private readonly NodeNameResolver $nodeNameResolver,
+        private readonly ProcessedClasses $processedClasses,
     ) {}
+
+    /**
+     * The nearest ancestor declared outside the processed paths through which the class reaches
+     * `TestCase`, such as a framework's test case from vendor. No rule detaches that base, so it keeps
+     * the class on PHPUnit after the run.
+     *
+     * @return array{name: string, direct: bool}|null The base, and whether it is the direct parent.
+     */
+    public function phpunitBaseFromVendor(Class_ $class): ?array
+    {
+        $name = $class->namespacedName?->toString();
+        if ($name === null || $this->extendsDirectly($class) || !$this->reflectionProvider->hasClass($name)) {
+            return null;
+        }
+
+        $direct = true;
+        foreach ($this->reflectionProvider->getClass($name)->getParents() as $parent) {
+            if ($parent->getName() === self::TEST_CASE) {
+                return null;
+            }
+
+            if (!$this->processedClasses->declares($parent->getName())) {
+                return $parent->isSubclassOf(self::TEST_CASE) ? ['name' => $parent->getName(), 'direct' => $direct] : null;
+            }
+
+            $direct = false;
+        }
+
+        return null;
+    }
 
     public function isTestCase(Class_ $class): bool
     {

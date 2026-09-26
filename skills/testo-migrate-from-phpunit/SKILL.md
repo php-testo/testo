@@ -168,7 +168,10 @@ After the chosen approach's stages complete, run the shared final pass (detailed
    must stay `IDENTICAL`.
 4. **Retire the old harness — only once green:** delete the disposable Rector configs (Approach A);
    when the whole project is migrated, remove `phpunit.xml`, `phpunit/phpunit` from `composer.json`,
-   and any `tests/bootstrap.php`. Optionally drop `testo/bridge-rector` from `require-dev`.
+   and any `tests/bootstrap.php`. Optionally drop `testo/bridge-rector` from `require-dev`. Classes
+   carrying a `#[Skip]` that names a PHPUnit base from vendor come first: rewrite that base for Testo
+   and remove the attributes. Remove `phpunit/phpunit` only after that, since without it the vendor
+   base no longer loads and test discovery fails.
    **CI:** add a job that runs `vendor/bin/testo` per suite (with the PHP extensions each suite
    needs) next to the existing one. When the project calls a shared reusable workflow that runs
    PHPUnit, leave that workflow alone and replace the call in the project's own workflow file.

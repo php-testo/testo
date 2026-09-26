@@ -65,8 +65,10 @@ vendor/bin/rector process --config=rector-testo-migration.php
 (`git commit -am "migrate: mechanical Rector pass"`) so the structural pass has a clean base to diff against.
 
 > Rector detaches each class from `TestCase` and marks its test methods with `#[\Testo\Test]`, including
-> subclasses of a project base class. Tests inherited from a PHPUnit base in `vendor/` are not
-> converted — `scan-residuals.php` and the pitfalls in the mapping cover them.
+> subclasses of a project base class. A class on a PHPUnit base from `vendor/` (a framework's `TestCase`)
+> is converted as well, but the class extending that base gets `#[\Testo\Skip]` naming it, since the
+> base still runs on PHPUnit. Tests inherited from such a base are not converted. `scan-residuals.php`
+> and the pitfalls in the mapping cover them.
 
 ## Stage A4 — Plan the structural residue
 
@@ -149,7 +151,9 @@ current batch.
    **Gate:** the step-2 checks again give `status: "passed"` and `IDENTICAL`.
 4. Remove the scaffolding once green: delete `rector-testo-migration.php` and `rector-testo-polish.php`; if the whole project is
    migrated, drop `phpunit.xml`, `phpunit/phpunit` and `tests/bootstrap.php`, and optionally remove
-   `testo/bridge-rector` from `require-dev`.
+   `testo/bridge-rector` from `require-dev`. A class skipped for a PHPUnit base from vendor blocks
+   this: rewrite the base for Testo and remove the `#[Skip]` first, or the base no longer loads once
+   PHPUnit is gone and discovery fails.
 
 Deprecated Testo API (for example `withMessagePattern()`, now `withMessageMatchingRegex()`) is migrated by the `testo-shift` set: scaffold it with `--set=testo-shift` and run it whenever the project upgrades Testo, not only after a migration.
 

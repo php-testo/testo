@@ -143,7 +143,8 @@ const PHPUNIT_ASSERTS = [
  *
  * @return array{
  *     classes: list<array{kind:string, name:string, parent:?string, abstract:bool, attrs:list<string>,
- *         methods:list<array{name:string, public:bool, abstract:bool, attrs:list<string>}>}>,
+ *         methods:list<array{name:string, public:bool, abstract:bool, attrs:list<string>,
+ *             parentCalls:list<string>}>}>,
  *     imports: array<string, array{fqcn:string, used:bool}>,
  *     refs: list<array{name:string, kind:string}>,
  * }
@@ -167,6 +168,8 @@ function outline(string $code): array
     $depth = 0;
     $attrs = [];
     $mods = [];
+    $pendingMethod = null;
+    $currentMethod = null;
 
     $resolve = static function (string $name, bool $function = false) use (&$ns, &$classUses, &$funcUses, &$imports): string {
         if ($name[0] === '\\') {
@@ -325,7 +328,9 @@ function outline(string $code): array
                     'public' => !\in_array(\T_PRIVATE, $mods, true) && !\in_array(\T_PROTECTED, $mods, true),
                     'abstract' => \in_array(\T_ABSTRACT, $mods, true),
                     'attrs' => $attrs,
+                    'parentCalls' => [],
                 ];
+                $pendingMethod = [$top['index'], \count($classes[$top['index']]['methods']) - 1];
             }
             $attrs = $mods = [];
             $i = $j;
@@ -334,6 +339,10 @@ function outline(string $code): array
 
         if ($tok->is(['{', \T_CURLY_OPEN, \T_DOLLAR_OPEN_CURLY_BRACES])) {
             $depth++;
+            if ($pendingMethod !== null) {
+                $currentMethod = [...$pendingMethod, $depth];
+                $pendingMethod = null;
+            }
             $attrs = $mods = [];
             continue;
         }
@@ -341,11 +350,27 @@ function outline(string $code): array
             $depth--;
             $top = \end($stack);
             $top !== false && $top['body'] > $depth and \array_pop($stack);
+            $currentMethod !== null && $currentMethod[2] > $depth and $currentMethod = null;
             $attrs = $mods = [];
             continue;
         }
+        if ($tok->text === ';' && $pendingMethod !== null) {
+            // An abstract or interface method: no body follows.
+            $pendingMethod = null;
+        }
         if ($tok->is([';', \T_VARIABLE, \T_CONST, \T_CASE])) {
             $attrs = $mods = [];
+            continue;
+        }
+
+        if ($currentMethod !== null
+            && \strtolower($tok->text) === 'parent'
+            && $next?->is(\T_DOUBLE_COLON)
+            && ($t[$i + 2] ?? null)?->is(\T_STRING)
+        ) {
+            [$c, $m] = $currentMethod;
+            $classes[$c]['methods'][$m]['parentCalls'][] = $t[$i + 2]->text;
+            $i += 2;
             continue;
         }
 
@@ -382,6 +407,7 @@ $untaggedTests = static function (array $class) use ($hasTestoTest, $isTestName)
 /** @var list<array{abs:string, rel:string, code:string, outline:array}> $sources */
 $sources = [];
 $declaredClasses = [];
+$declaredParents = [];
 $declaredMethods = [];
 
 foreach ($scopes as $scope) {
@@ -409,6 +435,7 @@ foreach ($scopes as $scope) {
         }
         foreach ($outline['classes'] as $class) {
             $declaredClasses[\strtolower($class['name'])] = true;
+            $declaredParents[\strtolower($class['name'])] = $class['parent'];
             foreach ($class['methods'] as $method) {
                 $declaredMethods[\strtolower($method['name'])] = true;
             }
@@ -490,6 +517,34 @@ $externalParent = (static function () use ($root, $autoload): \Closure {
     };
 })();
 
+/**
+ * The first ancestor outside the scope when it is still a PHPUnit TestCase other than
+ * `PHPUnit\Framework\TestCase` itself, which Rector detaches. Walks the parents the scope declares.
+ *
+ * @return array{name:string, via:list<string>, info:array}|null
+ */
+$phpunitAncestor = static function (?string $parent) use ($declaredParents, $externalParent): ?array {
+    $via = [];
+    while ($parent !== null && \array_key_exists(\strtolower($parent), $declaredParents)) {
+        if (\in_array($parent, $via, true)) {
+            return null;
+        }
+        $via[] = $parent;
+        $parent = $declaredParents[\strtolower($parent)];
+    }
+    if ($parent === null || \strtolower($parent) === PHPUNIT_TEST_CASE) {
+        return null;
+    }
+    $info = $externalParent($parent);
+    return $info['testcase'] ? ['name' => $parent, 'via' => $via, 'info' => $info] : null;
+};
+
+const TESTO_LIFECYCLE_ATTRS = [
+    'testo\lifecycle\beforetest', 'testo\lifecycle\aftertest',
+    'testo\lifecycle\beforeclass', 'testo\lifecycle\afterclass',
+];
+const PHPUNIT_HOOKS = ['setup', 'teardown', 'setupbeforeclass', 'teardownafterclass'];
+
 /*
  * Each check: a regex (or a `detect` callback) + the to-do line the subagent must act on + a one-line hint.
  * A `detect` callback returns null for no match, or a list of details appended to the to-do line.
@@ -511,26 +566,53 @@ $checks = [
         'hint' => 'Testo requires no base class; discovery is attribute-based. Method names may keep their `test` prefix.',
     ],
     'external_testcase_parent' => [
-        'detect' => static function (array $src) use ($declaredClasses, $externalParent): ?array {
+        'detect' => static function (array $src) use ($phpunitAncestor): ?array {
             $found = [];
             foreach ($src['outline']['classes'] as $class) {
-                $parent = $class['parent'];
-                if ($parent === null || \strtolower($parent) === PHPUNIT_TEST_CASE || isset($declaredClasses[\strtolower($parent)])) {
+                $ancestor = $phpunitAncestor($class['parent']);
+                if ($ancestor === null) {
                     continue;
                 }
-                $info = $externalParent($parent);
-                if (!$info['testcase']) {
-                    continue;
-                }
-                $found[] = '`' . $parent . '`'
+                $info = $ancestor['info'];
+                $found[] = '`' . $ancestor['name'] . '`'
+                    . ($ancestor['via'] === [] ? '' : ' via `' . \implode('` → `', $ancestor['via']) . '`')
                     . ($info['verified']
                         ? ' (' . $info['tests'] . ' inherited test method(s)' . ($info['file'] ? ', ' . $info['file'] : '') . ')'
                         : ' (unverified: no autoloader, guessed from the name)');
             }
             return $found === [] ? null : $found;
         },
-        'need' => 'The parent class lies outside the scanned scope and is still a PHPUnit TestCase: its tests are invisible to Rector and Testo. Copy it into a local trait/abstract class under the test tree, port it, and point this class at the copy.',
+        'need' => 'The parent class lies outside the scanned scope and is still a PHPUnit TestCase: its tests are invisible to Rector and Testo, and Rector marks the class extending it with `#[Skip]` naming that base. Copy the base into a local trait/abstract class under the test tree, port it, point this class at the copy, then remove the `#[Skip]`.',
         'hint' => 'See the mapping pitfall "Tests inherited from a vendor/ PHPUnit base"; carry `setUp`/`tearDown` over as `#[BeforeTest]`/`#[AfterTest]`.',
+    ],
+    'lifecycle_parent_call' => [
+        'detect' => static function (array $src) use ($phpunitAncestor): ?array {
+            $found = [];
+            foreach ($src['outline']['classes'] as $class) {
+                $parent = $class['parent'];
+                $phpunitParent = $parent !== null
+                    && (\strtolower($parent) === PHPUNIT_TEST_CASE || $phpunitAncestor($parent) !== null);
+                if ($parent !== null && !$phpunitParent) {
+                    continue;
+                }
+                foreach ($class['methods'] as $method) {
+                    if (\array_intersect($method['attrs'], TESTO_LIFECYCLE_ATTRS) === []) {
+                        continue;
+                    }
+                    $hooks = \array_filter(
+                        $method['parentCalls'],
+                        static fn(string $call): bool => \in_array(\strtolower($call), PHPUNIT_HOOKS, true),
+                    );
+                    foreach ($hooks as $hook) {
+                        $found[] = "{$method['name']}() calls parent::{$hook}()"
+                            . ($parent === null ? ' but the class has no parent' : " of the PHPUnit base `{$parent}`");
+                    }
+                }
+            }
+            return $found === [] ? null : \array_values(\array_unique($found));
+        },
+        'need' => 'A Testo lifecycle hook still calls a PHPUnit hook of its parent: without a parent it is a fatal error, and on a PHPUnit base Testo runs PHPUnit set-up logic outside PHPUnit. Detach the class from the PHPUnit base first, then drop the call or port what the parent hook did.',
+        'hint' => 'A `parent::` hook call is fine only when the parent is a converted Testo base; see the mapping pitfall "Tests inherited from a vendor/ PHPUnit base".',
     ],
     'phpunit_test_attr' => [
         'detect' => static function (array $src) use ($untaggedTests): ?array {
@@ -726,6 +808,7 @@ foreach ($batches as $i => $chunk) {
 $label = [
     'extends_testcase'         => 'extends TestCase (structural)',
     'external_testcase_parent' => 'PHPUnit parent outside scope (structural)',
+    'lifecycle_parent_call'    => 'lifecycle hook calling a PHPUnit parent hook',
     'phpunit_test_attr'        => 'undiscovered tests / PHPUnit test markers',
     'untagged_trait_tests'     => 'trait tests without #[Test]',
     'phpunit_functions'        => 'PHPUnit\Framework\assert*() functions',

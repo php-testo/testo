@@ -50,6 +50,13 @@ final class ProcessedClasses
     /** @var array<lowercase-string, true> Lowercased names of the extended classes. */
     private array $extended = [];
 
+    public function declares(string $class): bool
+    {
+        $this->ensureIndexed();
+
+        return isset($this->types[self::key($class)]);
+    }
+
     public function hasSubclass(string $class): bool
     {
         $this->ensureIndexed();
