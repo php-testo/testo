@@ -235,6 +235,8 @@ final class TypedAssertChainRector extends AbstractRector
 
             $type === 'string' && $matcher === 'contains' => $needleFirst('assertStringContainsString'),
             $type === 'string' && $matcher === 'notContains' => $needleFirst('assertStringNotContainsString'),
+            $type === 'string' && $matcher === 'startsWith' => $needleFirst('assertStringStartsWith'),
+            $type === 'string' && $matcher === 'endsWith' => $needleFirst('assertStringEndsWith'),
 
             $type === 'array' && $matcher === 'contains' => $needleFirst('assertContains'),
             $type === 'array' && $matcher === 'notContains' => $needleFirst('assertNotContains'),

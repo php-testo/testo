@@ -52,4 +52,24 @@ final class AssertString
             ->withMessageContaining('my wonderful message');
         Assert::string("string")->notContains('str', 'my wonderful message');
     }
+
+    public function startsWith(): never
+    {
+        Assert::string("Name must contain at least 5 characters.")->startsWith('Name must')->contains('least');
+        Assert::string("string")->startsWith("");
+
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('my wonderful message');
+        Assert::string("string")->startsWith('ring', 'my wonderful message');
+    }
+
+    public function endsWith(): never
+    {
+        Assert::string("report.json")->endsWith('.json')->startsWith('report');
+        Assert::string("string")->endsWith("");
+
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('my wonderful message');
+        Assert::string("string")->endsWith('str', 'my wonderful message');
+    }
 }
