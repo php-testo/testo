@@ -24,7 +24,7 @@ use Testo\Output\Json\Internal\JsonReport;
  * that run the suite and read the result. Instead of the human-oriented progress
  * stream the {@see \Testo\Output\Terminal\TerminalPlugin} produces, this plugin
  * emits only what an agent needs to act on a failing run: the run status, the
- * per-status counts, and a flat list of failed tests with their throwable,
+ * per-status counts, the assertion count, and a flat list of failed tests with their throwable,
  * `previous` chain, stack trace, and captured output. See {@see JsonReport} for
  * the exact shape.
  *
