@@ -93,11 +93,14 @@ Assert::array($a)->sameElementsAs([3, 2, 1]);  // order-insensitive, keys ignore
 Assert::iterable($ids)->allOf('int');          // exact get_debug_type() of every element
 Assert::iterable($users)->allInstanceOf(User::class);  // instanceof: subclasses and implementations pass
 Assert::object($o)->instanceOf(Foo::class)->hasProperty('id');
-Assert::callable($handler);   // is_callable() in the assertion's scope: private/protected methods fail; no chain methods
+Assert::callable($handler);   // is_callable() in the assertion's scope: private/protected methods fail
+Assert::callable($factory)->isStatic()->hasReturnType('?Foo');  // notStatic() too
 Assert::json($s)->isObject()->hasKeys(['data', 'meta'])->assertPath('$.data.id', 42);
 ```
 
 The string modifiers (`ignoringCase()`, `ignoringLineEndings()`, `ignoringWhitespace()`, `ignoringBlankLines()`, `ignoringAnsi()`) return a new chain and apply to every check after them; the chain they were called on stays strict, and there is no way to switch a mode off. They normalize the string and each check argument by the same rules, in a fixed order whatever the call order (ANSI, line endings, whitespace, blank lines, case). A substring, prefix or suffix that becomes empty after normalization, like `contains('  ')` under `ignoringWhitespace()`, throws `InvalidArgumentException`; `same('')` stays a valid check. On failure `same()` diffs the normalized strings. Since arguments are trimmed, `contains(' foo ')` no longer checks word boundaries: use `matchesRegex('/\bfoo\b/')`. Regex checks run on the string normalized by every modifier except `ignoringCase()` (use the `i` flag); the pattern itself is never changed.
+
+The callable checks reflect what the callable points to: the closure, the function, the method of a `[$obj, 'm']` / `[Foo::class, 'm']` array or `'Foo::m'` string, or `__invoke()`. `isStatic()` passes for a closure declared `static`, a static method and a plain function (`'strlen'`, `strlen(...)`); an instance method, an invokable object and a closure not declared `static` fail it. `hasReturnType()` compares the declared type as written, ignoring member order, case, leading backslashes and whitespace, with `?T` equal to `T|null`; it does not resolve subtypes or `self`, and a callable without a declared type fails.
 
 ## Expecting exceptions
 
