@@ -129,6 +129,66 @@ final class JUnitPluginTest
         }
     }
 
+    #[Covers(JUnitPlugin::class)]
+    public function classSuiteCarriesTheClassDeclarationLine(): void
+    {
+        $path = self::tmpPath();
+        try {
+            $dispatcher = self::wirePlugin(new JUnitPlugin($path));
+            $suiteInfo = self::makeSuiteInfo('CoreSuite');
+            $caseInfo = self::makeCaseInfo();
+            $testInfo = self::makeTestInfo('passingTest');
+            $result = new TestResult(info: $testInfo, status: Status::Passed, attributes: ['duration' => 1]);
+
+            $dispatcher->dispatch(new SessionStarting());
+            $dispatcher->dispatch(new TestSuiteStarting($suiteInfo));
+            $dispatcher->dispatch(new TestCaseStarting($caseInfo));
+            $dispatcher->dispatch(new TestPipelineFinished($testInfo, $result));
+            $dispatcher->dispatch(new TestCaseFinished($caseInfo, new CaseResult([$result], Status::Passed)));
+            $dispatcher->dispatch(new TestSuiteFinished($suiteInfo, new SuiteResult([], Status::Passed)));
+            $dispatcher->dispatch(self::sessionFinished());
+
+            $suite = self::loadFile($path)->testsuite;
+            Assert::null($suite['line']);
+            Assert::same(
+                (string) $suite->testsuite['line'],
+                (string) (new \ReflectionClass(SampleTestClass::class))->getStartLine(),
+            );
+        } finally {
+            self::cleanup($path);
+        }
+    }
+
+    #[Covers(JUnitPlugin::class)]
+    public function freeFunctionSuiteCarriesNoLine(): void
+    {
+        require_once \dirname((string) (new \ReflectionClass(SampleTestClass::class))->getFileName()) . '/free_function_helper.php';
+        $functionFqn = 'Tests\\Output\\Stub\\JUnit\\junitFreeFunction';
+        $path = self::tmpPath();
+        try {
+            $dispatcher = self::wirePlugin(new JUnitPlugin($path, testTypes: []));
+            $suiteInfo = self::makeSuiteInfo('CoreSuite');
+            $caseInfo = self::makeFreeFunctionCaseInfo();
+            $testInfo = self::makeFreeFunctionTestInfo($caseInfo, $functionFqn);
+            $result = new TestResult(info: $testInfo, status: Status::Passed, attributes: ['duration' => 1]);
+
+            $dispatcher->dispatch(new SessionStarting());
+            $dispatcher->dispatch(new TestSuiteStarting($suiteInfo));
+            $dispatcher->dispatch(new TestCaseStarting($caseInfo));
+            $dispatcher->dispatch(new TestPipelineFinished($testInfo, $result));
+            $dispatcher->dispatch(new TestCaseFinished($caseInfo, new CaseResult([$result], Status::Passed)));
+            $dispatcher->dispatch(new TestSuiteFinished($suiteInfo, new SuiteResult([], Status::Passed)));
+            $dispatcher->dispatch(self::sessionFinished());
+
+            $functionSuite = self::loadFile($path)->testsuite->testsuite;
+            Assert::same((string) $functionSuite['name'], $functionFqn);
+            Assert::notSame((string) $functionSuite['file'], '');
+            Assert::null($functionSuite['line']);
+        } finally {
+            self::cleanup($path);
+        }
+    }
+
     public function dataProviderEmitsCasePerDataSetAndSuppressesPipelineCase(): void
     {
         // Arrange

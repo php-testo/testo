@@ -868,7 +868,7 @@ final class JUnitWriterTest
     {
         $writer = new JUnitWriter(hostname: 'ci-runner');
         $writer->startSuite('Output/Unit', startedAt: new \DateTimeImmutable('2026-09-26 10:00:00'));
-        $writer->startSuite(SampleTestClass::class, __FILE__);
+        $writer->startSuite(SampleTestClass::class, __FILE__, 12);
         foreach (Status::cases() as $status) {
             $writer->addTestResult(self::makeResult(
                 'passingTest',
