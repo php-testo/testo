@@ -31,7 +31,7 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  *     path absent from the mirror;
  *   - it carries a composite data source ({@see self::COMPOSITE_DATA}) with no PHPUnit equivalent;
  *   - it declares an `Expect::exception()` expectation with a modifier that has no PHPUnit form
- *     (the substring `withMessageContaining`, `fromMethod`, …) — the chain stays as a `Testo\Expect::`
+ *     (`withPrevious`, `fromMethod`, …) — the chain stays as a `Testo\Expect::`
  *     call the runtime cannot satisfy under PHPUnit;
  *   - it is individually listed as unconvertible ({@see self::SKIP_METHODS}) — e.g. a Tokenizer test
  *     whose stub reprint fully-qualifies an unqualified external call.
@@ -92,7 +92,7 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
                         #[\PHPUnit\Framework\Attributes\Test]
                         public function rejects(): never
                         {
-                            \Testo\Expect::exception(X::class)->withMessageContaining('x');
+                            \Testo\Expect::exception(X::class)->withPrevious(X::class);
                             $this->act();
                         }
                         PHP,
@@ -101,7 +101,7 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
                         public function rejects(): never
                         {
                             $this->markTestSkipped('rejects() calls Testo\Expect with no PHPUnit form');
-                            \Testo\Expect::exception(X::class)->withMessageContaining('x');
+                            \Testo\Expect::exception(X::class)->withPrevious(X::class);
                             $this->act();
                         }
                         PHP,
@@ -201,14 +201,14 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
         }
 
         // An `Expect::exception()` chain carrying a modifier that ExpectExceptionToPhpUnitRector cannot
-        // translate (only withMessage/withCode/withMessageMatchingRegex are mapped — the substring
-        // withMessageContaining, fromMethod, withPrevious, … are not) is left as a `Testo\Expect::`
+        // translate (only withMessage/withMessageContaining/withCode/withMessageMatchingRegex are mapped —
+        // fromMethod, withPrevious, … are not) is left as a `Testo\Expect::`
         // call, which needs the Testo runtime state absent under PHPUnit and would fatal with
         // StateNotFound. Skip such a method. (A chain with only mapped modifiers converts fine and is
         // left to run — detecting it by modifier name, not by "leftover Expect", is order-independent:
         // the skip rule may run before or after that conversion.)
         if ($this->hasUnconvertibleExpect($method)) {
-            return 'declares an Expect::exception() expectation with a modifier that has no PHPUnit form (e.g. withMessageContaining)';
+            return 'declares an Expect::exception() expectation with a modifier that has no PHPUnit form (e.g. withPrevious)';
         }
 
         $shortClass = $fqcn === null ? '' : \substr($fqcn, (int) \strrpos($fqcn, '\\') + 1);
@@ -217,7 +217,7 @@ final class SkipUnconvertibleTestMethodRector extends AbstractRector
     }
 
     /** Modifiers ExpectExceptionToPhpUnitRector can translate; any other on the chain aborts it. */
-    private const MAPPED_EXPECT_MODIFIERS = ['withMessage', 'withCode', 'withMessageMatchingRegex', 'withMessagePattern'];
+    private const MAPPED_EXPECT_MODIFIERS = ['withMessage', 'withMessageContaining', 'withCode', 'withMessageMatchingRegex', 'withMessagePattern'];
 
     /**
      * Whether the body holds a `Testo\Expect::exception(...)` chain with at least one modifier that has
