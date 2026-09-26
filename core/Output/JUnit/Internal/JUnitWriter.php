@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Testo\Output\JUnit\Internal;
 
 use Internal\Path;
+use Testo\Common\Messenger;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
+use Testo\Core\Log\MessageLog;
 use Testo\Core\Value\Status;
 use Testo\Output\Rendering\BenchMapper;
 use Testo\Output\Rendering\StackTrace;
@@ -152,6 +154,8 @@ final class JUnitWriter
             properties: BenchMapper::supports($result->result)
                 ? BenchMapper::metrics($result->result)
                 : [],
+            systemOut: self::outputOf($result->messages, Messenger::CHANNEL_STDOUT),
+            systemErr: self::outputOf($result->messages, Messenger::CHANNEL_STDERR),
         );
 
         $suite = $this->currentSuite();
@@ -374,6 +378,36 @@ final class JUnitWriter
         return \implode("\n", $lines);
     }
 
+    /**
+     * Joins the content of one channel's messages in recorded order.
+     *
+     * Only the two stream channels reach the report. Plugin channels (assertion history, retry
+     * breadcrumbs) are diagnostics the terminal shows for a failed test; copied into every
+     * `<system-out>` they would bury the output the test itself printed.
+     *
+     * @param non-empty-string $channel
+     */
+    private static function outputOf(MessageLog $messages, string $channel): string
+    {
+        $text = '';
+        foreach ($messages->channel($channel) as $message) {
+            $text .= $message->content;
+        }
+
+        return $text;
+    }
+
+    private static function writeOutput(\XMLWriter $xml, string $element, string $text): void
+    {
+        if ($text === '') {
+            return;
+        }
+
+        $xml->startElement($element);
+        $xml->writeRaw(self::escapeCdata($text));
+        $xml->endElement();
+    }
+
     private static function formatTime(float $seconds): string
     {
         return \sprintf('%.6F', $seconds);
@@ -509,6 +543,9 @@ final class JUnitWriter
                 $xml->endElement();
             }
         }
+
+        self::writeOutput($xml, 'system-out', $case->systemOut);
+        self::writeOutput($xml, 'system-err', $case->systemErr);
 
         $xml->endElement(); // testcase
     }

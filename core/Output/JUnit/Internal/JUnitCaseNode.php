@@ -60,5 +60,17 @@ final readonly class JUnitCaseNode
          * @var array<non-empty-string, int|float>
          */
         public array $properties = [],
+
+        /**
+         * Native output the test printed (echo, var_dump), recorded in the `stdout` channel.
+         * Mapped to `<system-out>`.
+         */
+        public string $systemOut = '',
+
+        /**
+         * Text recorded in the `stderr` channel: internal errors Testo suppressed during the test.
+         * Mapped to `<system-err>`.
+         */
+        public string $systemErr = '',
     ) {}
 }
