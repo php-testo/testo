@@ -13,6 +13,7 @@ use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Modifiers;
 use Rector\Rector\AbstractRector;
+use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
@@ -159,7 +160,10 @@ final class TestClassToTestCaseRector extends AbstractRector
             $keptGroups[] = $attrGroup;
         }
 
-        $found and $class->attrGroups = $keptGroups;
+        if ($found) {
+            $class->attrGroups = $keptGroups;
+            DroppedAttributes::keepFormat($class, $this->file->getOldTokens());
+        }
 
         return $found;
     }

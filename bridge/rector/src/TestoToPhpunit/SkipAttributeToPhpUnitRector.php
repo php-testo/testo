@@ -14,6 +14,7 @@ use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
 use Rector\Rector\AbstractRector;
+use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
@@ -148,7 +149,10 @@ final class SkipAttributeToPhpUnitRector extends AbstractRector
             $attrGroup->attrs === [] or $kept[] = $attrGroup;
         }
 
-        $found === null or $method->attrGroups = $kept;
+        if ($found !== null) {
+            $method->attrGroups = $kept;
+            DroppedAttributes::keepFormat($method, $this->file->getOldTokens());
+        }
 
         return $found;
     }
@@ -178,6 +182,7 @@ final class SkipAttributeToPhpUnitRector extends AbstractRector
         }
 
         $class->attrGroups = $kept;
+        DroppedAttributes::keepFormat($class, $this->file->getOldTokens());
     }
 
     /**

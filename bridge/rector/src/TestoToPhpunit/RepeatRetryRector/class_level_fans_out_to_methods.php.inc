@@ -23,6 +23,7 @@ class SomeTest
     public function testA(): void
     {
     }
+
     #[\Testo\Test]
     #[\PHPUnit\Framework\Attributes\Repeat(3)]
     public function testB(): void

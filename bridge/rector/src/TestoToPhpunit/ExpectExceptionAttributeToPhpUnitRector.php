@@ -13,6 +13,7 @@ use PhpParser\Node\Identifier;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
 use Rector\Rector\AbstractRector;
+use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
@@ -111,6 +112,7 @@ final class ExpectExceptionAttributeToPhpUnitRector extends AbstractRector
         }
 
         $node->attrGroups = $remainingGroups;
+        DroppedAttributes::keepFormat($node, $this->file->getOldTokens());
 
         // Bodyless (abstract/interface) method: nothing to guard, just drop the attribute.
         if ($node->stmts !== null) {

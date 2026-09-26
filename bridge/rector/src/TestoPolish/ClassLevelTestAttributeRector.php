@@ -17,6 +17,7 @@ use PHPStan\Reflection\ReflectionProvider;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Testo\Bridge\Rector\Internal\ProcessedClasses;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
@@ -283,6 +284,7 @@ final class ClassLevelTestAttributeRector extends AbstractRector
             }
 
             $method->attrGroups = $kept;
+            DroppedAttributes::keepFormat($method, $this->file->getOldTokens());
         }
     }
 }
