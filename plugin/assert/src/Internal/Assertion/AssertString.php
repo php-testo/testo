@@ -11,6 +11,7 @@ use Testo\Assert\Internal\StringNormalizer;
 use Testo\Assert\Internal\Support;
 use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
+use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Common\Attribute\AssertMethod;
 
 /**
@@ -83,6 +84,43 @@ final readonly class AssertString implements StringType
     public function ignoringAnsi(): static
     {
         return new self($this->value, $this->parent, $this->normalizer->withIgnoreAnsi());
+    }
+
+    /**
+     * Asserts that the string is identical to the expected one.
+     *
+     * @param string $expected The expected string.
+     * @param string $message Optional message for the assertion.
+     * @throws ComparisonFailure when the assertion fails; it compares the normalized strings.
+     */
+    #[AssertMethod]
+    #[\Override]
+    public function same(string $expected, string $message = ''): static
+    {
+        $str = 'is the same as ' . $this->describe($expected);
+        $normalized = $this->normalizer->normalize($expected);
+        $this->subject === $normalized
+            ? $this->parent->success($str, $message)
+            : throw $this->comparisonFailure($normalized, $str, $message, 'expected ' . Support::stringify($expected));
+        return $this;
+    }
+
+    /**
+     * Asserts that the string differs from the given one.
+     *
+     * @param string $expected The string the value must differ from.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    #[AssertMethod]
+    #[\Override]
+    public function notSame(string $expected, string $message = ''): static
+    {
+        $str = 'is not the same as ' . $this->describe($expected);
+        $this->subject !== $this->normalizer->normalize($expected)
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the strings are the same', $message);
+        return $this;
     }
 
     /**
@@ -205,6 +243,28 @@ final readonly class AssertString implements StringType
     private function describe(string $argument): string
     {
         return '"' . Support::escapeControlChars($argument) . '"' . $this->normalizer->describe();
+    }
+
+    /**
+     * A failure carrying the normalized strings, so a diff shows only what made the check fail,
+     * while the message quotes the original ones.
+     *
+     * @param non-empty-string $assertion
+     * @param non-empty-string $reason
+     */
+    private function comparisonFailure(string $expected, string $assertion, string $message, string $reason): ComparisonFailure
+    {
+        $failure = new ComparisonFailure(
+            expected: $expected,
+            actual: $this->subject,
+            value: $this->parent->getValue(),
+            assertion: $assertion,
+            context: $message,
+            reason: $reason . ', got ' . Support::stringify($this->value),
+        );
+        $this->parent->add($failure);
+
+        return $failure;
     }
 
     /**

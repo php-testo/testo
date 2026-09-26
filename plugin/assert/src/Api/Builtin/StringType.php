@@ -13,7 +13,7 @@ use Testo\Assert\State\Assertion\AssertionException;
  * instance they are called on stays strict, and a mode cannot be switched off again. The string
  * and every check argument are normalized by the same rules, always from the original value and in
  * a fixed order whatever the call order: ANSI codes, line endings, whitespace, blank lines, case.
- * A check argument that is not empty but normalizes to an empty string throws
+ * A substring, prefix or suffix that is not empty but normalizes to an empty string throws
  * {@see \InvalidArgumentException}, since it would match any string. Failure messages show the
  * original string and argument followed by the active modes, e.g. `contains "Error" (ignoring case)`.
  *
@@ -89,6 +89,40 @@ interface StringType
      * ```
      */
     public function ignoringAnsi(): static;
+
+    /**
+     * Asserts that the string is identical (`===`) to the expected one, both normalized by the active
+     * modifiers. Without modifiers it behaves like `Assert::same()` for strings. Unlike
+     * `Assert::equals()`, numeric strings are never compared as numbers: `"1e3"` is not `"1000"`.
+     *
+     * An expected string that normalizes to empty is a valid expectation here:
+     * `ignoringWhitespace()->same('')` asserts a blank string.
+     *
+     * On failure the diff shows the normalized strings, the message the original ones.
+     *
+     * ```php
+     * Assert::string($output)->ignoringLineEndings()->same("line 1\nline 2\n");
+     * ```
+     *
+     * @param string $expected The expected string.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    public function same(string $expected, string $message = ''): static;
+
+    /**
+     * Asserts that the string differs from the given one, both normalized by the active modifiers.
+     * Numeric strings are compared as strings, like in {@see self::same()}.
+     *
+     * ```php
+     * Assert::string($name)->ignoringCase()->notSame('admin');
+     * ```
+     *
+     * @param string $expected The string the value must differ from.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     */
+    public function notSame(string $expected, string $message = ''): static;
 
     /**
      * Asserts that the string contains the given substring.
