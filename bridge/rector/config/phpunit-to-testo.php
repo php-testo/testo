@@ -27,8 +27,15 @@ use Testo\Bridge\Rector\PhpunitToTesto\TypedAssertCallToTestoRector;
  * are unconvertible or too fragile to automate are shipped as documented stub
  * rules and are intentionally NOT registered here — see
  * bridge/rector/src/PhpunitToTesto/TODO.md and bridge/rector/README.md.
+ *
+ * The set runs Rector serially. Telling a subclass of a project base class apart as a test class
+ * takes the base's original ancestry, and a parallel worker would read the base from disk after
+ * another worker has already detached it from `TestCase`, silently leaving the subclass's tests
+ * without `#[Test]`. An explicit `withParallel()` in the project config overrides this.
  */
 return static function (RectorConfig $rectorConfig): void {
+    $rectorConfig->disableParallel();
+
     $rectorConfig->rule(AssertCallToTestoRector::class);
 
     # Assertions that map onto a typed Assert head + matcher (comparisons, array keys, canonicalizing,

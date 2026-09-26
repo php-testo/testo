@@ -12,9 +12,11 @@ use Rector\NodeNameResolver\NodeNameResolver;
  * Tells whether a class is a PHPUnit test class: one that extends `\PHPUnit\Framework\TestCase`
  * directly or through any number of project or vendor base classes.
  *
- * The direct `extends` is read off the AST; the ancestry is read from PHPStan's reflection of the
- * original source, so the answer stays the same after another rule has already detached the class
- * or its base from `TestCase` in the same run.
+ * The direct `extends` is read off the AST; the ancestry is read from PHPStan's reflection, which
+ * loads a class once per process from its source before it is rewritten, so the answer stays the same
+ * after another rule has already detached the class or its base from `TestCase` in the same run.
+ * That holds for a serial run only: a parallel worker may load a base another worker has already
+ * written back, which is why the conversion set disables parallel processing.
  *
  * @internal
  */
