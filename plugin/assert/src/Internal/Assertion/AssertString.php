@@ -7,6 +7,8 @@ namespace Testo\Assert\Internal\Assertion;
 use Testo\Assert\Api\Builtin\StringType;
 use Testo\Assert\Internal\Pattern;
 use Testo\Assert\Internal\StaticState;
+use Testo\Assert\Internal\StringNormalizer;
+use Testo\Assert\Internal\Support;
 use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Common\Attribute\AssertMethod;
@@ -19,10 +21,23 @@ use Testo\Common\Attribute\AssertMethod;
  */
 final readonly class AssertString implements StringType
 {
+    /** What the substring checks compare against: the value normalized by every active mode. */
+    private string $subject;
+
+    /** What the patterns run against: the value normalized by every active mode but the case one. */
+    private string $patternSubject;
+
+    /**
+     * @param string $value The asserted value as given; failure messages show it unchanged.
+     */
     public function __construct(
         private string $value,
         private AssertionComposite $parent,
-    ) {}
+        private StringNormalizer $normalizer = new StringNormalizer(),
+    ) {
+        $this->subject = $normalizer->normalize($value);
+        $this->patternSubject = $normalizer->normalize($value, withCase: false);
+    }
 
     /**
      * Validate that the given value is a string and return an AssertString instance.
@@ -40,19 +55,50 @@ final readonly class AssertString implements StringType
         return new self($value, $parent);
     }
 
+    #[\Override]
+    public function ignoringCase(): static
+    {
+        return new self($this->value, $this->parent, $this->normalizer->withIgnoreCase());
+    }
+
+    #[\Override]
+    public function ignoringLineEndings(): static
+    {
+        return new self($this->value, $this->parent, $this->normalizer->withIgnoreLineEndings());
+    }
+
+    #[\Override]
+    public function ignoringWhitespace(bool $lineBreaks = false): static
+    {
+        return new self($this->value, $this->parent, $this->normalizer->withIgnoreWhitespace($lineBreaks));
+    }
+
+    #[\Override]
+    public function ignoringBlankLines(): static
+    {
+        return new self($this->value, $this->parent, $this->normalizer->withIgnoreBlankLines());
+    }
+
+    #[\Override]
+    public function ignoringAnsi(): static
+    {
+        return new self($this->value, $this->parent, $this->normalizer->withIgnoreAnsi());
+    }
+
     /**
      * Asserts that the string contains the given substring.
      *
      * @param non-empty-string $needle Substring to search for.
      * @param string $message Optional message for the assertion.
      * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the needle is empty only after normalization.
      */
     #[AssertMethod]
     #[\Override]
     public function contains(string $needle, string $message = ''): static
     {
-        $str = 'contains "' . $needle . '"';
-        \str_contains($this->value, $needle)
+        $str = 'contains ' . $this->describe($needle);
+        \str_contains($this->subject, $this->argument($needle, 'contains'))
             ? $this->parent->success($str, $message)
             : throw $this->parent->fail($str, 'the substring is not found', $message);
         return $this;
@@ -64,13 +110,14 @@ final readonly class AssertString implements StringType
      * @param non-empty-string $needle Substring to search for.
      * @param string $message Optional message for the assertion.
      * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the needle is empty only after normalization.
      */
     #[AssertMethod]
     #[\Override]
     public function notContains(string $needle, string $message = ''): static
     {
-        $str = 'does not contain "' . $needle . '"';
-        !\str_contains($this->value, $needle)
+        $str = 'does not contain ' . $this->describe($needle);
+        !\str_contains($this->subject, $this->argument($needle, 'notContains'))
             ? $this->parent->success($str, $message)
             : throw $this->parent->fail($str, 'the substring is found', $message);
         return $this;
@@ -79,16 +126,17 @@ final readonly class AssertString implements StringType
     /**
      * Asserts that the string starts with the given prefix.
      *
-     * @param string $prefix Expected beginning of the string.
+     * @param non-empty-string $prefix Expected beginning of the string.
      * @param string $message Optional message for the assertion.
      * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the prefix is empty only after normalization.
      */
     #[AssertMethod]
     #[\Override]
     public function startsWith(string $prefix, string $message = ''): static
     {
-        $str = 'starts with "' . $prefix . '"';
-        \str_starts_with($this->value, $prefix)
+        $str = 'starts with ' . $this->describe($prefix);
+        \str_starts_with($this->subject, $this->argument($prefix, 'startsWith'))
             ? $this->parent->success($str, $message)
             : throw $this->parent->fail($str, 'the string starts differently', $message);
         return $this;
@@ -97,16 +145,17 @@ final readonly class AssertString implements StringType
     /**
      * Asserts that the string ends with the given suffix.
      *
-     * @param string $suffix Expected end of the string.
+     * @param non-empty-string $suffix Expected end of the string.
      * @param string $message Optional message for the assertion.
      * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the suffix is empty only after normalization.
      */
     #[AssertMethod]
     #[\Override]
     public function endsWith(string $suffix, string $message = ''): static
     {
-        $str = 'ends with "' . $suffix . '"';
-        \str_ends_with($this->value, $suffix)
+        $str = 'ends with ' . $this->describe($suffix);
+        \str_ends_with($this->subject, $this->argument($suffix, 'endsWith'))
             ? $this->parent->success($str, $message)
             : throw $this->parent->fail($str, 'the string ends differently', $message);
         return $this;
@@ -124,8 +173,8 @@ final readonly class AssertString implements StringType
     #[\Override]
     public function matchesPattern(string $pattern, string $message = ''): static
     {
-        $str = 'matches pattern ' . $pattern;
-        Pattern::matches($pattern, $this->value)
+        $str = 'matches pattern ' . $pattern . $this->normalizer->describe(withCase: false);
+        Pattern::matches($pattern, $this->patternSubject)
             ? $this->parent->success($str, $message)
             : throw $this->parent->fail($str, 'the pattern does not match', $message);
         return $this;
@@ -143,10 +192,38 @@ final readonly class AssertString implements StringType
     #[\Override]
     public function notMatchesPattern(string $pattern, string $message = ''): static
     {
-        $str = 'does not match pattern ' . $pattern;
-        !Pattern::matches($pattern, $this->value)
+        $str = 'does not match pattern ' . $pattern . $this->normalizer->describe(withCase: false);
+        !Pattern::matches($pattern, $this->patternSubject)
             ? $this->parent->success($str, $message)
             : throw $this->parent->fail($str, 'the pattern matches', $message);
         return $this;
+    }
+
+    /**
+     * The check argument as given, quoted, followed by the active modes.
+     */
+    private function describe(string $argument): string
+    {
+        return '"' . Support::escapeControlChars($argument) . '"' . $this->normalizer->describe();
+    }
+
+    /**
+     * The check argument normalized like the subject.
+     *
+     * @param non-empty-string $check The check name for the error message.
+     * @throws \InvalidArgumentException when a non-empty argument normalizes to an empty string:
+     *         an empty argument matches any string, so the check would prove nothing.
+     */
+    private function argument(string $argument, string $check): string
+    {
+        $normalized = $this->normalizer->normalize($argument);
+        $normalized === '' && $argument !== '' and throw new \InvalidArgumentException(\sprintf(
+            'The argument "%s" of %s() is empty after normalization%s.',
+            Support::escapeControlChars($argument),
+            $check,
+            $this->normalizer->describe(),
+        ));
+
+        return $normalized;
     }
 }
