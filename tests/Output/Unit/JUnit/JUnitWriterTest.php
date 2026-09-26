@@ -702,6 +702,67 @@ final class JUnitWriterTest
         Assert::null(self::loadXml($writer->generate('Testo'))->testsuite['hostname']);
     }
 
+    #[Covers(JUnitWriter::class)]
+    public function attemptsDiscardedBeforeAPassAreWrittenAsFlakyElements(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(
+            self::makeResult('passingTest', Status::Flaky),
+            discardedAttempts: [
+                self::makeResult(
+                    'passingTest',
+                    Status::Failed,
+                    failure: new \RuntimeException('first try'),
+                    messages: new MessageLog([new Message(0.1, Messenger::CHANNEL_STDOUT, Level::Info, 'attempt 1')]),
+                ),
+                self::makeResult('passingTest', Status::Error, failure: new \LogicException('second try')),
+            ],
+        );
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        Assert::same((string) $xml['failures'], '0');
+        Assert::same((string) $xml['errors'], '0');
+        $case = $xml->testsuite->testcase;
+        Assert::count($case->failure, 0);
+        Assert::count($case->flakyFailure, 1);
+        Assert::same((string) $case->flakyFailure['type'], \RuntimeException::class);
+        Assert::same((string) $case->flakyFailure['message'], 'first try');
+        Assert::string((string) $case->flakyFailure->stackTrace)->contains('Stack trace:');
+        Assert::same((string) $case->flakyFailure->{'system-out'}, 'attempt 1');
+        Assert::count($case->flakyError, 1);
+        Assert::same((string) $case->flakyError['type'], \LogicException::class);
+        Assert::count($case->flakyError->{'system-out'}, 0);
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function attemptsDiscardedBeforeAFinalFailureAreWrittenAsRerunElements(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(
+            self::makeResult('failingTest', Status::Failed, failure: new \RuntimeException('third try')),
+            discardedAttempts: [
+                self::makeResult('failingTest', Status::Failed),
+                self::makeResult('failingTest', Status::Error, failure: new \LogicException('second try')),
+            ],
+        );
+        $writer->finishSuite();
+
+        $case = self::loadXml($writer->generate('Testo'))->testsuite->testcase;
+
+        Assert::same((string) $case->failure['message'], 'third try');
+        Assert::count($case->rerunFailure, 1);
+        Assert::same((string) $case->rerunFailure['type'], 'Failure');
+        Assert::null($case->rerunFailure['message']);
+        Assert::count($case->rerunFailure->stackTrace, 1);
+        Assert::count($case->rerunError, 1);
+        Assert::same((string) $case->rerunError['message'], 'second try');
+        Assert::count($case->flakyFailure, 0);
+    }
+
     public function resetClearsAccumulatedState(): void
     {
         // Arrange

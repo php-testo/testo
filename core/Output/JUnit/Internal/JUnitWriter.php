@@ -26,8 +26,10 @@ use Testo\Output\Rendering\StackTrace;
  *   disagree on the encoding (`<error>` vs `<warning>`); `<error>` is in the
  *   JUnit XSD and is consumed correctly by GitHub Actions, GitLab, Jenkins.
  *   `<warning>` is non-standard and silently dropped by most consumers.
- * - `Flaky` is reported as a passing test (no child element); the test
- *   succeeded after retries, which most CI tools treat as a green test.
+ * - `Flaky` is reported as a passing test; the test succeeded after retries,
+ *   which most CI tools treat as a green test. The discarded attempts travel
+ *   as Surefire's `<flakyFailure>`/`<flakyError>` children, which Jenkins and
+ *   GitHub reporters use to flag the test as flaky.
  *
  * `assertions` follows PHPUnit: on a `<testcase>` it is the `assertions` metric of the test's
  * summary, the same number the terminal sums up; every `<testsuite>` and the root `<testsuites>`
@@ -130,6 +132,9 @@ final class JUnitWriter
      *        this is non-null.
      * @param string|int|null $datasetKey The original dataset label (yield key).
      *        Stamped as `testo:dataset-key` for diagnostics.
+     * @param list<TestResult> $discardedAttempts Failed attempts a retry policy threw away before
+     *        this result, in run order. Each becomes a `<flakyFailure>`/`<flakyError>` child when
+     *        the result is successful, a `<rerunFailure>`/`<rerunError>` child otherwise.
      */
     public function addTestResult(
         TestResult $result,
@@ -137,6 +142,7 @@ final class JUnitWriter
         ?int $providerIndex = null,
         ?int $datasetIndex = null,
         string|int|null $datasetKey = null,
+        array $discardedAttempts = [],
     ): void {
         $info = $result->info;
         $name = $overrideName ?? $info->name;
@@ -166,6 +172,10 @@ final class JUnitWriter
                 : [],
             systemOut: self::outputOf($result->messages, Messenger::CHANNEL_STDOUT),
             systemErr: self::outputOf($result->messages, Messenger::CHANNEL_STDERR),
+            reruns: \array_map(
+                static fn(TestResult $attempt): JUnitRerun => self::rerunFor($attempt, $result->status->isSuccessful()),
+                $discardedAttempts,
+            ),
         );
 
         $suite = $this->currentSuite();
@@ -343,6 +353,23 @@ final class JUnitWriter
                 details: '',
             ),
         };
+    }
+
+    /**
+     * @param bool $flaky Whether a later attempt passed.
+     */
+    private static function rerunFor(TestResult $attempt, bool $flaky): JUnitRerun
+    {
+        $kind = $attempt->status === Status::Failed ? 'Failure' : 'Error';
+
+        return new JUnitRerun(
+            element: ($flaky ? 'flaky' : 'rerun') . $kind,
+            type: $attempt->failure !== null ? $attempt->failure::class : $kind,
+            message: $attempt->failure?->getMessage() ?? '',
+            stackTrace: self::formatTrace($attempt),
+            systemOut: self::outputOf($attempt->messages, Messenger::CHANNEL_STDOUT),
+            systemErr: self::outputOf($attempt->messages, Messenger::CHANNEL_STDERR),
+        );
     }
 
     private static function formatTrace(TestResult $result): string
@@ -556,6 +583,19 @@ final class JUnitWriter
                 $outcome->details === '' or $xml->writeRaw(self::escapeCdata($outcome->details));
                 $xml->endElement();
             }
+        }
+
+        // Surefire's content model: the stack trace is a required child, output is optional.
+        foreach ($case->reruns as $rerun) {
+            $xml->startElement($rerun->element);
+            $xml->writeAttribute('type', $rerun->type);
+            $rerun->message === '' or $xml->writeAttribute('message', self::xmlSafe($rerun->message));
+            $xml->startElement('stackTrace');
+            $rerun->stackTrace === '' or $xml->writeRaw(self::escapeCdata($rerun->stackTrace));
+            $xml->endElement();
+            self::writeOutput($xml, 'system-out', $rerun->systemOut);
+            self::writeOutput($xml, 'system-err', $rerun->systemErr);
+            $xml->endElement();
         }
 
         self::writeOutput($xml, 'system-out', $case->systemOut);

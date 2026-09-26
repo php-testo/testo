@@ -11,6 +11,7 @@ use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\TestInfo;
+use Testo\Core\Context\TestResult;
 use Testo\Core\Value\TestType;
 use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
@@ -21,6 +22,7 @@ use Testo\Event\Test\TestBatchFinished;
 use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestPipelineFinished;
+use Testo\Event\Test\TestRetrying;
 use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
@@ -89,6 +91,16 @@ final class JUnitPlugin implements PluginConfigurator
      * @var array<int, bool>
      */
     private array $isBatch = [];
+
+    /**
+     * Results of the attempts a retry policy discarded, keyed by
+     * {@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId} and then by the data-set
+     * coordinates, so each row of a data-driven test gets back only its own attempts.
+     * Dropped when the pipeline finishes.
+     *
+     * @var array<int, array<non-empty-string, list<TestResult>>>
+     */
+    private array $discardedAttempts = [];
 
     /**
      * Output path. Seeded from the constructor argument and, if that was
@@ -188,6 +200,9 @@ final class JUnitPlugin implements PluginConfigurator
         // DataSet events (for individual datasets within DataProvider)
         $listeners->addListener(TestDataSetFinished::class, $this->onTestDataSetFinished(...));
 
+        // Attempts a retry policy discards before the reported result
+        $listeners->addListener(TestRetrying::class, $this->onTestRetrying(...));
+
         // Test Pipeline events (final event in the test lifecycle)
         $listeners->addListener(TestPipelineFinished::class, $this->onTestPipelineFinished(...));
 
@@ -212,6 +227,29 @@ final class JUnitPlugin implements PluginConfigurator
     }
 
     /**
+     * @return non-empty-string
+     */
+    private static function attemptKey(TestInfo $info): string
+    {
+        return "{$info->identity->dataProvider}:{$info->identity->dataSet}";
+    }
+
+    /**
+     * Hands out the attempts discarded for the given test (or data-set row) and forgets them.
+     *
+     * @return list<TestResult>
+     */
+    private function takeDiscardedAttempts(TestInfo $info): array
+    {
+        $pipelineId = $info->identity->pipelineId;
+        $key = self::attemptKey($info);
+        $attempts = $this->discardedAttempts[$pipelineId][$key] ?? [];
+        unset($this->discardedAttempts[$pipelineId][$key]);
+
+        return $attempts;
+    }
+
+    /**
      * Drops cases whose type isn't on the allow-list. Filtering at the case level is
      * sufficient because all events for tests inside a case (batch, dataset, pipeline)
      * share the same `caseInfo->definition->type`.
@@ -225,6 +263,17 @@ final class JUnitPlugin implements PluginConfigurator
     {
         $this->writer->reset();
         $this->isBatch = [];
+        $this->discardedAttempts = [];
+    }
+
+    private function onTestRetrying(TestRetrying $event): void
+    {
+        if ($this->isFilteredOut($event->testInfo->caseInfo)) {
+            return;
+        }
+
+        $this->discardedAttempts[$event->testInfo->identity->pipelineId][self::attemptKey($event->testInfo)][]
+            = $event->previousRunResult;
     }
 
     private function onSessionFinished(SessionFinished $event): void
@@ -332,6 +381,7 @@ final class JUnitPlugin implements PluginConfigurator
             providerIndex: $event->providerIndex,
             datasetIndex: $event->datasetIndex,
             datasetKey: $event->datasetKey,
+            discardedAttempts: $this->takeDiscardedAttempts($event->testInfo),
         );
     }
 
@@ -342,6 +392,9 @@ final class JUnitPlugin implements PluginConfigurator
         }
 
         $id = $event->testInfo->identity->pipelineId;
+        $attempts = $this->takeDiscardedAttempts($event->testInfo);
+        unset($this->discardedAttempts[$id]);
+
         if (isset($this->isBatch[$id])) {
             // DataProvider/multi-inline test — individual datasets were already emitted.
             unset($this->isBatch[$id]);
@@ -353,12 +406,12 @@ final class JUnitPlugin implements PluginConfigurator
         // resolves. Class-bound tests already sit inside their case-level FQN suite.
         if ($event->testInfo->caseInfo->definition->reflection === null) {
             $this->openFunctionSuite($event->testInfo);
-            $this->writer->addTestResult($event->testResult);
+            $this->writer->addTestResult($event->testResult, discardedAttempts: $attempts);
             $this->writer->finishSuite();
             return;
         }
 
-        $this->writer->addTestResult($event->testResult);
+        $this->writer->addTestResult($event->testResult, discardedAttempts: $attempts);
     }
 
     /**
