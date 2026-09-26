@@ -41,8 +41,9 @@ interface ExpectedException
      * The expected exception message should match the given pattern.
      *
      * Subsequent calls replace the previous expectation.
+     * An invalid pattern errors the test with an {@see \InvalidArgumentException}.
      *
-     * @param non-empty-string $pattern Regex pattern.
+     * @param non-empty-string $pattern Full PCRE pattern with delimiters and flags.
      */
     public function withMessagePattern(string $pattern): static;
 

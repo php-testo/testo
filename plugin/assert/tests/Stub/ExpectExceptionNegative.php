@@ -58,6 +58,18 @@ final class ExpectExceptionNegative
     }
 
     /**
+     * Message pattern is not a valid PCRE pattern.
+     */
+    #[Test]
+    public function invalidMessagePattern(): never
+    {
+        Expect::exception(\RuntimeException::class)
+            ->withMessagePattern('/(/');
+
+        throw new \RuntimeException('any message');
+    }
+
+    /**
      * Message does not contain the expected substring.
      */
     #[Test]

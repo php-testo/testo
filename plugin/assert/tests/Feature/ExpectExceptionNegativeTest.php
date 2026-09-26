@@ -87,6 +87,17 @@ final class ExpectExceptionNegativeTest
             ->contains('not an exact match');
     }
 
+    public function invalidMessagePatternIsAnError(): void
+    {
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'invalidMessagePattern']);
+
+        Assert::same($result->status, Status::Error);
+        Assert::instanceOf($result->failure, \InvalidArgumentException::class);
+        Assert::string($result->failure->getMessage())
+            ->contains('Invalid pattern /(/')
+            ->contains('missing closing parenthesis');
+    }
+
     public function wrongMessageContaining(): void
     {
         $result = TestRunner::runTest([ExpectExceptionNegative::class, 'wrongMessageContaining']);
