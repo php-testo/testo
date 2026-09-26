@@ -10,6 +10,7 @@ use PhpParser\Node\AttributeGroup;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\Trait_;
 use PHPStan\Reflection\ReflectionProvider;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfo;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfoFactory;
@@ -46,6 +47,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * and only gains `#[\Testo\Test]` on its test methods. Without them Testo would not discover the
  * subclass's tests at all. A base that cannot be resolved, or does not lead to `TestCase`, leaves
  * the class untouched.
+ *
+ * A trait gets `#[\Testo\Test]` on the same test methods, since the classes that use it are out of
+ * sight: a test method a PHPUnit class takes from a trait would otherwise go undiscovered. Abstract
+ * methods are skipped; the class implementing one marks it.
  *
  * Residual: methods are NOT renamed. Keeping `testFoo()` is harmless under Testo (discovery
  * is by attribute, not name), but call-site rewriting / cleanup of the `test` prefix is out
@@ -89,15 +94,25 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
     #[\Override]
     public function getNodeTypes(): array
     {
-        return [Class_::class];
+        return [Class_::class, Trait_::class];
     }
 
     /**
-     * @param Class_ $node
+     * @param Class_|Trait_ $node
      */
     #[\Override]
     public function refactor(Node $node): ?Node
     {
+        if ($node instanceof Trait_) {
+            # A trait cannot tell which classes use it; its test methods are marked on their own.
+            $changed = false;
+            foreach ($node->getMethods() as $method) {
+                $method->isPublic() && !$method->isAbstract() && $this->markTestMethod($method) and $changed = true;
+            }
+
+            return $changed ? $node : null;
+        }
+
         if (!$this->testCaseClass->extendsDirectly($node)) {
             if (!$this->testCaseClass->isTestCase($node)) {
                 return null;
