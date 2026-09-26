@@ -7,7 +7,9 @@ namespace Testo\Bridge\Rector\PhpunitToTesto;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Arg;
 use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\Trait_;
@@ -48,6 +50,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * and only gains `#[\Testo\Test]` on its test methods. Without them Testo would not discover the
  * subclass's tests at all. A base that cannot be resolved, or does not lead to `TestCase`, leaves
  * the class untouched.
+ *
+ * A base from outside the processed paths, such as a framework's test case in vendor, stays a
+ * PHPUnit class. Its subclasses are converted all the same, and the class extending that base gets
+ * `#[\Testo\Skip]` with a reason naming it, until the base is rewritten for Testo.
  *
  * A trait gets `#[\Testo\Test]` on the same test methods, since the classes that use it are out of
  * sight: a test method a PHPUnit class takes from a trait would otherwise go undiscovered. Abstract
@@ -120,10 +126,14 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
             }
 
             # Indirect subclass: the base stays, only discovery needs the attribute.
+            $vendorBase = $this->testCaseClass->phpunitBaseFromVendor($node);
             $changed = false;
             foreach ($node->getMethods() as $method) {
                 $method->isPublic() && $this->markTestMethod($method) and $changed = true;
             }
+
+            $vendorBase !== null && $vendorBase['direct'] && $this->skipOnVendorBase($node, $vendorBase['name'])
+                and $changed = true;
 
             return $changed ? $node : null;
         }
@@ -137,6 +147,37 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         }
 
         return $node;
+    }
+
+    /**
+     * Marks the class that extends a PHPUnit base from vendor with `#[\Testo\Skip]`: Testo would run
+     * its tests with that base still built for PHPUnit. A class-level skip is inherited, so marking the
+     * topmost local class covers its subclasses, and a skipped case is neither instantiated nor given
+     * its hooks. A class that already carries a skip keeps it.
+     *
+     * @return bool Whether the attribute was added.
+     */
+    private function skipOnVendorBase(Class_ $class, string $vendorBase): bool
+    {
+        foreach ($class->attrGroups as $group) {
+            foreach ($group->attrs as $attr) {
+                if ($this->isName($attr->name, 'Testo\\Skip')) {
+                    return false;
+                }
+            }
+        }
+
+        $group = new AttributeGroup([
+            new Attribute(new FullyQualified('Testo\\Skip'), [new Arg(new String_(\sprintf(
+                'Extends %s, a PHPUnit base from vendor: rewrite the base for Testo, then remove this attribute',
+                $vendorBase,
+            )))]),
+        ]);
+        # A position-less group would pull the class's start line to 0 once it leads the list.
+        $group->setAttribute('startLine', $class->getStartLine());
+        $class->attrGroups[] = $group;
+
+        return true;
     }
 
     /**
