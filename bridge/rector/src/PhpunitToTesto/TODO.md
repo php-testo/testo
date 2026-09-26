@@ -111,7 +111,18 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   checks with no Testo matcher (`assertIsBool`, `assertIsCallable`, `assertIsScalar`, the
   `assertIsNot*` family, `assertFileExists`, `assertDirectoryExists`, `assertIsReadable`,
   `assertIsWritable` and their negations) become `Assert::true|false(\is_bool($x))` and so on,
-  running PHPUnit's own predicate. Same "only inside a class" gate as
+  running PHPUnit's own predicate. `assertFileIsReadable`/`Writable` become
+  `Assert::true(\is_readable($f))`/`\is_writable()` (both fail for a missing path, which covers
+  PHPUnit's existence check); the negated file checks and the `assertDirectoryIs*` permission checks,
+  which PHPUnit runs as an existence assertion plus a permission one, become
+  `Assert::true(\file_exists($f) && !\is_readable($f))` / `\is_dir($d) && \is_writable($d)` and so on.
+  `assertFinite`/`Infinite`/`Nan` become `Assert::true(\is_finite($x))` and so on for an `int|float`
+  subject. `assertIsResource`/`IsNotResource` become `Assert::true|false(\str_starts_with(\gettype($x),
+  'resource'))` and `assertIsClosedResource`/`IsNotClosedResource` `Assert::same|notSame(\gettype($x),
+  'resource (closed)')`: PHPUnit counts a closed resource as a resource, which `is_resource()` does
+  not. `assertNotInstanceOf(Foo::class, $x)` becomes `Assert::false($x instanceof Foo)` for an existing
+  class or interface, and `assertObjectNotHasProperty($p, $o)` becomes
+  `Assert::false(\property_exists($o, $p))` for an object subject. Same "only inside a class" gate as
   `AssertCallToTestoRector`. **Message residual (by design):** the numeric matchers,
   `sameElementsAs()`, `blank()`/`notBlank()` all keep a trailing `$message` — but the array-key
   matchers (`hasKeys`/`doesNotHaveKeys`) are variadic with no message parameter, so a PHPUnit message
@@ -130,6 +141,15 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   - `assertSameSize` with a side that is not an array or a `Countable` iterable: PHPUnit also counts a
     non-iterable `Countable` (which `sameSizeAs()` does not accept) and throws for a `Traversable`
     that yields a `Generator` (which Testo counts). `assertNotSameSize` has no matcher.
+  - The negated file checks and the directory permission checks with a path that is not a variable,
+    literal, constant or a concatenation of those: the converted check reads the path twice.
+  - `assertFinite`/`Infinite`/`Nan` on a subject not known to be `int|float`: PHPUnit fails any other
+    type, while `is_finite()` coerces a numeric string (or throws under `strict_types`).
+  - `assertNotInstanceOf` with a dynamic or relative class name, an unknown class, a trait or a class
+    alias: PHPUnit throws for a name that is neither a class nor an interface, where `instanceof` is
+    simply false.
+  - `assertObjectNotHasProperty` on a subject not known to be an object: `property_exists()` also
+    accepts a class-name string, which PHPUnit's `object` parameter rejects.
 - **RepeatRetryToTestoRector** (registered) — converts PHPUnit's `#[Repeat]` / `#[Retry]` method
   attributes (PHPUnit 13.3+) into `#[\Testo\Repeat]` / `#[\Testo\Retry]`. `times`/`maxAttempts` carry
   over verbatim; PHPUnit's `failureThreshold` (aborting failure count, default 1) maps to Testo's

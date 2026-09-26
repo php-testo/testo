@@ -7,18 +7,28 @@ namespace Testo\Bridge\Rector\PhpunitToTesto;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\BinaryOp\BooleanAnd;
+use PhpParser\Node\Expr\BinaryOp\Concat;
+use PhpParser\Node\Expr\BooleanNot;
 use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\Empty_;
 use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\Instanceof_;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Scalar\MagicConst;
 use PhpParser\Node\Scalar\String_;
 use PHPStan\Reflection\ClassReflection;
 use PHPStan\Reflection\ReflectionProvider;
+use PHPStan\Type\FloatType;
+use PHPStan\Type\IntegerType;
 use PHPStan\Type\ObjectType;
+use PHPStan\Type\UnionType;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -60,7 +70,19 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * A type head takes no message, so `assertIsString($x, $message)` becomes
  * `\Testo\Assert::true(\is_string($x), $message)`. The checks with no matcher (`assertIsBool`,
  * `assertIsCallable`, `assertIsNot*`, `assertFileExists`, `assertDirectoryExists`, …) become
- * `Assert::true|false()` over the predicate PHPUnit runs itself.
+ * `Assert::true|false()` over the predicate PHPUnit runs itself. Where PHPUnit narrows that predicate,
+ * the conversion follows it or stays out:
+ *
+ *   - assertFileIsNotReadable($f)   → Assert::true(\file_exists($f) && !\is_readable($f)), and so on for
+ *     the `assertFileIs*`/`assertDirectoryIs*` permission checks; only for a side-effect-free path
+ *   - assertFinite($x)              → Assert::true(\is_finite($x)), also `Infinite`/`Nan`; only for an
+ *     `int|float` subject
+ *   - assertIsResource($x)          → Assert::true(\str_starts_with(\gettype($x), 'resource')), since a
+ *     closed resource counts; `assertIsClosedResource` compares `\gettype()` with 'resource (closed)'
+ *   - assertNotInstanceOf(Foo::class, $x) → Assert::false($x instanceof Foo); only for an existing class
+ *     or interface
+ *   - assertObjectNotHasProperty($p, $o)  → Assert::false(\property_exists($o, $p)); only for an object
+ *     subject
  *
  * `assertEmpty`/`assertNotEmpty` map to the flat `\Testo\Assert::blank()`/`notBlank()` — but only when
  * the subject's inferred type is an array. Testo's `blank()` treats `false`/`0`/`'0'` as valid
@@ -148,6 +170,51 @@ final class TypedAssertCallToTestoRector extends AbstractRector
         'assertIsNotReadable' => ['false', 'is_readable'],
         'assertIsWritable' => ['true', 'is_writable'],
         'assertIsNotWritable' => ['false', 'is_writable'],
+        # `is_readable()`/`is_writable()` fail for a missing path, which covers PHPUnit's existence check.
+        'assertFileIsReadable' => ['true', 'is_readable'],
+        'assertFileIsWritable' => ['true', 'is_writable'],
+    ];
+
+    /**
+     * Path assertions PHPUnit runs as an existence check plus a permission check →
+     * `Assert::true(\exists($path) && [!]\permission($path))`. The path is read twice, so only a
+     * side-effect-free path expression converts. `$message` is preserved.
+     *
+     * @var array<non-empty-string, array{non-empty-string, non-empty-string, bool}>
+     */
+    private const PATH_PERMISSION = [
+        'assertFileIsNotReadable' => ['file_exists', 'is_readable', false],
+        'assertFileIsNotWritable' => ['file_exists', 'is_writable', false],
+        'assertDirectoryIsReadable' => ['is_dir', 'is_readable', true],
+        'assertDirectoryIsNotReadable' => ['is_dir', 'is_readable', false],
+        'assertDirectoryIsWritable' => ['is_dir', 'is_writable', true],
+        'assertDirectoryIsNotWritable' => ['is_dir', 'is_writable', false],
+    ];
+
+    /**
+     * Math assertions → `Assert::true(\function($subject))`, only for an `int|float` subject: PHPUnit
+     * fails any other type, while the function would coerce a numeric string or throw.
+     *
+     * @var array<non-empty-string, non-empty-string>
+     */
+    private const MATH = [
+        'assertFinite' => 'is_finite',
+        'assertInfinite' => 'is_infinite',
+        'assertNan' => 'is_nan',
+    ];
+
+    /**
+     * Resource assertions → a check of `\gettype($subject)`, since PHPUnit counts a closed resource as a
+     * resource and `is_resource()` does not: `Assert::true|false(\str_starts_with(\gettype($x), 'resource'))`
+     * for any resource, `Assert::same|notSame(\gettype($x), 'resource (closed)')` for a closed one.
+     *
+     * @var array<non-empty-string, 'true'|'false'|'same'|'notSame'>
+     */
+    private const RESOURCE = [
+        'assertIsResource' => 'true',
+        'assertIsNotResource' => 'false',
+        'assertIsClosedResource' => 'same',
+        'assertIsNotClosedResource' => 'notSame',
     ];
 
     /**
@@ -224,6 +291,11 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             $method === 'assertNotEmpty' => $this->emptiness('notBlank', 'false', $node->args),
             isset(self::TYPE_HEAD[$method]) => $this->typeCheck($method, $node->args),
             isset(self::PREDICATE[$method]) => $this->predicate(...self::PREDICATE[$method], args: $node->args),
+            isset(self::PATH_PERMISSION[$method]) => $this->pathPermission(...self::PATH_PERMISSION[$method], args: $node->args),
+            isset(self::MATH[$method]) => $this->math(self::MATH[$method], $node->args),
+            isset(self::RESOURCE[$method]) => $this->resource(self::RESOURCE[$method], $node->args),
+            $method === 'assertNotInstanceOf' => $this->notInstanceOf($node->args),
+            $method === 'assertObjectNotHasProperty' => $this->objectNotHasProperty($node->args),
             default => null,
         };
     }
@@ -269,6 +341,147 @@ final class TypedAssertCallToTestoRector extends AbstractRector
         }
 
         return new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier($assert), $callArgs);
+    }
+
+    /**
+     * `assertX($path[, $message])` → `Assert::true(\exists($path) && [!]\permission($path)[, $message])`.
+     *
+     * @param non-empty-string $exists
+     * @param non-empty-string $permission
+     * @param bool $granted Whether the permission must be present rather than absent.
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function pathPermission(string $exists, string $permission, bool $granted, array $args): ?StaticCall
+    {
+        $path = $args[0] ?? null;
+        if (!$path instanceof Arg || !$this->isSideEffectFree($path->value)) {
+            return null;
+        }
+
+        $check = new FuncCall(new FullyQualified($permission), [new Arg($path->value)]);
+        $granted or $check = new BooleanNot($check);
+        $exists = new FuncCall(new FullyQualified($exists), [new Arg($path->value)]);
+
+        return $this->assertCall('true', [new Arg(new BooleanAnd($exists, $check))], $args[1] ?? null);
+    }
+
+    /**
+     * `assertFinite($subject[, $message])` → `Assert::true(\is_finite($subject)[, $message])` for an
+     * `int|float` subject.
+     *
+     * @param non-empty-string $function
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function math(string $function, array $args): ?StaticCall
+    {
+        $subject = $args[0] ?? null;
+        if (!$subject instanceof Arg) {
+            return null;
+        }
+
+        $number = new UnionType([new IntegerType(), new FloatType()]);
+        if (!$number->isSuperTypeOf($this->getType($subject->value))->yes()) {
+            return null;
+        }
+
+        return $this->predicate('true', $function, $args);
+    }
+
+    /**
+     * `assertIsResource($subject[, $message])` and its siblings → a check of `\gettype($subject)`.
+     *
+     * @param 'true'|'false'|'same'|'notSame' $assert
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function resource(string $assert, array $args): ?StaticCall
+    {
+        $subject = $args[0] ?? null;
+        if (!$subject instanceof Arg) {
+            return null;
+        }
+
+        $gettype = new FuncCall(new FullyQualified('gettype'), [$subject]);
+        $checkArgs = $assert === 'same' || $assert === 'notSame'
+            ? [new Arg($gettype), new Arg(new String_('resource (closed)'))]
+            : [new Arg(new FuncCall(new FullyQualified('str_starts_with'), [new Arg($gettype), new Arg(new String_('resource'))]))];
+
+        return $this->assertCall($assert, $checkArgs, $args[1] ?? null);
+    }
+
+    /**
+     * `assertNotInstanceOf($class, $subject[, $message])` → `Assert::false($subject instanceof Foo[, $message])`
+     * for a class or interface that exists, since PHPUnit throws for an unknown one.
+     *
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function notInstanceOf(array $args): ?StaticCall
+    {
+        $class = $args[0] ?? null;
+        $subject = $args[1] ?? null;
+        if (!$class instanceof Arg || !$subject instanceof Arg) {
+            return null;
+        }
+
+        $reflection = $this->classReflection($class->value);
+        if ($reflection === null || $reflection->isTrait()) {
+            return null;
+        }
+
+        $name = $class->value instanceof ClassConstFetch && $class->value->class instanceof Name
+            ? $class->value->class
+            : new FullyQualified($reflection->getName());
+
+        return $this->assertCall('false', [new Arg(new Instanceof_($subject->value, $name))], $args[2] ?? null);
+    }
+
+    /**
+     * `assertObjectNotHasProperty($name, $object[, $message])` →
+     * `Assert::false(\property_exists($object, $name)[, $message])` for an object subject: a class-name
+     * string would reach `property_exists()`, which accepts one, where PHPUnit's `object` parameter throws.
+     *
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function objectNotHasProperty(array $args): ?StaticCall
+    {
+        $name = $args[0] ?? null;
+        $object = $args[1] ?? null;
+        if (!$name instanceof Arg || !$object instanceof Arg || !$this->getType($object->value)->isObject()->yes()) {
+            return null;
+        }
+
+        return $this->assertCall(
+            'false',
+            [new Arg(new FuncCall(new FullyQualified('property_exists'), [$object, $name]))],
+            $args[2] ?? null,
+        );
+    }
+
+    /**
+     * `Assert::<method>(...$checkArgs[, $message])`.
+     *
+     * @param non-empty-string $method
+     * @param list<Arg> $checkArgs
+     */
+    private function assertCall(string $method, array $checkArgs, Node\Arg|Node\VariadicPlaceholder|null $message): StaticCall
+    {
+        $message instanceof Arg and $checkArgs[] = $message;
+
+        return new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier($method), $checkArgs);
+    }
+
+    /**
+     * Whether evaluating the expression twice reads the same value with no side effect: a variable, a
+     * literal, a constant, or a concatenation of those (`__DIR__ . '/file'`).
+     */
+    private function isSideEffectFree(Expr $expr): bool
+    {
+        return match (true) {
+            $expr instanceof Variable, $expr instanceof String_, $expr instanceof MagicConst,
+            $expr instanceof ConstFetch => true,
+            $expr instanceof ClassConstFetch => $expr->class instanceof Name,
+            $expr instanceof Concat => $this->isSideEffectFree($expr->left) && $this->isSideEffectFree($expr->right),
+            default => false,
+        };
     }
 
     /**
