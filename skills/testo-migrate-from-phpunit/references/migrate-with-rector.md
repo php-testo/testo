@@ -80,8 +80,12 @@ This writes `<outDir>/migration-report.md` (ranked summary — **read this first
 `<outDir>/migration-batches/NNN.json` (per-file work-lists). `<outDir>` is `runtime` if it exists,
 else `build`. Each file entry carries an ordered `needs[]` to-do list (structural first) and `hints{}`.
 
-The dominant residual is almost always **`extends TestCase` + discovery reconciliation** on every
-file, plus mocks/constraints on a few. If `scan-residuals.php` reports *no* files needing work, the
+Rector already detaches `TestCase` and adds `#[\Testo\Test]`, so the residue is mostly PHPUnit
+attributes with no Testo counterpart (`phpunit_attribute`), tests inherited from a PHPUnit base
+outside the scope (`external_testcase_parent`, checked through the project autoloader; `--no-autoload`
+skips it), and mocks/constraints on a few files. Test methods keep their `test*` names, which is not
+residue. Files that only carry an unused `use PHPUnit\…` import are listed under "Cleanup only" and
+are not batched. If `scan-residuals.php` reports *no* files needing work, the
 suite was unusually simple — skip the subagent dispatch (Stage A5 step 2), but still configure
 `testo.php` (Stage A5 step 1) and verify (Stage A6).
 

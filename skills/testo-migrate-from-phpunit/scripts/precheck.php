@@ -355,7 +355,7 @@ if ($byDir === []) {
     echo "Legend for hard constructs (no faithful Rector rule — see references):\n";
     echo "- `mocks` — `createMock`/`getMockBuilder`/`prophesize`: Testo ships no mocking; hand-roll fakes or keep a mock lib.\n";
     echo "- `assert_that` — PHPUnit constraint objects: no Testo equivalent.\n";
-    echo "- `exception_regex` — `expectExceptionMessageMatches`: Testo matches substrings, not PCRE.\n";
+    echo "- `exception_regex` — `expectExceptionMessageMatches`: Rector converts it to `->withMessagePattern()`; only a leftover needs a hand port.\n";
     echo "- `incomplete` — `markTestIncomplete`: Testo has no Incomplete status.\n";
 }
 
@@ -401,8 +401,8 @@ $phpunitExtra === [] or print(
 );
 
 echo "\n## Note\n\n";
-echo "Even on the Rector path, removing `extends TestCase` and reconciling test discovery "
-    . "(`#[Test]` / dropping the `test` prefix) is a **structural** step Rector does not perform — "
-    . "an AI/human pass is always required to finish. See references/migrate-with-rector.md.\n";
+echo "Even on the Rector path, which detaches `TestCase` and adds `#[Test]`, mocks, PHPUnit-only "
+    . "attributes and tests inherited from a vendor base are left over, so an AI/human pass is always "
+    . "required to finish. See references/migrate-with-rector.md.\n";
 
 exit(0);
