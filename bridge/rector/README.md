@@ -52,6 +52,14 @@ double's factory and its other statements convert, the leftover one is what the 
 
 Run it twice: a trait is cleaned up once its users carry the class attribute on disk. Scope it to the whole test tree and nothing else: the return-type rules apply to every method in the paths, and a class is left non-final only when a subclass shows up within them.
 
+### Shift set
+
+`TestoRectorSetList::TESTO_SHIFT` moves Testo code off deprecated Testo API onto its replacement, so a suite keeps working once the deprecated API is removed. Run it when upgrading Testo. Every entry is behaviour-preserving, since a deprecated method stays an alias of its replacement until removal:
+
+- `ExpectedException::withMessagePattern()` → `withMessageMatchingRegex()` (Rector's `RenameMethodRector`, resolved by type, so any variable or chain holding the expectation is renamed).
+
+Every Testo deprecation adds its migration to this set, with fixtures in `config/testo-shift/` (run by `tests/Unit/TestoShiftSetTest.php`).
+
 Conversions that have no faithful counterpart in the target framework (constraints,
 memory-leak / retry / repeat, Pest higher-order & `arch()` tests, etc.) are
 **not silently dropped**: each is a documented stub rule plus an entry in the direction's
