@@ -130,7 +130,16 @@ final class ExpectExceptionTest
     }
 
     #[Test]
-    public function messagePattern(): never
+    public function messageMatchingRegex(): never
+    {
+        Expect::exception(\RuntimeException::class)
+            ->withMessageMatchingRegex('/^file .+ not found$/i');
+
+        throw new \RuntimeException('File config.yml not found');
+    }
+
+    #[Test]
+    public function deprecatedMessagePatternAliasStillWorks(): never
     {
         Expect::exception(\RuntimeException::class)
             ->withMessagePattern('/^file .+ not found$/i');

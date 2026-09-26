@@ -59,7 +59,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Testo iterates it, so on the `iterable` head those two convert only for a subject (and for
  * `sameSizeAs`, an expected side) known to be an array or a `Countable` iterable.
  *
- * On the `string` head, `matchesPattern($p)`/`notMatchesPattern($p)` become
+ * On the `string` head, `matchesRegex($p)`/`notMatchesRegex($p)` become
  * `assertMatchesRegularExpression($p, $value)`/`assertDoesNotMatchRegularExpression($p, $value)`: both
  * take a full PCRE pattern and error on an invalid one.
  *
@@ -123,8 +123,8 @@ final class TypedAssertChainRector extends AbstractRector
     private const MODIFIED_STRING_MATCHERS = [
         'ignoringCase:contains' => 'assertStringContainsStringIgnoringCase',
         'ignoringCase:notContains' => 'assertStringNotContainsStringIgnoringCase',
-        'ignoringCase:matchesPattern' => 'assertMatchesRegularExpression',
-        'ignoringCase:notMatchesPattern' => 'assertDoesNotMatchRegularExpression',
+        'ignoringCase:matchesRegex' => 'assertMatchesRegularExpression',
+        'ignoringCase:notMatchesRegex' => 'assertDoesNotMatchRegularExpression',
         'ignoringCase:same' => 'assertEqualsIgnoringCase',
         'ignoringCase:notSame' => 'assertNotEqualsIgnoringCase',
         'ignoringLineEndings:contains' => 'assertStringContainsStringIgnoringLineEndings',
@@ -352,8 +352,8 @@ final class TypedAssertChainRector extends AbstractRector
             $type === 'string' && $matcher === 'endsWith' => $needleFirst('assertStringEndsWith'),
             $type === 'string' && $matcher === 'notStartsWith' => $needleFirst('assertStringStartsNotWith'),
             $type === 'string' && $matcher === 'notEndsWith' => $needleFirst('assertStringEndsNotWith'),
-            $type === 'string' && $matcher === 'matchesPattern' => $needleFirst('assertMatchesRegularExpression'),
-            $type === 'string' && $matcher === 'notMatchesPattern' => $needleFirst('assertDoesNotMatchRegularExpression'),
+            $type === 'string' && $matcher === 'matchesRegex' => $needleFirst('assertMatchesRegularExpression'),
+            $type === 'string' && $matcher === 'notMatchesRegex' => $needleFirst('assertDoesNotMatchRegularExpression'),
             $type === 'string' && $matcher === 'same' => $needleFirst('assertSame'),
             $type === 'string' && $matcher === 'notSame' => $needleFirst('assertNotSame'),
 

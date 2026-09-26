@@ -4,12 +4,12 @@ class StringPatternChainTest
 {
     public function test()
     {
-        \Testo\Assert::string($date)->matchesPattern('/^\d{4}-\d{2}-\d{2}$/')->notMatchesPattern('/\s$/');
+        \Testo\Assert::string($date)->matchesRegex('/^\d{4}-\d{2}-\d{2}$/')->notMatchesRegex('/\s$/');
     }
 
     public static function staticCheck(string $id): void
     {
-        \Testo\Assert::string($id)->matchesPattern('/^id-\d+$/i', 'id format');
+        \Testo\Assert::string($id)->matchesRegex('/^id-\d+$/i', 'id format');
     }
 }
 -----

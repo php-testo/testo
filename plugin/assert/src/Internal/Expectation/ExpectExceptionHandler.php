@@ -120,10 +120,16 @@ final class ExpectExceptionHandler implements ExpectedException
     }
 
     #[\Override]
-    public function withMessagePattern(string $pattern): static
+    public function withMessageMatchingRegex(string $pattern): static
     {
         $this->expectedMessagePattern = $pattern;
         return $this;
+    }
+
+    #[\Override]
+    public function withMessagePattern(string $pattern): static
+    {
+        return $this->withMessageMatchingRegex($pattern);
     }
 
     #[\Override]

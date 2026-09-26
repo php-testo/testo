@@ -38,7 +38,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * chained modifier and removed:
  *   - `expectExceptionMessage($m)` => `->withMessageContaining($m)` — PHPUnit matches a substring,
  *     so the exact `->withMessage()` would fail tests that passed before;
- *   - `expectExceptionMessageMatches($re)` => `->withMessagePattern($re)`;
+ *   - `expectExceptionMessageMatches($re)` => `->withMessageMatchingRegex($re)`;
  *   - `expectExceptionCode($n)` => `->withCode($n)`.
  *
  *     $this->expectException(\RuntimeException::class);
@@ -214,7 +214,7 @@ final class ExpectExceptionToTestoRector extends AbstractRector
 
         return match (true) {
             $this->isName($expr->name, 'expectExceptionMessage') => ['withMessageContaining', $expr->args],
-            $this->isName($expr->name, 'expectExceptionMessageMatches') => ['withMessagePattern', $expr->args],
+            $this->isName($expr->name, 'expectExceptionMessageMatches') => ['withMessageMatchingRegex', $expr->args],
             $this->isName($expr->name, 'expectExceptionCode') => ['withCode', $expr->args],
             default => null,
         };

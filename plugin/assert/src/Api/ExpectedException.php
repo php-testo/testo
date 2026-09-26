@@ -38,12 +38,21 @@ interface ExpectedException
     public function withMessage(string $message): static;
 
     /**
-     * The expected exception message should match the given pattern.
+     * The expected exception message should match the given regular expression.
      *
      * Subsequent calls replace the previous expectation.
      * An invalid pattern errors the test with an {@see \InvalidArgumentException}.
      *
      * @param non-empty-string $pattern Full PCRE pattern with delimiters and flags.
+     */
+    public function withMessageMatchingRegex(string $pattern): static;
+
+    /**
+     * The expected exception message should match the given regular expression.
+     *
+     * @param non-empty-string $pattern Full PCRE pattern with delimiters and flags.
+     *
+     * @deprecated Use {@see self::withMessageMatchingRegex()}; the `testo-shift` Rector set migrates calls.
      */
     public function withMessagePattern(string $pattern): static;
 

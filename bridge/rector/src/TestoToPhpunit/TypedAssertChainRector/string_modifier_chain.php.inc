@@ -4,7 +4,7 @@ class SomeTest
 {
     public function test()
     {
-        \Testo\Assert::string($s)->startsWith('a')->ignoringCase()->contains('foo')->notContains('bar')->matchesPattern('/x/')->notMatchesPattern('/y/i');
+        \Testo\Assert::string($s)->startsWith('a')->ignoringCase()->contains('foo')->notContains('bar')->matchesRegex('/x/')->notMatchesRegex('/y/i');
         \Testo\Assert::string($t)->contains("a\r\n")->ignoringLineEndings()->contains("a\n");
     }
 }

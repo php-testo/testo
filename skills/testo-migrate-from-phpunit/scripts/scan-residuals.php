@@ -608,8 +608,8 @@ $checks = [
     ],
     'exception_regex' => [
         're'   => '/(?:\$this->|\b(?:self|static)::)expectExceptionMessageMatches\s*\(/',
-        'need' => 'Convert the leftover `expectExceptionMessageMatches($re)` to `->withMessagePattern($re)` on the test\'s `Expect::exception(...)` chain, declared before the code that throws.',
-        'hint' => 'Testo matches PCRE via `withMessagePattern()`. Rector folds it only when it directly follows `expectException()`; a leftover means other code sits in between or there is no `expectException()`.',
+        'need' => 'Convert the leftover `expectExceptionMessageMatches($re)` to `->withMessageMatchingRegex($re)` on the test\'s `Expect::exception(...)` chain, declared before the code that throws.',
+        'hint' => 'Testo matches PCRE via `withMessageMatchingRegex()`. Rector folds it only when it directly follows `expectException()`; a leftover means other code sits in between or there is no `expectException()`.',
     ],
     'incomplete' => [
         're'   => '/(?:\$this->|\b(?:self|static)::)markTestIncomplete\s*\(/',

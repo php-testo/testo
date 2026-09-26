@@ -63,9 +63,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *     \Testo\Assert::string($s)->ignoringWhitespace(lineBreaks: true)->same($e), and `notSame()` for the negation
  *   - $this->assertEqualsIgnoringCase($e, $a) → \Testo\Assert::string($a)->ignoringCase()->same($e), and
  *     `notSame()` for `assertNotEqualsIgnoringCase`; only when both sides are strings
- *   - $this->assertMatchesRegularExpression($p, $s)      → \Testo\Assert::string($s)->matchesPattern($p),
+ *   - $this->assertMatchesRegularExpression($p, $s)      → \Testo\Assert::string($s)->matchesRegex($p),
  *     also the PHPUnit 9 `assertRegExp`
- *   - $this->assertDoesNotMatchRegularExpression($p, $s) → \Testo\Assert::string($s)->notMatchesPattern($p),
+ *   - $this->assertDoesNotMatchRegularExpression($p, $s) → \Testo\Assert::string($s)->notMatchesRegex($p),
  *     also the PHPUnit 9 `assertNotRegExp`
  *   - $this->assertNotContains($n, $h)       → \Testo\Assert::iterable($h)->notContains($n)
  *   - $this->assertObjectHasProperty($p, $o) → \Testo\Assert::object($o)->hasProperty($p)
@@ -340,9 +340,9 @@ final class TypedAssertCallToTestoRector extends AbstractRector
                 modifier: 'ignoringCase',
             ),
             $method === 'assertMatchesRegularExpression', $method === 'assertRegExp'
-                => $this->typedChain('string', 'matchesPattern', $node->args, keepMessage: true),
+                => $this->typedChain('string', 'matchesRegex', $node->args, keepMessage: true),
             $method === 'assertDoesNotMatchRegularExpression', $method === 'assertNotRegExp'
-                => $this->typedChain('string', 'notMatchesPattern', $node->args, keepMessage: true),
+                => $this->typedChain('string', 'notMatchesRegex', $node->args, keepMessage: true),
             $method === 'assertNotContains' => $this->typedChain('iterable', 'notContains', $node->args, keepMessage: true),
             $method === 'assertObjectHasProperty' => $this->typedChain('object', 'hasProperty', $node->args, keepMessage: true),
             $method === 'assertIsList' => $this->subjectChain('array', 'isList', [], $node->args),

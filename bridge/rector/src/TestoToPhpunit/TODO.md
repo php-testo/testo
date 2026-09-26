@@ -39,7 +39,7 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   `\Testo\Expect::exception($c)->withMessage($m)->withCode($n)` into the separate PHPUnit statements
   `$this->expectException($c); $this->expectExceptionMessage($m); $this->expectExceptionCode($n);`.
   Mapped modifiers: substring `withMessageContaining` → `expectExceptionMessage` (also a substring
-  match), `withCode` → `expectExceptionCode`, regex `withMessagePattern` →
+  match), `withCode` → `expectExceptionCode`, regex `withMessageMatchingRegex` (or the deprecated `withMessagePattern`) →
   `expectExceptionMessageMatches`. **Residual:** the exact `withMessage` also maps to
   `expectExceptionMessage` and so loosens into a substring check. A chain with an unmapped modifier
   (`fromMethod`/`withPrevious`/`withoutPrevious`) or with two modifiers landing on the same PHPUnit
@@ -90,7 +90,7 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   `integer`/`boolean`/`double` aliases `allOf()` accepts), `hasCount`→`assertCount` and
   `sameSizeAs`→`assertSameSize`. PHPUnit throws for a `Generator` where Testo counts it, so on the
   `iterable` head the count-based two convert only for a subject (and an expected side) known to be
-  an array or a `Countable` iterable. On the `string` head, `matchesPattern`/`notMatchesPattern` map to
+  an array or a `Countable` iterable. On the `string` head, `matchesRegex`/`notMatchesRegex` map to
   `assertMatchesRegularExpression`/`assertDoesNotMatchRegularExpression` (full PCRE on both sides; an
   invalid pattern is an error), `same`/`notSame` map to `assertSame`/`assertNotSame`, and `notStartsWith`/`notEndsWith` to `assertStringStartsNotWith`/`assertStringEndsNotWith`. The string
   comparison modifiers emit no line and select the assertion of every check after them:

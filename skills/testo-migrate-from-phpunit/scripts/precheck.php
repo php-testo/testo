@@ -355,7 +355,7 @@ if ($byDir === []) {
     echo "Legend for hard constructs (no faithful Rector rule — see references):\n";
     echo "- `mocks` — `createMock`/`getMockBuilder`/`prophesize`: Testo ships no mocking; hand-roll fakes or keep a mock lib.\n";
     echo "- `assert_that` — PHPUnit constraint objects: no Testo equivalent.\n";
-    echo "- `exception_regex` — `expectExceptionMessageMatches`: Rector converts it to `->withMessagePattern()`; only a leftover needs a hand port.\n";
+    echo "- `exception_regex` — `expectExceptionMessageMatches`: Rector converts it to `->withMessageMatchingRegex()`; only a leftover needs a hand port.\n";
     echo "- `incomplete` — `markTestIncomplete`: Testo has no Incomplete status.\n";
 }
 

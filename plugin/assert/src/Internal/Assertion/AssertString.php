@@ -25,7 +25,7 @@ final readonly class AssertString implements StringType
     /** What the substring checks compare against: the value normalized by every active mode. */
     private string $subject;
 
-    /** What the patterns run against: the value normalized by every active mode but the case one. */
+    /** What the regex checks run against: the value normalized by every active mode but the case one. */
     private string $patternSubject;
 
     /**
@@ -247,12 +247,12 @@ final readonly class AssertString implements StringType
      */
     #[AssertMethod]
     #[\Override]
-    public function matchesPattern(string $pattern, string $message = ''): static
+    public function matchesRegex(string $pattern, string $message = ''): static
     {
-        $str = 'matches pattern ' . $pattern . $this->normalizer->describe(withCase: false);
+        $str = 'matches regex ' . $pattern . $this->normalizer->describe(withCase: false);
         Pattern::matches($pattern, $this->patternSubject)
             ? $this->parent->success($str, $message)
-            : throw $this->parent->fail($str, 'the pattern does not match', $message);
+            : throw $this->parent->fail($str, 'the regex does not match', $message);
         return $this;
     }
 
@@ -266,12 +266,12 @@ final readonly class AssertString implements StringType
      */
     #[AssertMethod]
     #[\Override]
-    public function notMatchesPattern(string $pattern, string $message = ''): static
+    public function notMatchesRegex(string $pattern, string $message = ''): static
     {
-        $str = 'does not match pattern ' . $pattern . $this->normalizer->describe(withCase: false);
+        $str = 'does not match regex ' . $pattern . $this->normalizer->describe(withCase: false);
         !Pattern::matches($pattern, $this->patternSubject)
             ? $this->parent->success($str, $message)
-            : throw $this->parent->fail($str, 'the pattern matches', $message);
+            : throw $this->parent->fail($str, 'the regex matches', $message);
         return $this;
     }
 
