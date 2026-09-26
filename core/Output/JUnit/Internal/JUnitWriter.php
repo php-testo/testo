@@ -27,6 +27,11 @@ use Testo\Output\Rendering\StackTrace;
  * - `Flaky` is reported as a passing test (no child element); the test
  *   succeeded after retries, which most CI tools treat as a green test.
  *
+ * `assertions` follows PHPUnit: on a `<testcase>` it is the `assertions` metric of the test's
+ * summary, the same number the terminal sums up; every `<testsuite>` and the root `<testsuites>`
+ * carry the sum of their descendants. A test nothing recorded the metric for (the Assert plugin
+ * is off) reports `0`.
+ *
  * @internal
  */
 final class JUnitWriter
@@ -140,6 +145,7 @@ final class JUnitWriter
             time: $time,
             status: $result->status,
             outcome: self::outcomeFor($result),
+            assertions: $result->summary->metric('assertions'),
             providerIndex: $providerIndex,
             datasetIndex: $datasetIndex,
             datasetKey: $datasetKey,
@@ -151,6 +157,7 @@ final class JUnitWriter
         $suite = $this->currentSuite();
         $suite->cases[] = $case;
         $suite->tests++;
+        $suite->assertions += $case->assertions;
         $suite->time += $time;
 
         match ($result->status) {
@@ -201,6 +208,7 @@ final class JUnitWriter
         $xml->writeAttribute('xmlns:testo', self::TESTO_NS);
         $xml->writeAttribute('name', $rootName);
         $xml->writeAttribute('tests', (string) $totals['tests']);
+        $xml->writeAttribute('assertions', (string) $totals['assertions']);
         $xml->writeAttribute('failures', (string) $totals['failures']);
         $xml->writeAttribute('errors', (string) $totals['errors']);
         $xml->writeAttribute('skipped', (string) $totals['skipped']);
@@ -220,11 +228,12 @@ final class JUnitWriter
      * Aggregates counters of a suite together with its descendants, mutating
      * the node so the rolled-up values are written into XML.
      *
-     * @return array{tests: int, failures: int, errors: int, skipped: int, time: float}
+     * @return array{tests: int, assertions: int, failures: int, errors: int, skipped: int, time: float}
      */
     private static function rollupSuite(JUnitSuiteNode $suite): array
     {
         $tests = $suite->tests;
+        $assertions = $suite->assertions;
         $failures = $suite->failures;
         $errors = $suite->errors;
         $skipped = $suite->skipped;
@@ -233,6 +242,7 @@ final class JUnitWriter
         foreach ($suite->children as $child) {
             $childTotals = self::rollupSuite($child);
             $tests += $childTotals['tests'];
+            $assertions += $childTotals['assertions'];
             $failures += $childTotals['failures'];
             $errors += $childTotals['errors'];
             $skipped += $childTotals['skipped'];
@@ -240,6 +250,7 @@ final class JUnitWriter
         }
 
         $suite->totalTests = $tests;
+        $suite->totalAssertions = $assertions;
         $suite->totalFailures = $failures;
         $suite->totalErrors = $errors;
         $suite->totalSkipped = $skipped;
@@ -247,6 +258,7 @@ final class JUnitWriter
 
         return [
             'tests' => $tests,
+            'assertions' => $assertions,
             'failures' => $failures,
             'errors' => $errors,
             'skipped' => $skipped,
@@ -378,11 +390,12 @@ final class JUnitWriter
     }
 
     /**
-     * @return array{tests: int, failures: int, errors: int, skipped: int, time: float}
+     * @return array{tests: int, assertions: int, failures: int, errors: int, skipped: int, time: float}
      */
     private function rollup(): array
     {
         $tests = 0;
+        $assertions = 0;
         $failures = 0;
         $errors = 0;
         $skipped = 0;
@@ -391,6 +404,7 @@ final class JUnitWriter
         foreach ($this->rootSuites as $suite) {
             $totals = self::rollupSuite($suite);
             $tests += $totals['tests'];
+            $assertions += $totals['assertions'];
             $failures += $totals['failures'];
             $errors += $totals['errors'];
             $skipped += $totals['skipped'];
@@ -399,6 +413,7 @@ final class JUnitWriter
 
         return [
             'tests' => $tests,
+            'assertions' => $assertions,
             'failures' => $failures,
             'errors' => $errors,
             'skipped' => $skipped,
@@ -412,6 +427,7 @@ final class JUnitWriter
         $xml->writeAttribute('name', $suite->name);
         $suite->file === null or $xml->writeAttribute('file', $suite->file);
         $xml->writeAttribute('tests', (string) $suite->totalTests);
+        $xml->writeAttribute('assertions', (string) $suite->totalAssertions);
         $xml->writeAttribute('failures', (string) $suite->totalFailures);
         $xml->writeAttribute('errors', (string) $suite->totalErrors);
         $xml->writeAttribute('skipped', (string) $suite->totalSkipped);
@@ -435,6 +451,7 @@ final class JUnitWriter
         $case->classname === '' or $xml->writeAttribute('classname', $case->classname);
         $case->file !== null and $xml->writeAttribute('file', $case->file);
         $case->line !== null and $xml->writeAttribute('line', (string) $case->line);
+        $xml->writeAttribute('assertions', (string) $case->assertions);
         $xml->writeAttribute('time', self::formatTime($case->time));
 
         // Testo-private dataset coordinates. Only present on data-provider rows

@@ -20,11 +20,13 @@ final class JUnitSuiteNode
     public array $cases = [];
 
     public int $tests = 0;
+    public int $assertions = 0;
     public int $failures = 0;
     public int $errors = 0;
     public int $skipped = 0;
     public float $time = 0.0;
     public int $totalTests = 0;
+    public int $totalAssertions = 0;
     public int $totalFailures = 0;
     public int $totalErrors = 0;
     public int $totalSkipped = 0;

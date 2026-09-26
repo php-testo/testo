@@ -9,6 +9,7 @@ use Internal\Container\ObjectContainer;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
+use Testo\Codecov\Covers;
 use Testo\Common\EventListenerCollector;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
@@ -22,6 +23,7 @@ use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\CaseDefinitions;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Value\Status;
+use Testo\Core\Value\Summary;
 use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Report\ReportFileGenerated;
@@ -138,6 +140,61 @@ final class JUnitPluginTest
             Assert::count($cases, 2);
             Assert::same((string) $cases[0]['name'], 'passingTest [alpha]');
             Assert::same((string) $cases[1]['name'], 'passingTest [beta]');
+        } finally {
+            self::cleanup($path);
+        }
+    }
+
+    /**
+     * Each data-set row reports its own assertions; the umbrella result, which already holds their
+     * sum, emits no row, so the suite total is not counted twice.
+     */
+    #[Covers(JUnitPlugin::class)]
+    public function dataSetRowsCarryTheirOwnAssertionsAndTheSuiteSumsThemOnce(): void
+    {
+        $path = self::tmpPath();
+        try {
+            $dispatcher = self::wirePlugin(new JUnitPlugin($path));
+
+            $suiteInfo = self::makeSuiteInfo('CoreSuite');
+            $caseInfo = self::makeCaseInfo();
+            $testInfo = self::makeTestInfo('passingTest');
+
+            $datasetA = new TestResult(
+                info: $testInfo,
+                status: Status::Passed,
+                summary: new Summary(metrics: ['assertions' => 2]),
+            );
+            $datasetB = new TestResult(
+                info: $testInfo,
+                status: Status::Passed,
+                summary: new Summary(metrics: ['assertions' => 3]),
+            );
+            $aggregate = new TestResult(
+                info: $testInfo,
+                status: Status::Passed,
+                summary: new Summary(metrics: ['assertions' => 5]),
+            );
+
+            $dispatcher->dispatch(new SessionStarting());
+            $dispatcher->dispatch(new TestSuiteStarting($suiteInfo));
+            $dispatcher->dispatch(new TestCaseStarting($caseInfo));
+            $dispatcher->dispatch(new TestBatchStarting($testInfo));
+            $dispatcher->dispatch(new TestDataSetFinished($testInfo, $datasetA, 'alpha', null, 0));
+            $dispatcher->dispatch(new TestDataSetFinished($testInfo, $datasetB, 'beta', null, 1));
+            $dispatcher->dispatch(new TestBatchFinished($testInfo, $aggregate));
+            $dispatcher->dispatch(new TestPipelineFinished($testInfo, $aggregate));
+            $dispatcher->dispatch(new TestCaseFinished($caseInfo, new CaseResult([$aggregate], Status::Passed)));
+            $dispatcher->dispatch(new TestSuiteFinished($suiteInfo, new SuiteResult([], Status::Passed)));
+            $dispatcher->dispatch(self::sessionFinished());
+
+            $xml = \simplexml_load_file($path);
+            Assert::notSame($xml, false);
+            Assert::same((string) $xml['assertions'], '5');
+            Assert::same((string) $xml->testsuite->testsuite['assertions'], '5');
+            $cases = $xml->testsuite->testsuite->testcase;
+            Assert::same((string) $cases[0]['assertions'], '2');
+            Assert::same((string) $cases[1]['assertions'], '3');
         } finally {
             self::cleanup($path);
         }
