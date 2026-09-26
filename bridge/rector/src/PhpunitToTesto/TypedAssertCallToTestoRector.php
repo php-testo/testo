@@ -82,8 +82,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * `assertContains` conversion does) and check a property with private and dynamic ones included, so
  * these chains keep PHPUnit's verdict. An invalid pattern is an error on both sides, negated or not. *
  * A type head takes no message, so `assertIsString($x, $message)` becomes
- * `\Testo\Assert::true(\is_string($x), $message)`. The checks with no matcher (`assertIsBool`,
- * `assertIsCallable`, `assertIsNot*`, `assertFileExists`, `assertDirectoryExists`, …) become
+ * `\Testo\Assert::true(\is_string($x), $message)`. The checks with no matcher (`assertIsScalar`,
+ * `assertIsNot*`, `assertFileExists`, `assertDirectoryExists`, …) become
  * `Assert::true|false()` over the predicate PHPUnit runs itself. Where PHPUnit narrows that predicate,
  * the conversion follows it or stays out:
  *
@@ -182,6 +182,8 @@ final class TypedAssertCallToTestoRector extends AbstractRector
         'assertIsArray' => 'array',
         'assertIsIterable' => 'iterable',
         'assertIsObject' => 'object',
+        'assertIsBool' => 'bool',
+        'assertIsCallable' => 'callable',
     ];
 
     /**
@@ -191,8 +193,6 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * @var array<non-empty-string, array{'true'|'false', non-empty-string}>
      */
     private const PREDICATE = [
-        'assertIsBool' => ['true', 'is_bool'],
-        'assertIsCallable' => ['true', 'is_callable'],
         'assertIsScalar' => ['true', 'is_scalar'],
         'assertIsNotString' => ['false', 'is_string'],
         'assertIsNotInt' => ['false', 'is_int'],

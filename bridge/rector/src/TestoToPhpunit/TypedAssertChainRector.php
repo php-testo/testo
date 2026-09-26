@@ -40,6 +40,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *     $this->assertStringContainsString('foo', $s);
  *     $this->assertStringNotContainsString('bar', $s);
  *
+ * A bare head with no matcher, like `Assert::string($name)` or `Assert::callable($handler)`, becomes its
+ * one `assertIs<Type>` line.
+ *
  * Because one statement becomes many, this rule matches the wrapping `Stmt\Expression` and
  * returns a `Node[]` (allowed by {@see \Rector\Contract\Rector\RectorInterface::refactor()}).
  *
@@ -93,6 +96,7 @@ final class TypedAssertChainRector extends AbstractRector
         'array' => 'assertIsArray',
         'iterable' => 'assertIsIterable',
         'object' => 'assertIsObject',
+        'callable' => 'assertIsCallable',
     ];
 
     /**
@@ -179,7 +183,7 @@ final class TypedAssertChainRector extends AbstractRector
     public function refactor(Node $node): ?array
     {
         $expr = $node->expr;
-        if (!$expr instanceof MethodCall) {
+        if (!$expr instanceof MethodCall && !$expr instanceof StaticCall) {
             return null;
         }
 
@@ -219,11 +223,12 @@ final class TypedAssertChainRector extends AbstractRector
 
         # The subject is asserted in the head AND in every matcher. If it is anything other than a
         # plain variable (a method call, property fetch, ...) hoisting it into a local avoids
-        # re-evaluating it — and re-running its side effects — once per emitted assertion.
+        # re-evaluating it — and re-running its side effects — once per emitted assertion. A bare head
+        # emits one assertion, so its subject stays in place.
         $countable = $type === 'array' || $this->isCountableIterable($headArg->value);
         $prefix = [];
         $subject = $headArg->value;
-        if (!$subject instanceof Variable) {
+        if (!$subject instanceof Variable && $links !== []) {
             $variable = new Variable($this->freeVariableName($node));
             $prefix[] = new Expression(new Assign($variable, $subject));
             $subject = $variable;

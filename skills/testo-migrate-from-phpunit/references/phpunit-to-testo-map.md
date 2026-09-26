@@ -51,6 +51,7 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertNotContains($n, $h)` | `Assert::iterable($h)->notContains($n)` — strict `===`, like `Assert::contains()`. |
 | `$this->assertObjectHasProperty($p, $o)` / `assertObjectNotHasProperty` | `Assert::object($o)->hasProperty($p)` / `Assert::false(\property_exists($o, $p))`. |
 | `$this->assertIsList($a)` | `Assert::array($a)->isList()`. |
+| `$this->assertIsString($x)` (+`Int`/`Float`/`Numeric`/`Array`/`Iterable`/`Object`/`Bool`/`Callable`) | The type head of the same name: `Assert::string($x)`, `Assert::bool($x)`, `Assert::callable($x)`. A head takes no message, so with one use `Assert::true(\is_string($x), $message)`. `assertIsNot*` → `Assert::false(\is_string($x))`. |
 | `$this->assertContainsOnlyInt($h)` (+`Array`/`Bool`/`Float`/`Null`/`String`) | `Assert::iterable($h)->allOf('int')`. `allOf()` matches the exact `get_debug_type()`, so `Object`/`Scalar`/`Numeric`/… have no matcher. |
 | `$this->assertContainsOnlyInstancesOf(Foo::class, $h)` | `Assert::iterable($h)->allInstanceOf(Foo::class)` — `instanceof`, subclasses and implementations pass. |
 | `$this->assertSameSize($e, $a)` | `Assert::iterable($a)->sameSizeAs($e)` for arrays and `Countable` iterables. |

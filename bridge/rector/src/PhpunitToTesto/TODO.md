@@ -125,9 +125,10 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   an unknown class throws on both sides), `assertSameSize` to
   `Assert::iterable($a)->sameSizeAs($e)` when both sides are arrays or `Countable` iterables,
   `assertJson` to `Assert::json($s)` (both reject an empty string and unparseable JSON), and
-  `assertIsString`/`Int`/`Float`/`Numeric`/`Array`/`Iterable`/`Object` to the type head of the same
-  name (with a message, to `Assert::true(\is_string($x), $message)`, since a head takes none). The
-  checks with no Testo matcher (`assertIsBool`, `assertIsCallable`, `assertIsScalar`, the
+  `assertIsString`/`Int`/`Float`/`Numeric`/`Array`/`Iterable`/`Object`/`Bool`/`Callable` to the type
+  head of the same name (with a message, to `Assert::true(\is_string($x), $message)`, since a head
+  takes none; both sides run `is_callable()` outside the test's scope, so a private method fails on
+  both). The checks with no Testo matcher (`assertIsScalar`, the
   `assertIsNot*` family, `assertFileExists`, `assertDirectoryExists`, `assertIsReadable`,
   `assertIsWritable` and their negations) become `Assert::true|false(\is_bool($x))` and so on,
   running PHPUnit's own predicate. `assertFileIsReadable`/`Writable` become
