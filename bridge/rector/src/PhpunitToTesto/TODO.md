@@ -105,7 +105,8 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `assertIsList` to `Assert::array($a)->isList()`, `assertContainsOnlyArray`/`Bool`/`Float`/`Int`/
   `Null`/`String` to `Assert::iterable($h)->allOf('int')` and so on (both pass an empty haystack),
   `assertContainsOnlyInstancesOf` to `allOf(Foo::class)` for a `final` class only, `assertSameSize` to
-  `Assert::iterable($a)->sameSizeAs($e)` when both sides are arrays or `Countable` iterables, and
+  `Assert::iterable($a)->sameSizeAs($e)` when both sides are arrays or `Countable` iterables,
+  `assertJson` to `Assert::json($s)` (both reject an empty string and unparseable JSON), and
   `assertIsString`/`Int`/`Float`/`Numeric`/`Array`/`Iterable`/`Object` to the type head of the same
   name (with a message, to `Assert::true(\is_string($x), $message)`, since a head takes none). The
   checks with no Testo matcher (`assertIsBool`, `assertIsCallable`, `assertIsScalar`, the
@@ -127,7 +128,8 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `sameElementsAs()`, `blank()`/`notBlank()` all keep a trailing `$message` — but the array-key
   matchers (`hasKeys`/`doesNotHaveKeys`) are variadic with no message parameter, so a PHPUnit message
   on `assertArrayHasKey`/`assertArrayNotHasKey` is dropped (mirrors the reverse direction, which emits
-  keyed assertions without a message). `assertNotEqualsCanonicalizing` has no counterpart (there is no
+  keyed assertions without a message). `Assert::json()` takes no message either and `json_validate()`
+  needs PHP 8.3, so a message on `assertJson` is dropped too. `assertNotEqualsCanonicalizing` has no counterpart (there is no
   `notSameElementsAs`) and is left untouched.
 
   **Assertions left untouched (no matcher gives PHPUnit's verdict):**
@@ -150,6 +152,11 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
     simply false.
   - `assertObjectNotHasProperty` on a subject not known to be an object: `property_exists()` also
     accepts a class-name string, which PHPUnit's `object` parameter rejects.
+  - `assertJsonStringEqualsJsonString`/`NotEquals`, `assertJsonStringEqualsJsonFile`/`NotEquals` and
+    `assertJsonFileEqualsJsonFile`/`NotEquals`: PHPUnit decodes to objects, sorts object keys
+    recursively and compares the re-encoded strings, so `1` differs from `1.0`, `"1"` from `1` and `{}`
+    from `[]`, while list order counts. `Assert::equals()` over `json_decode(..., true)` conflates all
+    three pairs, and no Testo matcher compares canonical JSON.
 - **RepeatRetryToTestoRector** (registered) — converts PHPUnit's `#[Repeat]` / `#[Retry]` method
   attributes (PHPUnit 13.3+) into `#[\Testo\Repeat]` / `#[\Testo\Retry]`. `times`/`maxAttempts` carry
   over verbatim; PHPUnit's `failureThreshold` (aborting failure count, default 1) maps to Testo's

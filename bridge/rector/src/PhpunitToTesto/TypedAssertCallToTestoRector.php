@@ -61,6 +61,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *     `final` Foo
  *   - $this->assertSameSize($e, $a)          → \Testo\Assert::iterable($a)->sameSizeAs($e), when both
  *     sides are arrays or `Countable` iterables
+ *   - $this->assertJson($s)                  → \Testo\Assert::json($s)
  *   - $this->assertIsString($x)              → \Testo\Assert::string($x), and so on for the heads
  *
  * Both sides treat an empty substring as contained, compare iterable elements with `===` (as the flat
@@ -96,7 +97,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * trailing `$message`, so it is preserved there. The array-key matchers (`hasKeys()`/
  * `doesNotHaveKeys()`) are variadic with no `$message` parameter, so a PHPUnit message on
  * `assertArrayHasKey`/`assertArrayNotHasKey` is dropped (documented in TODO.md; mirrors the reverse
- * direction, which emits keyed assertions without a message too).
+ * direction, which emits keyed assertions without a message too). `Assert::json()` takes no message
+ * either, so one on `assertJson` is dropped as well.
  *
  * Recognises the same call spellings as {@see AssertCallToTestoRector}, `PHPUnit\Framework\assert*()`
  * functions included, and likewise only inside a class.
@@ -287,6 +289,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             isset(self::CONTAINS_ONLY[$method]) => $this->subjectChain('iterable', 'allOf', [new Arg(new String_(self::CONTAINS_ONLY[$method]))], $node->args),
             $method === 'assertContainsOnlyInstancesOf' => $this->containsOnlyInstancesOf($node->args),
             $method === 'assertSameSize' => $this->sameSize($node->args),
+            $method === 'assertJson' => $this->json($node->args),
             $method === 'assertEmpty' => $this->emptiness('blank', 'true', $node->args),
             $method === 'assertNotEmpty' => $this->emptiness('notBlank', 'false', $node->args),
             isset(self::TYPE_HEAD[$method]) => $this->typeCheck($method, $node->args),
@@ -582,6 +585,23 @@ final class TypedAssertCallToTestoRector extends AbstractRector
         }
 
         return $this->typedChain('iterable', 'sameSizeAs', $args, keepMessage: true);
+    }
+
+    /**
+     * `assertJson($s[, $message])` → `Assert::json($s)`. Both reject an empty string and anything
+     * `json_decode()` cannot parse at the default depth. The head takes no message, and the predicate
+     * that could carry one, `json_validate()`, needs PHP 8.3, so the message is dropped.
+     *
+     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     */
+    private function json(array $args): ?StaticCall
+    {
+        $subject = $args[0] ?? null;
+        if (!$subject instanceof Arg) {
+            return null;
+        }
+
+        return new StaticCall(new FullyQualified('Testo\\Assert'), new Identifier('json'), [$subject]);
     }
 
     private function isCountableIterable(Expr $expr): bool
