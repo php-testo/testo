@@ -11,6 +11,7 @@ use PhpParser\Node\Stmt\Class_;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\SubclassFinder;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -19,11 +20,16 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Testo's counterpart of Rector's `FinalizeTestCaseClassRector`, which only recognises PHPUnit's
  * `TestCase`. The same naming guard applies: only a class named `*Test` is finalized, and a
  * `*TestCase` class is left alone, since both conventions mark a class meant to be extended.
- * Abstract, anonymous and already final classes are skipped.
+ * Abstract, anonymous and already final classes are skipped, as is a class that another class in
+ * the processed paths extends. A subclass outside those paths is not seen.
  */
 #[TestRectorFixtures('FinalizeTestClassRector')]
 final class FinalizeTestClassRector extends AbstractRector
 {
+    public function __construct(
+        private readonly SubclassFinder $subclassFinder,
+    ) {}
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -70,7 +76,7 @@ final class FinalizeTestClassRector extends AbstractRector
             return null;
         }
 
-        if (!$this->isTestClass($node)) {
+        if (!$this->isTestClass($node) || $this->subclassFinder->hasSubclass($name)) {
             return null;
         }
 

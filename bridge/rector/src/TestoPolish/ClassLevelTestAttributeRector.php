@@ -28,7 +28,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *   - the class is `final` and not abstract: the class attribute is inherited, and a subclass the
  *     rule cannot see would turn its public `void` helpers into tests;
  *   - every public `void`/`never` method is a test or carries a lifecycle attribute
- *     (`#[BeforeTest]`, `#[AfterTest]`, `#[BeforeClass]`, `#[AfterClass]`);
+ *     (`#[BeforeTest]`, `#[AfterTest]`, `#[BeforeClass]`, `#[AfterClass]`), and so is every public
+ *     method without a return type, which the return-type rules of the same set may turn `void`;
  *   - every `#[Test]` method is public and returns `void` or `never`, or it would stop being a test;
  *   - at least one method is a test.
  *
@@ -131,7 +132,7 @@ final class ClassLevelTestAttributeRector extends AbstractRector
 
         foreach ($node->getMethods() as $method) {
             if ($method->isPublic()
-                && $this->returnsVoidOrNever($method)
+                && ($this->returnsVoidOrNever($method) || $this->mayBecomeVoid($method))
                 && !$this->hasAttribute($method->attrGroups, [self::TEST, ...self::LIFECYCLE])
             ) {
                 return null;
@@ -178,7 +179,9 @@ final class ClassLevelTestAttributeRector extends AbstractRector
                 continue;
             }
 
-            if (!\in_array((string) $method->getReturnType(), ['void', 'never'], true)) {
+            $returnType = $method->getReturnType();
+            $untyped = $returnType === null && !\str_starts_with($method->getName(), '__');
+            if (!$untyped && !\in_array((string) $returnType, ['void', 'never'], true)) {
                 continue;
             }
 
@@ -189,6 +192,15 @@ final class ClassLevelTestAttributeRector extends AbstractRector
         }
 
         return true;
+    }
+
+    /**
+     * A public method without a return type may gain `void` or `never` later in the same run, which
+     * would pull it into the class-level selection. Magic methods never get one.
+     */
+    private function mayBecomeVoid(ClassMethod $method): bool
+    {
+        return $method->returnType === null && !\str_starts_with($method->name->toString(), '__');
     }
 
     private function returnsVoidOrNever(ClassMethod $method): bool
