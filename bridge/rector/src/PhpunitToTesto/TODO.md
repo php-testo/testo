@@ -95,7 +95,14 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   with PHP's `empty()` only where the subject can never be one of them — an array. A subject that
   cannot be an object gets `Assert::true(empty($x))`/`Assert::false(empty($x))`, PHPUnit's own check;
   an object or statically-unknown subject is left untouched, since PHPUnit counts a `Countable`.
-  `assertStringStartsWith`/`EndsWith` map to `Assert::string($s)->startsWith()`/`endsWith()`, and
+  `assertStringStartsWith`/`EndsWith` map to `Assert::string($s)->startsWith()`/`endsWith()`,
+  `assertStringContainsString`/`NotContainsString` to `Assert::string($s)->contains()`/`notContains()`
+  (an empty needle is contained on both sides), `assertNotContains` to
+  `Assert::iterable($h)->notContains()` (`===`, like the flat `assertContains` conversion; PHPUnit's
+  `SplObjectStorage` key lookup gives the same verdict as iterating its objects),
+  `assertObjectHasProperty` to `Assert::object($o)->hasProperty()` (`property_exists()` and PHPUnit's
+  `ReflectionObject::hasProperty()` agree on private, inherited, static and dynamic properties),
+  `assertIsList` to `Assert::array($a)->isList()`, and
   `assertIsString`/`Int`/`Float`/`Numeric`/`Array`/`Iterable`/`Object` to the type head of the same
   name (with a message, to `Assert::true(\is_string($x), $message)`, since a head takes none). The
   checks with no Testo matcher (`assertIsBool`, `assertIsCallable`, `assertIsScalar`, the
