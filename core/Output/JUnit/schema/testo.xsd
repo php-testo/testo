@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Testo extension attributes for JUnit XML reports.
+
+  Namespace:  https://php-testo.github.io/schema/junit/1
+  Prefix:     testo (declared once on the root <testsuites> element by Testo's writer)
+
+  These attributes sit on the unqualified JUnit elements described by junit.xsd, which
+  imports this schema. Consumers that do not know the namespace ignore the attributes.
+
+  Version policy: the trailing "1" is the major version. New optional attributes and new
+  enumeration values may be added under the same URI; renaming, removing or changing the
+  meaning of an attribute requires a new URI (…/junit/2).
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:testo="https://php-testo.github.io/schema/junit/1"
+           targetNamespace="https://php-testo.github.io/schema/junit/1"
+           elementFormDefault="qualified"
+           attributeFormDefault="qualified"
+           version="1.0">
+
+    <xs:annotation>
+        <xs:documentation>
+            Attributes Testo adds to the JUnit report in its own namespace. Every attribute is
+            optional and appears on &lt;testcase&gt;.
+        </xs:documentation>
+    </xs:annotation>
+
+    <xs:simpleType name="Status">
+        <xs:annotation>
+            <xs:documentation>
+                Testo's test status (enum Testo\Core\Value\Status), lowercased as in the
+                `totals` of the `--json` report.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:token">
+            <xs:enumeration value="passed"/>
+            <xs:enumeration value="failed"/>
+            <xs:enumeration value="skipped"/>
+            <xs:enumeration value="error"/>
+            <xs:enumeration value="risky"/>
+            <xs:enumeration value="flaky"/>
+            <xs:enumeration value="cancelled"/>
+            <xs:enumeration value="aborted"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:attribute name="status" type="testo:Status">
+        <xs:annotation>
+            <xs:documentation>
+                The exact status of the test. The standard children fold eight statuses into four
+                outcomes: `risky` and `aborted` are written as &lt;error&gt;, `cancelled` as
+                &lt;skipped&gt;, and a `flaky` test passes (its discarded attempts appear as
+                &lt;flakyFailure&gt;/&lt;flakyError&gt;). Written on every &lt;testcase&gt;.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+
+    <xs:attribute name="data-provider" type="xs:nonNegativeInteger">
+        <xs:annotation>
+            <xs:documentation>
+                Zero-based index of the data provider (#[DataProvider], #[DataSet], …) that produced
+                this row. `0` when the test has a single provider. Present only on data-set rows,
+                always together with `testo:data-set`.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+
+    <xs:attribute name="data-set" type="xs:nonNegativeInteger">
+        <xs:annotation>
+            <xs:documentation>
+                Zero-based position of the data set within its provider. Together with
+                `testo:data-provider` it addresses the row on the command line:
+                `--filter='Class::method:{data-provider}:{data-set}'`.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+
+    <xs:attribute name="data-set-key" type="xs:string">
+        <xs:annotation>
+            <xs:documentation>
+                The data set's key as the provider yielded it (a label or an integer), kept for
+                display. Filtering goes through `testo:data-set`.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:attribute>
+
+    <xs:attributeGroup name="testcase">
+        <xs:annotation>
+            <xs:documentation>All Testo attributes of a &lt;testcase&gt;.</xs:documentation>
+        </xs:annotation>
+        <xs:attribute ref="testo:status"/>
+        <xs:attribute ref="testo:data-provider"/>
+        <xs:attribute ref="testo:data-set"/>
+        <xs:attribute ref="testo:data-set-key"/>
+    </xs:attributeGroup>
+</xs:schema>

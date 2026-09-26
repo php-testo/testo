@@ -48,10 +48,8 @@ final class JUnitWriter
      * JUnit dialect (and aren't carried in the per-line coverage XML either).
      *
      * Mapped to the `testo:` prefix declared on the root `<testsuites>` element.
-     * The URI is also where the schemas are published: `junit.xsd` for the
-     * report as a whole and `testo.xsd` for the attributes of this namespace.
-     *
-     * @link https://php-testo.github.io/schema/junit/1
+     * The schemas ship with the plugin in `core/Output/JUnit/schema/`: `junit.xsd`
+     * for the report as a whole and `testo.xsd` for the attributes of this namespace.
      */
     public const TESTO_NS = 'https://php-testo.github.io/schema/junit/1';
 

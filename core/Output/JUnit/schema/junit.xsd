@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  JUnit XML report: the union of the de-facto dialects.
+
+  JUnit XML has no single official schema. This one accepts what the common producers write and
+  the common consumers read:
+
+    Producers  Apache Ant (junit task), Maven Surefire / Failsafe, JUnit 5 Platform (legacy XML
+               reporter), PHPUnit, Pest, Paratest, Codeception, Testo, pytest (xunit1 and xunit2),
+               jest-junit, go-junit-report.
+    Consumers  Jenkins (junit and xunit plugins), GitLab, GitHub Actions reporters
+               (action-junit-report, test-reporter), Azure DevOps (PublishTestResults), Infection.
+
+  Starting point: the Maven Surefire / Jenkins xunit "junit-10.xsd" dialect, the most permissive
+  of the published schemas (nested suites, children in any order, flaky and rerun elements). The
+  attributes and elements the other producers add are merged in, all optional. Numbers and
+  durations are typed; everything else is a string.
+
+  Extension points:
+    - attributes from any other namespace (xsi:*, testo:*, a vendor's own) on every element;
+    - elements from any other namespace inside <testsuites>, <testsuite> and <testcase>.
+  Testo's attributes are declared in testo.xsd and validated through the import below.
+
+  Version policy: the "1" in the URL is the major version. Accepting more (new optional
+  attributes, elements or values) keeps the URL; rejecting something version 1 accepted
+  requires …/junit/2.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="unqualified"
+           attributeFormDefault="unqualified"
+           version="1.0">
+
+    <xs:import namespace="https://php-testo.github.io/schema/junit/1" schemaLocation="testo.xsd"/>
+
+    <!-- ================================================================== Simple types -->
+
+    <xs:simpleType name="Count">
+        <xs:restriction base="xs:nonNegativeInteger"/>
+    </xs:simpleType>
+
+    <xs:simpleType name="GroupedDecimal">
+        <xs:annotation>
+            <xs:documentation>
+                A decimal with comma thousands separators, e.g. `1,234.567`, as older Maven
+                Surefire versions wrote durations.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{1,3}(,[0-9]{3})+(\.[0-9]*)?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Duration">
+        <xs:annotation>
+            <xs:documentation>
+                Seconds. A plain decimal (`0.012345`) almost everywhere; exponent notation and
+                Surefire's grouped form are accepted too.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:union memberTypes="xs:decimal xs:double GroupedDecimal"/>
+    </xs:simpleType>
+
+    <xs:simpleType name="Timestamp">
+        <xs:annotation>
+            <xs:documentation>
+                ISO 8601 date and time. Ant, JUnit 5, jest-junit and Testo write local time
+                without an offset (`2026-09-26T14:03:07`); pytest adds the offset and fractions.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:dateTime"/>
+    </xs:simpleType>
+
+    <!-- ================================================================== Shared pieces -->
+
+    <xs:attributeGroup name="Counters">
+        <xs:annotation>
+            <xs:documentation>Result counters shared by &lt;testsuites&gt; and &lt;testsuite&gt;.</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="tests" type="Count">
+            <xs:annotation><xs:documentation>Number of tests. All producers.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="failures" type="Count">
+            <xs:annotation><xs:documentation>Tests with a &lt;failure&gt;. All producers.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="errors" type="Count">
+            <xs:annotation><xs:documentation>Tests with an &lt;error&gt;. All producers.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="skipped" type="Count">
+            <xs:annotation><xs:documentation>Tests with a &lt;skipped&gt;. Ant, Surefire, JUnit 5, PHPUnit, Codeception, pytest, jest-junit, go-junit-report, Testo.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="disabled" type="Count">
+            <xs:annotation><xs:documentation>Tests that were not run. Jenkins' documented format, go-junit-report.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="assertions" type="Count">
+            <xs:annotation><xs:documentation>Assertions performed. PHPUnit, Codeception, Testo.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="time" type="Duration">
+            <xs:annotation><xs:documentation>Total duration in seconds. All producers.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="timestamp" type="Timestamp">
+            <xs:annotation><xs:documentation>Start time. Ant, Surefire, JUnit 5, pytest, jest-junit, go-junit-report, Testo (on &lt;testsuite&gt;); Azure DevOps derives the run's start from it.</xs:documentation></xs:annotation>
+        </xs:attribute>
+    </xs:attributeGroup>
+
+    <xs:complexType name="Output">
+        <xs:annotation>
+            <xs:documentation>
+                Captured standard output or error. Text, usually in CDATA. GitLab and Azure DevOps
+                read it on &lt;testcase&gt; only and recognise `[[ATTACHMENT|path]]` lines in it.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:anyAttribute namespace="##other" processContents="lax"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="Properties">
+        <xs:annotation>
+            <xs:documentation>
+                Name/value pairs. On &lt;testsuite&gt;: Ant, Surefire, JUnit 5 (system properties),
+                pytest, go-junit-report. On &lt;testcase&gt;: PHPUnit, pytest (xunit1),
+                jest-junit, Testo (benchmark metrics).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="property" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                    <xs:annotation>
+                        <xs:documentation>
+                            A single property. The value goes in `value`; some producers put a
+                            multi-line value in the text content instead.
+                        </xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleContent>
+                        <xs:extension base="xs:string">
+                            <xs:attribute name="name" type="xs:string" use="required"/>
+                            <xs:attribute name="value" type="xs:string"/>
+                            <xs:anyAttribute namespace="##other" processContents="lax"/>
+                        </xs:extension>
+                    </xs:simpleContent>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:anyAttribute namespace="##other" processContents="lax"/>
+    </xs:complexType>
+
+    <xs:complexType name="Fault">
+        <xs:annotation>
+            <xs:documentation>
+                &lt;failure&gt;, &lt;error&gt; or &lt;warning&gt;. The text is the stack trace or
+                other details; `message` is the short reason and `type` the exception class.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="message" type="xs:string"/>
+                <xs:attribute name="type" type="xs:string"/>
+                <xs:attribute name="file" type="xs:string">
+                    <xs:annotation><xs:documentation>Where the fault happened. Read by action-junit-report.</xs:documentation></xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="line" type="Count">
+                    <xs:annotation><xs:documentation>Line of `file`. Read by action-junit-report.</xs:documentation></xs:annotation>
+                </xs:attribute>
+                <xs:anyAttribute namespace="##other" processContents="lax"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="Skipped">
+        <xs:annotation>
+            <xs:documentation>
+                The test did not run. Text content, when present, carries details (pytest writes the
+                location and reason, JUnit 5 the reason).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="message" type="xs:string">
+                    <xs:annotation><xs:documentation>The reason. Surefire, pytest, go-junit-report, Testo; Azure DevOps shows it.</xs:documentation></xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="type" type="xs:string">
+                    <xs:annotation><xs:documentation>Kind of skip, e.g. pytest's `pytest.skip` / `pytest.xfail`.</xs:documentation></xs:annotation>
+                </xs:attribute>
+                <xs:anyAttribute namespace="##other" processContents="lax"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="Rerun" mixed="true">
+        <xs:annotation>
+            <xs:documentation>
+                A discarded attempt of a rerun test (Maven Surefire's rerunFailingTestsCount,
+                Testo's #[Retry]). &lt;flakyFailure&gt;/&lt;flakyError&gt;: a later attempt passed.
+                &lt;rerunFailure&gt;/&lt;rerunError&gt;: no attempt passed. Read by Jenkins and
+                action-junit-report.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="stackTrace" type="xs:string"/>
+            <xs:element name="system-out" type="Output"/>
+            <xs:element name="system-err" type="Output"/>
+        </xs:choice>
+        <xs:attribute name="message" type="xs:string"/>
+        <xs:attribute name="type" type="xs:string"/>
+        <xs:attribute name="time" type="Duration"/>
+        <xs:anyAttribute namespace="##other" processContents="lax"/>
+    </xs:complexType>
+
+    <!-- ================================================================== Elements -->
+
+    <xs:element name="testsuites">
+        <xs:annotation>
+            <xs:documentation>
+                Root of an aggregated report. PHPUnit, Codeception, pytest, jest-junit,
+                go-junit-report and Testo always write it; Ant's aggregator does. Surefire and
+                JUnit 5 write a single &lt;testsuite&gt; as the root instead.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element ref="testsuite"/>
+                <xs:element name="properties" type="Properties"/>
+                <xs:element name="system-out" type="Output"/>
+                <xs:element name="system-err" type="Output"/>
+                <xs:any namespace="##other" processContents="lax"/>
+            </xs:choice>
+            <xs:attribute name="name" type="xs:string">
+                <xs:annotation><xs:documentation>Title of the run. jest-junit, pytest, go-junit-report, Testo.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attributeGroup ref="Counters"/>
+            <xs:anyAttribute namespace="##other" processContents="lax"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="testsuite">
+        <xs:annotation>
+            <xs:documentation>
+                A group of tests: a class, a file, a directory or a configured suite. May nest
+                (PHPUnit, Codeception, Testo: suite, then class; Surefire allows it too).
+            </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element ref="testsuite"/>
+                <xs:element name="properties" type="Properties"/>
+                <xs:element name="testcase" type="TestCase"/>
+                <xs:element name="system-out" type="Output"/>
+                <xs:element name="system-err" type="Output"/>
+                <xs:any namespace="##other" processContents="lax"/>
+            </xs:choice>
+            <xs:attribute name="name" type="xs:string" use="required">
+                <xs:annotation><xs:documentation>Suite name, for a class suite its fully qualified name. All producers.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attributeGroup ref="Counters"/>
+            <xs:attribute name="hostname" type="xs:string">
+                <xs:annotation><xs:documentation>Machine the tests ran on. Ant, JUnit 5, pytest, go-junit-report, Testo; Azure DevOps shows it as the agent name.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="id" type="xs:string">
+                <xs:annotation><xs:documentation>Position of the suite in an aggregated report. Ant's aggregator, go-junit-report.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="package" type="xs:string">
+                <xs:annotation><xs:documentation>Package of the suite's class. Ant's aggregator, go-junit-report.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="file" type="xs:string">
+                <xs:annotation><xs:documentation>Source file of a class suite. PHPUnit, Codeception, Surefire, go-junit-report, Testo; Infection resolves tests to files through it.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="line" type="Count">
+                <xs:annotation><xs:documentation>Line of `file`. Read by action-junit-report.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="warnings" type="Count">
+                <xs:annotation><xs:documentation>Tests with a warning. PHPUnit up to version 9.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="useless" type="Count">
+                <xs:annotation><xs:documentation>Tests without assertions. Codeception.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="flakes" type="Count">
+                <xs:annotation><xs:documentation>Tests that passed on a rerun. Surefire.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="group" type="xs:string">
+                <xs:annotation><xs:documentation>Surefire.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="log" type="xs:string">
+                <xs:annotation><xs:documentation>Jenkins xunit junit-10.xsd.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="url" type="xs:string">
+                <xs:annotation><xs:documentation>Jenkins xunit junit-10.xsd.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="version" type="xs:string">
+                <xs:annotation><xs:documentation>Report format version. Surefire.</xs:documentation></xs:annotation>
+            </xs:attribute>
+            <xs:anyAttribute namespace="##other" processContents="lax"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="TestCase">
+        <xs:annotation>
+            <xs:documentation>
+                One test. It passed unless it has a &lt;failure&gt;, &lt;error&gt; or
+                &lt;skipped&gt; child. Children may come in any order and repeat, as Surefire's
+                schema allows.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="skipped" type="Skipped"/>
+            <xs:element name="failure" type="Fault"/>
+            <xs:element name="error" type="Fault"/>
+            <xs:element name="warning" type="Fault">
+                <xs:annotation><xs:documentation>A non-fatal problem. PHPUnit up to version 9, Codeception; most consumers ignore it.</xs:documentation></xs:annotation>
+            </xs:element>
+            <xs:element name="flakyFailure" type="Rerun"/>
+            <xs:element name="flakyError" type="Rerun"/>
+            <xs:element name="rerunFailure" type="Rerun"/>
+            <xs:element name="rerunError" type="Rerun"/>
+            <xs:element name="properties" type="Properties"/>
+            <xs:element name="system-out" type="Output"/>
+            <xs:element name="system-err" type="Output"/>
+            <xs:any namespace="##other" processContents="lax"/>
+        </xs:choice>
+        <xs:attribute name="name" type="xs:string" use="required">
+            <xs:annotation><xs:documentation>Test name, usually the method; data-driven rows add a suffix. All producers.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="classname" type="xs:string">
+            <xs:annotation><xs:documentation>The test's class: dotted in Java, JUnit 5, pytest and PHPUnit 10+, backslashed in Testo and PHPUnit up to 9. Azure DevOps uses it as the test file.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="class" type="xs:string">
+            <xs:annotation><xs:documentation>The PHP class name with backslashes. PHPUnit 10+, Codeception.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="file" type="xs:string">
+            <xs:annotation><xs:documentation>Source file. PHPUnit, Codeception, pytest (xunit1), jest-junit (optional), Testo; GitLab and action-junit-report read it.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="line" type="Count">
+            <xs:annotation><xs:documentation>Line in `file`. PHPUnit, pytest (xunit1), Testo; action-junit-report reads it.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="time" type="Duration">
+            <xs:annotation><xs:documentation>Duration in seconds. All producers.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="assertions" type="Count">
+            <xs:annotation><xs:documentation>Assertions performed. PHPUnit, Codeception, Testo.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="status" type="xs:string">
+            <xs:annotation><xs:documentation>Free-form status. Jenkins' documented format, go-junit-report; action-junit-report treats `disabled` and `ignored` as skipped.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="timestamp" type="Timestamp">
+            <xs:annotation><xs:documentation>Start time. Surefire, go-junit-report.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="group" type="xs:string">
+            <xs:annotation><xs:documentation>Surefire.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="url" type="xs:string">
+            <xs:annotation><xs:documentation>pytest (xunit1).</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="feature" type="xs:string">
+            <xs:annotation><xs:documentation>Scenario title. Codeception.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="owner" type="xs:string">
+            <xs:annotation><xs:documentation>Read by Azure DevOps as the result's owner.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="retries" type="Count">
+            <xs:annotation><xs:documentation>Read by action-junit-report.</xs:documentation></xs:annotation>
+        </xs:attribute>
+        <xs:anyAttribute namespace="##other" processContents="lax"/>
+    </xs:complexType>
+</xs:schema>
