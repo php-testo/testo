@@ -783,6 +783,52 @@ final class JUnitWriterTest
         Assert::same($statuses, ['passed', 'flaky', 'risky', 'aborted', 'cancelled']);
     }
 
+    #[Covers(JUnitWriter::class)]
+    public function reportValidatesAgainstTheBundledSchema(): void
+    {
+        $writer = new JUnitWriter(hostname: 'ci-runner');
+        $writer->startSuite('Output/Unit', startedAt: new \DateTimeImmutable('2026-09-26 10:00:00'));
+        $writer->startSuite(SampleTestClass::class, __FILE__);
+        foreach (Status::cases() as $status) {
+            $writer->addTestResult(self::makeResult(
+                'passingTest',
+                $status,
+                durationMs: 3,
+                failure: $status === Status::Passed ? null : new \RuntimeException("{$status->name} \e[31m\xff"),
+                assertions: 2,
+                messages: new MessageLog([new Message(0.1, Messenger::CHANNEL_STDOUT, Level::Info, 'out')]),
+            ));
+        }
+        $writer->addTestResult(
+            self::makeResult('passingTest', Status::Flaky),
+            'passingTest [first]',
+            providerIndex: 0,
+            datasetIndex: 1,
+            datasetKey: 'first',
+            discardedAttempts: [self::makeResult('passingTest', Status::Failed, failure: new \LogicException('retry'))],
+        );
+        $writer->addTestResult(self::makeBenchResult('passingTest'));
+        $writer->finishSuite();
+        $writer->finishSuite();
+
+        $dom = new \DOMDocument();
+        Assert::true($dom->loadXML($writer->generate('Testo')));
+
+        $previous = \libxml_use_internal_errors(true);
+        try {
+            # Located from the writer, not from this file: the test also runs from a converted copy elsewhere.
+            $schema = \dirname((string) (new \ReflectionClass(JUnitWriter::class))->getFileName(), 2) . '/schema/junit.xsd';
+            $valid = $dom->schemaValidate($schema);
+            $errors = \array_map(static fn(\LibXMLError $error): string => \trim($error->message), \libxml_get_errors());
+        } finally {
+            \libxml_clear_errors();
+            \libxml_use_internal_errors($previous);
+        }
+
+        Assert::same($errors, []);
+        Assert::true($valid);
+    }
+
     public function resetClearsAccumulatedState(): void
     {
         // Arrange
