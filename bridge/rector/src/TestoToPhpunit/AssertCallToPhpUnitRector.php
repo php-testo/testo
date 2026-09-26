@@ -60,6 +60,7 @@ final class AssertCallToPhpUnitRector extends AbstractRector
         'notEquals' => ['assertNotEquals', true],
         'true' => ['assertTrue', false],
         'false' => ['assertFalse', false],
+        'bool' => ['assertIsBool', false],
         'null' => ['assertNull', false],
         'notNull' => ['assertNotNull', false],
         'count' => ['assertCount', true],

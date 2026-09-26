@@ -84,7 +84,8 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   `Assert::array()->isList()`→`assertIsList`, `Assert::array()->sameElementsAs()`→`assertEqualsCanonicalizing`,
   …) into separate `assert*` statements, expanding 1→N where needed. A non-variable subject (e.g.
   `Assert::array($log->all())->isList()`) is hoisted into a scope-safe `$value` local so it is
-  evaluated once. The `iterable` head maps to `assertIsIterable`, and it shares the iterable matchers
+  evaluated once. A bare head with no matcher becomes its one `assertIs<Type>` line, in place, like `Assert::callable($x)`→`assertIsCallable`.
+  The `numeric` head has no mapping and stays untouched. The `iterable` head maps to `assertIsIterable`, and it shares the iterable matchers
   with `array`: `contains`/`notContains`, `allInstanceOf`→`assertContainsOnlyInstancesOf`,
   `allOf('int')`→`assertContainsOnlyInt` (likewise `array`/`bool`/`float`/`null`/`string` and the
   `integer`/`boolean`/`double` aliases `allOf()` accepts), `hasCount`→`assertCount` and
