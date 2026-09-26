@@ -153,7 +153,7 @@ final class UserServiceTest
 - **Class-level `#[Test]` excludes non-test methods by signature.** Data providers (`public static`, return `iterable`) and helpers are not mistaken for tests, but a public `void` helper *will* be — make helpers `private` or non-`void`.
 - **Don't mock `final` classes or enums.** Instantiate the real type or extract an interface.
 - **Don't run both runners in CI during migration.** Cut over one suite/dir at a time.
-- **Tests inherited from a `vendor/` PHPUnit base** (e.g. a shared `AbstractCollectorTestCase`) cannot be ported in place: the base stays PHPUnit and its assertions are invisible to Testo. Copy those scenarios into a local trait or base with `#[Test]` methods.
+- **Tests inherited from a `vendor/` PHPUnit base** (e.g. a shared `AbstractCollectorTestCase`) cannot be ported in place: the base stays PHPUnit and its assertions are invisible to Testo. Copy the base into a local trait or abstract class under the test tree (e.g. `tests/Support/`), run the Rector pass over it with the rest of the scope, and point the subclasses at the copy. A base that boots an application in `setUp()` usually cleans it up in `tearDown()`: carry that over as an `#[AfterTest]` method, not only the `#[BeforeTest]` part.
 - **A trait method alias is a second test.** `use T { testFoo as private baseTestFoo; }` copies `#[Test]` and `#[DataProvider]` onto the alias. Move the shared body into a private helper without attributes and call it from the overriding test.
 - **Assertion counts differ from PHPUnit** (`Expect::exception()`, a chained `Assert::array()->hasKeys()->…` count differently). Verify the port by the test count, not the assertion count.
 
