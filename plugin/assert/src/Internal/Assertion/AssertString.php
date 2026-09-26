@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Assert\Internal\Assertion;
 
 use Testo\Assert\Api\Builtin\StringType;
+use Testo\Assert\Internal\Pattern;
 use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
@@ -108,6 +109,44 @@ final readonly class AssertString implements StringType
         \str_ends_with($this->value, $suffix)
             ? $this->parent->success($str, $message)
             : throw $this->parent->fail($str, 'the string ends differently', $message);
+        return $this;
+    }
+
+    /**
+     * Asserts that the string matches the given PCRE pattern.
+     *
+     * @param string $pattern Full PCRE pattern with delimiters and flags.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the pattern is invalid.
+     */
+    #[AssertMethod]
+    #[\Override]
+    public function matchesPattern(string $pattern, string $message = ''): static
+    {
+        $str = 'matches pattern ' . $pattern;
+        Pattern::matches($pattern, $this->value)
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the pattern does not match', $message);
+        return $this;
+    }
+
+    /**
+     * Asserts that the string does not match the given PCRE pattern.
+     *
+     * @param string $pattern Full PCRE pattern with delimiters and flags.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the pattern is invalid.
+     */
+    #[AssertMethod]
+    #[\Override]
+    public function notMatchesPattern(string $pattern, string $message = ''): static
+    {
+        $str = 'does not match pattern ' . $pattern;
+        !Pattern::matches($pattern, $this->value)
+            ? $this->parent->success($str, $message)
+            : throw $this->parent->fail($str, 'the pattern matches', $message);
         return $this;
     }
 }

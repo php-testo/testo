@@ -49,4 +49,24 @@ interface StringType
      * @throws AssertionException when the assertion fails.
      */
     public function endsWith(string $suffix, string $message = ''): static;
+
+    /**
+     * Asserts that the string matches the given PCRE pattern.
+     *
+     * @param string $pattern Full PCRE pattern with delimiters and flags, e.g. `/^\d+$/i`.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the pattern is invalid.
+     */
+    public function matchesPattern(string $pattern, string $message = ''): static;
+
+    /**
+     * Asserts that the string does not match the given PCRE pattern.
+     *
+     * @param string $pattern Full PCRE pattern with delimiters and flags, e.g. `/\s$/`.
+     * @param string $message Optional message for the assertion.
+     * @throws AssertionException when the assertion fails.
+     * @throws \InvalidArgumentException when the pattern is invalid.
+     */
+    public function notMatchesPattern(string $pattern, string $message = ''): static;
 }

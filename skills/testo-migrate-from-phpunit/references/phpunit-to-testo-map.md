@@ -39,6 +39,7 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertArrayHasKey($k, $a)` / `assertArrayNotHasKey` | `Assert::array($a)->hasKeys($k)` / `->doesNotHaveKeys($k)`. Variadic — no `$message` arg. |
 | `$this->assertEqualsCanonicalizing($e, $a)` | `Assert::array($a)->sameElementsAs($e)` — order-insensitive, loose comparison. |
 | `$this->assertEmpty($a)` / `assertNotEmpty($a)` | `Assert::blank($a)` / `Assert::notBlank($a)` **only when `$a` is an array** — `blank()` treats `false`/`0`/`'0'` as valid data, so for other types port by hand. |
+| `$this->assertMatchesRegularExpression($p, $s)` / `assertDoesNotMatchRegularExpression` | `Assert::string($s)->matchesPattern($p)` / `->notMatchesPattern($p)` — subject first, same full PCRE pattern. |
 | `$this->expectException(X::class)` before Act | `Expect::exception(X::class)->withCode(...)` before Act. Method return type becomes `never`. |
 | `$this->expectExceptionMessage('...')` | `->withMessageContaining('...')` — PHPUnit matches a substring; `withMessage()` is an exact match and fails where PHPUnit passed. |
 | `$this->expectExceptionMessageMatches('/.../')` | `->withMessagePattern('/.../')`. |
