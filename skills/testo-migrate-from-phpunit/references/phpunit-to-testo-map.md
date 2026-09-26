@@ -40,6 +40,18 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertEqualsCanonicalizing($e, $a)` | `Assert::array($a)->sameElementsAs($e)` — order-insensitive, loose comparison. |
 | `$this->assertEmpty($a)` / `assertNotEmpty($a)` | `Assert::blank($a)` / `Assert::notBlank($a)` **only when `$a` is an array** — `blank()` treats `false`/`0`/`'0'` as valid data, so for other types port by hand. |
 | `$this->assertMatchesRegularExpression($p, $s)` / `assertDoesNotMatchRegularExpression` | `Assert::string($s)->matchesPattern($p)` / `->notMatchesPattern($p)` — subject first, same full PCRE pattern. |
+| `$this->assertNotTrue($x)` / `assertNotFalse($x)` | `Assert::notSame($x, true)` / `Assert::notSame($x, false)`. |
+| `$this->assertStringContainsString($n, $s)` / `assertStringNotContainsString` | `Assert::string($s)->contains($n)` / `->notContains($n)`. |
+| `$this->assertNotContains($n, $h)` | `Assert::iterable($h)->notContains($n)` — strict `===`, like `Assert::contains()`. |
+| `$this->assertObjectHasProperty($p, $o)` / `assertObjectNotHasProperty` | `Assert::object($o)->hasProperty($p)` / `Assert::false(\property_exists($o, $p))`. |
+| `$this->assertIsList($a)` | `Assert::array($a)->isList()`. |
+| `$this->assertContainsOnlyInt($h)` (+`Array`/`Bool`/`Float`/`Null`/`String`) | `Assert::iterable($h)->allOf('int')`. `allOf()` matches the exact `get_debug_type()`, so `assertContainsOnlyInstancesOf(Foo::class, $h)` → `allOf(Foo::class)` only for a `final` Foo; `Object`/`Scalar`/`Numeric`/… have no matcher. |
+| `$this->assertSameSize($e, $a)` | `Assert::iterable($a)->sameSizeAs($e)` for arrays and `Countable` iterables. |
+| `$this->assertNotInstanceOf(Foo::class, $x)` | `Assert::false($x instanceof Foo)`. |
+| `$this->assertFinite($x)` / `assertInfinite` / `assertNan` | `Assert::true(\is_finite($x))` and so on, when `$x` is an `int` or `float` — PHPUnit fails any other type. |
+| `$this->assertFileIsReadable($f)` / `assertDirectoryIsWritable($d)` and the other permission checks | `Assert::true(\is_readable($f))`; a negated or directory check needs the existence part too: `Assert::true(\is_dir($d) && \is_writable($d))`. |
+| `$this->assertIsResource($x)` / `assertIsClosedResource($x)` | `Assert::true(\str_starts_with(\gettype($x), 'resource'))` / `Assert::same(\gettype($x), 'resource (closed)')` — PHPUnit counts a closed resource, `is_resource()` does not. |
+| `$this->assertJson($s)` | `Assert::json($s)` (no `$message` arg). The JSON equality assertions have no counterpart: PHPUnit compares canonical re-encoded JSON (`1` ≠ `1.0`, `{}` ≠ `[]`), which `Assert::equals()` over decoded values does not. |
 | `$this->expectException(X::class)` before Act | `Expect::exception(X::class)->withCode(...)` before Act. Method return type becomes `never`. |
 | `$this->expectExceptionMessage('...')` | `->withMessageContaining('...')` — PHPUnit matches a substring; `withMessage()` is an exact match and fails where PHPUnit passed. |
 | `$this->expectExceptionMessageMatches('/.../')` | `->withMessagePattern('/.../')`. |
