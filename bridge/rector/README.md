@@ -48,7 +48,8 @@ double's factory and its other statements convert, the leftover one is what the 
 - `final` on a `*Test` class that carries `#[Test]` and has no subclass (`FinalizeTestClassRector`);
 - `#[Test]` moved from the methods onto a `final` class when every public `void`/`never` method is a test or a lifecycle hook, and off a trait once every class using it has the class attribute (`ClassLevelTestAttributeRector`);
 - a test that opens with a bare `Expect::exception(X::class)` and runs one statement → `#[ExpectException(X::class)]` (`ExpectExceptionToAttributeRector`);
-- adjacent `Assert::<type>($var)` chains on the same variable merged into one pipe (`MergeAssertChainRector`).
+- adjacent `Assert::<type>($var)` chains on the same variable merged into one pipe (`MergeAssertChainRector`);
+- fully qualified Testo, Mockery and Double names imported with `use`, whatever the config's `withImportNames()`, leaving a name fully qualified when its short name is taken; `use PHPUnit\…` and Mockery imports nothing refers to any more are removed (`ImportTestoNamesRector`).
 
 Run it twice: a trait is cleaned up once its users carry the class attribute on disk. Scope it to the whole test tree and nothing else: the return-type rules apply to every method in the paths, and a class is left non-final only when a subclass shows up within them.
 

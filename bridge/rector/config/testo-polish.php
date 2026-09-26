@@ -9,13 +9,15 @@ use Testo\Bridge\Rector\PhpunitToTesto\MergeAssertChainRector;
 use Testo\Bridge\Rector\TestoPolish\ClassLevelTestAttributeRector;
 use Testo\Bridge\Rector\TestoPolish\ExpectExceptionToAttributeRector;
 use Testo\Bridge\Rector\TestoPolish\FinalizeTestClassRector;
+use Testo\Bridge\Rector\TestoPolish\ImportTestoNamesRector;
 
 /**
  * Testo -> Testo polishing set.
  *
  * Tidies tests that already run on Testo, typically right after a migration: return types,
  * `final` test classes, class-level `#[Test]`, the attribute form of a one-statement exception
- * test, and merged assertion pipes. Every rule keeps the set of tests and their outcome unchanged.
+ * test, merged assertion pipes, and `use` imports for the Testo, Mockery and Double names the
+ * conversion sets write fully qualified. Every rule keeps the set of tests and their outcome unchanged.
  *
  * Scope it to the whole test tree and nothing else: the return-type rules apply to any method in the
  * paths, and `FinalizeTestClassRector` sees only the subclasses within them. Run it as its own pass
@@ -33,4 +35,6 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->rule(ClassLevelTestAttributeRector::class);
 
     $rectorConfig->rule(MergeAssertChainRector::class);
+
+    $rectorConfig->rule(ImportTestoNamesRector::class);
 };

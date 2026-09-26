@@ -68,7 +68,8 @@ final class TestoRectorSetList
 
     /**
      * Testo -> Testo polishing: return types, `final` test classes, class-level `#[Test]`,
-     * `#[ExpectException]`, merged assertion pipes. See {@see config/testo-polish.php}.
+     * `#[ExpectException]`, merged assertion pipes, imported Testo, Mockery and Double names. See
+     * {@see config/testo-polish.php}.
      *
      * @var string
      */
