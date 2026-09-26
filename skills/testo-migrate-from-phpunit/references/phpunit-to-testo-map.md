@@ -45,7 +45,8 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `$this->assertNotContains($n, $h)` | `Assert::iterable($h)->notContains($n)` — strict `===`, like `Assert::contains()`. |
 | `$this->assertObjectHasProperty($p, $o)` / `assertObjectNotHasProperty` | `Assert::object($o)->hasProperty($p)` / `Assert::false(\property_exists($o, $p))`. |
 | `$this->assertIsList($a)` | `Assert::array($a)->isList()`. |
-| `$this->assertContainsOnlyInt($h)` (+`Array`/`Bool`/`Float`/`Null`/`String`) | `Assert::iterable($h)->allOf('int')`. `allOf()` matches the exact `get_debug_type()`, so `assertContainsOnlyInstancesOf(Foo::class, $h)` → `allOf(Foo::class)` only for a `final` Foo; `Object`/`Scalar`/`Numeric`/… have no matcher. |
+| `$this->assertContainsOnlyInt($h)` (+`Array`/`Bool`/`Float`/`Null`/`String`) | `Assert::iterable($h)->allOf('int')`. `allOf()` matches the exact `get_debug_type()`, so `Object`/`Scalar`/`Numeric`/… have no matcher. |
+| `$this->assertContainsOnlyInstancesOf(Foo::class, $h)` | `Assert::iterable($h)->allInstanceOf(Foo::class)` — `instanceof`, subclasses and implementations pass. |
 | `$this->assertSameSize($e, $a)` | `Assert::iterable($a)->sameSizeAs($e)` for arrays and `Countable` iterables. |
 | `$this->assertNotInstanceOf(Foo::class, $x)` | `Assert::false($x instanceof Foo)`. |
 | `$this->assertFinite($x)` / `assertInfinite` / `assertNan` | `Assert::true(\is_finite($x))` and so on, when `$x` is an `int` or `float` — PHPUnit fails any other type. |

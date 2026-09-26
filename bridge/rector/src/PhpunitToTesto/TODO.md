@@ -104,7 +104,8 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `ReflectionObject::hasProperty()` agree on private, inherited, static and dynamic properties),
   `assertIsList` to `Assert::array($a)->isList()`, `assertContainsOnlyArray`/`Bool`/`Float`/`Int`/
   `Null`/`String` to `Assert::iterable($h)->allOf('int')` and so on (both pass an empty haystack),
-  `assertContainsOnlyInstancesOf` to `allOf(Foo::class)` for a `final` class only, `assertSameSize` to
+  `assertContainsOnlyInstancesOf($c, $h)` to `Assert::iterable($h)->allInstanceOf($c)` (`instanceof`,
+  an unknown class throws on both sides), `assertSameSize` to
   `Assert::iterable($a)->sameSizeAs($e)` when both sides are arrays or `Countable` iterables,
   `assertJson` to `Assert::json($s)` (both reject an empty string and unparseable JSON), and
   `assertIsString`/`Int`/`Float`/`Numeric`/`Array`/`Iterable`/`Object` to the type head of the same
@@ -136,10 +137,7 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   - `assertContainsOnlyObject`/`Callable`/`Iterable`/`Numeric`/`Scalar`/`Resource`/`ClosedResource`:
     `allOf()` compares `get_debug_type()`, which reports an object by its class and a resource as
     `resource (stream)`, and knows no pseudo-type.
-  - `assertContainsOnlyInstancesOf` with a non-final class, an interface, a dynamic or relative
-    (`self::class`) name, or a class alias: `allOf()` matches the exact class where PHPUnit runs
-    `instanceof`.
-  - `assertContainsNotOnly*`: there is no negated `allOf()`.
+  - `assertContainsNotOnly*`: there is no negated `allOf()`/`allInstanceOf()`.
   - `assertSameSize` with a side that is not an array or a `Countable` iterable: PHPUnit also counts a
     non-iterable `Countable` (which `sameSizeAs()` does not accept) and throws for a `Traversable`
     that yields a `Generator` (which Testo counts). `assertNotSameSize` has no matcher.
@@ -147,8 +145,7 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
     literal, constant or a concatenation of those: the converted check reads the path twice.
   - `assertFinite`/`Infinite`/`Nan` on a subject not known to be `int|float`: PHPUnit fails any other
     type, while `is_finite()` coerces a numeric string (or throws under `strict_types`).
-  - `assertNotInstanceOf` with a dynamic or relative class name, an unknown class, a trait or a class
-    alias: PHPUnit throws for a name that is neither a class nor an interface, where `instanceof` is
+  - `assertNotInstanceOf` with a dynamic or relative class name, an unknown class or a trait: PHPUnit throws for a name that is neither a class nor an interface, where `instanceof` is
     simply false.
   - `assertObjectNotHasProperty` on a subject not known to be an object: `property_exists()` also
     accepts a class-name string, which PHPUnit's `object` parameter rejects.
