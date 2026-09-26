@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo;
 
 use Testo\Assert\Api\Builtin\ArrayType;
+use Testo\Assert\Api\Builtin\CallableType;
 use Testo\Assert\Api\Builtin\FloatType;
 use Testo\Assert\Api\Builtin\IntType;
 use Testo\Assert\Api\Builtin\IterableType;
@@ -13,6 +14,7 @@ use Testo\Assert\Api\Builtin\ObjectType;
 use Testo\Assert\Api\Builtin\StringType;
 use Testo\Assert\Api\Json\JsonAbstract;
 use Testo\Assert\Internal\Assertion\AssertArray;
+use Testo\Assert\Internal\Assertion\AssertCallable;
 use Testo\Assert\Internal\Assertion\AssertFloat;
 use Testo\Assert\Internal\Assertion\AssertInt;
 use Testo\Assert\Internal\Assertion\AssertIterable;
@@ -428,6 +430,23 @@ final class Assert
     }
 
     /**
+     * Asserts that the given value is of `bool` data type.
+     *
+     * Only `true` and `false` pass: `0`, `1`, `'true'` and `null` do not.
+     *
+     * @throws AssertionException
+     *
+     * @psalm-assert bool $actual
+     * @phpstan-assert bool $actual
+     */
+    #[AssertMethod]
+    public static function bool(mixed $actual): void
+    {
+        \is_bool($actual) or StaticState::typeFail('bool', $actual);
+        StaticState::typeSuccess('bool', $actual);
+    }
+
+    /**
      * Asserts that the given string is a valid JSON.
      *
      * @param string $actual The actual JSON string to check.
@@ -478,6 +497,24 @@ final class Assert
     public static function object(mixed $actual): ObjectType
     {
         return AssertObject::validateAndCreate($actual);
+    }
+
+    /**
+     * Asserts that the given value is `callable`.
+     *
+     * Closures, first-class callables, strings naming a function, `[$object, 'method']` and
+     * `[Foo::class, 'staticMethod']` arrays, and invokable objects all count.
+     * The check runs in the scope of the assertion, not of the caller: private and protected
+     * methods are not callable from there, even when the test could call them itself.
+     *
+     * @throws AssertionException
+     *
+     * @psalm-assert callable $actual
+     * @phpstan-assert callable $actual
+     */
+    public static function callable(mixed $actual): CallableType
+    {
+        return AssertCallable::validateAndCreate($actual);
     }
 
     /**
