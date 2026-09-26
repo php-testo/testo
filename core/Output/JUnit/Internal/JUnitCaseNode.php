@@ -72,5 +72,12 @@ final readonly class JUnitCaseNode
          * Mapped to `<system-err>`.
          */
         public string $systemErr = '',
+
+        /**
+         * Attempts a retry policy discarded before the reported one, in run order.
+         *
+         * @var list<JUnitRerun>
+         */
+        public array $reruns = [],
     ) {}
 }

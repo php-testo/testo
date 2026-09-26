@@ -42,6 +42,7 @@ public function __construct(
 
 - `maxAttempts` is the **total** number of attempts (3 = first run + up to 2 retries).
 - `markFlaky` is **on by default** — when a retry was needed, the run is reported flaky even though it eventually passed. **Do not disable** this unless the user explicitly asks: silent retries are how flakiness rots a suite.
+- In the `--log-junit` report every discarded attempt stays visible whatever `markFlaky` says: a test that finally passed carries a `<flakyFailure>`/`<flakyError>` child per failed attempt, one that never passed a `<rerunFailure>`/`<rerunError>` child (Maven Surefire's elements, which Jenkins and GitHub JUnit reporters read).
 - Valid targets: method, function, **class** (`TARGET_CLASS` is allowed). Apply at the class level only when every test in it is independently flaky for the same external reason — that's rare; usually it's a smell.
 
 ## `#[Repeat]` — run a test N times unconditionally

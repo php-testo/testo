@@ -32,6 +32,7 @@ use Testo\Event\Test\TestBatchFinished;
 use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestPipelineFinished;
+use Testo\Event\Test\TestRetrying;
 use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
@@ -304,6 +305,70 @@ final class JUnitPluginTest
             $cases = $xml->testsuite->testsuite->testcase;
             Assert::same((string) $cases[0]['name'], 'passingTest [0:k]');
             Assert::same((string) $cases[1]['name'], 'passingTest [1:k]');
+        } finally {
+            self::cleanup($path);
+        }
+    }
+
+    #[Covers(JUnitPlugin::class)]
+    public function retriedAttemptsOfAFlakyTestBecomeFlakyFailures(): void
+    {
+        $path = self::tmpPath();
+        try {
+            $dispatcher = self::wirePlugin(new JUnitPlugin($path));
+            $suiteInfo = self::makeSuiteInfo('CoreSuite');
+            $caseInfo = self::makeCaseInfo();
+            $testInfo = self::makeTestInfo('passingTest');
+            $attempt = new TestResult(info: $testInfo, status: Status::Failed, failure: new \RuntimeException('first try'));
+            $result = new TestResult(info: $testInfo, status: Status::Flaky);
+
+            $dispatcher->dispatch(new SessionStarting());
+            $dispatcher->dispatch(new TestSuiteStarting($suiteInfo));
+            $dispatcher->dispatch(new TestCaseStarting($caseInfo));
+            $dispatcher->dispatch(new TestRetrying($testInfo, 2, $attempt));
+            $dispatcher->dispatch(new TestPipelineFinished($testInfo, $result));
+            $dispatcher->dispatch(new TestCaseFinished($caseInfo, new CaseResult([$result], Status::Flaky)));
+            $dispatcher->dispatch(new TestSuiteFinished($suiteInfo, new SuiteResult([], Status::Flaky)));
+            $dispatcher->dispatch(self::sessionFinished());
+
+            $case = self::loadFile($path)->testsuite->testsuite->testcase;
+            Assert::count($case->flakyFailure, 1);
+            Assert::same((string) $case->flakyFailure['message'], 'first try');
+        } finally {
+            self::cleanup($path);
+        }
+    }
+
+    #[Covers(JUnitPlugin::class)]
+    public function eachDataSetRowGetsOnlyItsOwnRetriedAttempts(): void
+    {
+        $path = self::tmpPath();
+        try {
+            $dispatcher = self::wirePlugin(new JUnitPlugin($path));
+            $suiteInfo = self::makeSuiteInfo('CoreSuite');
+            $caseInfo = self::makeCaseInfo();
+            $testInfo = self::makeTestInfo('passingTest');
+            $rowA = $testInfo->with(identity: $testInfo->identity->toDataSet(0, 0));
+            $rowB = $testInfo->with(identity: $testInfo->identity->toDataSet(0, 1));
+            $aggregate = new TestResult(info: $testInfo, status: Status::Passed);
+
+            $dispatcher->dispatch(new SessionStarting());
+            $dispatcher->dispatch(new TestSuiteStarting($suiteInfo));
+            $dispatcher->dispatch(new TestCaseStarting($caseInfo));
+            $dispatcher->dispatch(new TestBatchStarting($testInfo));
+            $dispatcher->dispatch(new TestRetrying($rowA, 2, new TestResult(info: $rowA, status: Status::Error)));
+            $dispatcher->dispatch(new TestDataSetFinished($rowA, new TestResult(info: $rowA, status: Status::Flaky), 'alpha', null, 0));
+            $dispatcher->dispatch(new TestDataSetFinished($rowB, new TestResult(info: $rowB, status: Status::Passed), 'beta', null, 1));
+            $dispatcher->dispatch(new TestBatchFinished($testInfo, $aggregate));
+            $dispatcher->dispatch(new TestPipelineFinished($testInfo, $aggregate));
+            $dispatcher->dispatch(new TestCaseFinished($caseInfo, new CaseResult([$aggregate], Status::Passed)));
+            $dispatcher->dispatch(new TestSuiteFinished($suiteInfo, new SuiteResult([], Status::Passed)));
+            $dispatcher->dispatch(self::sessionFinished());
+
+            $cases = self::loadFile($path)->testsuite->testsuite->testcase;
+            Assert::count($cases, 2);
+            Assert::count($cases[0]->flakyError, 1);
+            Assert::count($cases[1]->flakyError, 0);
         } finally {
             self::cleanup($path);
         }
