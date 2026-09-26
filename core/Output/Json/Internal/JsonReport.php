@@ -55,14 +55,18 @@ final class JsonReport
     }
 
     /**
-     * Test counts keyed by lowercased {@see Status} name, with the grand total first.
-     * Zero-count statuses are omitted to keep the object compact.
+     * The grand total and the assertion count first, then test counts keyed by lowercased
+     * {@see Status} name. Zero-count statuses are omitted to keep the object compact; `assertions`
+     * is always present and reads `0` when nothing recorded it (the Assert plugin is off).
      *
      * @return array<non-empty-string, int<0, max>>
      */
     private static function totals(Summary $summary): array
     {
-        $totals = ['total' => $summary->total()];
+        $totals = [
+            'total' => $summary->total(),
+            'assertions' => $summary->metric('assertions'),
+        ];
         foreach ($summary->counts as $name => $count) {
             if ($count > 0) {
                 $totals[\strtolower($name)] = $count;

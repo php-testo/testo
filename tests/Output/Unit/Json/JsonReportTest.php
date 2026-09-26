@@ -48,7 +48,7 @@ final class JsonReportTest
 
         Assert::same($report['status'], 'passed');
         Assert::same($report['duration'], 1.25);
-        Assert::same($report['totals'], ['total' => 3, 'passed' => 3]);
+        Assert::same($report['totals'], ['total' => 3, 'assertions' => 0, 'passed' => 3]);
         Assert::same($report['failures'], []);
     }
 
@@ -190,7 +190,18 @@ final class JsonReportTest
             results: [self::test('failingTest', Status::Failed, new \RuntimeException('x'))],
         ));
 
-        Assert::same($report['totals'], ['total' => 3, 'passed' => 2, 'failed' => 1]);
+        Assert::same($report['totals'], ['total' => 3, 'assertions' => 0, 'passed' => 2, 'failed' => 1]);
+    }
+
+    public function totalsCarryTheAssertionCountOfTheRun(): void
+    {
+        $report = self::decode(self::run(
+            Status::Passed,
+            summary: new Summary(['Passed' => 2], ['assertions' => 7]),
+            results: [self::test('passingTest', Status::Passed)],
+        ));
+
+        Assert::same($report['totals'], ['total' => 2, 'assertions' => 7, 'passed' => 2]);
     }
 
     public function emptyRunReportsRiskyStatusAndZeroTotal(): void
@@ -200,7 +211,7 @@ final class JsonReportTest
         $report = self::decode((new JsonReport())->generate($run));
 
         Assert::same($report['status'], 'risky');
-        Assert::same($report['totals'], ['total' => 0]);
+        Assert::same($report['totals'], ['total' => 0, 'assertions' => 0]);
         Assert::same($report['failures'], []);
     }
 
