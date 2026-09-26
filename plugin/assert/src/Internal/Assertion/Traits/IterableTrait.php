@@ -138,6 +138,27 @@ trait IterableTrait
 
     #[AssertMethod]
     #[\Override]
+    public function allInstanceOf(string $class, string $message = ''): static
+    {
+        \class_exists($class) || \interface_exists($class) or throw new \InvalidArgumentException(
+            "Class or interface `{$class}` does not exist.",
+        );
+
+        $str = "has all elements instance of `{$class}`";
+        foreach ($this->value as $element) {
+            $element instanceof $class or throw $this->parent->fail(
+                assertion: $str,
+                reason: 'found element of type `' . \get_debug_type($element) . '`',
+                context: $message,
+            );
+        }
+
+        $this->parent->success($str);
+        return $this;
+    }
+
+    #[AssertMethod]
+    #[\Override]
     public function hasCount(int $expected): static
     {
         $count = self::countIterable($this->value);

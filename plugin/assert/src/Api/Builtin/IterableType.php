@@ -71,6 +71,20 @@ interface IterableType
     public function allOf(string $type, string $message = ''): static;
 
     /**
+     * Asserts that every element in the iterable is an instance of the given class or interface.
+     *
+     * Unlike {@see allOf()}, which matches the exact type, a subclass or an implementation passes.
+     * An empty iterable passes.
+     *
+     * @param class-string $class Fully-qualified class or interface name.
+     * @param string $message Optional message for the assertion.
+     * @throws \InvalidArgumentException when the class or interface does not exist, before any
+     *         element is checked, so an empty iterable throws too.
+     * @throws AssertionException when the assertion fails.
+     */
+    public function allInstanceOf(string $class, string $message = ''): static;
+
+    /**
      * Asserts that every element in the iterable satisfies the given callback predicate.
      *
      * @param callable(mixed): bool $callback A predicate function that receives each element and returns true if it satisfies the condition.

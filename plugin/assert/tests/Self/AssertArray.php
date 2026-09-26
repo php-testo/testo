@@ -74,6 +74,15 @@ final class AssertArray
         Assert::array([1, 2, 'testo'])->allOf('int', 'my wonderful message');
     }
 
+    public function allInstanceOf(): never
+    {
+        Assert::array([new \ArrayObject(), new \ArrayIterator()])->allInstanceOf(\Traversable::class);
+
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('my wonderful message');
+        Assert::array([new \ArrayObject(), new \stdClass()])->allInstanceOf(\ArrayObject::class, 'my wonderful message');
+    }
+
     public function every(): never
     {
         Assert::array([1, 2, 3])->every(static fn($value) => \is_int($value));

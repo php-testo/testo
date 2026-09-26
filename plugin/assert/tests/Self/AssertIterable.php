@@ -7,6 +7,8 @@ namespace Tests\Assert\Self;
 use Testo\Assert;
 use Testo\Assert\Internal\Assertion\AssertIterable as AssertIterableImpl;
 use Testo\Assert\Internal\Assertion\Traits\IterableTrait;
+use Testo\Assert\Internal\StaticState;
+use Testo\Assert\State\Assertion\AssertionComposite;
 use Testo\Assert\State\Assertion\AssertionException;
 use Testo\Codecov\Covers;
 use Testo\Expect;
@@ -85,6 +87,40 @@ final class AssertIterable
         Expect::exception(AssertionException::class)
             ->withMessageContaining('my wonderful message');
         Assert::iterable([true, false, 'true'])->allOf('bool', 'my wonderful message');
+    }
+
+    public function allInstanceOf(): never
+    {
+        Assert::iterable(new \ArrayIterator([new \ArrayObject(), new \ArrayIterator()]))->allInstanceOf(\Countable::class);
+        Assert::iterable([new \DateTimeImmutable(), new \DateTime()])->allInstanceOf(\DateTimeInterface::class);
+        Assert::iterable([])->allInstanceOf(\stdClass::class);
+
+        Expect::exception(AssertionException::class)
+            ->withMessageContaining('my wonderful message');
+        Assert::iterable([new \stdClass(), 'stdClass'])->allInstanceOf(\stdClass::class, 'my wonderful message');
+    }
+
+    public function allInstanceOfUnknownClassThrowsOnEmptyIterable(): never
+    {
+        Expect::exception(\InvalidArgumentException::class)
+            ->withMessageContaining('Tests\Assert\Self\MissingClass');
+        Assert::iterable([])->allInstanceOf('Tests\Assert\Self\MissingClass');
+    }
+
+    public function allInstanceOfUnknownClassRecordsNoAssertion(): void
+    {
+        $iterable = Assert::iterable([new \stdClass()]);
+        $history = StaticState::current()?->history ?? [];
+        $head = \end($history);
+        Assert::instanceOf($head, AssertionComposite::class);
+
+        # A try/catch rather than Expect: the records are only readable after the throw.
+        try {
+            $iterable->allInstanceOf('Tests\Assert\Self\MissingClass');
+        } catch (\InvalidArgumentException) {
+        }
+
+        Assert::same($head->getRecords(), []);
     }
 
     public function hasCount(): never
