@@ -43,6 +43,9 @@ vendor/bin/testo init --no-interaction        # generates testo.php + composer s
   hand instead — see `testo-configure` for the `SuiteConfig` / finder shape.
 - For anything `init` can't infer (a non-standard test dir, `@requires`-style suite separation via
   finder excludes), edit the generated file per `testo-configure`.
+- `init` does not read `phpunit.xml`: bring the generated file in line with the carry-over list
+  from `precheck.php` (one suite per `<testsuite>`, the `<php>` settings at the top), and drop suites
+  it created for layouts the project does not have.
 
 Then confirm it loads:
 

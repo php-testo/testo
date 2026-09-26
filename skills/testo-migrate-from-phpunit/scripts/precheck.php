@@ -12,18 +12,26 @@ declare(strict_types=1);
  *      hard-to-convert constructs they use: mocks, constraints, regex exception messages, …)
  *
  * Usage:
- *   php precheck.php [--scope=DIR]... [--root=PATH]
+ *   php precheck.php [--scope=DIR]... [--root=PATH] [--phpunit-config=FILE]
  *
- * --scope=DIR   Restrict the test survey to this directory (repeatable). Default: auto-detect
- *               common roots (`tests`, `test`) under --root.
- * --root=PATH   Project root to inspect (default: current working directory).
+ * --scope=DIR            Restrict the test survey to this directory (repeatable). Default:
+ *                        auto-detect common roots (`tests`, `test`) under --root.
+ * --root=PATH            Project root to inspect (default: current working directory).
+ * --phpunit-config=FILE  PHPUnit config to read (default: the first of `phpunit.xml`,
+ *                        `phpunit.dist.xml`, `phpunit.xml.dist` under --root). Every other
+ *                        `phpunit*.xml*` in the root is listed as an alternate config.
  *
- * Reads only the filesystem (composer.json, vendor/, the test files). Writes nothing.
+ * It also lists the PHPUnit config settings Testo does not read (`<php>` ini/env/const,
+ * `bootstrap`, `<testsuites>`, groups, extensions, source/coverage scope) as a
+ * "carry over by hand" checklist, with the Testo-side counterpart where one exists.
+ *
+ * Reads only the filesystem (composer.json, vendor/, phpunit*.xml, the test files). Writes nothing.
  * Exit codes: 0 ok, 2 no composer.json / not a PHP project.
  */
 
 $root = null;
 $scopes = [];
+$phpunitConfig = null;
 foreach (\array_slice($argv, 1) as $arg) {
     if (\preg_match('/^--scope=(.+)$/', $arg, $m)) {
         $scopes[] = \rtrim($m[1], "/\\");
@@ -31,6 +39,10 @@ foreach (\array_slice($argv, 1) as $arg) {
     }
     if (\preg_match('/^--root=(.+)$/', $arg, $m)) {
         $root = $m[1];
+        continue;
+    }
+    if (\preg_match('/^--phpunit-config=(.+)$/', $arg, $m)) {
+        $phpunitConfig = $m[1];
         continue;
     }
     \fwrite(\STDERR, "unknown argument: {$arg}\n");
@@ -152,6 +164,159 @@ foreach ($scopes as $scope) {
 
 \ksort($byDir);
 
+// --- PHPUnit XML config --------------------------------------------------------------------------
+
+// PHPUnit's own lookup order when no --configuration is given.
+$phpunitDefaults = ['phpunit.xml', 'phpunit.dist.xml', 'phpunit.xml.dist'];
+$phpunitCandidates = \array_values(\array_unique(\array_merge(
+    \array_filter($phpunitDefaults, $exists(...)),
+    \array_map(\basename(...), \glob($root . '/phpunit*.xml*') ?: []),
+)));
+$phpunitConfig ??= $phpunitCandidates[0] ?? null;
+$phpunitExtra = \array_values(\array_diff($phpunitCandidates, [$phpunitConfig]));
+
+/**
+ * Everything in the PHPUnit config that Testo does not read, grouped by report section.
+ *
+ * @var array<string, list<array{string, string}>> $carry section => list of [setting, Testo hint]
+ */
+$carry = [];
+$phpunitError = null;
+
+if ($phpunitConfig !== null) {
+    $file = \is_file($phpunitConfig) ? $phpunitConfig : $path($phpunitConfig);
+    \libxml_use_internal_errors(true);
+    $xml = \is_file($file) ? \simplexml_load_file($file) : false;
+    if ($xml === false) {
+        $error = \libxml_get_errors()[0] ?? null;
+        $phpunitError = \is_file($file)
+            ? 'not valid XML' . ($error ? ': ' . \trim($error->message) : '')
+            : 'file not found';
+    } else {
+        $attr = static fn(\SimpleXMLElement $e, string $name): ?string => isset($e[$name]) ? (string) $e[$name] : null;
+        $q = static fn(?string $v): string => $v === null ? '' : '`' . $v . '`';
+        $add = static function (string $section, string $setting, string $hint) use (&$carry): void {
+            $carry[$section][] = [$setting, $hint];
+        };
+
+        // <php>: runtime state PHPUnit applies before loading any test.
+        $superglobal = [
+            'server' => '$_SERVER', 'var' => '$GLOBALS', 'get' => '$_GET', 'post' => '$_POST',
+            'cookie' => '$_COOKIE', 'files' => '$_FILES', 'request' => '$_REQUEST',
+        ];
+        foreach ($xml->php?->children() ?? [] as $el) {
+            $tag = $el->getName();
+            $name = (string) ($el['name'] ?? '');
+            $value = (string) ($el['value'] ?? $el);
+            $export = \var_export($value, true);
+            $pair = \var_export("{$name}={$value}", true);
+            match (true) {
+                $tag === 'ini' => $add('php', "ini {$name} = {$q($value)}", "`ini_set('{$name}', {$export});`"),
+                $tag === 'env' && \filter_var((string) ($el['force'] ?? ''), \FILTER_VALIDATE_BOOLEAN) => $add(
+                    'php',
+                    "env {$name} = {$q($value)} (force)",
+                    "`putenv({$pair}); \$_ENV['{$name}'] = \$_SERVER['{$name}'] = {$export};`",
+                ),
+                $tag === 'env' => $add(
+                    'php',
+                    "env {$name} = {$q($value)}",
+                    "only when unset: `\\getenv('{$name}') === false and putenv({$pair});` (+ `\$_ENV`)",
+                ),
+                $tag === 'const' => $add('php', "const {$name} = {$q($value)}", "`\\defined('{$name}') or \\define('{$name}', {$export});`"),
+                $tag === 'includePath' => $add('php', "includePath {$q($value)}", "`set_include_path({$export} . PATH_SEPARATOR . get_include_path());`"),
+                isset($superglobal[$tag]) => $add('php', "{$tag} {$name} = {$q($value)}", "`{$superglobal[$tag]}['{$name}'] = {$export};`"),
+                default => $add('php', "`<{$tag}>` {$name}", 'unknown `<php>` entry: carry over by hand'),
+            };
+        }
+
+        // Root attributes that change how the run behaves.
+        $rootHints = [
+            'bootstrap' => 'no bootstrap option: `require_once __DIR__ . \'/<file>\';` at the top of testo.php',
+            'executionOrder' => 'no counterpart: Testo runs tests in declaration order',
+            'failOnRisky' => 'no switch: a risky test already makes the run non-green',
+            'failOnWarning' => 'no counterpart: Testo has no Warning status',
+            'beStrictAboutOutputDuringTests' => 'no counterpart',
+            'processIsolation' => 'no counterpart: all tests run in one process',
+            'cacheDirectory' => 'drop: Testo keeps no result cache',
+            'cacheResult' => 'drop: Testo keeps no result cache',
+        ];
+        foreach ($rootHints as $name => $hint) {
+            ($v = $attr($xml, $name)) === null or $add('root', "{$name}=\"{$v}\"", $hint);
+        }
+
+        // <testsuites>: paths are relative to the config file, as in testo.php.
+        foreach ($xml->testsuites?->testsuite ?? [] as $suite) {
+            $name = $attr($suite, 'name') ?? '(unnamed)';
+            $items = [];
+            $paths = ['include' => [], 'exclude' => []];
+            foreach ($suite->children() as $el) {
+                $tag = $el->getName();
+                $dir = \trim((string) $el);
+                $paths[$tag === 'exclude' ? 'exclude' : 'include'][] = \var_export($dir, true);
+                $extra = [];
+                foreach (['prefix', 'suffix', 'phpVersion', 'groups'] as $a) {
+                    ($v = $attr($el, $a)) === null or $extra[] = "{$a}=\"{$v}\"";
+                }
+                $items[] = "{$tag} `{$dir}`" . ($extra === [] ? '' : ' (' . \implode(' ', $extra) . ')');
+            }
+            $finder = 'include: [' . \implode(', ', $paths['include']) . ']'
+                . ($paths['exclude'] === [] ? '' : ', exclude: [' . \implode(', ', $paths['exclude']) . ']');
+            $add(
+                'suites',
+                "**{$name}**: " . (\implode('; ', $items) ?: '(empty)'),
+                '`new SuiteConfig(name: ' . \var_export($name, true) . ", location: new FinderConfig({$finder}))`",
+            );
+        }
+
+        foreach (['include', 'exclude'] as $mode) {
+            foreach ($xml->groups?->{$mode}?->group ?? [] as $g) {
+                $add('groups', "{$mode} group `{$g}`", $mode === 'include' ? "`--group={$g}` on the CLI" : "`--group=!{$g}` on the CLI");
+            }
+        }
+
+        // PHPUnit 10+ <extensions><bootstrap class>, PHPUnit ≤9 <extensions><extension class> and <listeners>.
+        foreach ([$xml->extensions?->children() ?? [], $xml->listeners?->children() ?? []] as $list) {
+            foreach ($list as $el) {
+                $params = [];
+                foreach ($el->parameter ?? [] as $p) {
+                    $params[] = $p['name'] . '=' . $p['value'];
+                }
+                $add(
+                    'extensions',
+                    "`<{$el->getName()}>` `" . ($attr($el, 'class') ?? '?') . '`' . ($params === [] ? '' : ' (' . \implode(', ', $params) . ')'),
+                    '**no counterpart**: re-implement as a Testo plugin (testo-plugin-author skill) or drop',
+                );
+            }
+        }
+
+        // PHPUnit 10+ keeps the source scope in <source>, PHPUnit 9 in <coverage>.
+        foreach (['source', 'coverage'] as $section) {
+            foreach (['include', 'exclude'] as $mode) {
+                foreach ($xml->{$section}?->{$mode}?->children() ?? [] as $el) {
+                    $suffix = $attr($el, 'suffix');
+                    $add(
+                        'source',
+                        "`<{$section}>` {$mode} {$el->getName()} `" . \trim((string) $el) . '`' . ($suffix === null ? '' : " (suffix=\"{$suffix}\")"),
+                        "`ApplicationConfig(src: new FinderConfig({$mode}: [...]))`",
+                    );
+                }
+            }
+            foreach ($xml->{$section}?->report?->children() ?? [] as $el) {
+                $out = $attr($el, 'outputFile') ?? $attr($el, 'outputDirectory') ?? '';
+                $add('source', "coverage report {$el->getName()} `{$out}`", 'report of `CodecovPlugin` (testo-coverage skill)');
+            }
+        }
+        foreach ($xml->logging?->children() ?? [] as $el) {
+            $out = $attr($el, 'outputFile') ?? '';
+            $add(
+                'source',
+                "logging {$el->getName()} `{$out}`",
+                $el->getName() === 'junit' ? '`new JUnitPlugin(...)` in plugins or `--log-junit=<file>`' : 'no direct counterpart',
+            );
+        }
+    }
+}
+
 // --- Report --------------------------------------------------------------------------------------
 
 $yn = static fn(bool $b): string => $b ? 'yes' : 'NO';
@@ -193,6 +358,47 @@ if ($byDir === []) {
     echo "- `exception_regex` — `expectExceptionMessageMatches`: Testo matches substrings, not PCRE.\n";
     echo "- `incomplete` — `markTestIncomplete`: Testo has no Incomplete status.\n";
 }
+
+echo "\n## PHPUnit config: carry over by hand\n\n";
+if ($phpunitConfig === null) {
+    echo "No `phpunit.xml`, `phpunit.dist.xml` or `phpunit.xml.dist` under the root. "
+        . "Pass --phpunit-config=FILE if it lives elsewhere.\n";
+} elseif ($phpunitError !== null) {
+    echo "`{$phpunitConfig}`: {$phpunitError}. Nothing read from it.\n";
+} else {
+    echo "Read `{$phpunitConfig}`. Testo ignores it: each setting below is lost unless it moves into "
+        . "`testo.php` (included in the test process, before discovery) or a file it requires.\n\n";
+    $sections = [
+        'php' => '`<php>` runtime settings: top of testo.php',
+        'root' => 'Run options (`<phpunit>` attributes)',
+        'suites' => '`<testsuites>`: one `SuiteConfig` each',
+        'groups' => '`<groups>`: no config counterpart, pass on the CLI or in a composer script',
+        'extensions' => 'Extensions and listeners',
+        'source' => 'Source scope, coverage and logging',
+    ];
+    $carry === [] and print("Nothing to carry over.\n");
+    $cell = static fn(string $s): string => \str_replace('|', '\|', $s);
+    foreach ($sections as $key => $title) {
+        if (!isset($carry[$key])) {
+            continue;
+        }
+        echo "### {$title}\n\n| Setting | Testo side |\n|---|---|\n";
+        foreach ($carry[$key] as [$setting, $hint]) {
+            echo "| {$cell($setting)} | {$cell($hint)} |\n";
+        }
+        echo "\n";
+        $key === 'suites' and print(
+            "`FinderConfig` takes existing paths only (no globs) and has no prefix/suffix filter. Tests marked "
+            . "`#[Test]` are found in any file; name-based discovery (`*Test.php`, `test*` methods) is "
+            . "`Testo\\Convention\\NamingConventionPlugin(caseSuffix: 'Test')` in the suite's plugins. "
+            . "Exclude fixture dirs that hold test-looking code.\n\n"
+        );
+    }
+}
+$phpunitExtra === [] or print(
+    "Alternate configs (re-run with --phpunit-config=FILE to list each): `"
+    . \implode('`, `', $phpunitExtra) . "`.\n"
+);
 
 echo "\n## Note\n\n";
 echo "Even on the Rector path, removing `extends TestCase` and reconciling test discovery "

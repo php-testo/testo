@@ -99,6 +99,9 @@ vendor/bin/testo init --no-interaction        # generates testo.php + composer s
 vendor/bin/testo --json --suite=<name>         # confirm it loads (0 tests is fine at this point)
 ```
 
+- `init` does not read `phpunit.xml`: bring the generated file in line with the carry-over list
+  from `precheck.php` (one suite per `<testsuite>`, the `<php>` settings at the top), and drop suites
+  it created for layouts the project does not have.
 - The test directories already exist, so `init` picks up the real structure (it always ensures a
   `Unit` suite). **If `testo.php` already exists**, `init` skips it — adjust by hand per
   `testo-configure`. For non-standard dirs or `@requires`-style suite separation (finder excludes),
@@ -127,9 +130,9 @@ current batch.
    ```bash
    vendor/bin/testo --json --suite=<name>
    ```
-2. **Gate:** `status: "passed"` and `totals.total` equals the PHPUnit test count for the scope.
-   Investigate any `failures[]` — a flipped assertion that slipped through — and any missing tests
-   (an undiscovered class drops out of the count without failing).
+2. **Gate:** `status: "passed"`, and `compare-junit.php` against the PHPUnit baseline reports
+   `IDENTICAL` (SKILL.md, Phase 5 step 2). Investigate any `failures[]` (a flipped assertion that
+   slipped through) and any missing tests (an undiscovered class drops out without failing).
 3. **Polish pass.** Scaffold a second config with the `testo-polish` set and apply it the same way
    (dry-run first):
    ```bash
@@ -139,7 +142,7 @@ current batch.
    ```
    It adds `: void`/`: never` and `final`, moves `#[Test]` onto the class and one-statement exception
    tests into `#[ExpectException]`, and merges assertion pipes, without changing which tests run.
-   **Gate:** the step-2 run again gives `status: "passed"` and the same `totals.total`.
+   **Gate:** the step-2 checks again give `status: "passed"` and `IDENTICAL`.
 4. Remove the scaffolding once green: delete `rector-testo-migration.php` and `rector-testo-polish.php`; if the whole project is
    migrated, drop `phpunit.xml`, `phpunit/phpunit` and `tests/bootstrap.php`, and optionally remove
    `testo/bridge-rector` from `require-dev`.

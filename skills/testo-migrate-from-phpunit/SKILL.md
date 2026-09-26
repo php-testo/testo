@@ -59,6 +59,9 @@ Migrate one slice at a time and keep the rest on PHPUnit until each slice is gre
 runners against the same tests in CI**. Carry the chosen scope (as directory paths) into every later
 phase and into the `--scope` / `--path` flags of the scripts.
 
+Record the baseline before touching any file: `<php> vendor/bin/phpunit --log-junit=<out>/phpunit-junit.xml`
+over the same scope. Phase 5 compares the migrated run against it test by test.
+
 ## Phase 3 — Detect tooling & choose the approach
 
 ### 1. Resolve the PHP binary
@@ -78,6 +81,13 @@ php -r "echo PHP_BINARY;"     # e.g. C:\php\php.exe or /usr/bin/php
 It reports whether `testo/bridge-rector` (and therefore Rector) is installed — **`testo/bridge-rector`
 alone is enough, it pulls Rector in** — and surveys the test surface (files, ~tests, and the
 hard-to-convert constructs per directory). **Read its output before choosing.**
+
+It also lists what `phpunit.xml(.dist)` sets that Testo would silently lose (`<php>` ini/env/const,
+`bootstrap`, `<testsuites>`, groups, extensions, source and coverage scope), each with its Testo
+counterpart. Keep the list: `testo.php` is written from it (a lost `intl.default_locale` fails tests
+that passed under PHPUnit), with one `SuiteConfig` per `<testsuite>` and the `<php>` settings at the
+top of the file. For an alternate config such as `phpunit-without-intl.xml`, re-run with
+`--phpunit-config=<file>`.
 
 ### 3. Present the approach options and let the user choose
 
@@ -145,12 +155,16 @@ After the chosen approach's stages complete, run the shared final pass (detailed
 1. **Full in-scope run:** `vendor/bin/testo --json --suite=<name>`. **Gate:** `status: "passed"`.
    Investigate every `failures[]` — the usual culprits are a flipped comparison, a class still
    `extends TestCase` (undiscovered), or a provider method mistaken for a test.
-2. **Test count:** `totals.total` equals the test count of the last PHPUnit run over the same scope
-   (record it before migrating). An undiscovered test fails nothing, it just drops out of the count;
-   the assertion count is not comparable between the two runners.
+2. **Same tests:** run `<php> vendor/bin/testo --suite=<name> --log-junit=<out>/testo-junit.xml`, then
+   `<php> <skillDir>/scripts/compare-junit.php <out>/phpunit-junit.xml <out>/testo-junit.xml`.
+   **Gate:** exit 0 (`IDENTICAL`): every test method ran as many times as under PHPUnit. Matching
+   totals are not enough, a dropped test can hide behind an extra one. Add `--strip-test-prefix` if
+   methods lost their `test` prefix and `--map='Old\Ns\=New\Ns\x27` if tests moved namespace. An
+   undiscovered test fails nothing, it just drops out; the assertion count is not comparable between
+   the two runners.
 3. **Polish (needs `testo/bridge-rector`):** run the `testo-polish` Rector set over the scope as its own
-   pass, per Stage A6 of `references/migrate-with-rector.md`, then repeat steps 1–2 — the test count
-   must not change.
+   pass, per Stage A6 of `references/migrate-with-rector.md`, then repeat steps 1–2: `compare-junit.php`
+   must stay `IDENTICAL`.
 4. **Retire the old harness — only once green:** delete the disposable Rector configs (Approach A);
    when the whole project is migrated, remove `phpunit.xml`, `phpunit/phpunit` from `composer.json`,
    and any `tests/bootstrap.php`. Optionally drop `testo/bridge-rector` from `require-dev`.
