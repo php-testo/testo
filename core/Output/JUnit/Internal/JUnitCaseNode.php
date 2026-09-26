@@ -24,6 +24,14 @@ final readonly class JUnitCaseNode
         public ?JUnitCaseOutcome $outcome,
 
         /**
+         * Assertions the test performed: the `assertions` metric of its summary, `0` when nothing
+         * recorded it (the Assert plugin is off). Mapped to `assertions` on `<testcase>`.
+         *
+         * @var int<0, max>
+         */
+        public int $assertions = 0,
+
+        /**
          * Index of the data-provider this row was produced from. Null for
          * single-provider tests.
          * Mapped to `testo:data-provider` on `<testcase>`.

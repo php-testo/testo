@@ -20,6 +20,7 @@ use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Exception\SkipTest;
 use Testo\Core\Value\Status;
+use Testo\Core\Value\Summary;
 use Testo\Output\JUnit\Internal\JUnitWriter;
 use Testo\Test;
 use Tests\Output\Stub\JUnit\ConcreteSampleTest;
@@ -478,6 +479,66 @@ final class JUnitWriterTest
         Assert::same((string) $xml->testsuite->testcase['classname'], ConcreteSampleTest::class);
     }
 
+    #[Covers(JUnitWriter::class)]
+    public function testcaseCarriesTheAssertionCountOfItsSummary(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed, assertions: 3));
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        Assert::same((string) $xml->testsuite->testcase['assertions'], '3');
+    }
+
+    /**
+     * Without the Assert plugin nothing records the metric: the attribute stays and reads `0`,
+     * the number the terminal prints for the same run.
+     */
+    #[Covers(JUnitWriter::class)]
+    public function testcaseWithoutRecordedAssertionsReportsZero(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed));
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        Assert::same((string) $xml['assertions'], '0');
+        Assert::same((string) $xml->testsuite['assertions'], '0');
+        Assert::same((string) $xml->testsuite->testcase['assertions'], '0');
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function assertionsRollUpThroughNestedSuitesToTheRoot(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('OuterSuite');
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed, assertions: 1));
+        $writer->startSuite('InnerSuite');
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed, assertions: 2));
+        $writer->addTestResult(self::makeResult(
+            'failingTest',
+            Status::Failed,
+            failure: new \RuntimeException('boom'),
+            assertions: 4,
+        ));
+        $writer->finishSuite();
+        $writer->finishSuite();
+        $writer->startSuite('SiblingSuite');
+        $writer->addTestResult(self::makeResult('passingTest', Status::Passed, assertions: 8));
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+
+        Assert::same((string) $xml['assertions'], '15');
+        Assert::same((string) $xml->testsuite[0]['assertions'], '7');
+        Assert::same((string) $xml->testsuite[0]->testsuite['assertions'], '6');
+        Assert::same((string) $xml->testsuite[1]['assertions'], '8');
+    }
+
     public function writeCreatesParentDirectory(): void
     {
         // Arrange
@@ -564,6 +625,7 @@ final class JUnitWriterTest
         Status $status,
         int $durationMs = 0,
         ?\Throwable $failure = null,
+        ?int $assertions = null,
     ): TestResult {
         $reflection = new \ReflectionMethod(SampleTestClass::class, $method);
 
@@ -586,6 +648,7 @@ final class JUnitWriterTest
             status: $status,
             failure: $failure,
             attributes: ['duration' => $durationMs],
+            summary: $assertions === null ? new Summary() : new Summary(metrics: ['assertions' => $assertions]),
         );
     }
 
