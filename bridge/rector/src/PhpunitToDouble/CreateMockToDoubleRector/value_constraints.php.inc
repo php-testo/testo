@@ -14,6 +14,6 @@ class SomeTest
 {
     public function test()
     {
-        $dep->allows('v')->with(null, true, false, \JMac\Testing\Matching\Argument::satisfies(fn($value) => $value instanceof \Countable ? count($value) === 0 : empty($value)))->returns('w');
+        $dep->allows('v')->with(null, true, false, \JMac\Testing\Matching\Argument::satisfies(fn($value) => $value instanceof \Countable ? count($value) === 0 : empty($value)), \JMac\Testing\Matching\Argument::remaining())->returns('w');
     }
 }

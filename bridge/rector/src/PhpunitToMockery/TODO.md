@@ -24,7 +24,16 @@ of `CreateMockToMockeryRector` carries the full map.
   `isNull`/`isTrue`/`isFalse`→`isSame(literal)`. Everything else becomes `Mockery::on()` over the
   expression `Internal\PhpunitConstraint` builds (see `../PhpunitToDouble/TODO.md` for the list and its
   guards), including `logicalAnd`/`logicalXor` and a `resource` type check (Mockery's `is_resource()`
-  rejects a closed resource, PHPUnit's does not).
+  rejects a closed resource, PHPUnit's does not). `with()` itself ends in `\Mockery::andAnyOtherArgs()`
+  (`...[\Mockery::andAnyOtherArgs()]` after a spread): PHPUnit ignores the call arguments past the listed
+  ones, Mockery's `with()` requires the exact count. An empty `with()` constrains nothing in PHPUnit and
+  drops out like `withAnyParameters()` (in Mockery it would demand a call with no arguments).
+
+## Residuals by design
+
+- An omitted optional argument: PHPUnit fills in the parameter's default, `andAnyOtherArgs()` pads the
+  call with `null`. The two agree when the default is `null`; otherwise `with()` listing the default
+  matches only in PHPUnit, and `with(null)` matches only in Mockery.
 
 ## Left for manual migration
 

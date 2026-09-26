@@ -22,7 +22,7 @@ class SomeTest
 {
     public function test()
     {
-        $dep->shouldReceive('run')->once()->with('x')->andReturn('y');
+        $dep->shouldReceive('run')->once()->with('x', \Mockery::andAnyOtherArgs())->andReturn('y');
         $dep->shouldReceive('a')->never();
         $dep->shouldReceive('b')->times(3)->andReturn('b');
         $dep->shouldReceive('c')->andReturn('c');

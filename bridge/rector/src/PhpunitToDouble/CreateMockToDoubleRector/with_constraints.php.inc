@@ -15,7 +15,7 @@ class SomeTest
 {
     public function test()
     {
-        $dep->expects('run')->times(1)->with('a', \JMac\Testing\Matching\Argument::any(), \JMac\Testing\Matching\Argument::type(Foo::class))->returns('y');
-        $dep->allows('cb')->with(\JMac\Testing\Matching\Argument::satisfies(fn ($x) => $x > 0), \JMac\Testing\Matching\Argument::same(3), \JMac\Testing\Matching\Argument::matches('/x/'))->returns('z');
+        $dep->expects('run')->times(1)->with('a', \JMac\Testing\Matching\Argument::any(), \JMac\Testing\Matching\Argument::type(Foo::class), \JMac\Testing\Matching\Argument::remaining())->returns('y');
+        $dep->allows('cb')->with(\JMac\Testing\Matching\Argument::satisfies(fn ($x) => $x > 0), \JMac\Testing\Matching\Argument::same(3), \JMac\Testing\Matching\Argument::matches('/x/'), \JMac\Testing\Matching\Argument::remaining())->returns('z');
     }
 }

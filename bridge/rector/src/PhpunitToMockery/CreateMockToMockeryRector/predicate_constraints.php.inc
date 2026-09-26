@@ -22,14 +22,14 @@ class SomeTest
 {
     public function test()
     {
-        $dep->shouldReceive('n')->with(\Mockery::on(fn($value) => $value > 5), \Mockery::on(fn($value) => $value < 9), \Mockery::on(fn($value) => $value >= 1), \Mockery::on(fn($value) => $value <= 3))->andReturn('u');
-        $dep->shouldReceive('s')->with(\Mockery::on(fn($value) => is_string($value) && str_contains($value, 'x')), \Mockery::on(fn($value) => is_string($value) && str_starts_with($value, 'a')), \Mockery::on(fn($value) => is_string($value) && str_ends_with($value, 'z')), \Mockery::on(fn($value) => $value instanceof \Countable ? count($value) === 0 : empty($value)))->andReturn('t');
-        $dep->shouldReceive('not')->with(\Mockery::on(fn($value) => !($value == 'a')), \Mockery::on(fn($value) => !is_int($value)), \Mockery::on(fn($value) => !$value instanceof Foo))->andReturn('r');
-        $dep->shouldReceive('or')->with(\Mockery::on(fn($value) => $value == 'a' || $value == 'b' || $value === null))->andReturn('r');
-        $dep->shouldReceive('and')->with(\Mockery::on(fn($value) => $value > 5 && $value < 9))->andReturn('r');
-        $dep->shouldReceive('xor')->with(\Mockery::on(fn($value) => $value === true xor $value === null))->andReturn('r');
-        $dep->shouldReceive('nested')->with(\Mockery::on(fn($value) => (fn ($x) => $x === 1)($value) || is_string($value) && preg_match('/^a/', $value) > 0))->andReturn('r');
-        $dep->shouldReceive('key')->with(\Mockery::on(fn($value) => !(is_array($value) ? array_key_exists('k', $value) : $value instanceof \ArrayAccess && $value->offsetExists('k'))))->andReturn('r');
-        $dep->shouldReceive('class')->with(\Mockery::on(fn($value) => $value instanceof $class || $value == 1))->andReturn('r');
+        $dep->shouldReceive('n')->with(\Mockery::on(fn($value) => $value > 5), \Mockery::on(fn($value) => $value < 9), \Mockery::on(fn($value) => $value >= 1), \Mockery::on(fn($value) => $value <= 3), \Mockery::andAnyOtherArgs())->andReturn('u');
+        $dep->shouldReceive('s')->with(\Mockery::on(fn($value) => is_string($value) && str_contains($value, 'x')), \Mockery::on(fn($value) => is_string($value) && str_starts_with($value, 'a')), \Mockery::on(fn($value) => is_string($value) && str_ends_with($value, 'z')), \Mockery::on(fn($value) => $value instanceof \Countable ? count($value) === 0 : empty($value)), \Mockery::andAnyOtherArgs())->andReturn('t');
+        $dep->shouldReceive('not')->with(\Mockery::on(fn($value) => !($value == 'a')), \Mockery::on(fn($value) => !is_int($value)), \Mockery::on(fn($value) => !$value instanceof Foo), \Mockery::andAnyOtherArgs())->andReturn('r');
+        $dep->shouldReceive('or')->with(\Mockery::on(fn($value) => $value == 'a' || $value == 'b' || $value === null), \Mockery::andAnyOtherArgs())->andReturn('r');
+        $dep->shouldReceive('and')->with(\Mockery::on(fn($value) => $value > 5 && $value < 9), \Mockery::andAnyOtherArgs())->andReturn('r');
+        $dep->shouldReceive('xor')->with(\Mockery::on(fn($value) => $value === true xor $value === null), \Mockery::andAnyOtherArgs())->andReturn('r');
+        $dep->shouldReceive('nested')->with(\Mockery::on(fn($value) => (fn ($x) => $x === 1)($value) || is_string($value) && preg_match('/^a/', $value) > 0), \Mockery::andAnyOtherArgs())->andReturn('r');
+        $dep->shouldReceive('key')->with(\Mockery::on(fn($value) => !(is_array($value) ? array_key_exists('k', $value) : $value instanceof \ArrayAccess && $value->offsetExists('k'))), \Mockery::andAnyOtherArgs())->andReturn('r');
+        $dep->shouldReceive('class')->with(\Mockery::on(fn($value) => $value instanceof $class || $value == 1), \Mockery::andAnyOtherArgs())->andReturn('r');
     }
 }

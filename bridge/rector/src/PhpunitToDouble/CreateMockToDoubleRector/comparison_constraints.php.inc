@@ -14,6 +14,6 @@ class SomeTest
 {
     public function test()
     {
-        $dep->allows('n')->with(\JMac\Testing\Matching\Argument::satisfies(fn($value) => $value > 5), \JMac\Testing\Matching\Argument::satisfies(fn($value) => $value < 9), \JMac\Testing\Matching\Argument::satisfies(fn($value) => $value >= 1), \JMac\Testing\Matching\Argument::satisfies(fn($value) => $value <= 3))->returns('u');
+        $dep->allows('n')->with(\JMac\Testing\Matching\Argument::satisfies(fn($value) => $value > 5), \JMac\Testing\Matching\Argument::satisfies(fn($value) => $value < 9), \JMac\Testing\Matching\Argument::satisfies(fn($value) => $value >= 1), \JMac\Testing\Matching\Argument::satisfies(fn($value) => $value <= 3), \JMac\Testing\Matching\Argument::remaining())->returns('u');
     }
 }

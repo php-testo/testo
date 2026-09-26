@@ -6,6 +6,8 @@ namespace Testo\Bridge\Rector\PhpunitToMockery;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
+use PhpParser\Node\ArrayItem;
+use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
@@ -34,7 +36,7 @@ use Testo\Codecov\Covers;
  *     $dep->expects($this->once())->method('run')->with('x')->willReturn('y');
  *     // becomes
  *     $dep = \Mockery::mock(Dependency::class)->shouldIgnoreMissing();
- *     $dep->shouldReceive('run')->once()->with('x')->andReturn('y');
+ *     $dep->shouldReceive('run')->once()->with('x', \Mockery::andAnyOtherArgs())->andReturn('y');
  *
  * Creation ({@see PhpunitMockFactory} reads the PHPUnit side): a PHPUnit double answers an unconfigured
  * call with a type-appropriate default, and so does an ignore-missing Mockery mock, while a plain one
@@ -54,7 +56,9 @@ use Testo\Codecov\Covers;
  * `andReturnSelf`, `willReturnMap` → `andReturnUsing(<the map lookup>)` ({@see ReturnValueMap}), plus the
  * legacy `will($this->returnValue()/…/returnValueMap())` wrappers.
  *
- * `with()` constraints: a plain value and `equalTo($x)` stay a plain `$x` (both compare loosely);
+ * `with()` ends in `\Mockery::andAnyOtherArgs()`, because PHPUnit ignores the arguments past the listed
+ * ones and Mockery does not; an empty `with()` drops away like `withAnyParameters()`. Its constraints:
+ * a plain value and `equalTo($x)` stay a plain `$x` (both compare loosely);
  * `anything` → `Mockery::any()`, `identicalTo` → `isSame`, `isInstanceOf`/`isType` → `type`,
  * `callback` → `on`, `matchesRegularExpression` → `pattern`, `arrayHasKey` → `hasKey`,
  * `contains`/`containsEqual` → `hasValue`, `isNull`/`isTrue`/`isFalse` → `isSame(null/true/false)` (a
@@ -97,7 +101,7 @@ final class CreateMockToMockeryRector extends AbstractRector
                         PHP,
                     <<<'PHP'
                         $dep = \Mockery::mock(Dependency::class)->shouldIgnoreMissing();
-                        $dep->shouldReceive('run')->once()->with('x')->andReturn('y');
+                        $dep->shouldReceive('run')->once()->with('x', \Mockery::andAnyOtherArgs())->andReturn('y');
                         PHP,
                 ),
             ],
@@ -234,7 +238,9 @@ final class CreateMockToMockeryRector extends AbstractRector
                 return null;
             }
 
-            if ($name === 'withAnyParameters') {
+            # `withAnyParameters()` and an empty `with()` place no constraint, which is Mockery's default
+            # without any `with*()`; a bare `with()` in Mockery would demand a call with no arguments.
+            if ($name === 'withAnyParameters' || ($name === 'with' && $segments[$i]->args === [])) {
                 continue;
             }
 
@@ -382,16 +388,20 @@ final class CreateMockToMockeryRector extends AbstractRector
      * A constraint with no faithful form aborts the whole chain, since leaving the raw `$this->…()` call
      * would break once the test loses its TestCase base.
      *
+     * PHPUnit checks only the listed arguments and ignores any further ones the call passes, while
+     * Mockery's `with()` matches the arity exactly. A trailing `\Mockery::andAnyOtherArgs()` reproduces
+     * PHPUnit (and stays convertible by the Mockery-to-Double set); after a spread it goes in as a spread
+     * of its own, since a positional argument cannot follow an unpacked one.
+     *
      * @param list<Arg|VariadicPlaceholder> $args
-     * @return array{0: non-empty-string, 1: list<Arg|VariadicPlaceholder>, 2: bool}|null
+     * @return array{0: non-empty-string, 1: list<Arg>, 2: bool}|null
      */
     private function mapWith(array $args): ?array
     {
         $mapped = [];
         foreach ($args as $arg) {
             if (!$arg instanceof Arg) {
-                $mapped[] = $arg;
-                continue;
+                return null;
             }
 
             $constraint = $this->mapConstraint($arg->value);
@@ -399,8 +409,14 @@ final class CreateMockToMockeryRector extends AbstractRector
                 return null;
             }
 
-            $mapped[] = new Arg($constraint);
+            $mapped[] = new Arg($constraint, unpack: $arg->unpack);
         }
+
+        $last = \end($mapped);
+        $others = $this->mockery('andAnyOtherArgs');
+        $mapped[] = $last !== false && $last->unpack
+            ? new Arg(new Array_([new ArrayItem($others)]), unpack: true)
+            : new Arg($others);
 
         return ['with', $mapped, false];
     }

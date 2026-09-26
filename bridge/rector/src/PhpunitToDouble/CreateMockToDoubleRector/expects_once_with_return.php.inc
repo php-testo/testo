@@ -14,6 +14,6 @@ class SomeTest
 {
     public function test()
     {
-        $dep->expects('run')->times(1)->with('x')->returns('y');
+        $dep->expects('run')->times(1)->with('x', \JMac\Testing\Matching\Argument::remaining())->returns('y');
     }
 }

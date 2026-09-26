@@ -101,7 +101,10 @@ before writing the test (steps in the reference).
   Assert history, so a test whose only checks are `expects()` / `shouldHaveReceived()` passes, not Risky.
   A *hand-written* spy has no such hook: assert on its recorded calls with `Assert::*`.
 - **Argument matching is strict.** Double compares scalars with `===`; Mockery's `with()` is loose (`==`)
-  but its object matching is by identity. When porting between the two, re-check every `with()`.
+  but its object matching is by identity. When porting between the two, re-check every `with()`. Both
+  also match the argument count exactly, and an unmatched `allows()` in Double silently answers null; end
+  the list with `Argument::remaining()` (Double) or `\Mockery::andAnyOtherArgs()` (Mockery) to accept
+  extra arguments. PHPUnit's `with()` ignores extra arguments, so the Rector sets emit exactly those forms.
 - **No static / magic-method doubling.** Neither library doubles static methods; Double allows only
   `__invoke`, `__toString`, `__serialize`, `__unserialize`, `__clone`. Wrap the static call in an
   instance you can double.

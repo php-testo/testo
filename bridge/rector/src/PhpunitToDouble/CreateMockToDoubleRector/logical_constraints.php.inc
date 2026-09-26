@@ -14,6 +14,6 @@ class SomeTest
 {
     public function test()
     {
-        $dep->allows('l')->with(\JMac\Testing\Matching\Argument::not('a'), \JMac\Testing\Matching\Argument::not()->type('int'), \JMac\Testing\Matching\Argument::any('a', 'b'))->returns('r');
+        $dep->allows('l')->with(\JMac\Testing\Matching\Argument::not('a'), \JMac\Testing\Matching\Argument::not()->type('int'), \JMac\Testing\Matching\Argument::any('a', 'b'), \JMac\Testing\Matching\Argument::remaining())->returns('r');
     }
 }
