@@ -106,7 +106,7 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   modifier, `notContains`, `notSame` and the patterns after `ignoringLineEndings()`, the substring
   and pattern checks after `ignoringWhitespace(true)`, several modes in effect at once, and
   `ignoringWhitespace()` without line breaks, `ignoringBlankLines()` and `ignoringAnsi()` at all. Matchers with no faithful PHPUnit line (JSON path/structure,
-  `every`, `allOf()` with a class name or a pseudo-type, `notEmpty` on the `iterable` head, custom)
+  `every`, `allOf()` with a class name or a pseudo-type, `notEmpty` on the `iterable` head, the `callable` matchers `isStatic`/`notStatic`/`hasReturnType`, custom)
   leave the whole chain untouched rather than half-converting. **Message residual:** the emitted
   needle-and-subject assertions (`assertStringStartsWith`, `assertMatchesRegularExpression`, …) carry
   no message, so a matcher's `$message` is dropped.
