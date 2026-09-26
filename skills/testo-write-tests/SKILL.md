@@ -82,6 +82,8 @@ Assert::int($n)->greaterThan(0)->lessThanOrEqual(100);
 Assert::numeric($n)->between(1, 100);  // int, float, or numeric string
 Assert::array($a)->hasKeys('id', 'name')->isList()->hasCount(3)->contains('x')->notContains('y');
 Assert::array($a)->sameElementsAs([3, 2, 1]);  // order-insensitive, keys ignored
+Assert::iterable($ids)->allOf('int');          // exact get_debug_type() of every element
+Assert::iterable($users)->allInstanceOf(User::class);  // instanceof: subclasses and implementations pass
 Assert::object($o)->instanceOf(Foo::class)->hasProperty('id');
 Assert::json($s)->isObject()->hasKeys(['data', 'meta'])->assertPath('$.data.id', 42);
 ```
