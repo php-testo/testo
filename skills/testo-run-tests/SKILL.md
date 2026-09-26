@@ -23,7 +23,7 @@ interface — parse the JSON. When a human also needs terminal output (CI logs),
 {
     "status": "failed",
     "duration": 1.42,
-    "totals": {"total": 120, "passed": 118, "failed": 1, "error": 1},
+    "totals": {"total": 120, "assertions": 342, "passed": 118, "failed": 1, "error": 1},
     "failures": [
         {
             "test": "App\\Tests\\UserServiceTest::createsUser",
@@ -43,7 +43,10 @@ interface — parse the JSON. When a human also needs terminal output (CI logs),
 - `status` — the run verdict. **Gate on `"status": "passed"`**, not on `failures` being empty:
   a run can be risky with zero failures.
 - `totals` — counts keyed by lowercased test status (`passed`, `failed`, `error`, `skipped`,
-  `risky`, `flaky`, `cancelled`, `aborted`); zero counts are omitted.
+  `risky`, `flaky`, `cancelled`, `aborted`); zero counts are omitted. `assertions` is always
+  there: the run's assertion count, the same number the terminal prints, `0` when the Assert
+  plugin is off. The per-test count is the `assertions` attribute of each `<testcase>` in the
+  `--log-junit` report.
 - `failures` — every failed/errored test with what you need to fix it: the throwable, its
   `previous` chain (`causedBy`), a stack trace trimmed at the test boundary, and captured
   output (`stdout`, log channels). `test` is the test's FQN, and `--filter='<test>'` reruns exactly

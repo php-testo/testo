@@ -160,8 +160,9 @@ After the chosen approach's stages complete, run the shared final pass (detailed
    **Gate:** exit 0 (`IDENTICAL`): every test method ran as many times as under PHPUnit. Matching
    totals are not enough, a dropped test can hide behind an extra one. Add `--strip-test-prefix` if
    methods lost their `test` prefix and `--map='Old\Ns\=New\Ns\x27` if tests moved namespace. An
-   undiscovered test fails nothing, it just drops out; the assertion count is not comparable between
-   the two runners.
+   undiscovered test fails nothing, it just drops out. The assertion count is not comparable between
+   the two runners; both JUnit reports carry it (`assertions` on each `<testcase>` and `<testsuite>`),
+   so a large per-test gap is a lead to inspect, never a gate.
 3. **Polish (needs `testo/bridge-rector`):** run the `testo-polish` Rector set over the scope as its own
    pass, per Stage A6 of `references/migrate-with-rector.md`, then repeat steps 1–2: `compare-junit.php`
    must stay `IDENTICAL`.
