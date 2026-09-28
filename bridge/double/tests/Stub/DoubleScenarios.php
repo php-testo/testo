@@ -80,4 +80,27 @@ final class DoubleScenarios
         $spy->unused(); // passes immediately (never called), recorded here rather than at teardown
         Assert::same(2, 2);
     }
+
+    #[Test]
+    public function ambiguousExpectationFailsOnItsOwn(): void
+    {
+        /** @var DoubleInterface&\Countable $double */
+        $double = Double::for(\Countable::class);
+        $double->expects('count')->returns(1);
+        $double->expects('count')->returns(2);
+
+        $double->count();
+        $double->count();
+    }
+
+    #[Test]
+    public function ambiguousExpectationBehindAFailure(): void
+    {
+        /** @var DoubleInterface&\Countable $double */
+        $double = Double::for(\Countable::class);
+        $double->expects('count')->returns(1);
+        $double->expects('count')->returns(2);
+
+        Assert::same($double->count(), 1);
+    }
 }
