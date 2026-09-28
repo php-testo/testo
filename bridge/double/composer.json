@@ -24,8 +24,8 @@
         }
     ],
     "require": {
-        "php": ">=8.3",
-        "jasonmccreary/double": "^0.10.0",
+        "php": ">=8.2",
+        "jasonmccreary/double": "^1.0",
         "testo/testo": "0.10.48 - 1"
     },
     "require-dev": {

@@ -111,6 +111,24 @@ final class DoubleStatusTest
         Assert::same($next->status, Status::Passed);
     }
 
+    public function ambiguousExpectationFailsAPassingTest(): void
+    {
+        $result = TestRunner::runTest([DoubleScenarios::class, 'ambiguousExpectationFailsOnItsOwn']);
+        Assert::same($result->status, Status::Failed);
+        Assert::string($result->failure?->getMessage() ?? '')->contains('registered 2 times');
+    }
+
+    public function ambiguousExpectationIsRecordedBesideTheTestFailure(): void
+    {
+        // The reversed matching is why the assertion fails; the assertion keeps its place as the failure.
+        $result = TestRunner::runTest([DoubleScenarios::class, 'ambiguousExpectationBehindAFailure']);
+        Assert::same($result->status, Status::Failed);
+        Assert::string($result->failure?->getMessage() ?? '')->notContains('registered 2 times');
+        Assert::string(self::failReasons($result))
+            ->contains('expected `1`, got `2`')
+            ->contains('registered 2 times');
+    }
+
     private static function hasRecord(TestResult $result, bool $success): bool
     {
         $state = $result->getAttribute(TestState::class);
@@ -156,6 +174,21 @@ final class DoubleStatusTest
         }
 
         return \implode("\n", $expectations);
+    }
+
+    private static function failReasons(TestResult $result): string
+    {
+        $state = $result->getAttribute(TestState::class);
+        if (!$state instanceof TestState) {
+            return '';
+        }
+
+        $reasons = [];
+        foreach ($state->history as $record) {
+            $record->isSuccess() or $reasons[] = $record->getFailReason();
+        }
+
+        return \implode("\n", $reasons);
     }
 
     private static function failReason(TestResult $result): string

@@ -6,6 +6,8 @@ namespace Testo\Bridge\Double\Internal;
 
 use JMac\Testing\CheckEvent;
 use JMac\Testing\Double;
+use JMac\Testing\Exceptions\AmbiguousExpectationException;
+use JMac\Testing\Integrations\PHPUnit\PHPUnitAmbiguousExpectationException;
 use Testo\Assert\Internal\StaticState;
 use Testo\Assert\State\Expectation\ExpectationFailed;
 use Testo\Assert\State\Expectation\ExpectationFulfilled;
@@ -42,15 +44,20 @@ final readonly class DoubleInterceptor implements TestRunInterceptor
         try {
             $result = $this->run($info, $next);
         } finally {
+            # A null $result means $next() threw; that exception keeps propagating.
+            $failed = $result?->status !== Status::Passed;
             try {
-                Double::verifyAll();
+                Double::verifyAll(testFailed: $failed);
             } catch (\Throwable $e) {
-                # The unmet expectation was already recorded by the listener. Turn it into a normal failure
-                # here — an exception escaping would abort the pipeline (Status::Aborted) instead. Leave an
-                # already-failed result alone; a null $result means $next() threw, let it propagate.
-                $result?->status === Status::Passed and $result = $result
-                    ->with(status: Status::Failed)
-                    ->withFailure($e);
+                # An exception escaping would abort the pipeline (Status::Aborted), so a passed test turns
+                # failed here. An already-failed test keeps its own failure: only an ambiguous expectation
+                # is left to report, and Double emits no check event for it, so it is recorded by hand.
+                if ($failed) {
+                    self::recordAmbiguity($e);
+                } else {
+                    \assert($result !== null);
+                    $result = $result->with(status: Status::Failed)->withFailure($e);
+                }
             }
         }
 
@@ -71,6 +78,12 @@ final readonly class DoubleInterceptor implements TestRunInterceptor
 
         $listening = true;
         Double::listen(self::record(...));
+    }
+
+    private static function recordAmbiguity(\Throwable $e): void
+    {
+        ($e instanceof AmbiguousExpectationException || $e instanceof PHPUnitAmbiguousExpectationException)
+            and self::record(new CheckEvent($e->label, method: null, passed: false, failure: $e));
     }
 
     private static function record(CheckEvent $event): void

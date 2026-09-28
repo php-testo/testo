@@ -14,9 +14,6 @@ Read the `DOUBLE` block of `scripts/precheck.php` (run from `SKILL.md` Step 2). 
 | `testo/bridge-double` | Bridge missing → §2. The library alone never verifies under Testo. |
 | `DoublePlugin registered` | `testo.php` does not mention `DoublePlugin` → §2.2. Expectations go unverified; mock-only tests come out `Risky`. |
 
-Also check the PHP row: Double needs **PHP 8.3+**. On 8.2 this route is closed — use Mockery or
-hand-written fakes.
-
 ## 2. Install
 
 ### 2.1 Packages
