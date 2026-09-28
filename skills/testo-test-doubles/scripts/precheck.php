@@ -59,7 +59,7 @@ $libraries = [
         'bridge' => 'testo/bridge-double',
         'plugin' => 'DoublePlugin',
         'reference' => 'references/double.md',
-        'phpMin' => 80300,
+        'phpMin' => 80200,
     ],
     'MOCKERY' => [
         'library' => 'mockery/mockery',

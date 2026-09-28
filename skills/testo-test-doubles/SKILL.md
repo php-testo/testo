@@ -11,8 +11,8 @@ each with its own reference next to this file:
 | Route | Reference | Reach for it when |
 |---|---|---|
 | **Hand-written** fake/stub/spy class | `references/handwritten.md` | **The default**, library installed or not: a real class under `tests/` reads without a DSL, is reused across tests, survives a library swap, and holds state. |
-| **Double** (`testo/bridge-double`) | `references/double.md` | A library earns its place: a wide third-party interface, call order as the contract, or the surrounding tests already double this way. Choosing fresh on PHP 8.3+. |
-| **Mockery** (`testo/bridge-mockery`) | `references/mockery.md` | The same cases, when the project already uses Mockery or must stay on PHP 8.2. |
+| **Double** (`testo/bridge-double`) | `references/double.md` | A library earns its place: a wide third-party interface, call order as the contract, or the surrounding tests already double this way. |
+| **Mockery** (`testo/bridge-mockery`) | `references/mockery.md` | The same cases, when the project already uses Mockery. |
 
 Whichever route you take, every class the test itself declares gets a file and a directory:
 `references/placement.md`. That reference answers the fixture case too, which is where a test lands
