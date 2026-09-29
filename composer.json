@@ -48,7 +48,7 @@
         "testo/data": "^0.1.10",
         "testo/filter": "^0.1.8",
         "testo/inline": "^0.1.9",
-        "testo/lifecycle": "^0.1.7",
+        "testo/lifecycle": "^0.1.8",
         "testo/repeat": "^0.1.9",
         "testo/retry": "^0.1.5",
         "testo/skip": "^0.1.1",
