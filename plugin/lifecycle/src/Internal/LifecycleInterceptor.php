@@ -125,7 +125,8 @@ final readonly class LifecycleInterceptor implements
 
     /**
      * Group lifecycle hooks by their attribute class, ordered within each group by priority
-     * descending (higher priority runs first).
+     * descending (higher priority runs first). A hook joins each group once, with the priority of its
+     * nearest declaration along the method's prototype chain.
      *
      * @param iterable<\ReflectionFunctionAbstract> $hooks
      * @return array<class-string<LifecycleAttribute>, non-empty-list<\ReflectionFunctionAbstract>>
@@ -142,7 +143,13 @@ final readonly class LifecycleInterceptor implements
                 flags: \ReflectionAttribute::IS_INSTANCEOF,
             );
 
+            $seen = [];
             foreach ($attributes as $attribute) {
+                if (isset($seen[$attribute->getName()])) {
+                    continue;
+                }
+
+                $seen[$attribute->getName()] = true;
                 $attr = $attribute->newInstance();
                 /** @var int $priority */
                 $priority = $attr->priority ?? 0;
