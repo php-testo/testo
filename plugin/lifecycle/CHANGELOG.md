@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/php-testo/testo/compare/lifecycle-0.1.7...lifecycle-0.1.8) (2026-09-29)
+
+
+### Bug Fixes
+
+* **lifecycle:** run an overridden hook once ([#374](https://github.com/php-testo/testo/issues/374)) ([a39ebd0](https://github.com/php-testo/testo/commit/a39ebd02ac8a9a9b65f7cf38776b6d4bba88ae1f))
+
 ## [0.1.7](https://github.com/php-testo/testo/compare/lifecycle-0.1.6...lifecycle-0.1.7) (2026-09-19)
 
 

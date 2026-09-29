@@ -1,8 +1,8 @@
 {
-    ".": "0.10.53",
+    ".": "0.10.54",
     "plugin/repeat": "0.1.9",
     "plugin/convention": "0.1.5",
-    "plugin/lifecycle": "0.1.7",
+    "plugin/lifecycle": "0.1.8",
     "plugin/retry": "0.1.5",
     "plugin/filter": "0.1.8",
     "plugin/test": "0.1.8",
@@ -14,11 +14,11 @@
     "plugin/facade": "0.1.1",
     "plugin/fiber": "0.1.3",
     "plugin/skip": "0.1.1",
-    "bridge/double": "0.1.1",
+    "bridge/double": "0.1.2",
     "bridge/symfony-console": "0.1.14",
     "bridge/infection": "0.1.9",
     "bridge/mockery": "0.1.2",
-    "bridge/rector": "0.3.2",
+    "bridge/rector": "0.3.3",
     "bridge/revolt": "0.1.2",
     "bridge/vcr": "0.1.1"
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2](https://github.com/php-testo/testo/compare/bridge-double-0.1.1...bridge-double-0.1.2) (2026-09-29)
+
+
+### Features
+
+* **double:** report ambiguous expectations on an already failed test ([2435f56](https://github.com/php-testo/testo/commit/2435f56632a43732cdbde2872b97799ac80f3744))
+
+
+### Dependencies
+
+* **double:** bump jasonmccreary/double to ^1.0 ([#373](https://github.com/php-testo/testo/issues/373)) ([2435f56](https://github.com/php-testo/testo/commit/2435f56632a43732cdbde2872b97799ac80f3744))
+
 ## [0.1.1](https://github.com/php-testo/testo/compare/bridge-double-0.1.0...bridge-double-0.1.1) (2026-09-17)
 
 
