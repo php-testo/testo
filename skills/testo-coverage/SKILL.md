@@ -160,6 +160,10 @@ the table is what a consumer switches on.
 consumer opens: for a report that fills a directory, the index inside it rather than the directory; for
 one that uploads its data, whatever URL it lands on.
 
+A report that cannot write its target throws `Testo\Codecov\Exception\CoverageReportNotWritten`, naming
+the path and the filesystem's reason. The remaining reports are still written, then the run exits
+non-zero. A custom report should throw the same exception on a failed write.
+
 ```php
 final readonly class MyReport implements CoverageReport
 {
@@ -177,6 +181,7 @@ final readonly class MyReport implements CoverageReport
 ## Pitfalls
 
 - No coverage written? Check the active Xdebug mode includes `coverage` — set it via `xdebug.mode`, `-d xdebug.mode=coverage`, or `XDEBUG_MODE=coverage` (or load PCOV). Testo skips the driver if neither is available.
+- A report landed in the project root under a name like `C:\Users\...`? A Windows path reached a Linux PHP (WSL, Docker): it has no `/`, so it reads as a relative file name. Pass the path as the interpreter sees it (`/mnt/c/...`).
 - `clover.xml` empty? Suite-level finder probably excludes the `src` directory you expected — verify the `FinderConfig` covers it.
 - Don't enable coverage in benchmark suites — it falsifies timings.
 - Coverage under `#[RunInFiber]` costs an extra driver stop/start per suspension (the window is closed
