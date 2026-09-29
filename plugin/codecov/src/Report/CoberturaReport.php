@@ -6,6 +6,7 @@ namespace Testo\Codecov\Report;
 
 use Internal\Path;
 use Testo\Codecov\Internal\BranchCoverageAggregator;
+use Testo\Codecov\Internal\ReportFile;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineStatus;
@@ -82,9 +83,7 @@ final readonly class CoberturaReport implements CoverageReport
         $xml->endElement(); // coverage
         $xml->endDocument();
 
-        $dir = \dirname($this->outputPath);
-        \is_dir($dir) or \mkdir($dir, 0o755, true);
-        \file_put_contents($this->outputPath, $xml->outputMemory());
+        ReportFile::write($this->outputPath, $xml->outputMemory());
     }
 
     #[\Override]

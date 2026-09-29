@@ -8,6 +8,7 @@ use Internal\Path;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Codecov\Exception\CoverageReportNotWritten;
 use Testo\Codecov\Internal\CoverageCollector;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Codecov\Result\CoverageResult;
@@ -23,6 +24,7 @@ use Testo\Core\Report\ReportInfo;
 use Testo\Core\Value\Status;
 use Testo\Data\MultipleResult;
 use Testo\Event\Report\ReportFileGenerated;
+use Testo\Expect;
 use Testo\Test;
 
 #[Test]
@@ -100,6 +102,32 @@ final class CoverageCollectorTest
         Assert::same($seen[1]->format, 'cobertura');
     }
 
+    public function unwritableReportDoesNotStopTheOthers(): never
+    {
+        $dispatcher = new EventDispatcher();
+        $seen = [];
+        $dispatcher->addListener(
+            ReportFileGenerated::class,
+            static function (ReportFileGenerated $event) use (&$seen): void {
+                $seen[] = $event->info->format;
+            },
+        );
+        $collector = new CoverageCollector(
+            [self::createReport('broken', fail: true), self::createReport('clover')],
+            null,
+            $dispatcher,
+        );
+
+        Expect::exception(CoverageReportNotWritten::class)
+            ->withMessage('Unable to write the coverage report file `/tmp/broken/index.xml`: Permission denied.');
+
+        try {
+            $collector->destroy();
+        } finally {
+            Assert::same($seen, ['clover']);
+        }
+    }
+
     private static function suiteOf(TestResult $result): SuiteResult
     {
         return new SuiteResult(
@@ -111,9 +139,9 @@ final class CoverageCollectorTest
     /**
      * @param non-empty-string $format Also spells the card's path, so two reports stay distinguishable.
      */
-    private static function createReport(string $format = 'stub'): CoverageReport
+    private static function createReport(string $format = 'stub', bool $fail = false): CoverageReport
     {
-        return new class($format) implements CoverageReport {
+        return new class($format, $fail) implements CoverageReport {
             public ?CoverageResult $result = null;
 
             /**
@@ -121,11 +149,16 @@ final class CoverageCollectorTest
              */
             public function __construct(
                 private readonly string $format,
+                private readonly bool $fail,
             ) {}
 
             #[\Override]
             public function generate(CoverageResult $result): void
             {
+                $this->fail and throw CoverageReportNotWritten::file(
+                    (string) $this->info()->path,
+                    'Permission denied',
+                );
                 $this->result = $result;
             }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Codecov\Report;
 
+use Testo\Codecov\Exception\CoverageReportNotWritten;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Core\Report\ReportInfo;
 
@@ -14,6 +15,9 @@ use Testo\Core\Report\ReportInfo;
  */
 interface CoverageReport
 {
+    /**
+     * @throws CoverageReportNotWritten When the target path cannot be written.
+     */
     public function generate(CoverageResult $result): void;
 
     /**

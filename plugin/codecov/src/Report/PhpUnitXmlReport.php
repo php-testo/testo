@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Codecov\Report;
 
 use Internal\Path;
+use Testo\Codecov\Internal\ReportFile;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
 use Testo\Codecov\Result\LineStatus;
@@ -46,7 +47,7 @@ final readonly class PhpUnitXmlReport implements CoverageReport
     {
         $sourceRoot = (string) Path::create($result->sourceRoot ?? (string) \getcwd());
 
-        \is_dir($this->outputDir) or \mkdir($this->outputDir, 0o755, true);
+        ReportFile::directory($this->outputDir);
 
         $entries = [];
         $totalStmts = 0;
@@ -189,7 +190,7 @@ final readonly class PhpUnitXmlReport implements CoverageReport
         $xml->endElement(); // phpunit
         $xml->endDocument();
 
-        \file_put_contents($this->outputDir . '/index.xml', $xml->outputMemory());
+        ReportFile::write($this->outputDir . '/index.xml', $xml->outputMemory());
     }
 
     /**
@@ -199,9 +200,6 @@ final readonly class PhpUnitXmlReport implements CoverageReport
     {
         $fileCoverage = $entry['fileCoverage'];
         $outputPath = $this->outputDir . '/' . $entry['href'];
-
-        $dir = \dirname($outputPath);
-        \is_dir($dir) or \mkdir($dir, 0o755, true);
 
         $xml = self::newXmlWriter();
         $xml->startDocument('1.0', 'UTF-8');
@@ -242,6 +240,6 @@ final readonly class PhpUnitXmlReport implements CoverageReport
         $xml->endElement(); // phpunit
         $xml->endDocument();
 
-        \file_put_contents($outputPath, $xml->outputMemory());
+        ReportFile::write($outputPath, $xml->outputMemory());
     }
 }

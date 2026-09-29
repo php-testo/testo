@@ -7,6 +7,7 @@ namespace Testo\Codecov\Internal;
 use Internal\Container\Attribute\ScopeShared;
 use Internal\Destroy\Destroyable;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Testo\Codecov\Exception\CoverageReportNotWritten;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Core\Context\SuiteResult;
@@ -59,10 +60,20 @@ final readonly class CoverageCollector implements Destroyable
             ? $this->cache->value->withSourceRoot($this->sourceRoot)
             : $this->cache->value;
 
+        # One unwritable target must not cost the other reports, so the first failure is rethrown last.
+        $failure = null;
         foreach ($this->reports as $report) {
-            $report->generate($result);
+            try {
+                $report->generate($result);
+            } catch (CoverageReportNotWritten $e) {
+                $failure ??= $e;
+                continue;
+            }
+
             $this->dispatcher?->dispatch(new ReportFileGenerated($report->info()));
         }
+
+        $failure === null or throw $failure;
     }
 
     /**
