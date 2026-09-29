@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.10.54](https://github.com/php-testo/testo/compare/0.10.53...0.10.54) (2026-09-29)
+
+
+### Features
+
+* **bridge-rector:** import Testo, Mockery and Double names in the polish set ([086bddb](https://github.com/php-testo/testo/commit/086bddb02b4df26803f01c0056f5556460e99829))
+* **double:** report ambiguous expectations on an already failed test ([2435f56](https://github.com/php-testo/testo/commit/2435f56632a43732cdbde2872b97799ac80f3744))
+
+
+### Bug Fixes
+
+* **bridge-rector:** drop parent calls to PHPUnit hooks ([803210c](https://github.com/php-testo/testo/commit/803210cd6adfba71d8da9704c2b6d5feae29f606))
+* **bridge-rector:** skip test classes on a PHPUnit base from vendor ([421881b](https://github.com/php-testo/testo/commit/421881bcd5cbc3fb79ba7efffd6dbec54930bf86))
+
+
+### Documentation
+
+* **skills:** ask before reusing a branch or narrowing CI in the migration skill ([81b5d05](https://github.com/php-testo/testo/commit/81b5d05e58fdd3afd80aea114cb17e419ddd5ff1))
+
+
+### Dependencies
+
+* Bump boundwize/structarmed version to ^0.18.0 ([#371](https://github.com/php-testo/testo/issues/371)) ([ecfde34](https://github.com/php-testo/testo/commit/ecfde34fcf69ef3cfc21f0f98aed2e27b9add316))
+* **double:** bump jasonmccreary/double to ^1.0 ([#373](https://github.com/php-testo/testo/issues/373)) ([2435f56](https://github.com/php-testo/testo/commit/2435f56632a43732cdbde2872b97799ac80f3744))
+
 ## [0.10.53](https://github.com/php-testo/testo/compare/0.10.52...0.10.53) (2026-09-26)
 
 
