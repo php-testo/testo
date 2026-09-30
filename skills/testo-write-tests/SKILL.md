@@ -147,7 +147,7 @@ public function requiresPdoMysql(): void
 
 Constraints:
 
-- Must escape the **test method itself**. The runner's inner try/catch maps the throw to a status; raising from an interceptor or `#[BeforeTest]`/`#[AfterTest]` hook bubbles out of the pipeline and is treated as `Status::Aborted` instead. To skip from a hook, leave the precondition check inside the test body.
+- Must escape the **test method itself**. The runner's inner try/catch maps the throw to a status; raising from an interceptor bubbles out of the pipeline and is treated as `Status::Aborted` instead, and raising from a `#[BeforeTest]`/`#[AfterTest]` hook makes the test `Status::Error` like any other hook failure. To skip from a hook, leave the precondition check inside the test body.
 - These are not assertions — don't `try`/`catch` them inside the test, just `throw`.
 - Subclasses work: `class MissingExtensionSkip extends SkipTest {}` is still recognized.
 - Return type stays `void`, or `never` if the throw is unconditional.
@@ -247,6 +247,8 @@ public static function dropSchema(): void { /* once after all tests */ }
 ```
 
 Hooks may be either instance methods or `static` — Testo invokes them accordingly. They run regardless of `#[Test]` on the method.
+
+A throwing `#[BeforeTest]` hook stops the remaining setup hooks and the test body, and the test is reported as `Status::Error` with that exception. `#[AfterTest]` hooks still run, after a failed setup too, and each one runs even when a previous one threw. A throwing teardown makes a passed test `Status::Error`, but a failed test keeps its own failure. Hook exceptions that do not become the test's failure are written to the test's `stderr` channel.
 
 In a **function-based test case** (a file of top-level `#[Test]` functions rather than a class), the same
 attributes work on plain functions. The hooks apply to that file's case — `#[BeforeClass]`/`#[AfterClass]`
