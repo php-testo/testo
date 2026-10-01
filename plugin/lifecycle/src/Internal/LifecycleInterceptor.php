@@ -14,7 +14,6 @@ use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\CaseDefinitions;
 use Testo\Core\Log\Level;
 use Testo\Core\Value\CaseInstance;
-use Testo\Core\Value\Status;
 use Testo\Core\Value\TestType;
 use Testo\Lifecycle\AfterClass;
 use Testo\Lifecycle\AfterTest;
@@ -109,8 +108,8 @@ final readonly class LifecycleInterceptor implements
     }
 
     /**
-     * A hook failure makes the test an {@see Status::Error}, never an abort, and never replaces the failure
-     * of a failed test; hook throwables that do not become the failure go to {@see Messenger::CHANNEL_STDERR}.
+     * A throwing {@see BeforeTest} hook aborts the test. {@see AfterTest} hooks always run, and their
+     * throwables go to {@see Messenger::CHANNEL_STDERR} without touching the test result.
      */
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
@@ -122,28 +121,15 @@ final readonly class LifecycleInterceptor implements
         }
 
         $instance = $info->caseInfo->instance;
-        $errors = self::executeAll($instance, $hooks[BeforeTest::class] ?? [], stopOnError: true);
-
-        $result = null;
         try {
-            $errors === [] and $result = $next($info);
+            foreach ($hooks[BeforeTest::class] ?? [] as $hook) {
+                self::execute($instance, $hook);
+            }
+
+            return $next($info);
         } finally {
-            $errors = [...$errors, ...self::executeAll($instance, $hooks[AfterTest::class] ?? [])];
+            $this->report(...self::executeAll($instance, $hooks[AfterTest::class] ?? []));
         }
-
-        $failure = $result?->status->isFailure() ? null : \array_shift($errors);
-        $this->report(...$errors);
-
-        return match (true) {
-            $failure === null => $result,
-            $result === null => new TestResult(
-                info: $info,
-                status: Status::Error,
-                failure: $failure,
-                attributes: ['description' => $info->testDefinition->getDescription()],
-            ),
-            default => $result->with(status: Status::Error)->withFailure($failure),
-        };
     }
 
     /**
@@ -215,9 +201,9 @@ final readonly class LifecycleInterceptor implements
 
     /**
      * @param list<\ReflectionFunctionAbstract> $hooks
-     * @return list<\Throwable> In execution order.
+     * @return list<\Throwable>
      */
-    private static function executeAll(?CaseInstance $instance, array $hooks, bool $stopOnError = false): array
+    private static function executeAll(?CaseInstance $instance, array $hooks): array
     {
         $errors = [];
         foreach ($hooks as $hook) {
@@ -225,9 +211,6 @@ final readonly class LifecycleInterceptor implements
                 self::execute($instance, $hook);
             } catch (\Throwable $e) {
                 $errors[] = $e;
-                if ($stopOnError) {
-                    break;
-                }
             }
         }
 
