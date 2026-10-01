@@ -19,6 +19,7 @@ use Tests\Lifecycle\Stub\HookFailure\FailedTestTeardownStub;
 use Tests\Lifecycle\Stub\HookFailure\PassedTestTeardownStub;
 use Tests\Lifecycle\Stub\HookFailure\SetupFailureStub;
 use Tests\Lifecycle\Stub\HookFailure\SetupMatchingExpectationStub;
+use Tests\Lifecycle\Stub\HookFailure\UnprintableTeardownStub;
 
 #[Test]
 #[Covers(LifecycleInterceptor::class)]
@@ -53,6 +54,14 @@ final class HookFailureFeatureTest
 
         Assert::same($result->status, Status::Passed);
         Assert::string(self::stderr($result))->contains('teardown of a test that met its expectation');
+    }
+
+    public function teardownFailureKeepsTheResultWhenItsExceptionCannotBePrinted(): void
+    {
+        $result = TestRunner::runTest([UnprintableTeardownStub::class, 'passes']);
+
+        Assert::same($result->status, Status::Passed);
+        Assert::string(self::stderr($result))->contains('unprintable teardown');
     }
 
     public function setupFailureAbortsTheTestButRunsTheTeardown(): void

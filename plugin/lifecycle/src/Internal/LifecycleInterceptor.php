@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Lifecycle\Internal;
 
+use Testo\Common\ErrorReporter;
 use Testo\Common\Messenger;
 use Testo\Common\Reflection;
 use Testo\Core\Context\CaseInfo;
@@ -231,7 +232,11 @@ final readonly class LifecycleInterceptor implements
     private function report(\Throwable ...$errors): void
     {
         foreach ($errors as $error) {
-            $this->messenger->log(Messenger::CHANNEL_STDERR, "Lifecycle hook failed: {$error}", Level::Error);
+            $this->messenger->log(
+                Messenger::CHANNEL_STDERR,
+                'Lifecycle hook failed: ' . ErrorReporter::format($error),
+                Level::Error,
+            );
         }
     }
 }
