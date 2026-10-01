@@ -26,6 +26,6 @@ final readonly class LifecyclePlugin implements PluginConfigurator
     #[\Override]
     public function configure(Container $container): void
     {
-        $container->get(InterceptorCollector::class)->addInterceptor(new LifecycleInterceptor());
+        $container->get(InterceptorCollector::class)->addInterceptor(LifecycleInterceptor::class);
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Lifecycle\Internal;
 
+use Testo\Common\ErrorReporter;
+use Testo\Common\Messenger;
 use Testo\Common\Reflection;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
@@ -11,6 +13,7 @@ use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
 use Testo\Core\Definition\CaseDefinitions;
+use Testo\Core\Log\Level;
 use Testo\Core\Value\CaseInstance;
 use Testo\Core\Value\TestType;
 use Testo\Lifecycle\AfterClass;
@@ -49,6 +52,10 @@ final readonly class LifecycleInterceptor implements
     TestRunInterceptor,
     TestCaseRunInterceptor
 {
+    public function __construct(
+        private Messenger $messenger,
+    ) {}
+
     #[\Override]
     public function locateTestCases(FileDefinitions $file, callable $next): CaseDefinitions
     {
@@ -101,6 +108,10 @@ final readonly class LifecycleInterceptor implements
         }
     }
 
+    /**
+     * A throwing {@see BeforeTest} hook aborts the test. {@see AfterTest} hooks always run, and their
+     * throwables go to {@see Messenger::CHANNEL_STDERR} without touching the test result.
+     */
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
@@ -110,16 +121,15 @@ final readonly class LifecycleInterceptor implements
             return $next($info);
         }
 
-        foreach ($hooks[BeforeTest::class] ?? [] as $hook) {
-            self::execute($info->caseInfo->instance, $hook);
-        }
-
+        $instance = $info->caseInfo->instance;
         try {
+            foreach ($hooks[BeforeTest::class] ?? [] as $hook) {
+                self::execute($instance, $hook);
+            }
+
             return $next($info);
         } finally {
-            foreach ($hooks[AfterTest::class] ?? [] as $hook) {
-                self::execute($info->caseInfo->instance, $hook);
-            }
+            $this->report(...self::executeAll($instance, $hooks[AfterTest::class] ?? []));
         }
     }
 
@@ -190,6 +200,24 @@ final readonly class LifecycleInterceptor implements
         return $hooks;
     }
 
+    /**
+     * @param list<\ReflectionFunctionAbstract> $hooks
+     * @return list<\Throwable>
+     */
+    private static function executeAll(?CaseInstance $instance, array $hooks): array
+    {
+        $errors = [];
+        foreach ($hooks as $hook) {
+            try {
+                self::execute($instance, $hook);
+            } catch (\Throwable $e) {
+                $errors[] = $e;
+            }
+        }
+
+        return $errors;
+    }
+
     private static function execute(?CaseInstance $instance, \ReflectionFunctionAbstract $reflection): void
     {
         if ($reflection instanceof \ReflectionMethod) {
@@ -199,5 +227,16 @@ final readonly class LifecycleInterceptor implements
 
         \assert($reflection instanceof \ReflectionFunction);
         $reflection->invoke();
+    }
+
+    private function report(\Throwable ...$errors): void
+    {
+        foreach ($errors as $error) {
+            $this->messenger->log(
+                Messenger::CHANNEL_STDERR,
+                'Lifecycle hook failed: ' . ErrorReporter::format($error),
+                Level::Error,
+            );
+        }
     }
 }

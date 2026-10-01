@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Lifecycle\Unit\Internal;
 
 use Internal\Path;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Testo\Application\Internal\MessengerHub;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
@@ -39,7 +41,13 @@ final class LifecycleInterceptorTest
 
     public function __construct()
     {
-        $this->interceptor = new LifecycleInterceptor();
+        $this->interceptor = new LifecycleInterceptor(new MessengerHub(new class() implements EventDispatcherInterface {
+            #[\Override]
+            public function dispatch(object $event): object
+            {
+                return $event;
+            }
+        }));
     }
 
     /**
