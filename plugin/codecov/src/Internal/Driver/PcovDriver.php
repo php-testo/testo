@@ -79,7 +79,7 @@ final readonly class PcovDriver implements CoverageDriver
 
         \pcov\clear();
 
-        return CoverageResult::fromRawData($data);
+        return CoverageResult::fromRawData(PseudoFile::remove($data));
     }
 
     #[\Override]
