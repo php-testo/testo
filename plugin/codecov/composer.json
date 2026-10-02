@@ -23,9 +23,9 @@
         "php": ">=8.2",
         "ext-xmlwriter": "*",
         "internal/container": "^1.1",
-        "testo/data": "^0.1.9",
+        "testo/data": "^0.1.10",
         "testo/inline": "^0.1.9",
-        "testo/testo": "0.10.51 - 1"
+        "testo/testo": "0.10.55 - 1"
     },
     "autoload": {
         "psr-4": {

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.4](https://github.com/php-testo/testo/compare/codecov-0.2.3...codecov-0.2.4) (2026-10-02)
+
+
+### Bug Fixes
+
+* **codecov:** fail the run with the path when a coverage report cannot be written ([#376](https://github.com/php-testo/testo/issues/376)) ([2ef9a5f](https://github.com/php-testo/testo/commit/2ef9a5fd69b69eaffa5d1d2821ed381aca13f719)), closes [#375](https://github.com/php-testo/testo/issues/375)
+* **codecov:** leave `eval()`'d code out of coverage ([#379](https://github.com/php-testo/testo/issues/379)) ([b60fa61](https://github.com/php-testo/testo/commit/b60fa61ca47ce778f16cc1b188f355cd6b12d3a7))
+* **codecov:** leave paths missing on disk out of coverage ([#380](https://github.com/php-testo/testo/issues/380)) ([580c818](https://github.com/php-testo/testo/commit/580c8182e0db8e0d7ea70575ec807fb8b39bd32e))
+
 ## [0.2.3](https://github.com/php-testo/testo/compare/codecov-0.2.2...codecov-0.2.3) (2026-09-25)
 
 

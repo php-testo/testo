@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.55](https://github.com/php-testo/testo/compare/0.10.54...0.10.55) (2026-10-02)
+
+
+### Bug Fixes
+
+* **codecov:** fail the run with the path when a coverage report cannot be written ([#376](https://github.com/php-testo/testo/issues/376)) ([2ef9a5f](https://github.com/php-testo/testo/commit/2ef9a5fd69b69eaffa5d1d2821ed381aca13f719)), closes [#375](https://github.com/php-testo/testo/issues/375)
+* **lifecycle:** keep the test failure when a lifecycle hook throws ([#378](https://github.com/php-testo/testo/issues/378)) ([c9f3439](https://github.com/php-testo/testo/commit/c9f343953aa00e03c0bfedcbc91efff8fa1d1160))
+
 ## [0.10.54](https://github.com/php-testo/testo/compare/0.10.53...0.10.54) (2026-09-29)
 
 
