@@ -7,8 +7,8 @@ namespace Testo\Codecov\Internal\Driver;
 use Testo\Inline\TestInline;
 
 /**
- * Recognizes the names coverage engines give to code without a file of its own: `eval()`'d code,
- * runtime-created functions, assertion strings, standard input.
+ * Recognizes coverage entries without a file on disk: `eval()`'d code, runtime-created functions,
+ * assertion strings, standard input, and any other path that does not exist.
  *
  * Such a name starts with the path of the file that produced the code, so a path-prefix filter alone lets it through.
  *
@@ -26,6 +26,13 @@ final class PseudoFile
         'Standard input code',
     ];
 
+    /**
+     * Holds `false` for missing paths too: PHP's stat cache does not remember a failed lookup.
+     *
+     * @var array<string, bool>
+     */
+    private static array $isFile = [];
+
     #[TestInline(["/app/src/Foo.php(64) : eval()'d code"], result: true)]
     #[TestInline(["C:\\app\\src\\Foo.php(3) : eval()'d code"], result: true)]
     #[TestInline(['xdebug://debug-eval'], result: true)]
@@ -33,8 +40,9 @@ final class PseudoFile
     #[TestInline(['Standard input code'], result: true)]
     #[TestInline(['-'], result: true)]
     #[TestInline(['vfs://root/Foo.php'], result: true)]
-    #[TestInline(['/app/src/Foo.php'], result: false)]
-    #[TestInline(['C:\\app\\src\\Foo.php'], result: false)]
+    #[TestInline(['/missing/src/Foo.php'], result: true)]
+    #[TestInline([__DIR__], result: true)]
+    #[TestInline([__FILE__], result: false)]
     public static function is(string $path): bool
     {
         if ($path === '-' || \str_starts_with($path, 'vfs://')) {
@@ -47,7 +55,7 @@ final class PseudoFile
             }
         }
 
-        return false;
+        return !(self::$isFile[$path] ??= \is_file($path));
     }
 
     /**
