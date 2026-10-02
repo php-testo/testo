@@ -106,7 +106,7 @@ final readonly class XdebugDriver implements CoverageDriver
             }
         }
 
-        return CoverageResult::fromRawData($data);
+        return CoverageResult::fromRawData(PseudoFile::remove($data));
     }
 
     #[\Override]
