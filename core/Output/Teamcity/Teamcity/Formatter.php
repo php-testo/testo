@@ -339,7 +339,9 @@ final class Formatter
      * @param non-empty-string $testName Test the value belongs to
      * @param non-empty-string $name Metric key
      * @param non-empty-string $value Metric value, formatted for the declared type
-     * @param 'number'|'text'|'link'|'image'|'artifact' $type
+     * @param 'number'|'ms'|'bytes'|'percent'|'text'|'link'|'image'|'artifact' $type A number's dimension
+     *        (`ms`, `bytes`, `percent`) is carried here, where TeamCity charts it natively, rather than in
+     *        the value.
      * @return non-empty-string
      * @link https://www.jetbrains.com/help/teamcity/reporting-test-metadata.html
      */

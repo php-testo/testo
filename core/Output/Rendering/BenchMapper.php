@@ -10,6 +10,12 @@ use Testo\Bench\Dto\Line;
 use Testo\Bench\Dto\Report;
 use Testo\Bench\Dto\Report\Severity;
 use Testo\Bench\Dto\Snap;
+use Testo\Core\Metric\Memory;
+use Testo\Metric\Unit;
+use Testo\Metric\Metric;
+use Testo\Core\Metric\Percent;
+use Testo\Core\Metric\Scalar;
+use Testo\Core\Metric\Time;
 
 /**
  * Benchmark measurements as data rather than as the ASCII table the terminal prints.
@@ -77,40 +83,52 @@ final class BenchMapper
     }
 
     /**
-     * The same numbers flattened into `bench.<case>.<metric>` entries, for protocols that carry metrics
-     * as a flat list of named numbers rather than as a document.
+     * The same numbers flattened into `bench.<case>.<columnGroup>.<column>` entries, for protocols that
+     * carry metrics as a flat list of named numbers rather than as a document.
      *
-     * Unit is part of the key (`meanUs`, `rstdevPct`, `memoryBytes`) because a flat namespace has nowhere
-     * else to record it, and a consumer plotting these has no other way to label an axis.
+     * The four-segment key spells a grid a consumer can rebuild as a table — `bench` names it, the case
+     * is the row, and the last two segments place the value under a spanning column-group band matching
+     * the ASCII table the terminal prints: `Benchmark setup`, `Time results`, `Filtered results`,
+     * `Summary`. Every row carries every column, so the grid stays rectangular; a single-case result has
+     * no grid to form and reads as the flat list it degrades to.
      *
-     * @return array<non-empty-string, int|float>
+     * The unit rides on the {@see Metric}, not in the key, so each consumer reports it natively — the
+     * TeamCity number `type` it charts, a JUnit property name suffixed with the unit — instead of parsing
+     * it out of the leaf. Values stay in the unit the plugin measured them in (time in microseconds); a
+     * consumer that needs another converts at its own boundary. The column group says which family a
+     * number belongs to, and the same leaf may repeat across groups (`mean` under both `Time results` and
+     * `Filtered results`); the group segment tells them apart.
+     *
+     * @return array<non-empty-string, Metric<Unit>>
      */
     public static function metrics(BenchResult $result): array
     {
-        $metrics = [
-            'bench.iterations' => $result->cases === [] ? 0 : \count($result->cases[0]->iterations),
-        ];
+        $metrics = [];
 
         /** @var Line $line */
         foreach ($result->lines as $line) {
             $set = self::caseSet($result, $line->name);
-            $prefix = "bench.{$line->name}.";
+            $row = "bench.{$line->name}.";
 
-            $metrics[$prefix . 'calls'] = self::callsOf($set);
-            $metrics[$prefix . 'place'] = $line->place;
-            $metrics[$prefix . 'meanUs'] = $line->avg->value;
-            $metrics[$prefix . 'meanDiffPct'] = $line->avg->diff;
-            $metrics[$prefix . 'medianUs'] = $line->med->value;
-            $metrics[$prefix . 'medianDiffPct'] = $line->med->diff;
-            $metrics[$prefix . 'rstdevPct'] = $line->rstdev;
-            $metrics[$prefix . 'filteredMeanUs'] = $line->favg->value;
-            $metrics[$prefix . 'filteredMeanDiffPct'] = $line->favg->diff;
-            $metrics[$prefix . 'filteredRstdevPct'] = $line->frstdev;
-            $metrics[$prefix . 'rejected'] = $line->rejected;
-            $metrics[$prefix . 'memoryBytes'] = self::memoryOf($set);
+            $metrics[$row . 'Benchmark setup.iters'] = new Metric(self::iterationsOf($set), Scalar::Number);
+            $metrics[$row . 'Benchmark setup.calls'] = new Metric(self::callsOf($set), Scalar::Number);
+
+            $metrics[$row . 'Time results.mean'] = new Metric($line->avg->value, Time::Microseconds);
+            $metrics[$row . 'Time results.meanDiff'] = new Metric($line->avg->diff, Percent::Percent);
+            $metrics[$row . 'Time results.median'] = new Metric($line->med->value, Time::Microseconds);
+            $metrics[$row . 'Time results.medianDiff'] = new Metric($line->med->diff, Percent::Percent);
+            $metrics[$row . 'Time results.rstdev'] = new Metric($line->rstdev, Percent::Percent);
+
+            $metrics[$row . 'Filtered results.rejected'] = new Metric($line->rejected, Scalar::Number);
+            $metrics[$row . 'Filtered results.mean'] = new Metric($line->favg->value, Time::Microseconds);
+            $metrics[$row . 'Filtered results.meanDiff'] = new Metric($line->favg->diff, Percent::Percent);
+            $metrics[$row . 'Filtered results.rstdev'] = new Metric($line->frstdev, Percent::Percent);
+
+            $metrics[$row . 'Summary.place'] = new Metric($line->place, Scalar::Number);
+            $metrics[$row . 'Summary.memory'] = new Metric(self::memoryOf($set), Memory::Bytes);
         }
 
-        /** @var array<non-empty-string, int|float> */
+        /** @var array<non-empty-string, Metric<Unit>> */
         return $metrics;
     }
 
@@ -170,6 +188,14 @@ final class BenchMapper
         }
 
         return null;
+    }
+
+    /**
+     * @return int<0, max>
+     */
+    private static function iterationsOf(?CaseSet $case): int
+    {
+        return \count($case?->iterations ?? []);
     }
 
     /**
