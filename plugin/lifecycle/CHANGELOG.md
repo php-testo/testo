@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/php-testo/testo/compare/lifecycle-0.1.8...lifecycle-0.1.9) (2026-10-02)
+
+
+### Bug Fixes
+
+* **lifecycle:** keep the test failure when a lifecycle hook throws ([#378](https://github.com/php-testo/testo/issues/378)) ([c9f3439](https://github.com/php-testo/testo/commit/c9f343953aa00e03c0bfedcbc91efff8fa1d1160))
+
 ## [0.1.8](https://github.com/php-testo/testo/compare/lifecycle-0.1.7...lifecycle-0.1.8) (2026-09-29)
 
 
