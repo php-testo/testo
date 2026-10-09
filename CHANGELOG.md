@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.56](https://github.com/php-testo/testo/compare/0.10.55...0.10.56) (2026-10-09)
+
+
+### Dependencies
+
+* Bump structarmed to ^0.19 ([#381](https://github.com/php-testo/testo/issues/381)) ([6d2dba5](https://github.com/php-testo/testo/commit/6d2dba5cb84134c8eda26c5202a70be8c9dfa00d))
+
 ## [0.10.55](https://github.com/php-testo/testo/compare/0.10.54...0.10.55) (2026-10-02)
 
 
