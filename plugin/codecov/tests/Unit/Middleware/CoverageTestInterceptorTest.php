@@ -160,9 +160,9 @@ final class CoverageTestInterceptorTest
 
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
-        // Filtered to TargetClassA only
-        Assert::count($coverage->files, 1);
-        Assert::true(isset($coverage->files[$fileA]));
+        // Only TargetClassA is credited; the other file stays unexecuted.
+        Assert::same($coverage->files[$fileA]->lines[$refA->getStartLine()]->status, \Testo\Codecov\Result\LineStatus::Executed);
+        Assert::same($coverage->files['/src/Other.php']->lines[5]->status, \Testo\Codecov\Result\LineStatus::NotExecuted);
     }
 
     public function inheritedMethodIsStampedWithConcreteClassNotDeclaringBase(): void

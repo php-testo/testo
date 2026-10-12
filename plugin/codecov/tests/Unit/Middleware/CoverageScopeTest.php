@@ -41,21 +41,19 @@ final class CoverageScopeTest
 
         $coverage = self::coverageOf($interceptor->runTest($info, self::pass(...)));
 
-        Assert::count($coverage->files, 1);
-        Assert::true(isset($coverage->files[self::fileOf(TargetClassA::class)]));
+        Assert::same(self::executedFiles($coverage), [self::fileOf(TargetClassA::class)]);
     }
 
     public function testsOwnCoversWinOverTheScope(): void
     {
         $interceptor = new CoverageTestInterceptor(self::driverCoveringBothTargets());
-        # testCoversA declares #[Covers(TargetClassA::class)]; the scope would keep B.
+        # testCoversA declares #[Covers(TargetClassA::class)]; the scope would credit B.
         $info = self::makeTestInfo('testCoversA')
             ->withAttribute(CoverageScope::class, new CoverageScope(new Covers(TargetClassB::class)));
 
         $coverage = self::coverageOf($interceptor->runTest($info, self::pass(...)));
 
-        Assert::count($coverage->files, 1);
-        Assert::true(isset($coverage->files[self::fileOf(TargetClassA::class)]));
+        Assert::same(self::executedFiles($coverage), [self::fileOf(TargetClassA::class)]);
     }
 
     public function scopeOptsInATestOfAnUnselectedType(): void
@@ -66,8 +64,7 @@ final class CoverageScopeTest
 
         $coverage = self::coverageOf($interceptor->runTest($info, self::pass(...)));
 
-        Assert::count($coverage->files, 1);
-        Assert::true(isset($coverage->files[self::fileOf(TargetClassB::class)]));
+        Assert::same(self::executedFiles($coverage), [self::fileOf(TargetClassB::class)]);
     }
 
     public function unselectedTypeWithoutScopeIsNotMeasured(): void
@@ -123,6 +120,21 @@ final class CoverageScopeTest
         Assert::instanceOf($coverage, CoverageResult::class);
 
         return $coverage;
+    }
+
+    /**
+     * @return list<string> Files with at least one line credited to the test.
+     */
+    private static function executedFiles(CoverageResult $coverage): array
+    {
+        return \array_keys(\array_filter(
+            $coverage->files,
+            static fn(FileCoverage $file): bool => \in_array(
+                LineStatus::Executed,
+                \array_map(static fn(LineCoverage $line): LineStatus => $line->status, $file->lines),
+                true,
+            ),
+        ));
     }
 
     /**

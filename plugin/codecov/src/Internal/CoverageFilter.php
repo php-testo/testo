@@ -5,11 +5,20 @@ declare(strict_types=1);
 namespace Testo\Codecov\Internal;
 
 use Testo\Codecov\Covers;
+use Testo\Codecov\Result\BranchCoverage;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
+use Testo\Codecov\Result\FunctionCoverage;
+use Testo\Codecov\Result\LineCoverage;
+use Testo\Codecov\Result\LineStatus;
+use Testo\Codecov\Result\PathCoverage;
 
 /**
- * Filters coverage data to only include lines matching {@see Covers} targets.
+ * Narrows the execution a test is credited with to its {@see Covers} targets.
+ *
+ * Lines and branches outside the targets stay in the result as not executed instead of being dropped:
+ * every executable line of a loaded file keeps its place in the report, so code no test claims still
+ * counts against the total.
  *
  * @internal
  */
@@ -22,36 +31,76 @@ final class CoverageFilter
     {
         $ranges = self::resolveRanges($targets);
 
-        if ($ranges === []) {
-            return new CoverageResult();
-        }
-
         $files = [];
         foreach ($coverage->files as $path => $fileCoverage) {
-            $normalized = \str_replace('\\', '/', $path);
+            $fileRanges = $ranges[\str_replace('\\', '/', $path)] ?? [];
 
-            if (!isset($ranges[$normalized])) {
-                continue;
-            }
-
-            $filteredLines = [];
+            $lines = [];
             foreach ($fileCoverage->lines as $line => $lineCoverage) {
-                foreach ($ranges[$normalized] as [$start, $end]) {
-                    if ($line >= $start && $line <= $end) {
-                        $filteredLines[$line] = $lineCoverage;
-                        break;
-                    }
-                }
+                $lines[$line] = $lineCoverage->status === LineStatus::Executed && !self::inRanges($line, $fileRanges)
+                    ? new LineCoverage($line, LineStatus::NotExecuted)
+                    : $lineCoverage;
             }
 
-            $filteredLines !== [] and $files[$path] = new FileCoverage(
-                $fileCoverage->path,
-                $filteredLines,
-                $fileCoverage->functions,
-            );
+            $functions = [];
+            foreach ($fileCoverage->functions as $name => $function) {
+                $functions[$name] = self::functionInRanges($function, $fileRanges)
+                    ? $function
+                    : self::withoutHits($function);
+            }
+
+            $files[$path] = new FileCoverage($fileCoverage->path, $lines, $functions);
         }
 
-        return new CoverageResult($files);
+        return new CoverageResult($files, $coverage->sourceRoot);
+    }
+
+    /**
+     * @param list<array{int, int}> $ranges
+     */
+    private static function inRanges(int $line, array $ranges): bool
+    {
+        foreach ($ranges as [$start, $end]) {
+            if ($line >= $start && $line <= $end) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Judged by the first branch alone: a function lies wholly inside or wholly outside a target's range.
+     *
+     * @param list<array{int, int}> $ranges
+     */
+    private static function functionInRanges(FunctionCoverage $function, array $ranges): bool
+    {
+        foreach ($function->branches as $branch) {
+            return self::inRanges($branch->lineStart, $ranges);
+        }
+
+        return false;
+    }
+
+    private static function withoutHits(FunctionCoverage $function): FunctionCoverage
+    {
+        return new FunctionCoverage(
+            $function->name,
+            \array_map(
+                static fn(BranchCoverage $b): BranchCoverage => new BranchCoverage(
+                    $b->opStart,
+                    $b->opEnd,
+                    $b->lineStart,
+                    $b->lineEnd,
+                    false,
+                    $b->out,
+                    \array_fill(0, \count($b->outHit), false),
+                ),
+                $function->branches,
+            ),
+            \array_map(static fn(PathCoverage $p): PathCoverage => new PathCoverage($p->path, false), $function->paths),
+        );
     }
 
     /**

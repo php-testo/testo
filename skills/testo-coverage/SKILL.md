@@ -103,7 +103,7 @@ on every build — don't rely on it. PCOV is unaffected (it only does `Line` any
 
 ## `#[Covers]` and `#[CoversNothing]`
 
-Declare which production classes a test exercises. This scopes coverage reports and surfaces dead tests.
+Declare which production classes a test exercises. The test is credited only with lines inside its targets; anything else it ran stays in the report as uncovered unless another test covers it, so a narrow `#[Covers]` never hides code from the total.
 
 ```php
 use Testo\Codecov\Covers;

@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Testo\Codecov;
 
 /**
- * Restricts which source code is counted for coverage by this test.
+ * Restricts which source code this test is credited with covering.
  *
  * Only lines belonging to the specified classes, traits, enums, methods, or functions
- * will be included in the coverage result. Everything else is discarded.
+ * count as executed by this test. Everything else the test ran stays in the report as
+ * not executed, unless another test covers it.
  *
  * The attribute is repeatable — multiple `#[Covers]` on the same target are combined.
  * When placed on a class, applies to all test methods in that class.

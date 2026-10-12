@@ -27,7 +27,7 @@ use Tests\Codecov\Stub\TargetClassB;
 #[Test]
 final class CoversFilteringTest
 {
-    public function coversClassFiltersToTargetFileOnly(): void
+    public function coversClassCreditsTargetFileOnly(): void
     {
         // Driver returns coverage for both target files.
         $refA = new \ReflectionClass(TargetClassA::class);
@@ -44,7 +44,7 @@ final class CoversFilteringTest
         ]));
 
         $interceptor = new CoverageTestInterceptor($driver);
-        // testCoversA has #[Covers(TargetClassA::class)] — only fileA should survive
+        // testCoversA has #[Covers(TargetClassA::class)] — only fileA is credited
         $info = self::makeTestInfo(CoveredByAttribute::class, 'testCoversA');
         $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
 
@@ -52,12 +52,11 @@ final class CoversFilteringTest
 
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
-        Assert::count($coverage->files, 1);
-        Assert::true(isset($coverage->files[$fileA]));
-        Assert::false(isset($coverage->files[$fileB]));
+        Assert::same(self::executedFiles($coverage), [$fileA]);
+        Assert::same($coverage->files[$fileB]->lines[$refB->getStartLine()]->status, LineStatus::NotExecuted);
     }
 
-    public function multipleCoversKeepsAllTargetFiles(): void
+    public function multipleCoversCreditsAllTargetFiles(): void
     {
         $refA = new \ReflectionClass(TargetClassA::class);
         $refB = new \ReflectionClass(TargetClassB::class);
@@ -79,13 +78,11 @@ final class CoversFilteringTest
 
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
-        Assert::count($coverage->files, 2);
-        Assert::true(isset($coverage->files[$fileA]));
-        Assert::true(isset($coverage->files[$fileB]));
-        Assert::false(isset($coverage->files['/src/Unrelated.php']));
+        Assert::same(self::executedFiles($coverage), [$fileA, $fileB]);
+        Assert::same($coverage->files['/src/Unrelated.php']->lines[5]->status, LineStatus::NotExecuted);
     }
 
-    public function coversMethodFiltersToMethodLinesOnly(): void
+    public function coversMethodCreditsMethodLinesOnly(): void
     {
         $fileA = (new \ReflectionClass(TargetClassA::class))->getFileName();
         $methodRef = new \ReflectionMethod(TargetClassA::class, 'doSomething');
@@ -112,19 +109,40 @@ final class CoversFilteringTest
 
         $result = $interceptor->runTest($info, $next);
 
-        // Only lines within the method range should remain.
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
-        Assert::count($coverage->files, 1);
 
-        $fileCoverage = $coverage->files[$fileA];
-        foreach ($fileCoverage->lines as $line => $_) {
-            Assert::true($line >= $methodStart && $line <= $methodEnd,
-                "Line {$line} should be within method range {$methodStart}-{$methodEnd}");
+        foreach ($coverage->files[$fileA]->lines as $line => $lineCoverage) {
+            Assert::same(
+                $lineCoverage->status,
+                $line >= $methodStart && $line <= $methodEnd ? LineStatus::Executed : LineStatus::NotExecuted,
+                "Line {$line} is credited only inside method range {$methodStart}-{$methodEnd}",
+            );
         }
+    }
 
-        Assert::false(isset($fileCoverage->lines[1]));
-        Assert::false(isset($fileCoverage->lines[999]));
+    public function coversMethodKeepsRestOfFileAsNotExecuted(): void
+    {
+        $fileA = (new \ReflectionClass(TargetClassA::class))->getFileName();
+        $covered = (new \ReflectionMethod(TargetClassA::class, 'doSomething'))->getStartLine();
+        $sibling = (new \ReflectionMethod(TargetClassA::class, 'internalHelper'))->getStartLine() + 2;
+
+        $driver = new SpyDriver(new CoverageResult([
+            $fileA => new FileCoverage($fileA, [
+                $covered => new LineCoverage($covered, LineStatus::Executed),
+                $sibling => new LineCoverage($sibling, LineStatus::Executed),
+            ]),
+        ]));
+        $info = self::makeTestInfo(CoveredByAttribute::class, 'testCoversMethod');
+        $next = static fn(TestInfo $i): TestResult => new TestResult($i, Status::Passed);
+
+        $result = (new CoverageTestInterceptor($driver))->runTest($info, $next);
+
+        $lines = $result->getAttribute(CoverageResult::class)->files[$fileA]->lines;
+        Assert::same($lines[$covered]->status, LineStatus::Executed);
+        Assert::true(isset($lines[$sibling]), 'A line outside the #[Covers] target must stay in the report.');
+        Assert::same($lines[$sibling]->status, LineStatus::NotExecuted);
+        Assert::same($lines[$sibling]->testMethods, []);
     }
 
     public function noCoversAttributeKeepsAllCoverage(): void
@@ -144,6 +162,21 @@ final class CoversFilteringTest
         $coverage = $result->getAttribute(CoverageResult::class);
         Assert::instanceOf($coverage, CoverageResult::class);
         Assert::count($coverage->files, 2);
+    }
+
+    /**
+     * @return list<string> Files with at least one line credited to the test.
+     */
+    private static function executedFiles(CoverageResult $coverage): array
+    {
+        return \array_keys(\array_filter(
+            $coverage->files,
+            static fn(FileCoverage $file): bool => \in_array(
+                LineStatus::Executed,
+                \array_map(static fn(LineCoverage $line): LineStatus => $line->status, $file->lines),
+                true,
+            ),
+        ));
     }
 
     /**

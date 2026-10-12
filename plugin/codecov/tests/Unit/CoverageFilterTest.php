@@ -7,10 +7,13 @@ namespace Tests\Codecov\Unit;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Codecov\Internal\CoverageFilter;
+use Testo\Codecov\Result\BranchCoverage;
 use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Result\FileCoverage;
+use Testo\Codecov\Result\FunctionCoverage;
 use Testo\Codecov\Result\LineCoverage;
 use Testo\Codecov\Result\LineStatus;
+use Testo\Codecov\Result\PathCoverage;
 use Testo\Test;
 use Tests\Codecov\Stub\TargetClassA;
 use Tests\Codecov\Stub\TargetClassB;
@@ -48,10 +51,11 @@ final class CoverageFilterTest
 
         Assert::true(isset($result->files[$file]));
 
-        foreach ($result->files[$file]->lines as $line => $_) {
-            Assert::true(
-                $line >= $ref->getStartLine() && $line <= $ref->getEndLine(),
-                "Line {$line} is outside method range {$ref->getStartLine()}-{$ref->getEndLine()}",
+        foreach ($result->files[$file]->lines as $line => $lineCoverage) {
+            Assert::same(
+                $lineCoverage->status,
+                $line >= $ref->getStartLine() && $line <= $ref->getEndLine() ? LineStatus::Executed : LineStatus::NotExecuted,
+                "Line {$line} is credited only inside method range {$ref->getStartLine()}-{$ref->getEndLine()}",
             );
         }
     }
@@ -99,10 +103,11 @@ final class CoverageFilterTest
 
         Assert::true(isset($result->files[$file]));
 
-        foreach ($result->files[$file]->lines as $line => $_) {
-            Assert::true(
-                $line >= $ref->getStartLine() && $line <= $ref->getEndLine(),
-                "Line {$line} is outside method range {$ref->getStartLine()}-{$ref->getEndLine()}",
+        foreach ($result->files[$file]->lines as $line => $lineCoverage) {
+            Assert::same(
+                $lineCoverage->status,
+                $line >= $ref->getStartLine() && $line <= $ref->getEndLine() ? LineStatus::Executed : LineStatus::NotExecuted,
+                "Line {$line} is credited only inside method range {$ref->getStartLine()}-{$ref->getEndLine()}",
             );
         }
     }
@@ -120,10 +125,11 @@ final class CoverageFilterTest
 
         Assert::true(isset($result->files[$file]));
 
-        foreach ($result->files[$file]->lines as $line => $_) {
-            Assert::true(
-                $line >= $ref->getStartLine() && $line <= $ref->getEndLine(),
-                "Line {$line} is outside method range {$ref->getStartLine()}-{$ref->getEndLine()}",
+        foreach ($result->files[$file]->lines as $line => $lineCoverage) {
+            Assert::same(
+                $lineCoverage->status,
+                $line >= $ref->getStartLine() && $line <= $ref->getEndLine() ? LineStatus::Executed : LineStatus::NotExecuted,
+                "Line {$line} is credited only inside method range {$ref->getStartLine()}-{$ref->getEndLine()}",
             );
         }
     }
@@ -225,13 +231,57 @@ final class CoverageFilterTest
         Assert::true($hasFromLabel, 'Expected lines from fromLabel() method');
     }
 
-    public function emptyTargetsReturnEmpty(): void
+    public function emptyTargetsCreditNothing(): void
     {
         $coverage = new CoverageResult(['foo.php' => new FileCoverage('foo.php', [1 => new LineCoverage(1, LineStatus::Executed)])]);
 
         $result = CoverageFilter::apply($coverage, []);
 
-        Assert::same($result->files, []);
+        Assert::same($result->files['foo.php']->lines[1]->status, LineStatus::NotExecuted);
+    }
+
+    public function linesOutsideTargetsKeepTheirDeadStatus(): void
+    {
+        $coverage = new CoverageResult(['foo.php' => new FileCoverage('foo.php', [
+            1 => new LineCoverage(1, LineStatus::Dead),
+            2 => new LineCoverage(2, LineStatus::NotExecuted),
+        ])]);
+
+        $result = CoverageFilter::apply($coverage, []);
+
+        Assert::same($result->files['foo.php']->lines[1]->status, LineStatus::Dead);
+        Assert::same($result->files['foo.php']->lines[2]->status, LineStatus::NotExecuted);
+    }
+
+    public function branchesOutsideTargetsLoseTheirHits(): void
+    {
+        $ref = new \ReflectionMethod(TargetClassA::class, 'internalHelper');
+        $file = \str_replace('\\', '/', $ref->getFileName());
+        $line = $ref->getStartLine() + 2;
+        $function = new FunctionCoverage(
+            'TargetClassA->internalHelper',
+            [0 => new BranchCoverage(0, 3, $line, $line, true, [5], [true])],
+            [new PathCoverage([0], true)],
+        );
+        $coverage = new CoverageResult([$file => new FileCoverage($file, [], ['TargetClassA->internalHelper' => $function])]);
+
+        $outside = CoverageFilter::apply($coverage, [new Covers(TargetClassA::class, 'doSomething')]);
+        $inside = CoverageFilter::apply($coverage, [new Covers(TargetClassA::class, 'internalHelper')]);
+
+        $branch = $outside->files[$file]->functions['TargetClassA->internalHelper']->branches[0];
+        Assert::false($branch->hit);
+        Assert::same($branch->outHit, [false]);
+        Assert::false($outside->files[$file]->functions['TargetClassA->internalHelper']->paths[0]->hit);
+        Assert::same($inside->files[$file]->functions['TargetClassA->internalHelper'], $function);
+    }
+
+    public function functionWithoutBranchesIsKeptEmpty(): void
+    {
+        $coverage = new CoverageResult(['foo.php' => new FileCoverage('foo.php', [], ['{main}' => new FunctionCoverage('{main}', [], [])])]);
+
+        $result = CoverageFilter::apply($coverage, []);
+
+        Assert::equals($result->files['foo.php']->functions['{main}'], new FunctionCoverage('{main}', [], []));
     }
 
     /**

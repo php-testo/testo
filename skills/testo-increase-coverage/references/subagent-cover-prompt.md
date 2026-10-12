@@ -76,7 +76,7 @@ Read the printed report (or `{{OUT_DIR}}/coverage-report.md`): find the `{{FILE}
 
 > The COVERAGE gate is the only proof of a kill. Tests passing in gate 1 does NOT mean the lines ran — a test can be green and still miss the path you targeted.
 
-> **`#[Covers]` is required for attribution.** This project credits coverage to the production class a test declares it covers. If your test does **not** carry `#[Covers(\Fqn\Of\TheClass::class)]` (or a string FQN for a free function), the gate will show the lines **still uncovered even though they executed**. So before blaming the test logic on a failed gate, confirm the `#[Covers]` target matches `{{FILE}}`'s class.
+> **`#[Covers]` decides attribution.** A test is credited only with the lines inside its `#[Covers]` targets; everything else it ran stays uncovered. If your test's `#[Covers(\Fqn\Of\TheClass::class)]` (or string FQN for a free function) names anything but `{{FILE}}`'s class, the gate will show the lines **still uncovered even though they executed**. So before blaming the test logic on a failed gate, confirm the `#[Covers]` target matches `{{FILE}}`'s class.
 
 ## Hard rules — do not violate
 
