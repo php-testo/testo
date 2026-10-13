@@ -14,7 +14,7 @@ that an AI coding agent can load on demand.
 | [`testo-test-doubles`](testo-test-doubles/SKILL.md) | Isolating a collaborator — choosing between dummy/stub/spy/mock/fake, then building it with Double (`testo/bridge-double`), Mockery (`testo/bridge-mockery`), or a hand-written fake class. Also where any class a test declares lives — `Stub/` for stand-ins, `Fixture/` for material. |
 | [`testo-inline-tests`](testo-inline-tests/SKILL.md) | Attaching `#[TestInline]` examples directly to production methods. |
 | [`testo-benchmarks`](testo-benchmarks/SKILL.md) | Writing or tuning `#[Bench]` benchmarks. |
-| [`testo-coverage`](testo-coverage/SKILL.md) | Configuring `CodecovPlugin`, reports, and `#[Covers]`. |
+| [`testo-coverage`](testo-coverage/SKILL.md) | Configuring `CodecovPlugin`, reports, `#[Covers]`, and `@codeCoverageIgnore`. |
 | [`testo-increase-coverage`](testo-increase-coverage/SKILL.md) | Raising line coverage — collect coverage, rank the least-covered files into a work-list, and write tests for the gaps with subagents. |
 | [`testo-mutation-testing`](testo-mutation-testing/SKILL.md) | Running mutation testing with Infection — checking/installing the Infection toolchain, collecting surviving mutants efficiently and killing them. |
 | [`testo-migrate-from-phpunit`](testo-migrate-from-phpunit/SKILL.md) | Porting an existing PHPUnit (or Pest) suite to Testo — phased, with a Rector-assisted path (`testo/bridge-rector`) and an AI-agent rewrite path. |

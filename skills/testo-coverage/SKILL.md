@@ -1,6 +1,6 @@
 ---
 name: testo-coverage
-description: 'Configure code coverage in Testo via CodecovPlugin, choose coverage level (Line/Branch/Path), wire up reports (Clover/Cobertura/PHPUnit XML), and use #[Covers] / #[CoversNothing] on tests. Use when the user asks about "code coverage", "clover", "cobertura", "infection coverage XML", or `#[Covers]`.'
+description: 'Configure code coverage in Testo via CodecovPlugin, choose coverage level (Line/Branch/Path), wire up reports (Clover/Cobertura/PHPUnit XML), use #[Covers] / #[CoversNothing] on tests, and leave code out with @codeCoverageIgnore. Use when the user asks about "code coverage", "clover", "cobertura", "infection coverage XML", `#[Covers]`, or `@codeCoverageIgnore`.'
 ---
 
 # Code coverage with Testo
@@ -130,6 +130,33 @@ Rules (this is project policy in many Testo codebases — confirm before changin
 - **Class-level `#[Covers]`** when every test in the class covers the same production class. This is the default.
 - **Method-level `#[Covers]`** when tests in the same class cover different classes.
 - Free functions: pass the FQN as a string — `#[Covers('App\\helpers\\format_money')]`.
+
+### Leaving code out: `@codeCoverageIgnore`
+
+Code no test can reach on purpose (a defensive guard, a platform branch) is left out of the reports with the PHPUnit annotations, read the same way:
+
+```php
+if ($handle === false) {
+    exit(1); // @codeCoverageIgnore
+}
+
+// @codeCoverageIgnoreStart
+if (\PHP_OS_FAMILY === 'Windows') {
+    $path = \strtolower($path);
+}
+// @codeCoverageIgnoreEnd
+
+/**
+ * @codeCoverageIgnore
+ */
+public function debugDump(): void { /* ... */ }
+```
+
+- `// @codeCoverageIgnore` leaves out the line it sits on. The comment must hold nothing else: `// @codeCoverageIgnore because…` ignores nothing.
+- `// @codeCoverageIgnoreStart` … `// @codeCoverageIgnoreEnd` leaves out every line between them, inclusive. A `Start` without an `End` ignores nothing.
+- `@codeCoverageIgnore` anywhere in the docblock of a class, trait, enum, function or method leaves out the whole declaration.
+
+Ignored lines vanish from the report instead of counting as uncovered, in files no test loaded too. A branch lying wholly on ignored lines goes with them, along with the paths and exits into it, so an ignored guard no longer leaves its `if` partly covered. There is no switch to turn the annotations off.
 
 ### Tests a plugin runs: `CoverageScope`
 

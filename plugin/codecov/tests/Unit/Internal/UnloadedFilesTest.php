@@ -57,6 +57,15 @@ final class UnloadedFilesTest
         Assert::same($result->files[$file]->lines[6]->status, LineStatus::NotExecuted);
     }
 
+    public function leavesOutIgnoredLines(): void
+    {
+        $file = $this->write('src/Foo.php', \str_replace('$this->go();', '$this->go(); // @codeCoverageIgnore', self::SOURCE));
+
+        $result = UnloadedFiles::add(new CoverageResult(), new FinderConfig([$this->root . '/src']));
+
+        Assert::same(\array_keys($result->files[$file]->lines), [7]);
+    }
+
     public function keepsDriverDataOfLoadedFile(): void
     {
         $file = $this->write('src/Foo.php', self::SOURCE);

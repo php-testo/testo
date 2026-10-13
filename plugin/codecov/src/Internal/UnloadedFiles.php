@@ -12,7 +12,8 @@ use Testo\Codecov\Result\LineStatus;
 use Testo\Tokenizer\Finder;
 
 /**
- * Adds the source files no test loaded to a coverage result, with every executable line unexecuted.
+ * Adds the source files no test loaded to a coverage result, with every executable line unexecuted, except
+ * those a `codeCoverageIgnore` annotation leaves out.
  *
  * A driver reports only the files PHP compiled during the run, so without this a class that has no
  * tests is missing from the report instead of lowering the total. The lines of such a file come from
@@ -48,8 +49,10 @@ final class UnloadedFiles
                 continue;
             }
 
+            $source = (string) \file_get_contents($path);
+            $executable = \array_diff_key(ExecutableLines::of($source), IgnoredLines::of(\PhpToken::tokenize($source)));
             $lines = [];
-            foreach (ExecutableLines::of((string) \file_get_contents($path)) as $line => $_) {
+            foreach ($executable as $line => $_) {
                 $lines[$line] = new LineCoverage($line, LineStatus::NotExecuted);
             }
 

@@ -24,6 +24,7 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 | `/** @test */` or `function testFoo()` | `#[Test]` on class (preferred) or method. Drop the `test` prefix. |
 | `@covers App\Foo` / `#[CoversClass(Foo::class)]` | `#[Covers(Foo::class)]` (class-level if uniform; method-level if mixed). |
 | `@coversNothing` / `#[CoversNothing]` | `#[CoversNothing]`. |
+| `@codeCoverageIgnore`, `@codeCoverageIgnoreStart` / `End` in production code | Keep as is — `testo/codecov` reads the same annotations. |
 | `setUp()` / `tearDown()` | `#[BeforeTest]` / `#[AfterTest]` on any-named method. |
 | `setUpBeforeClass()` / `tearDownAfterClass()` | `#[BeforeClass]` / `#[AfterClass]` (static). |
 | `@dataProvider source` / `#[DataProvider('source')]` | `#[DataProvider('source')]`. Provider must be `public static` returning `iterable`. Replace numeric keys with `'label' => [...]` yields. |

@@ -162,4 +162,4 @@ Run **one** authoritative pass:
 1. Re-collect coverage (Phase 2 step 2) — the new tests change what's covered.
 2. Re-run the report (Phase 3). Confirm project % rose and the targeted files climbed. Report the before/after delta to the user.
 
-Genuinely unreachable code the subagents flagged as `dead-code` is the exception: list it for the user as a candidate for removal — do not contort tests to reach it.
+Genuinely unreachable code the subagents flagged as `dead-code` is the exception: list it for the user as a candidate for removal, or for a `@codeCoverageIgnore` annotation when it has to stay (`testo-coverage`) — do not contort tests to reach it.
