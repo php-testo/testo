@@ -318,6 +318,36 @@ final class FinderTest
     }
 
     /**
+     * An excluded directory is not descended into, so an unreadable one breaks nothing.
+     */
+    public function excludedDirectoryIsNotTraversed(): void
+    {
+        $dir = \sys_get_temp_dir() . '/testo-finder-' . \bin2hex(\random_bytes(4));
+        $locked = $dir . '/Locked';
+        \mkdir($locked, recursive: true);
+        \touch($dir . '/Kept.php');
+        \touch($locked . '/Hidden.php');
+        \chmod($locked, 0o000);
+
+        try {
+            \is_readable($locked) and throw new SkipTest('Directory permissions are not enforced here.');
+
+            $finder = new Finder(new FinderConfig(
+                include: [$dir],
+                exclude: [$locked],
+            ));
+
+            Assert::same(self::realPaths($finder), [\realpath($dir . '/Kept.php')]);
+        } finally {
+            \chmod($locked, 0o700);
+            \unlink($locked . '/Hidden.php');
+            \rmdir($locked);
+            \unlink($dir . '/Kept.php');
+            \rmdir($dir);
+        }
+    }
+
+    /**
      * @return list<string> Real paths of the entries.
      */
     private static function realPaths(Finder $finder): array

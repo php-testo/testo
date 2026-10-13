@@ -56,6 +56,8 @@ final class Finder implements \Countable, \IteratorAggregate
 
                 return true;
             },
+            # Prune; symfony/finder 6.4 takes this flag positionally only
+            true,
         );
     }
 
