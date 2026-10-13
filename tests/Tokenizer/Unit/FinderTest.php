@@ -7,6 +7,7 @@ namespace Tests\Tokenizer\Unit;
 use Testo\Application\Config\FinderConfig;
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Core\Exception\SkipTest;
 use Testo\Test;
 use Testo\Tokenizer\Finder;
 
@@ -223,6 +224,53 @@ final class FinderTest
         }
         // But some files should still be found
         Assert::true(\count($foundPaths) > 0);
+    }
+
+    /**
+     * Paths spelled in another letter case than the filesystem keeps them still take effect.
+     */
+    public function excludesMatchPathsSpelledInOtherLetterCase(): void
+    {
+        \DIRECTORY_SEPARATOR === '/' and throw new SkipTest('Paths are case-sensitive on this OS.');
+        $stubDir = \realpath(\dirname(__DIR__) . '/Stub');
+        $excludedFile = $stubDir . '\EmptyClass.php';
+        $excludedDirFile = $stubDir . '\NoNamespace\GlobalClass.php';
+
+        $finder = (new Finder(new FinderConfig(
+            include: [\strtolower($stubDir)],
+            exclude: [\strtoupper($excludedFile), \strtoupper(\dirname($excludedDirFile))],
+        )))->files();
+
+        $all = (new Finder(new FinderConfig(include: [$stubDir])))->files();
+        $found = self::realPaths($finder);
+        Assert::false(\in_array($excludedFile, $found, true));
+        Assert::false(\in_array($excludedDirFile, $found, true));
+        Assert::same($finder->count(), $all->count() - 2);
+    }
+
+    /**
+     * Paths reached through a symlink take effect, in includes and excludes alike.
+     */
+    public function excludesMatchPathsReachedThroughSymlink(): void
+    {
+        $stubDir = \realpath(\dirname(__DIR__) . '/Stub');
+        $link = \sys_get_temp_dir() . '/testo-finder-' . \bin2hex(\random_bytes(4));
+        @\symlink($stubDir, $link) or throw new SkipTest('Symlinks cannot be created here.');
+
+        try {
+            $finder = (new Finder(new FinderConfig(
+                include: [$link],
+                exclude: [$link . '/EmptyClass.php', $link . '/NoNamespace'],
+            )))->files();
+
+            $all = (new Finder(new FinderConfig(include: [$stubDir])))->files();
+            $found = self::realPaths($finder);
+            Assert::false(\in_array(\realpath($stubDir . '/EmptyClass.php'), $found, true));
+            Assert::false(\in_array(\realpath($stubDir . '/NoNamespace/GlobalClass.php'), $found, true));
+            Assert::same($finder->count(), $all->count() - 2);
+        } finally {
+            \DIRECTORY_SEPARATOR === '/' ? \unlink($link) : \rmdir($link);
+        }
     }
 
     /**

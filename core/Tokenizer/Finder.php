@@ -33,37 +33,20 @@ final class Finder implements \Countable, \IteratorAggregate
         $this->finder->in($iDirs);
         $this->finder->append($files);
 
-        # Exclude: excluded paths only feed the filter, they are never searched or appended
-        $eDirs = $eFiles = [];
+        # Exclude: excluded paths only feed the filter, they are never searched or appended.
+        # Found entries come as real paths, so excludes are resolved through symlinks to meet them.
+        $excludes = [];
         foreach ($config->excludes as $path) {
-            $path->isDir()
-                ? $eDirs[] = (string) $path
-                : $eFiles[] = (string) $path;
+            $excludes[] = Path::create(\realpath((string) $path) ?: $path);
         }
 
-        $eDirs === [] && $eFiles === [] or $this->finder->filter(
-            static function (\SplFileInfo $file) use ($iDirs, $eDirs, $eFiles): bool {
-                $path = Path::create($file->getRealPath())->absolute();
-
-                # Files in excluded files
-                if ($path->isFile() && \in_array((string) $path, $eFiles, true)) {
-                    return false;
-                }
-
-                # Directories in excluded dirs
-                $target = (string) $path;
-                while (!\in_array($target, $iDirs, true)) {
-                    if (\in_array($target, $eDirs, true)) {
+        $excludes === [] or $this->finder->filter(
+            static function (\SplFileInfo $file) use ($excludes): bool {
+                $path = Path::create($file->getRealPath());
+                foreach ($excludes as $excluded) {
+                    if ($path->isWithin($excluded)) {
                         return false;
                     }
-
-                    # An include dir spelled unlike the real path (symlink, letter case) is never met
-                    $parent = \dirname($target);
-                    if ($parent === $target) {
-                        return true;
-                    }
-
-                    $target = $parent;
                 }
 
                 return true;
