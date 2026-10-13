@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.10.56](https://github.com/php-testo/testo/compare/0.10.55...0.10.56) (2026-10-13)
+
+
+### Features
+
+* **codecov:** leave code marked with `[@code](https://github.com/code)CoverageIgnore` out of coverage ([2e97ad3](https://github.com/php-testo/testo/commit/2e97ad364f41afa2d982f54aba9a2b9d891e04e9)), closes [#392](https://github.com/php-testo/testo/issues/392)
+
+
+### Bug Fixes
+
+* **codecov:** keep lines outside `#[Covers]` targets in the report as uncovered ([3ccf3ee](https://github.com/php-testo/testo/commit/3ccf3ee668a6267f4e533d9ea6afb46ff98122f1))
+* **codecov:** report source files no test loaded ([d6f1d60](https://github.com/php-testo/testo/commit/d6f1d6048f57488bade71f07558bd90c59df1cf7)), closes [#383](https://github.com/php-testo/testo/issues/383)
+* **core:** keep files excluded by FinderConfig out of found files ([2ada185](https://github.com/php-testo/testo/commit/2ada185cfb9fd9d91ce4ea6e77e35903d84eb22a))
+* **core:** match FinderConfig excludes regardless of letter case and symlinks ([ee71e55](https://github.com/php-testo/testo/commit/ee71e55374a3ff98cdfb09f18e75b4be57340d13))
+* **core:** skip entries without a real path in the FinderConfig exclude filter ([5d95b16](https://github.com/php-testo/testo/commit/5d95b168e0ca6fed0df413def34b888ecd41b975))
+* **tokenizer:** stop reading keyword arguments and members named `function` as declarations ([#388](https://github.com/php-testo/testo/issues/388)) ([ea0d82f](https://github.com/php-testo/testo/commit/ea0d82f0693f65693bd49eca6b0eab62810652bd))
+
+
+### Performance Improvements
+
+* **core:** stop descending into directories excluded by FinderConfig ([ad2c51b](https://github.com/php-testo/testo/commit/ad2c51b865ef2134fdf8f1cee9c19b7825058a49))
+
+
+### Documentation
+
+* **skills:** document how FinderConfig includes and excludes interact ([4cd1770](https://github.com/php-testo/testo/commit/4cd177034a015d36d5000928250dff668a68cf8b))
+
+
+### Dependencies
+
+* Bump structarmed to ^0.19 ([#381](https://github.com/php-testo/testo/issues/381)) ([6d2dba5](https://github.com/php-testo/testo/commit/6d2dba5cb84134c8eda26c5202a70be8c9dfa00d))
+
 ## [0.10.55](https://github.com/php-testo/testo/compare/0.10.54...0.10.55) (2026-10-02)
 
 

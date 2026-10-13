@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.5](https://github.com/php-testo/testo/compare/codecov-0.2.4...codecov-0.2.5) (2026-10-13)
+
+
+### Features
+
+* **codecov:** leave code marked with `[@code](https://github.com/code)CoverageIgnore` out of coverage ([2e97ad3](https://github.com/php-testo/testo/commit/2e97ad364f41afa2d982f54aba9a2b9d891e04e9)), closes [#392](https://github.com/php-testo/testo/issues/392)
+
+
+### Bug Fixes
+
+* **codecov:** keep lines outside `#[Covers]` targets in the report as uncovered ([3ccf3ee](https://github.com/php-testo/testo/commit/3ccf3ee668a6267f4e533d9ea6afb46ff98122f1))
+* **codecov:** leave lines without code out of coverage ([0ba88dc](https://github.com/php-testo/testo/commit/0ba88dcbf29820ad0ca40897bd2d8b6df750c6f0))
+* **codecov:** report source files no test loaded ([d6f1d60](https://github.com/php-testo/testo/commit/d6f1d6048f57488bade71f07558bd90c59df1cf7)), closes [#383](https://github.com/php-testo/testo/issues/383)
+
 ## [0.2.4](https://github.com/php-testo/testo/compare/codecov-0.2.3...codecov-0.2.4) (2026-10-02)
 
 

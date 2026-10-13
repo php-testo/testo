@@ -1,5 +1,5 @@
 {
-    ".": "0.10.55",
+    ".": "0.10.56",
     "plugin/repeat": "0.1.9",
     "plugin/convention": "0.1.5",
     "plugin/lifecycle": "0.1.9",
@@ -10,7 +10,7 @@
     "plugin/data": "0.1.10",
     "plugin/inline": "0.1.9",
     "plugin/bench": "0.1.13",
-    "plugin/codecov": "0.2.4",
+    "plugin/codecov": "0.2.5",
     "plugin/facade": "0.1.1",
     "plugin/fiber": "0.1.3",
     "plugin/skip": "0.1.1",
