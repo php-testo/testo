@@ -24,8 +24,10 @@ final readonly class FinderConfig
     public array $excludes;
 
     /**
-     * @param iterable<non-empty-string|Path> $include Include directories or files to the scope
-     * @param iterable<non-empty-string|Path> $exclude Exclude directories or files from the scope
+     * @param iterable<non-empty-string|Path> $include Include directories or files to the scope.
+     *        A file listed here is kept even when an exclude covers it.
+     * @param iterable<non-empty-string|Path> $exclude Exclude directories or files from the scope.
+     *        Drops everything beneath each path, even a directory above an include.
      *
      * @note Glob and regex patterns are not supported
      */

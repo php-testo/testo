@@ -90,6 +90,8 @@ new FinderConfig(
 );
 ```
 
+An exclude drops everything beneath it, wherever it sits: an excluded directory above an include (include `core/X`, exclude `core`) leaves nothing. A file listed in `include` by name is always kept, even under an excluded directory, which pulls one file back out of an excluded tree.
+
 ## Multi-suite layout
 
 A typical real-world `testo.php`:

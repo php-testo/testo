@@ -167,6 +167,22 @@ final class FinderTest
     }
 
     /**
+     * A file listed in include by name is kept even under an excluded directory.
+     */
+    public function includedFileWinsOverExcludedDirectory(): void
+    {
+        $stubDir = \dirname(__DIR__) . '/Stub';
+        $file = \realpath($stubDir . '/NoNamespace/GlobalClass.php');
+
+        $finder = (new Finder(new FinderConfig(
+            include: [$stubDir, $file],
+            exclude: [$stubDir . '/NoNamespace'],
+        )))->files();
+
+        Assert::true(\in_array($file, self::realPaths($finder), true));
+    }
+
+    /**
      * Filters applied after construction see every entry, so an excluded file cannot slip past them.
      */
     public function withFilterRejectsEverythingWhenFileExcluded(): void
