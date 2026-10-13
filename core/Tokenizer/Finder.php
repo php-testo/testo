@@ -42,7 +42,12 @@ final class Finder implements \Countable, \IteratorAggregate
 
         $excludes === [] or $this->finder->filter(
             static function (\SplFileInfo $file) use ($excludes): bool {
-                $path = Path::create($file->getRealPath());
+                $realPath = $file->getRealPath();
+                if ($realPath === false) {
+                    return false;
+                }
+
+                $path = Path::create($realPath);
                 foreach ($excludes as $excluded) {
                     if ($path->isWithin($excluded)) {
                         return false;

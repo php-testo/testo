@@ -290,7 +290,35 @@ final class FinderTest
     }
 
     /**
-     * @return list<string> Sorted real paths of the entries.
+     * An entry without a real path, such as a dangling symlink, is skipped by the exclude filter.
+     */
+    public function excludeFilterSkipsDanglingSymlink(): void
+    {
+        $dir = \sys_get_temp_dir() . '/testo-finder-' . \bin2hex(\random_bytes(4));
+        \mkdir($dir);
+        \touch($dir . '/Kept.php');
+        \touch($dir . '/Excluded.php');
+        $link = $dir . '/Dangling.php';
+
+        try {
+            @\symlink($dir . '/Missing.php', $link) or throw new SkipTest('Symlinks cannot be created here.');
+
+            $finder = new Finder(new FinderConfig(
+                include: [$dir],
+                exclude: [$dir . '/Excluded.php'],
+            ));
+
+            Assert::same(self::realPaths($finder), [\realpath($dir . '/Kept.php')]);
+        } finally {
+            @\unlink($link);
+            \unlink($dir . '/Kept.php');
+            \unlink($dir . '/Excluded.php');
+            \rmdir($dir);
+        }
+    }
+
+    /**
+     * @return list<string> Real paths of the entries.
      */
     private static function realPaths(Finder $finder): array
     {
