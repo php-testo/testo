@@ -9,8 +9,8 @@ use Testo\Application\Config\SuiteConfig;
 use Testo\Filter;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\SuiteLocatorInterceptor;
-use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
+use Testo\Pipeline\PipeOptions;
 
 /**
  * Composes the list of test suites to run through the {@see SuiteLocatorInterceptor} pipeline.

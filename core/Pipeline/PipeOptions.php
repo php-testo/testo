@@ -7,7 +7,7 @@ namespace Testo\Pipeline;
 /**
  * Options applied when building an interceptor pipeline.
  *
- * Currently carries the test-type selection used by {@see \Testo\Pipeline\Internal\Sorter} to decide
+ * Currently carries the test-type selection used by {@see Internal\Sorter} to decide
  * which interceptors take part in a pipeline, based on their {@see Attribute\InterceptorOptions::$testType}.
  * More options may be added here over time.
  *

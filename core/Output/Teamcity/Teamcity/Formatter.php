@@ -88,7 +88,7 @@ final class Formatter
      *
      * @param non-empty-string $name Suite name
      * @param Identity|null $identity Address of the node this message closes. {@see placement()}
-     * @param Status|null $status Aggregated outcome of the node. {@see status()}
+     * @param Status|null $status Aggregated outcome of the node. {@see Status()}
      * @return non-empty-string
      */
     public static function suiteFinished(string $name, ?Identity $identity = null, ?Status $status = null): string
@@ -133,7 +133,7 @@ final class Formatter
      * @param non-empty-string $name Test name
      * @param int<0, max>|null $duration Duration in milliseconds
      * @param TestIdentity|null $identity Address of the test this message closes. {@see placement()}
-     * @param Status|null $status Outcome of the test. {@see status()}
+     * @param Status|null $status Outcome of the test. {@see Status()}
      * @param int<0, max>|null $assertions Number of assertions the test performed. Null when nothing
      *        counted them — no assertion plugin is active — which is not the same as a test that
      *        counted zero.

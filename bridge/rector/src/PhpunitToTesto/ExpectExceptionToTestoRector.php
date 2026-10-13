@@ -194,7 +194,7 @@ final class ExpectExceptionToTestoRector extends AbstractRector
      * Maps a foldable `$this->expectExceptionMessage/MessageMatches/Code(...)` statement to a `[method, args]`
      * pair for the fluent chain, or null when the statement is not a foldable modifier.
      *
-     * @return array{0: non-empty-string, 1: array<int, Arg|\PhpParser\Node\VariadicPlaceholder>}|null
+     * @return array{0: non-empty-string, 1: array<int, Arg|Node\VariadicPlaceholder>}|null
      */
     private function matchModifier(Expression $stmt): ?array
     {

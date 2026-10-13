@@ -15,8 +15,8 @@ use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\TestCaseRunInterceptor;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
-use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
+use Testo\Pipeline\PipeOptions;
 
 /**
  * Reads {@see Interceptable} attributes and integrates them into the pipeline.

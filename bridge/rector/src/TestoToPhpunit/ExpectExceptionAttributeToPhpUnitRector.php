@@ -13,9 +13,9 @@ use PhpParser\Node\Identifier;
 use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
 use Rector\Rector\AbstractRector;
-use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**

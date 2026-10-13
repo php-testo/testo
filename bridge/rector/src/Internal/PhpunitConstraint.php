@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Bridge\Rector\Internal;
 
+use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\ArrayItem;
 use PhpParser\Node\Expr;
@@ -29,9 +30,8 @@ use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\Int_;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Expression;
-use PhpParser\Node\Stmt\Return_;
 use PhpParser\Node\Stmt\If_;
-use PhpParser\Node;
+use PhpParser\Node\Stmt\Return_;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitorAbstract;
 

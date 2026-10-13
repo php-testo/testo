@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\Bridge\Rector\Testing\Internal;
 
+use Internal\Path;
 use Psr\Log\LoggerInterface;
 use Rector\Application\ApplicationFileProcessor;
 use Rector\Autoloading\BootstrapFilesIncluder;
@@ -15,9 +16,8 @@ use Rector\DependencyInjection\LazyContainerFactory;
 use Rector\NodeTypeResolver\DependencyInjection\PHPStanServicesFactory;
 use Rector\NodeTypeResolver\Reflection\BetterReflection\SourceLocatorProvider\DynamicSourceLocatorProvider;
 use Rector\PhpParser\NodeTraverser\RectorNodeTraverser;
-use Rector\ValueObject\Error\SystemError;
-use Internal\Path;
 use Rector\Testing\Fixture\FixtureSplitter;
+use Rector\ValueObject\Error\SystemError;
 use Testo\Assert;
 use Testo\Common\Messenger;
 

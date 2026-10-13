@@ -57,7 +57,7 @@ final class SuitePlugins
     /**
      * Default plugins minus the specified classes.
      *
-     * @param class-string<\Testo\Common\PluginConfigurator> ...$pluginClasses
+     * @param class-string<PluginConfigurator> ...$pluginClasses
      */
     public static function without(string ...$pluginClasses): PluginCollection
     {

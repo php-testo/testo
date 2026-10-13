@@ -99,7 +99,7 @@ final class MarkTestIncompleteRector extends AbstractRector
     }
 
     /**
-     * @param array<Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<Arg|Node\VariadicPlaceholder> $args
      */
     private function buildReason(array $args): Node\Expr
     {

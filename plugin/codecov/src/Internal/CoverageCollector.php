@@ -8,8 +8,8 @@ use Internal\Container\Attribute\ScopeShared;
 use Internal\Destroy\Destroyable;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Codecov\Exception\CoverageReportNotWritten;
-use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Report\CoverageReport;
+use Testo\Codecov\Result\CoverageResult;
 use Testo\Core\Context\SuiteResult;
 use Testo\Core\Context\TestResult;
 use Testo\Data\MultipleResult;
@@ -80,7 +80,7 @@ final readonly class CoverageCollector implements Destroyable
      * Yields coverage from a test result and, for aggregate results (data providers,
      * inline tests), from every nested per-run result.
      *
-     * Coverage is collected by the inner {@see \Testo\Codecov\Internal\Middleware\CoverageTestInterceptor},
+     * Coverage is collected by the inner {@see Middleware\CoverageTestInterceptor},
      * so for data-driven tests it lives on the per-data-set child results rather than on the
      * {@see MultipleResult} wrapper returned for the test as a whole.
      *

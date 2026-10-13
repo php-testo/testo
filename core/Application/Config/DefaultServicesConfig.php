@@ -9,7 +9,6 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Application\Internal\MessengerHub;
-use Testo\Pipeline\Internal\OutputInterceptor;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\Messenger;
 use Testo\Common\PluginConfigurator;
@@ -17,6 +16,7 @@ use Testo\Event\TestSuite\TestSuiteFinished;
 use Testo\Event\TestSuite\TestSuiteStarting;
 use Testo\Pipeline\InterceptorCollector;
 use Testo\Pipeline\InterceptorProvider;
+use Testo\Pipeline\Internal\OutputInterceptor;
 
 /**
  * Testo default services configuration.

@@ -16,7 +16,7 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * Runs a {@see RunInRevolt} test body as a coroutine on the Revolt event loop.
  *
  * One test at a time: the body is launched as a microtask and the calling fiber blocks on a
- * {@see \Revolt\EventLoop\Suspension} until it finishes, so from the outside the test stays an ordinary
+ * {@see EventLoop\Suspension} until it finishes, so from the outside the test stays an ordinary
  * blocking call while, inside, it may await real async work.
  *
  * Sits at {@see InterceptorOptions::ORDER_ASYNC_COROUTINE} so the loop gets only what

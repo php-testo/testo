@@ -19,8 +19,8 @@ use Testo\Event\Test\TestPipelineStarting;
 use Testo\Event\Test\TestStarting;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
-use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
+use Testo\Pipeline\PipeOptions;
 
 /**
  * Runs a single test's pipeline and produces its {@see TestResult}.

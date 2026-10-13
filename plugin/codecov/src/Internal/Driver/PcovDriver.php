@@ -6,8 +6,8 @@ namespace Testo\Codecov\Internal\Driver;
 
 use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\Config\CoverageLevel;
-use Testo\Codecov\Result\CoverageResult;
 use Testo\Codecov\Internal\CoverageDriver;
+use Testo\Codecov\Result\CoverageResult;
 
 /**
  * PCOV-based coverage driver.

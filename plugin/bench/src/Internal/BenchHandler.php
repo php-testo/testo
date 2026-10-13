@@ -144,9 +144,9 @@ final readonly class BenchHandler
             lines: $lines,
         );
 
-        $summaryTable = \Testo\Bench\Internal\Renderer::table($result);
-        $summaryRecommendations = \Testo\Bench\Internal\Renderer::recommendations($result);
-        $itersTable = \Testo\Bench\Internal\Renderer::rounds($result);
+        $summaryTable = Renderer::table($result);
+        $summaryRecommendations = Renderer::recommendations($result);
+        $itersTable = Renderer::rounds($result);
 
         $this->messenger->log('bench-result', <<<EOT
             Results for {$info->name}:

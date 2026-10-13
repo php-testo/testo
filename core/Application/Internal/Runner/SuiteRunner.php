@@ -22,8 +22,8 @@ use Testo\Event\TestSuite\TestSuiteStarting;
 use Testo\Filter;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\TestSuiteRunInterceptor;
-use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
+use Testo\Pipeline\PipeOptions;
 
 /**
  * A test suite runner that executes a suite of tests and returns the results.

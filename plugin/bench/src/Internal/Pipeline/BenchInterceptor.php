@@ -22,7 +22,7 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
 use Testo\Pipeline\Policy\ConflictPolicy;
 
 /**
- * Handles {@see \Testo\Bench} attribute by running
+ * Handles {@see Bench} attribute by running
  *
  * @internal
  */
@@ -40,7 +40,7 @@ final readonly class BenchInterceptor implements TestRunInterceptor
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
-        /** @var \Testo\Bench[] $attributes */
+        /** @var Bench[] $attributes */
         $attributes = $info->getAttribute(Bench::class);
         if ($attributes === []) {
             return $next($info);

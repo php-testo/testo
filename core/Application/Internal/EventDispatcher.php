@@ -111,7 +111,7 @@ final class EventDispatcher implements
     }
 
     /**
-     * Surface a listener failure on the {@see \Testo\Common\Messenger::CHANNEL_STDERR} channel without recursing.
+     * Surface a listener failure on the {@see Messenger::CHANNEL_STDERR} channel without recursing.
      */
     private function reportListenerError(\Throwable $e): void
     {

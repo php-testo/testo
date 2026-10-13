@@ -8,9 +8,9 @@ use PhpParser\Node;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\ClassMethod;
 use Rector\Rector\AbstractRector;
-use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**

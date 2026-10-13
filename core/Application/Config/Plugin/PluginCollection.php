@@ -36,7 +36,7 @@ final readonly class PluginCollection implements \IteratorAggregate, \Countable
     /**
      * Remove plugins by class name.
      *
-     * @param class-string<\Testo\Common\PluginConfigurator> ...$pluginClasses
+     * @param class-string<PluginConfigurator> ...$pluginClasses
      */
     public function without(string ...$pluginClasses): self
     {
@@ -55,7 +55,7 @@ final readonly class PluginCollection implements \IteratorAggregate, \Countable
     }
 
     /**
-     * @return \ArrayIterator<int<0,max>, \Testo\Common\PluginConfigurator>
+     * @return \ArrayIterator<int<0,max>, PluginConfigurator>
      */
     #[\Override]
     public function getIterator(): \ArrayIterator

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Bridge\Rector\Internal;
 
-use PhpParser\Node\Stmt\ClassLike;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\ClassLike;
 use PhpParser\Node\Stmt\Enum_;
 use PhpParser\Node\Stmt\Trait_;
 use PhpParser\Node\Stmt\TraitUse;

@@ -10,9 +10,9 @@ use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Identifier;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -135,7 +135,7 @@ final class AssertCallToTestoRector extends AbstractRector
      * `assertNotTrue($subject[, $message])` → `Assert::notSame($subject, true[, $message])`.
      *
      * @param 'true'|'false' $literal
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function notBool(string $literal, array $args): ?StaticCall
     {

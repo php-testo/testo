@@ -143,7 +143,7 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
      * everything else returns null and aborts the chain conversion.
      *
      * @param non-empty-string $modifier
-     * @param array<int, Arg|\PhpParser\Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function mapModifier(string $modifier, array $args): ?Expression
     {

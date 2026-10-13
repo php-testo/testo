@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Testo\Bridge\Rector\TestoToPhpunit;
 
+use PhpParser\Modifiers;
 use PhpParser\Node;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\AttributeGroup;
-use PhpParser\Modifiers;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name\FullyQualified;
 use PhpParser\Node\Stmt\Class_;

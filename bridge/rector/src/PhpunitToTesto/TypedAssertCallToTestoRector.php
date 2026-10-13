@@ -18,9 +18,9 @@ use PhpParser\Node\Expr\Instanceof_;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
-use PhpParser\Node\Identifier;
 use PhpParser\Node\Scalar\MagicConst;
 use PhpParser\Node\Scalar\String_;
 use PHPStan\Reflection\ClassReflection;
@@ -368,7 +368,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * that carries one falls back to the predicate form, which keeps it.
      *
      * @param non-empty-string $method
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function typeCheck(string $method, array $args): ?StaticCall
     {
@@ -389,7 +389,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      *
      * @param 'true'|'false' $assert
      * @param non-empty-string $function
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function predicate(string $assert, string $function, array $args): ?StaticCall
     {
@@ -412,7 +412,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * @param non-empty-string $exists
      * @param non-empty-string $permission
      * @param bool $granted Whether the permission must be present rather than absent.
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function pathPermission(string $exists, string $permission, bool $granted, array $args): ?StaticCall
     {
@@ -433,7 +433,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * `int|float` subject.
      *
      * @param non-empty-string $function
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function math(string $function, array $args): ?StaticCall
     {
@@ -454,7 +454,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * `assertIsResource($subject[, $message])` and its siblings → a check of `\gettype($subject)`.
      *
      * @param 'true'|'false'|'same'|'notSame' $assert
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function resource(string $assert, array $args): ?StaticCall
     {
@@ -475,7 +475,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * `assertNotInstanceOf($class, $subject[, $message])` → `Assert::false($subject instanceof Foo[, $message])`
      * for a class or interface that exists, since PHPUnit throws for an unknown one.
      *
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function notInstanceOf(array $args): ?StaticCall
     {
@@ -502,7 +502,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * `Assert::false(\property_exists($object, $name)[, $message])` for an object subject: a class-name
      * string would reach `property_exists()`, which accepts one, where PHPUnit's `object` parameter throws.
      *
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function objectNotHasProperty(array $args): ?StaticCall
     {
@@ -525,7 +525,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * @param non-empty-string $method
      * @param list<Arg> $checkArgs
      */
-    private function assertCall(string $method, array $checkArgs, Node\Arg|Node\VariadicPlaceholder|null $message): StaticCall
+    private function assertCall(string $method, array $checkArgs, Arg|Node\VariadicPlaceholder|null $message): StaticCall
     {
         $message instanceof Arg and $checkArgs[] = $message;
 
@@ -552,7 +552,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      *
      * @param non-empty-string $head The Testo `Assert::<head>()` type check.
      * @param non-empty-string $matcher The chained matcher method.
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      * @param bool $keepMessage Whether the matcher accepts (and should keep) the trailing `$message`.
      * @param non-empty-string|null $modifier A comparison modifier chained between the head and the matcher.
      */
@@ -592,7 +592,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * @param non-empty-string $head The Testo `Assert::<head>()` type check.
      * @param non-empty-string $matcher The chained matcher method.
      * @param list<Arg> $matcherArgs The matcher arguments that precede the message.
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function subjectChain(string $head, string $matcher, array $matcherArgs, array $args): ?MethodCall
     {
@@ -615,7 +615,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
     /**
      * Whether the first two arguments are both known to be strings.
      *
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function areStrings(array $args): bool
     {
@@ -632,7 +632,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * sides are arrays or `Countable` iterables. Both frameworks then read `count()`; a bare `Traversable`
      * is left alone, since PHPUnit rejects one that yields a `Generator` while Testo iterates it.
      *
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function sameSize(array $args): ?MethodCall
     {
@@ -654,7 +654,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      * `json_decode()` cannot parse at the default depth. The head takes no message, and the predicate
      * that could carry one, `json_validate()`, needs PHP 8.3, so the message is dropped.
      *
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function json(array $args): ?StaticCall
     {
@@ -700,7 +700,7 @@ final class TypedAssertCallToTestoRector extends AbstractRector
      *
      * @param non-empty-string $testoMethod
      * @param 'true'|'false' $emptyAssert
-     * @param array<int, Node\Arg|Node\VariadicPlaceholder> $args
+     * @param array<int, Arg|Node\VariadicPlaceholder> $args
      */
     private function emptiness(string $testoMethod, string $emptyAssert, array $args): ?StaticCall
     {

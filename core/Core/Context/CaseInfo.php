@@ -6,8 +6,8 @@ namespace Testo\Core\Context;
 
 use Testo\Core\Context\Identity\CaseIdentity;
 use Testo\Core\Context\Identity\SuiteIdentity;
-use Testo\Core\Internal\Attributed;
 use Testo\Core\Definition\CaseDefinition;
+use Testo\Core\Internal\Attributed;
 use Testo\Core\Internal\DefaultTestHandler;
 use Testo\Core\Value\CaseInstance;
 

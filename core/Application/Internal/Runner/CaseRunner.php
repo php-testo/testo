@@ -19,8 +19,8 @@ use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Filter;
 use Testo\Pipeline\InterceptorProvider;
 use Testo\Pipeline\Middleware\TestCaseRunInterceptor;
-use Testo\Pipeline\PipeOptions;
 use Testo\Pipeline\Pipeline;
+use Testo\Pipeline\PipeOptions;
 
 /**
  * @internal

@@ -44,7 +44,7 @@ use Yiisoft\Injector\Injector;
  */
 abstract class Base extends Command
 {
-    /** @var \Internal\Container\Container IoC container with services */
+    /** @var Container IoC container with services */
     protected Container $container;
 
     protected Application $application;
