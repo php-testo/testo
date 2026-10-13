@@ -81,7 +81,7 @@ final class FinderTest
 
         Assert::true($filtered instanceof Finder);
         Assert::true($filtered !== $finder);
-        Assert::same(0, $filtered->count());
+        Assert::same($filtered->count(), 0);
     }
 
     /**
@@ -97,8 +97,8 @@ final class FinderTest
 
         $derived = $original->withFilter(static fn(\Symfony\Component\Finder\SplFileInfo $f): bool => false);
 
-        Assert::same(0, $derived->count());
-        Assert::same($originalCount, $original->count());
+        Assert::same($derived->count(), 0);
+        Assert::same($original->count(), $originalCount);
     }
 
     /**
@@ -112,7 +112,7 @@ final class FinderTest
 
         $finder = new Finder(new FinderConfig(include: [$fileA, $fileB]));
 
-        Assert::same(2, $finder->count());
+        Assert::same($finder->count(), 2);
     }
 
     /**
