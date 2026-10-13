@@ -33,22 +33,20 @@ final class Finder implements \Countable, \IteratorAggregate
         $this->finder->in($iDirs);
         $this->finder->append($files);
 
-        # Exclude
-        $eDirs = $files = [];
+        # Exclude: excluded paths only feed the filter, they are never searched or appended
+        $eDirs = $eFiles = [];
         foreach ($config->excludes as $path) {
             $path->isDir()
                 ? $eDirs[] = (string) $path
-                : $files[] = (string) $path;
+                : $eFiles[] = (string) $path;
         }
-        $this->finder->in($eDirs);
-        $this->finder->append($files);
 
-        $eDirs === [] && $files === [] or $this->finder->filter(
-            static function (\SplFileInfo $file) use ($iDirs, $eDirs, $files): bool {
+        $eDirs === [] && $eFiles === [] or $this->finder->filter(
+            static function (\SplFileInfo $file) use ($iDirs, $eDirs, $eFiles): bool {
                 $path = Path::create($file->getRealPath())->absolute();
 
                 # Files in excluded files
-                if ($path->isFile() && \in_array((string) $path, $files, true)) {
+                if ($path->isFile() && \in_array((string) $path, $eFiles, true)) {
                     return false;
                 }
 
@@ -59,7 +57,13 @@ final class Finder implements \Countable, \IteratorAggregate
                         return false;
                     }
 
-                    $target = \dirname($target);
+                    # An include dir spelled unlike the real path (symlink, letter case) is never met
+                    $parent = \dirname($target);
+                    if ($parent === $target) {
+                        return true;
+                    }
+
+                    $target = $parent;
                 }
 
                 return true;

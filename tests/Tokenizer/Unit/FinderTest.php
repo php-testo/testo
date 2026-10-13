@@ -132,20 +132,69 @@ final class FinderTest
     }
 
     /**
-     * Constructor with a single exclude file still constructs successfully and counts items.
+     * An excluded file inside an included directory is absent from the results.
      */
-    public function constructorWithExcludeFileSucceeds(): void
+    public function excludedFileIsNotFound(): void
     {
         $stubDir = \dirname(__DIR__) . '/Stub';
-        $excludedFile = $stubDir . '/EmptyClass.php';
+        $excludedFile = \realpath($stubDir . '/EmptyClass.php');
 
-        $finder = new Finder(new FinderConfig(
+        $finder = (new Finder(new FinderConfig(
             include: [$stubDir],
             exclude: [$excludedFile],
-        ));
+        )))->files();
 
-        // Construction succeeds and count is accessible (the finder is usable)
-        Assert::true($finder->count() > 0);
+        $all = (new Finder(new FinderConfig(include: [$stubDir])))->files();
+        Assert::false(\in_array($excludedFile, self::realPaths($finder), true));
+        Assert::same($finder->count(), $all->count() - 1);
+    }
+
+    /**
+     * An excluded file outside every included path does not join the results.
+     */
+    public function excludedFileOutsideIncludesIsNotAdded(): void
+    {
+        $stubDir = \dirname(__DIR__) . '/Stub';
+        $outsideFile = \realpath(__FILE__);
+
+        $finder = (new Finder(new FinderConfig(
+            include: [$stubDir],
+            exclude: [$outsideFile],
+        )))->files();
+
+        Assert::false(\in_array($outsideFile, self::realPaths($finder), true));
+    }
+
+    /**
+     * Filters applied after construction see every entry, so an excluded file cannot slip past them.
+     */
+    public function withFilterRejectsEverythingWhenFileExcluded(): void
+    {
+        $stubDir = \dirname(__DIR__) . '/Stub';
+
+        $finder = (new Finder(new FinderConfig(
+            include: [$stubDir],
+            exclude: [$stubDir . '/EmptyClass.php'],
+        )))->withFilter(static fn(\Symfony\Component\Finder\SplFileInfo $f): bool => false);
+
+        Assert::same($finder->count(), 0);
+    }
+
+    /**
+     * directories() yields no excluded file.
+     */
+    public function directoriesSkipExcludedFile(): void
+    {
+        $stubDir = \dirname(__DIR__) . '/Stub';
+
+        $finder = (new Finder(new FinderConfig(
+            include: [$stubDir],
+            exclude: [$stubDir . '/EmptyClass.php'],
+        )))->directories();
+
+        foreach ($finder as $entry) {
+            Assert::true($entry->isDir());
+        }
     }
 
     /**
@@ -174,5 +223,19 @@ final class FinderTest
         }
         // But some files should still be found
         Assert::true(\count($foundPaths) > 0);
+    }
+
+    /**
+     * @return list<string> Sorted real paths of the entries.
+     */
+    private static function realPaths(Finder $finder): array
+    {
+        $paths = [];
+        foreach ($finder as $file) {
+            $paths[] = $file->getRealPath();
+        }
+
+        \sort($paths);
+        return $paths;
     }
 }
