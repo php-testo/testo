@@ -186,16 +186,23 @@ final class TokenizedFileTest
         ]);
     }
 
-    public function keywordNamedMethodsAreDetectedByPosition(): void
+    public function onlyFunctionTokensOfDeclarationsRegisterMethods(): void
     {
         $tokenized = self::tokenize('KeywordNamedDeclarations.php');
 
         $methods = $tokenized->getMethodsFQN();
         \sort($methods);
         Assert::same($methods, [
+            'Tests\Tokenizer\Stub\KeywordNames::call',
+            'Tests\Tokenizer\Stub\KeywordNames::closure',
+            'Tests\Tokenizer\Stub\KeywordNames::commented',
+            'Tests\Tokenizer\Stub\KeywordNames::function',
+            'Tests\Tokenizer\Stub\KeywordNames::größe',
             'Tests\Tokenizer\Stub\KeywordNames::list',
             'Tests\Tokenizer\Stub\KeywordNames::print',
+            'Tests\Tokenizer\Stub\KeywordNames::reference',
             'Tests\Tokenizer\Stub\KeywordNames::unset',
+            'Tests\Tokenizer\Stub\KeywordTrait::run',
         ]);
         Assert::same($tokenized->getFunctions(), []);
     }
@@ -445,6 +452,21 @@ final class TokenizedFileTest
         $tokenized = self::tokenize('GlobalBracedNamespace.php');
 
         Assert::same($tokenized->getFunctions(), ['globalBracedFunction']);
+    }
+
+    public function functionTokenBoundedByFileEdgesDeclaresNothing(): void
+    {
+        $path = \sys_get_temp_dir() . '/testo-tokenizer-' . \bin2hex(\random_bytes(4)) . '.php';
+        \file_put_contents($path, '<?php function');
+
+        try {
+            $tokenized = new TokenizedFile(new \SplFileInfo($path), $path);
+
+            Assert::same($tokenized->getFunctions(), []);
+            Assert::same($tokenized->getMethodsFQN(), []);
+        } finally {
+            \unlink($path);
+        }
     }
 
     public function repeatedNamespaceBlockMergesDeclarationsFromBothBlocks(): void

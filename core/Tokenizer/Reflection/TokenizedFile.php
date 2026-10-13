@@ -30,6 +30,11 @@ final class TokenizedFile
      */
     public const N_USES = 2;
 
+    /**
+     * Spelling of a PHP label: a function, method or class name.
+     */
+    private const IDENTIFIER = '/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/';
+
     public readonly Path $path;
 
     /**
@@ -424,41 +429,34 @@ final class TokenizedFile
             }
         }
 
-        // `use function Foo\bar;` carries a T_FUNCTION token too — it imports, it does not declare.
-        $prevID = $tokenID - 1;
-        while ($prevID >= 0 && $this->tokens[$prevID]->is(T_WHITESPACE)) {
-            --$prevID;
-        }
-        if ($prevID >= 0 && $this->tokens[$prevID]->is(T_USE)) {
+        // Only `function [&] name (` declares. Every other T_FUNCTION token declares nothing:
+        // a closure `function (`, an import `use function Foo\bar;`, or a member, argument, case or
+        // alias named `function` (`Foo::function()`, `f(function: $x)`, `run as function;`).
+        // A static member reference is rejected by what precedes it: `Foo::function and (...)` would
+        // otherwise pass for a declaration of `and`. After `->` and `?->` the lexer never yields
+        // T_FUNCTION in valid code.
+        $prevID = $this->previousMeaningfulToken($tokenID);
+        if ($prevID !== null && $this->tokens[$prevID]->is(T_DOUBLE_COLON)) {
             return;
         }
 
-        // The name (if any) is the token right before the parameter list "(". Anonymous functions
-        // have none there: `function (`, by-ref `function &(`, or an attributed closure
-        // `#[Attr] function (` all reach "(" with `function`/`&` immediately before it. A parameter
-        // type hint lives *inside* the parens, so it can never be misread as the name. Keyword-like
-        // method names (`list`, `print`, ...) are not T_STRING, so read by position, not by type.
-        $parenID = $tokenID + 1;
-        while (isset($this->tokens[$parenID]) && $this->tokens[$parenID]->text !== '(') {
-            ++$parenID;
+        $nameID = $this->nextMeaningfulToken($tokenID);
+        if ($nameID !== null && $this->tokens[$nameID]->text === '&') {
+            $nameID = $this->nextMeaningfulToken($nameID);
         }
 
-        if (!isset($this->tokens[$parenID])) {
+        // Keyword-like names (`list`, `print`, ...) are not T_STRING, so the name is checked by its
+        // spelling rather than by token type.
+        if ($nameID === null || \preg_match(self::IDENTIFIER, $this->tokens[$nameID]->text) !== 1) {
             return;
         }
 
-        $nameID = $parenID - 1;
-        while ($nameID > $tokenID && $this->tokens[$nameID]->is(T_WHITESPACE)) {
-            --$nameID;
-        }
-
-        $nameToken = $this->tokens[$nameID];
-        if ($nameToken->is(T_FUNCTION) || $nameToken->text === '&') {
-            // Anonymous function — nothing to declare.
+        $parenID = $this->nextMeaningfulToken($nameID);
+        if ($parenID === null || $this->tokens[$parenID]->text !== '(') {
             return;
         }
 
-        $name = $nameToken->text;
+        $name = $this->tokens[$nameID]->text;
 
         // Function
         if ($class === null) {
@@ -794,6 +792,34 @@ final class TokenizedFile
         }
 
         return $localID;
+    }
+
+    /**
+     * Find the first non-whitespace, non-comment token after the given one.
+     */
+    private function nextMeaningfulToken(int $tokenID): ?int
+    {
+        for ($localID = $tokenID + 1; $localID < $this->countTokens; ++$localID) {
+            if (!$this->tokens[$localID]->isIgnorable()) {
+                return $localID;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find the last non-whitespace, non-comment token before the given one.
+     */
+    private function previousMeaningfulToken(int $tokenID): ?int
+    {
+        for ($localID = $tokenID - 1; $localID >= 0; --$localID) {
+            if (!$this->tokens[$localID]->isIgnorable()) {
+                return $localID;
+            }
+        }
+
+        return null;
     }
 
     /**
