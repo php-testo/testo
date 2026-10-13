@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Codecov\Unit\Internal;
 
 use Internal\Path;
+use Testo\Application\Config\FinderConfig;
 use Testo\Application\Internal\EventDispatcher;
 use Testo\Assert;
 use Testo\Codecov\Covers;
@@ -12,6 +13,8 @@ use Testo\Codecov\Exception\CoverageReportNotWritten;
 use Testo\Codecov\Internal\CoverageCollector;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Codecov\Result\CoverageResult;
+use Testo\Codecov\Result\LineCoverage;
+use Testo\Codecov\Result\LineStatus;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\CaseResult;
 use Testo\Core\Context\Identity\SuiteIdentity;
@@ -126,6 +129,21 @@ final class CoverageCollectorTest
         } finally {
             Assert::same($seen, ['clover']);
         }
+    }
+
+    public function reportsSourceFilesNoTestLoaded(): void
+    {
+        $report = self::createReport();
+        $stub = (string) \realpath(\dirname(__DIR__, 2) . '/Stub/TargetClassA.php');
+        $collector = new CoverageCollector([$report], src: new FinderConfig([$stub]));
+
+        $collector->destroy();
+
+        Assert::same(\array_keys($report->result->files), [$stub]);
+        Assert::same(
+            \array_map(static fn(LineCoverage $l): LineStatus => $l->status, $report->result->files[$stub]->lines),
+            [12 => LineStatus::NotExecuted, 16 => LineStatus::NotExecuted],
+        );
     }
 
     private static function suiteOf(TestResult $result): SuiteResult

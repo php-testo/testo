@@ -198,7 +198,7 @@ final class CoverageActivation
         }
 
         $src = $this->container->get(ApplicationConfig::class)->src;
-        $collector = new CoverageCollector($this->reports, self::resolveSourceRoot($src), $dispatcher);
+        $collector = new CoverageCollector($this->reports, self::resolveSourceRoot($src), $dispatcher, $src);
         $this->container->set($collector, destroy: true);
 
         $this->container->get(EventListenerCollector::class)

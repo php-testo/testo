@@ -40,6 +40,8 @@ return new ApplicationConfig(
 );
 ```
 
+`src` is the coverage scope: every `.php` file under it that holds code appears in the reports. A file no test loaded is listed with its executable lines uncovered, estimated from its tokens without loading it, so an untested class lowers the total instead of being left out.
+
 Then enable on the CLI:
 
 ```

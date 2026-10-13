@@ -7,6 +7,7 @@ namespace Testo\Codecov\Internal;
 use Internal\Container\Attribute\ScopeShared;
 use Internal\Destroy\Destroyable;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Testo\Application\Config\FinderConfig;
 use Testo\Codecov\Exception\CoverageReportNotWritten;
 use Testo\Codecov\Report\CoverageReport;
 use Testo\Codecov\Result\CoverageResult;
@@ -19,7 +20,8 @@ use Testo\Event\Report\ReportFileGenerated;
  * Mutable aggregate that collects coverage data across test suites.
  *
  * Merges per-test coverage from suite results as they finish.
- * On destruction, generates all configured reports and announces each written file.
+ * On destruction, adds the source files no test loaded, generates all configured reports and
+ * announces each written file.
  *
  * @internal
  */
@@ -31,11 +33,14 @@ final readonly class CoverageCollector implements Destroyable
     /**
      * @param list<CoverageReport> $reports
      * @param EventDispatcherInterface|null $dispatcher Null keeps written reports unannounced.
+     * @param FinderConfig|null $src Source files to report even when no test loaded them. Null reports
+     *        only what the driver collected.
      */
     public function __construct(
         private array $reports,
         private ?string $sourceRoot = null,
         private ?EventDispatcherInterface $dispatcher = null,
+        private ?FinderConfig $src = null,
     ) {
         $this->cache = new Cache(new CoverageResult());
     }
@@ -56,9 +61,10 @@ final readonly class CoverageCollector implements Destroyable
 
     public function destroy(): void
     {
-        $result = $this->sourceRoot !== null
-            ? $this->cache->value->withSourceRoot($this->sourceRoot)
+        $result = $this->src !== null
+            ? UnloadedFiles::add($this->cache->value, $this->src)
             : $this->cache->value;
+        $this->sourceRoot === null or $result = $result->withSourceRoot($this->sourceRoot);
 
         # One unwritable target must not cost the other reports, so the first failure is rethrown last.
         $failure = null;
