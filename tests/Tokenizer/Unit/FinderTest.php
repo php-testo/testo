@@ -209,9 +209,9 @@ final class FinderTest
             exclude: [$stubDir . '/EmptyClass.php'],
         )))->directories();
 
-        foreach ($finder as $entry) {
-            Assert::true($entry->isDir());
-        }
+        $paths = self::realPaths($finder);
+        Assert::true(\in_array(\realpath($stubDir . '/NoNamespace'), $paths, true));
+        Assert::false(\in_array(\realpath($stubDir . '/EmptyClass.php'), $paths, true));
     }
 
     /**
@@ -299,7 +299,6 @@ final class FinderTest
             $paths[] = $file->getRealPath();
         }
 
-        \sort($paths);
         return $paths;
     }
 }
