@@ -12,6 +12,10 @@ use Testo\Bench\Dto\Report\HighVariance;
 use Testo\Bench\Dto\Snap;
 use Testo\Bench\Dto\ValueRel;
 use Testo\Codecov\Covers;
+use Testo\Core\Metric\Memory;
+use Testo\Core\Metric\Percent;
+use Testo\Core\Metric\Scalar;
+use Testo\Core\Metric\Time;
 use Testo\Output\Rendering\BenchMapper;
 use Testo\Test;
 
@@ -70,30 +74,42 @@ final class BenchMapperTest
         Assert::string($diagnostics[0]['advice'])->contains('Increase');
     }
 
-    public function metricsNameTheUnitInEveryKey(): void
+    public function metricsCarryTheUnitOnTheMetricNotInTheLeaf(): void
     {
         $metrics = BenchMapper::metrics(self::result());
 
-        // A flat namespace has nowhere else to record the unit, so it lives in the key. The unit-less
-        // spelling must not leak through alongside it.
-        Assert::true(\array_key_exists('bench.shift.meanUs', $metrics));
-        Assert::false(\array_key_exists('bench.shift.mean', $metrics));
-        Assert::true(\array_key_exists('bench.shift.rstdevPct', $metrics));
-        Assert::true(\array_key_exists('bench.shift.memoryBytes', $metrics));
+        // The dimension rides on the Metric so a consumer reports it natively; the leaf is unit-free.
+        Assert::same($metrics['bench.shift.Time results.mean']->unit, Time::Microseconds);
+        Assert::same($metrics['bench.shift.Time results.rstdev']->unit, Percent::Percent);
+        Assert::same($metrics['bench.shift.Summary.memory']->unit, Memory::Bytes);
+        Assert::same($metrics['bench.shift.Summary.place']->unit, Scalar::Number);
+
+        // The unit-bearing spellings must not leak back into the key.
+        Assert::false(\array_key_exists('bench.shift.Time results.meanUs', $metrics));
+        Assert::false(\array_key_exists('bench.shift.Summary.memoryBytes', $metrics));
+    }
+
+    public function metricsKeepTimeInItsNativeMicroseconds(): void
+    {
+        $metrics = BenchMapper::metrics(self::result());
+
+        // The source keeps microseconds; a consumer that needs another unit converts at its own boundary.
+        // The same leaf lives under two bands; the group segment keeps them apart.
+        Assert::same($metrics['bench.shift.Time results.mean']->value, 5.1);
+        Assert::same($metrics['bench.shift.Filtered results.mean']->value, 5.05);
     }
 
     public function metricsCarryTheSameNumbersAsTheMap(): void
     {
         $metrics = BenchMapper::metrics(self::result());
 
-        Assert::same($metrics['bench.iterations'], 2);
-        Assert::same($metrics['bench.shift.calls'], 20);
-        Assert::same($metrics['bench.shift.place'], 1);
-        Assert::same($metrics['bench.shift.meanUs'], 5.1);
-        Assert::same($metrics['bench.shift.memoryBytes'], 300);
-        Assert::same($metrics['bench.push.memoryBytes'], 0);
-        Assert::same($metrics['bench.push.rejected'], 1);
-        Assert::same($metrics['bench.push.rstdevPct'], 12.0);
+        Assert::same($metrics['bench.shift.Benchmark setup.iters']->value, 2);
+        Assert::same($metrics['bench.shift.Benchmark setup.calls']->value, 20);
+        Assert::same($metrics['bench.shift.Summary.place']->value, 1);
+        Assert::same($metrics['bench.shift.Summary.memory']->value, 300);
+        Assert::same($metrics['bench.push.Summary.memory']->value, 0);
+        Assert::same($metrics['bench.push.Filtered results.rejected']->value, 1);
+        Assert::same($metrics['bench.push.Time results.rstdev']->value, 12.0);
     }
 
     public function anEmptyResultProducesNoCasesAndNoDiagnostics(): void
@@ -105,9 +121,10 @@ final class BenchMapperTest
         Assert::same($map['diagnostics'], []);
     }
 
-    public function anEmptyResultStillReportsItsIterationCounter(): void
+    public function anEmptyResultReportsNoMetrics(): void
     {
-        Assert::same(BenchMapper::metrics(new BenchResult([], [])), ['bench.iterations' => 0]);
+        // No case, no row — a grid with nothing to place, so nothing is emitted.
+        Assert::same(BenchMapper::metrics(new BenchResult([], [])), []);
     }
 
     public function formatMetricKeepsAnIntegerExact(): void

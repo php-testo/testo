@@ -11,10 +11,12 @@ use Testo\Test;
 use Tests\Common\Stub\AnotherMarkerAttribute;
 use Tests\Common\Stub\AttributedChild;
 use Tests\Common\Stub\BaseClass;
+use Tests\Common\Stub\CaseMarkerAttribute;
 use Tests\Common\Stub\ChildClass;
 use Tests\Common\Stub\ClassWithoutMarkedMethods;
 use Tests\Common\Stub\ClassWithTrait;
 use Tests\Common\Stub\InnerTrait;
+use Tests\Common\Stub\MarkedEnum;
 use Tests\Common\Stub\MarkerAttribute;
 use Tests\Common\Stub\MergePolicyChild;
 use Tests\Common\Stub\ReflectionCallStackHelper;
@@ -363,5 +365,33 @@ final class ReflectionTest
         $attrs = $helper->markedMethod(null);
 
         Assert::true(\count($attrs) >= 1);
+    }
+
+    // --- fetchEnumCaseAttributes ---
+
+    public function fetchEnumCaseAttributes_listsEveryCaseInDeclarationOrder(): void
+    {
+        $attributes = Reflection::fetchEnumCaseAttributes(MarkedEnum::class, CaseMarkerAttribute::class);
+
+        Assert::same(\array_keys($attributes), ['Marked', 'Plain', 'Repeated']);
+        Assert::same($attributes['Plain'], []);
+        Assert::same(
+            \array_map(static fn(\ReflectionAttribute $a) => $a->newInstance()->label, $attributes['Repeated']),
+            ['second', 'third'],
+        );
+    }
+
+    public function fetchEnumCaseAttributes_acceptsReflectionEnumInstance(): void
+    {
+        $attributes = Reflection::fetchEnumCaseAttributes(new \ReflectionEnum(MarkedEnum::class), CaseMarkerAttribute::class);
+
+        Assert::same($attributes['Marked'][0]->newInstance()->label, 'first');
+    }
+
+    public function fetchEnumCaseAttributes_withNullAttributeClass_returnsAllAttributes(): void
+    {
+        $attributes = Reflection::fetchEnumCaseAttributes(MarkedEnum::class);
+
+        Assert::same(\array_map(\count(...), $attributes), ['Marked' => 1, 'Plain' => 0, 'Repeated' => 2]);
     }
 }

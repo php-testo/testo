@@ -176,6 +176,37 @@ final class Reflection
     }
 
     /**
+     * Fetch the attributes of every case of an enum.
+     *
+     * Every case is present in the result, in declaration order, so a caller can walk the enum once and
+     * fall back to a default where a case carries nothing.
+     *
+     * @template T of object
+     *
+     * @param \ReflectionEnum|class-string<\UnitEnum> $enum
+     * @param class-string<T>|null $attributeClass If provided, only attributes of this class will be returned.
+     * @param int $flags Flags to pass to {@see \ReflectionEnumUnitCase::getAttributes()}.
+     *
+     * @return ($attributeClass is null
+     *     ? array<non-empty-string, list<\ReflectionAttribute>>
+     *     : array<non-empty-string, list<\ReflectionAttribute<T>>>) Attributes keyed by case name.
+     */
+    public static function fetchEnumCaseAttributes(
+        \ReflectionEnum|string $enum,
+        ?string $attributeClass = null,
+        int $flags = 0,
+    ): array {
+        \is_string($enum) and $enum = new \ReflectionEnum($enum);
+
+        $attributes = [];
+        foreach ($enum->getCases() as $case) {
+            $attributes[$case->name] = $case->getAttributes($attributeClass, $flags);
+        }
+
+        return $attributes;
+    }
+
+    /**
      * Find all methods in a class that have a specific attribute.
      *
      * @param \ReflectionClass|class-string $class The class to inspect.
