@@ -29,6 +29,7 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Internal\DroppedAttributes;
 use Testo\Bridge\Rector\Internal\OriginalTokens;
 use Testo\Bridge\Rector\Internal\PhpDocTagText;
+use Testo\Bridge\Rector\Internal\PhpunitAssertionCall;
 use Testo\Bridge\Rector\Internal\PhpunitTestCaseClass;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
@@ -67,7 +68,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *
  * A trait gets `#[\Testo\Test]` on the same test methods, since the classes that use it are out of
  * sight: a test method a PHPUnit class takes from a trait would otherwise go undiscovered. Abstract
- * methods are skipped; the class implementing one marks it.
+ * methods are skipped; the class implementing one marks it. An abstract method that only restates a
+ * PHPUnit assertion (an `assert*`/`fail` declared on PHPUnit's `Assert`, untyped or returning
+ * `void`/`never`) is removed: its calls convert to Testo, and a using class that no longer extends
+ * `TestCase` would be left with an unimplemented method.
  *
  * Residual: methods are NOT renamed. Keeping `testFoo()` is harmless under Testo (discovery
  * is by attribute, not name), but call-site rewriting / cleanup of the `test` prefix is out
@@ -84,6 +88,7 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         private readonly DocBlockUpdater $docBlockUpdater,
         private readonly ReflectionProvider $reflectionProvider,
         private readonly PhpunitTestCaseClass $testCaseClass,
+        private readonly PhpunitAssertionCall $assertionCall,
     ) {}
 
     public function getRuleDefinition(): RuleDefinition
@@ -127,6 +132,15 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
             $changed = false;
             foreach ($node->getMethods() as $method) {
                 $method->isPublic() && !$method->isAbstract() && $this->markTestMethod($method) and $changed = true;
+            }
+
+            $kept = \array_values(\array_filter(
+                $node->stmts,
+                fn(Node $stmt): bool => !$stmt instanceof ClassMethod || !$this->assertionCall->restatesPhpunitAssertion($node, $stmt),
+            ));
+            if (\count($kept) !== \count($node->stmts)) {
+                $node->stmts = $kept;
+                $changed = true;
             }
 
             return $changed ? $node : null;
@@ -200,7 +214,11 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
      * the method is gone. A call reaching a method a local base declares stays, as does a call whose
      * result is used. An anonymous class inside the method has a parent of its own and is not entered.
      *
-     * @return bool Whether a call was removed.
+     * A PHPUnit assertion is kept as an explicit `\PHPUnit\Framework\Assert::` call instead: the
+     * assertion rules convert the ones Testo maps, and the rest stay valid PHPUnit calls rather than
+     * a `parent::` that would stop the whole file from compiling.
+     *
+     * @return bool Whether a call was changed.
      */
     private function removePhpunitParentCalls(Class_ $class, ClassMethod $method): bool
     {
@@ -210,8 +228,8 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         }
 
         $parents = $this->reflectionProvider->getClass($name)->getParents();
-        $removed = false;
-        $this->traverseNodesWithCallable($method, static function (Node $node) use ($parents, &$removed): ?int {
+        $changed = false;
+        $this->traverseNodesWithCallable($method, function (Node $node) use ($parents, &$changed): ?int {
             if ($node instanceof Class_) {
                 return NodeVisitor::DONT_TRAVERSE_CHILDREN;
             }
@@ -236,12 +254,30 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
                 }
             }
 
-            $removed = true;
+            $changed = true;
+            if ($this->isPhpunitAssertion($node->expr)) {
+                $node->expr->class = new FullyQualified('PHPUnit\\Framework\\Assert');
+
+                return null;
+            }
 
             return NodeVisitor::REMOVE_NODE;
         });
 
-        return $removed;
+        return $changed;
+    }
+
+    /**
+     * Only a static assertion declared on `Assert` survives the rewrite; `TestCase` hooks such as
+     * `assertPostConditions()` exist on the instance alone and are dropped with the other calls.
+     */
+    private function isPhpunitAssertion(StaticCall $call): bool
+    {
+        $name = \strtolower((string) $this->assertionCall->name($call));
+
+        return (\str_starts_with($name, 'assert') || $name === 'fail')
+            && $this->reflectionProvider->hasClass('PHPUnit\\Framework\\Assert')
+            && $this->reflectionProvider->getClass('PHPUnit\\Framework\\Assert')->hasNativeMethod($name);
     }
 
     /**

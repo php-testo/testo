@@ -6,6 +6,9 @@ use Testo\Application\Config\FinderConfig;
 use Testo\Application\Config\SuiteConfig;
 use Testo\Bridge\Rector\Testing\RectorTestingPlugin;
 
+// Reflection metadata only: runtime PHPUnit classes would affect other bridges in this process.
+(new \Rector\Config\RectorConfig())->phpstanConfig(__DIR__ . '/Stub/phpstan.neon');
+
 /**
  * Test suites for the Rector bridge.
  *

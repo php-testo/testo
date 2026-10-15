@@ -66,6 +66,18 @@ memory-leak / retry / repeat, Pest higher-order & `arch()` tests, etc.) are
 **not silently dropped**: each is a documented stub rule plus an entry in the direction's
 `TODO.md`.
 
+### PHPUnit assertion ownership
+
+Assertion methods must resolve to a declaration on PHPUnit's `Assert` or `TestCase`, so keep PHPUnit
+installed while migrating: without it no assertion method converts. An unrelated, overridden, magic
+or unresolved method is left untouched. A trait cannot tell which classes use it, so a call there
+converts unless the trait implements or intercepts (`__call`) that method, or requires one that
+returns a value; an untyped, `void` or `never` abstract declaration restates PHPUnit's own, and
+`ExtendsTestCaseToTestoRector` removes it from the trait.
+
+A class detached from `TestCase` by an earlier run no longer reaches PHPUnit, so convert a base class
+and its subclasses in the same run: the subclasses' assertions stay PHPUnit calls otherwise.
+
 ### Argument order (important)
 
 Testo's comparison assertions are `(actual, expected)`; PHPUnit's are `(expected, actual)`.

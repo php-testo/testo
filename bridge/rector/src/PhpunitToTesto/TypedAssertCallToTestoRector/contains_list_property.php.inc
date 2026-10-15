@@ -1,6 +1,6 @@
 <?php
 
-class ContainsListPropertyTest
+class ContainsListPropertyTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
@@ -16,7 +16,7 @@ class ContainsListPropertyTest
 -----
 <?php
 
-class ContainsListPropertyTest
+class ContainsListPropertyTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {

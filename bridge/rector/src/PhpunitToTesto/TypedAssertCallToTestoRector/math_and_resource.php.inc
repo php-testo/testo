@@ -1,6 +1,6 @@
 <?php
 
-class MathAndResourceTest
+class MathAndResourceTest extends \PHPUnit\Framework\TestCase
 {
     public function test(float $ratio, int $count, int|float $number, string $numeric, mixed $unknown)
     {
@@ -21,7 +21,7 @@ class MathAndResourceTest
 -----
 <?php
 
-class MathAndResourceTest
+class MathAndResourceTest extends \PHPUnit\Framework\TestCase
 {
     public function test(float $ratio, int $count, int|float $number, string $numeric, mixed $unknown)
     {

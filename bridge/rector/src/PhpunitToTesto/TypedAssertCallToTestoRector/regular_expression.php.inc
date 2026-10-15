@@ -1,6 +1,6 @@
 <?php
 
-class RegularExpressionAssertTest
+class RegularExpressionAssertTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
@@ -13,7 +13,7 @@ class RegularExpressionAssertTest
 -----
 <?php
 
-class RegularExpressionAssertTest
+class RegularExpressionAssertTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {

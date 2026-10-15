@@ -1,6 +1,6 @@
 <?php
 
-class PathPermissionsTest
+class PathPermissionsTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
@@ -21,7 +21,7 @@ class PathPermissionsTest
 -----
 <?php
 
-class PathPermissionsTest
+class PathPermissionsTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
