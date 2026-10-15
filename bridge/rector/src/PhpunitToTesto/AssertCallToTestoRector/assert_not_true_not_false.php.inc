@@ -1,6 +1,6 @@
 <?php
 
-class AssertNotTrueNotFalseTest
+class AssertNotTrueNotFalseTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
@@ -11,7 +11,7 @@ class AssertNotTrueNotFalseTest
 -----
 <?php
 
-class AssertNotTrueNotFalseTest
+class AssertNotTrueNotFalseTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {

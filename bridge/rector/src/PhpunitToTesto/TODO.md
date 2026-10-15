@@ -46,7 +46,9 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `#[\Testo\Test]`). A detached class has no parent, so `#[\Override]` is dropped from every method an
   implemented interface does not declare (`setUp()` and other `TestCase` hooks); an unresolvable
   interface keeps all of them. A class reaching `TestCase` through an intermediate base keeps its `extends` and
-  `#[\Override]` and only gains the `#[\Testo\Test]` marks, as do the non-abstract test methods of a trait. **Residual:** methods are NOT renamed —
+  `#[\Override]` and only gains the `#[\Testo\Test]` marks, as do the non-abstract test methods of a trait.
+  A trait also loses each abstract method that only restates a PHPUnit assertion (untyped, `void` or
+  `never`), so a using class off `TestCase` is not left with an unimplemented method. **Residual:** methods are NOT renamed —
   Testo discovers by attribute, so keeping `testFoo()` is harmless, and prefix cleanup / call-site
   rewriting is left manual.
 - **ExpectExceptionToTestoRector** (registered) — now folds the fluent chain, not just the bare
@@ -209,3 +211,19 @@ expectations belong to a test method (or a static data provider); a matching cal
 or at namespace level is left untouched. Each rule carries an `outside_method_left_unchanged` fixture
 proving the no-op. (Unlike the reverse direction the outputs — static `\Testo\Assert::*`/`\Testo\Expect::*`
 calls and `throw` — are valid anywhere, so this is a scoping/consistency choice, not a fatal-avoidance one.)
+
+Assertion methods handled by `AssertCallToTestoRector` and `TypedAssertCallToTestoRector` must
+resolve to a native PHPUnit Assert/TestCase declaration. Custom, overridden, magic, mixed-receiver
+and unresolved calls are left untouched. Keep PHPUnit resolvable until the migration is complete.
+`parent::assertX()` resolves from the parent class on, and an explicit `Assert::assertX()` or
+`TestCase::assertX()` on PHPUnit's classes converts as well. `ExtendsTestCaseToTestoRector` rewrites a
+`parent::` call to a static assertion of `Assert` into `Assert::` instead of dropping it with the other
+`parent::` calls into PHPUnit: a mapped one converts, an unmapped one stays a valid call, and a user
+override that delegates to PHPUnit's assertion keeps asserting. `TestCase` hooks such as
+`assertPostConditions()` are instance methods and are dropped.
+Ownership is read from PHPStan's reflection of the class as loaded from source, so a class that
+`ExtendsTestCaseToTestoRector` detaches from `TestCase` in the same run still converts; that reflection
+is looked up by name, so it only counts when it comes from the same file. A class detached by an
+earlier run no longer reaches PHPUnit at all. In a trait the using classes are unknown: a call
+converts unless the trait implements or intercepts (`__call`/`__callStatic`) that method, or requires
+a version that returns a value (an untyped, `void` or `never` abstract one restates PHPUnit's).

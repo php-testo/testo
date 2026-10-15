@@ -1,6 +1,6 @@
 <?php
 
-class SameSizeTest
+class SameSizeTest extends \PHPUnit\Framework\TestCase
 {
     public function test(array $expected, array $actual, \ArrayObject $bag, \Traversable $stream, iterable $any, \Countable $counter)
     {
@@ -16,7 +16,7 @@ class SameSizeTest
 -----
 <?php
 
-class SameSizeTest
+class SameSizeTest extends \PHPUnit\Framework\TestCase
 {
     public function test(array $expected, array $actual, \ArrayObject $bag, \Traversable $stream, iterable $any, \Countable $counter)
     {

@@ -1,6 +1,6 @@
 <?php
 
-class EmptyScalarSubjectTest
+class EmptyScalarSubjectTest extends \PHPUnit\Framework\TestCase
 {
     // blank() treats "0" as valid data while PHPUnit calls it empty, so a scalar subject gets
     // PHP's own empty() check instead.
@@ -13,7 +13,7 @@ class EmptyScalarSubjectTest
 -----
 <?php
 
-class EmptyScalarSubjectTest
+class EmptyScalarSubjectTest extends \PHPUnit\Framework\TestCase
 {
     // blank() treats "0" as valid data while PHPUnit calls it empty, so a scalar subject gets
     // PHP's own empty() check instead.

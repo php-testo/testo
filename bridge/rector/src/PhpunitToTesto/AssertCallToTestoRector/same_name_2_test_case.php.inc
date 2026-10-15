@@ -1,0 +1,19 @@
+<?php
+
+class SameNameFirstTest extends \PHPUnit\Framework\TestCase
+{
+    public function test(): void
+    {
+        $this->assertSame(1, 2);
+    }
+}
+-----
+<?php
+
+class SameNameFirstTest extends \PHPUnit\Framework\TestCase
+{
+    public function test(): void
+    {
+        \Testo\Assert::same(2, 1);
+    }
+}
