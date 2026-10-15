@@ -1,6 +1,6 @@
 <?php
 
-class TypeChecksTest
+class TypeChecksTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
@@ -22,7 +22,7 @@ class TypeChecksTest
 -----
 <?php
 
-class TypeChecksTest
+class TypeChecksTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {

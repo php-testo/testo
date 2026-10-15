@@ -18,6 +18,8 @@ use Rector\NodeTypeResolver\Node\AttributeKey;
  *
  * Only a call inside a class counts, which is where a test method or a `static` data provider
  * lives; a call in a free function or at namespace level is left alone.
+ * Method calls must resolve to PHPUnit's Assert/TestCase declaration. An unresolved receiver,
+ * magic method, trait requirement, or a user declaration with the same name stays untouched.
  *
  * @internal
  */
@@ -50,7 +52,22 @@ final class PhpunitAssertionCall
             return null;
         }
 
-        return $name;
+        if ($node instanceof FuncCall) {
+            return $name;
+        }
+
+        $scope = $node->getAttribute(AttributeKey::SCOPE);
+        \assert($scope instanceof Scope);
+        $class = $scope->getClassReflection();
+        if ($class === null || !$class->hasNativeMethod($name)) {
+            return null;
+        }
+
+        $method = $class->getNativeMethod($name);
+        return \in_array($method->getDeclaringClass()->getName(), [
+            'PHPUnit\\Framework\\Assert',
+            'PHPUnit\\Framework\\TestCase',
+        ], true) ? $method->getName() : null;
     }
 
     private function functionName(FuncCall $call): ?string

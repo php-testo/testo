@@ -1,6 +1,6 @@
 <?php
 
-class ContainsOnlyTest
+class ContainsOnlyTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
@@ -24,7 +24,7 @@ class ContainsOnlyTest
 -----
 <?php
 
-class ContainsOnlyTest
+class ContainsOnlyTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {

@@ -7,6 +7,10 @@ row by hand. When in doubt about an attribute, read its class in the installed `
 Testo is similar in spirit to PHPUnit but **not source-compatible**. Never run a blind regex pass —
 the assertion **argument order flips** (see the pitfalls), and discovery is attribute-based.
 
+Rector converts assertion methods only when their declaring class resolves to PHPUnit's `Assert`
+or `TestCase`. Keep PHPUnit available during migration; custom, overridden, magic and unresolved
+methods remain untouched.
+
 ## Which rows Rector handles
 
 | Handled automatically by the `phpunit-to-testo` Rector set | Needs AI/human work (no faithful rule) |

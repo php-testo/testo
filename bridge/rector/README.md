@@ -66,6 +66,11 @@ memory-leak / retry / repeat, Pest higher-order & `arch()` tests, etc.) are
 **not silently dropped**: each is a documented stub rule plus an entry in the direction's
 `TODO.md`.
 
+### PHPUnit assertion ownership
+
+Assertion methods must resolve to a declaration on PHPUnit's `Assert` or `TestCase`; keep PHPUnit
+resolvable while migrating. An unrelated, overridden, magic or unresolved method is left untouched.
+
 ### Argument order (important)
 
 Testo's comparison assertions are `(actual, expected)`; PHPUnit's are `(expected, actual)`.

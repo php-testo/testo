@@ -1,6 +1,6 @@
 <?php
 
-class StringNotStartsEndsWithTest
+class StringNotStartsEndsWithTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
@@ -11,7 +11,7 @@ class StringNotStartsEndsWithTest
 -----
 <?php
 
-class StringNotStartsEndsWithTest
+class StringNotStartsEndsWithTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
