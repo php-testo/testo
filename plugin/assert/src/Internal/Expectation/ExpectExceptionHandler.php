@@ -26,6 +26,7 @@ final class ExpectExceptionHandler implements ExpectedException
     private array $fromMethod = [];
 
     private ?string $expectedMessage = null;
+    private bool $expectedMessageExact = true;
 
     /** @var non-empty-string|null */
     private ?string $expectedMessagePattern = null;
@@ -110,12 +111,13 @@ final class ExpectExceptionHandler implements ExpectedException
     }
 
     /**
-     * The expected exception should have the exact message.
+     * The expected exception message should match exactly or contain the given substring.
      */
     #[\Override]
-    public function withMessage(string $message): static
+    public function withMessage(string $message, bool $exact = true): static
     {
         $this->expectedMessage = $message;
+        $this->expectedMessageExact = $exact;
         return $this;
     }
 
@@ -247,10 +249,14 @@ final class ExpectExceptionHandler implements ExpectedException
 
         # Message check
         if ($this->expectedMessage !== null) {
-            $actual->getMessage() === $this->expectedMessage
-                ? $composite->success('message is "' . $this->expectedMessage . '"')
+            $label = ($this->expectedMessageExact ? 'message is "' : 'message contains "') . $this->expectedMessage . '"';
+            $matches = $this->expectedMessageExact
+                ? $actual->getMessage() === $this->expectedMessage
+                : \str_contains($actual->getMessage(), $this->expectedMessage);
+            $matches
+                ? $composite->success($label)
                 : $composite->fail(
-                    expectation: 'message is "' . $this->expectedMessage . '"',
+                    expectation: $label,
                     reason: 'got "' . $actual->getMessage() . '"',
                 );
         }

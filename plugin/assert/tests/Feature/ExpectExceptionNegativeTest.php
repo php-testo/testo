@@ -58,6 +58,24 @@ final class ExpectExceptionNegativeTest
             ->contains('got "actual message"');
     }
 
+    public function wrongSubstringMessage(): void
+    {
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'wrongSubstringMessage']);
+
+        Assert::same($result->status, Status::Failed);
+        Assert::instanceOf($result->failure, Expectation::class);
+        Assert::string($result->failure->getFailReason())->contains('message contains "needle"');
+    }
+
+    public function exactModeIsRestored(): void
+    {
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'exactModeIsRestored']);
+
+        Assert::same($result->status, Status::Failed);
+        Assert::instanceOf($result->failure, Expectation::class);
+        Assert::string($result->failure->getFailReason())->contains('message is "expected"');
+    }
+
     public function failureMessageCarriesTheReason(): void
     {
         $result = TestRunner::runTest([ExpectExceptionNegative::class, 'wrongMessage']);
