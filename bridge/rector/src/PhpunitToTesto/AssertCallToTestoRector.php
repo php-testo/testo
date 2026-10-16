@@ -113,6 +113,13 @@ final class AssertCallToTestoRector extends AbstractRector
             return null;
         }
 
+        # Keep unsupported argument bindings visible for manual migration.
+        foreach ($node->args as $argument) {
+            if (!$argument instanceof Arg || $argument->unpack || $argument->name !== null) {
+                return null;
+            }
+        }
+
         if (isset(self::NOT_BOOL[$method])) {
             return $this->notBool(self::NOT_BOOL[$method], $node->args);
         }

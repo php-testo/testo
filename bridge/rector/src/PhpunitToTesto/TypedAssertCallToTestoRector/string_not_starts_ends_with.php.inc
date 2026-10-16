@@ -15,7 +15,11 @@ class StringNotStartsEndsWithTest
 {
     public function test()
     {
-        \Testo\Assert::string($path)->notStartsWith('/tmp');
-        \Testo\Assert::string($path)->notEndsWith('.md', 'not markdown');
+        (static function (string $prefix, string $string, string $message = ''): void {
+            \Testo\Assert::string($string)->notStartsWith($prefix, $message);
+        })('/tmp', $path);
+        (static function (string $suffix, string $string, string $message = ''): void {
+            \Testo\Assert::string($string)->notEndsWith($suffix, $message);
+        })('.md', $path, 'not markdown');
     }
 }

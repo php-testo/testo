@@ -37,7 +37,11 @@ class TypeChecksTest
         \Testo\Assert::false(\is_int($value), 'not an int');
         \Testo\Assert::true(\file_exists($path));
         \Testo\Assert::false(\is_dir($dir));
-        \Testo\Assert::string($message)->startsWith('Name must');
-        \Testo\Assert::string($file)->endsWith('.json', 'suffix');
+        (static function (string $prefix, string $string, string $message = ''): void {
+            \Testo\Assert::string($string)->startsWith($prefix, $message);
+        })('Name must', $message);
+        (static function (string $suffix, string $string, string $message = ''): void {
+            \Testo\Assert::string($string)->endsWith($suffix, $message);
+        })('.json', $file, 'suffix');
     }
 }

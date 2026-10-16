@@ -16,6 +16,12 @@ the assertion **argument order flips** (see the pitfalls), and discovery is attr
 > The left column is mechanical; the right column is why **every** migration ends with an AI/human
 > pass and a test-count check against the PHPUnit run.
 
+Simple standalone string assertions with native string arguments use a short chain, normalising
+supported names positionally. Effectful/coercible arguments or a used result need a typed `void`
+closure with source parameter names to retain binding, evaluation order and weak/strict coercion.
+Other named assertion shapes remain manual. Do not simplify those closures to casts or reorder their
+arguments: both can change TypeErrors or side effects.
+
 ## Translation table
 
 | PHPUnit | Testo |
