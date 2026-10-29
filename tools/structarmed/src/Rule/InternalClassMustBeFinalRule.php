@@ -7,7 +7,6 @@ namespace Testo\Tools\StructArmed\Rule;
 use Boundwize\StructArmed\Analyser\ClassNode;
 use Boundwize\StructArmed\Rule\ExtendedClassAwareRuleInterface;
 use Boundwize\StructArmed\Rule\RuleViolation;
-use Testo\Tools\StructArmed\Support\ClassAnnotations;
 
 /**
  * An @internal class with no subclasses must be final: nothing outside the package
@@ -25,7 +24,7 @@ final readonly class InternalClassMustBeFinalRule implements ExtendedClassAwareR
         return $classNode->isClass()
             && ! $classNode->isAbstract
             && $classNode->isInLayer($this->layer)
-            && ClassAnnotations::hasInternal($classNode->file, $classNode->shortName());
+            && $classNode->isInternal;
     }
 
     public function evaluate(ClassNode $classNode): ?RuleViolation
