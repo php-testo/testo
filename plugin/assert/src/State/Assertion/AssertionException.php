@@ -7,7 +7,9 @@ namespace Testo\Assert\State\Assertion;
 use Testo\Assert\State\Assertion;
 
 /**
- * Assertion exception.
+ * Canonical assertion failure record for custom assertions.
+ *
+ * @api
  */
 class AssertionException extends \LogicException implements Assertion
 {
@@ -25,6 +27,7 @@ class AssertionException extends \LogicException implements Assertion
         private readonly string $reason,
         private readonly string $details,
     ) {
+        $assertion === '' and throw new \InvalidArgumentException('Assertion description must not be empty.');
         $message = "Failed assertion that `{$value}` {$assertion}: {$reason}.";
         $context === '' or $message .= "\nMeaning: {$context}";
         $details === '' or $message .= "\nDetails:\n{$details}";

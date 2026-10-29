@@ -50,6 +50,14 @@ final class ConcurrentAssertIsolationTest
         );
     }
 
+    public function fiberCustomAssertionsKeepSeparateHistories(): void
+    {
+        self::assertHistoryCount(
+            TestRunner::runTest([RoundRobinAssertScenarios::class, 'recordsCustomAssertionsAcrossSuspends']),
+            3,
+        );
+    }
+
     public function fiberRandomScheduleKeepsSeparateHistories(): void
     {
         self::assertHistoryCount(

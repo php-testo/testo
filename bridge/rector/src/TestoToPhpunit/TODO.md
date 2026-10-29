@@ -9,6 +9,9 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   memory-leak assertion or post-test object-liveness hook.
 - **`CancelTestRector`** — `CancelTest` is an external interruption signal with no
   PHPUnit equivalent (not the same as skip/incomplete).
+- **`CustomAssertionRector`** — `Assert::success()`/`Assert::failure()` record Testo-specific
+  assertion history; PHPUnit/Pest have no faithful custom-record conversion. The stub is
+  intentionally unregistered rather than emitting a lossy rewrite.
 
 ## Implemented since the first cut
 

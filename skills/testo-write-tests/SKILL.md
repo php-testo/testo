@@ -59,6 +59,9 @@ Hard rules:
 Use the `Testo\Assert` facade for in-test checks. Order is **actual, expected** for `same`/`equals`.
 
 ```php
+use Testo\Assert;
+use Testo\Assert\State\Assertion\AssertionException;
+
 Assert::same($user->id, 42);
 Assert::notSame($a, $b);
 Assert::equals($result, '1');         // loose ==
@@ -71,8 +74,12 @@ Assert::notBlank($value);             // inverse of blank(); false/0/'0' count a
 Assert::contains($collection, $needle);
 Assert::count($collection, 3);
 Assert::instanceOf($object, MyClass::class);
+Assert::success($actual, 'satisfies the domain rule', 'optional context');
+Assert::failure(new AssertionException($value, 'satisfies the domain rule', '', 'rule violated', ''));
 Assert::fail('explicit failure');
 ```
+
+Custom assertions use only the public `AssertionException` contract (including `ComparisonFailure`), never arbitrary `Throwable`; both are documented API records. `Assert::failure()` records and throws (`never`), so it may be caught and leave a failed history record while the test passes; matching `Expect::exception()` follows ordinary expectation handling. Descriptions must be non-empty, and no internal state class is needed. Outside an active Testo test, custom success is a no-op and custom failure still throws.
 
 Typed chains (use when you want a fluent series of checks on one value):
 

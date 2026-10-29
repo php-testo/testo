@@ -9,6 +9,8 @@ use Testo\Assert\Internal\Support;
 /**
  * Assertion exception for value comparisons.
  *
+ * @api
+ *
  * Carries the raw `expected` and `actual` values alongside the textual
  * assertion record fields so output adapters can render them as needed
  * (e.g. terminal diff, TeamCity `comparisonFailure` message).

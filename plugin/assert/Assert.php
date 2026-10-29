@@ -518,6 +518,34 @@ final class Assert
     }
 
     /**
+     * Records a successful custom assertion.
+     *
+     * @param mixed $actual The actual value that was asserted.
+     * @param non-empty-string $assertion The assertion description.
+     * @param string $context Optional context describing the assertion.
+     * @throws \InvalidArgumentException when the assertion description is empty.
+     */
+    public static function success(mixed $actual, string $assertion, string $context = ''): void
+    {
+        $assertion === '' and throw new \InvalidArgumentException('Assertion description must not be empty.');
+        StaticState::success($actual, $assertion, $context);
+    }
+
+    /**
+     * Records and throws a canonical custom assertion failure.
+     *
+     * @param AssertionException $failure The supported assertion failure to record and throw.
+     * @throws AssertionException
+     * @throws \InvalidArgumentException when the assertion description is empty.
+     */
+    #[AssertMethod]
+    public static function failure(AssertionException $failure): never
+    {
+        $failure->getAssertion() === '' and throw new \InvalidArgumentException('Assertion description must not be empty.');
+        StaticState::fail($failure);
+    }
+
+    /**
      * Fails the test.
      *
      * Use this method to explicitly indicate that the test should end in failure.
