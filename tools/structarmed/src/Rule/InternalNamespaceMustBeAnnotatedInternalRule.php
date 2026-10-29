@@ -7,7 +7,6 @@ namespace Testo\Tools\StructArmed\Rule;
 use Boundwize\StructArmed\Analyser\ClassNode;
 use Boundwize\StructArmed\Rule\RuleInterface;
 use Boundwize\StructArmed\Rule\RuleViolation;
-use Testo\Tools\StructArmed\Support\ClassAnnotations;
 
 /**
  * Anything living under an `Internal` namespace segment is implementation detail and
@@ -27,7 +26,7 @@ final readonly class InternalNamespaceMustBeAnnotatedInternalRule implements Rul
 
     public function evaluate(ClassNode $classNode): ?RuleViolation
     {
-        return ClassAnnotations::hasInternal($classNode->file, $classNode->shortName()) ? null : new RuleViolation(
+        return $classNode->isInternal ? null : new RuleViolation(
             message: \sprintf('%s [%s] lives under an Internal namespace and must be annotated @internal', $classNode->getType(), $classNode->className),
             file: $classNode->file,
             line: $classNode->line,

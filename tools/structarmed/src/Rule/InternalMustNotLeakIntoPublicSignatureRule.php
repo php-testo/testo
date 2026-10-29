@@ -8,7 +8,6 @@ use Boundwize\StructArmed\Analyser\ClassNode;
 use Boundwize\StructArmed\Rule\MultipleRuleViolationInterface;
 use Boundwize\StructArmed\Rule\RuleInterface;
 use Boundwize\StructArmed\Rule\RuleViolation;
-use Testo\Tools\StructArmed\Support\ClassAnnotations;
 use Testo\Tools\StructArmed\Support\ClassSignatures;
 
 /**
@@ -69,6 +68,6 @@ final readonly class InternalMustNotLeakIntoPublicSignatureRule implements RuleI
     private function isInternal(ClassNode $classNode): bool
     {
         return \str_contains($classNode->className, self::SEGMENT)
-            || ClassAnnotations::hasInternal($classNode->file, $classNode->shortName());
+            || $classNode->isInternal;
     }
 }

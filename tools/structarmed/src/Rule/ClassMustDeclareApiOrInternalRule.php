@@ -7,7 +7,6 @@ namespace Testo\Tools\StructArmed\Rule;
 use Boundwize\StructArmed\Analyser\ClassNode;
 use Boundwize\StructArmed\Rule\RuleInterface;
 use Boundwize\StructArmed\Rule\RuleViolation;
-use Testo\Tools\StructArmed\Support\ClassAnnotations;
 
 /**
  * Every class-like must state its audience: @api (part of the public contract) or
@@ -27,10 +26,7 @@ final readonly class ClassMustDeclareApiOrInternalRule implements RuleInterface
 
     public function evaluate(ClassNode $classNode): ?RuleViolation
     {
-        if (
-            ClassAnnotations::hasApi($classNode->file, $classNode->shortName())
-            || ClassAnnotations::hasInternal($classNode->file, $classNode->shortName())
-        ) {
+        if ($classNode->isApi || $classNode->isInternal) {
             return null;
         }
 
