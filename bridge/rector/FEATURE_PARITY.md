@@ -158,3 +158,6 @@ both reverse directions produce it — a `markTestSkipped('literal')` opening a 
 (`MarkTestSkippedToSkipAttributeRector`) and Pest's `->skip('reason')` modifier. What stays a
 `SkipTest` throw is exactly what cannot be declared: a guarded call, one deeper in the body, or a
 message no attribute argument can hold.
+
+String assertions preserve named binding, weak/strict coercion, argument evaluation order and void
+returns through a typed inline closure when needed. Other named assertion shapes remain manual.

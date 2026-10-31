@@ -11,6 +11,7 @@ use PhpParser\Node\Expr\BinaryOp\BooleanAnd;
 use PhpParser\Node\Expr\BinaryOp\Concat;
 use PhpParser\Node\Expr\BooleanNot;
 use PhpParser\Node\Expr\ClassConstFetch;
+use PhpParser\Node\Expr\Closure;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\Empty_;
 use PhpParser\Node\Expr\FuncCall;
@@ -21,8 +22,11 @@ use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
+use PhpParser\Node\Param;
 use PhpParser\Node\Scalar\MagicConst;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\Expression;
+use PhpParser\NodeFinder;
 use PHPStan\Reflection\ClassReflection;
 use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Type\FloatType;
@@ -39,8 +43,10 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Rewrites the PHPUnit assertions that map onto a Testo **typed head + matcher** chain rather than a
  * flat facade call — the shape {@see AssertCallToTestoRector} deliberately does not handle.
  *
- * The subject moves from an argument position to the head argument (still evaluated exactly once,
- * so no hoisting is needed) and the remaining argument becomes the matcher argument:
+ * The subject moves from an argument position to the head argument. For string assertions, the
+ * short form requires a standalone call with simple expressions and native string types. Otherwise a typed
+ * void closure keeps source parameter names, evaluation order and weak/strict coercion, including
+ * the message. PHPDoc-only string types do not justify bypassing the parameter boundary.
  *
  *   - $this->assertGreaterThan($e, $a)     → \Testo\Assert::numeric($a)->greaterThan($e)
  *   - $this->assertGreaterThanOrEqual(...) → …->greaterThanOrEqual(…)
@@ -114,7 +120,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * either, so one on `assertJson` is dropped as well.
  *
  * Recognises the same call spellings as {@see AssertCallToTestoRector}, `PHPUnit\Framework\assert*()`
- * functions included, and likewise only inside a class.
+ * functions included, and likewise only inside a class. Unsupported named argument shapes outside
+ * the string mappings remain for manual migration.
  */
 #[TestRectorFixtures('TypedAssertCallToTestoRector')]
 final class TypedAssertCallToTestoRector extends AbstractRector
@@ -140,22 +147,6 @@ final class TypedAssertCallToTestoRector extends AbstractRector
     private const ARRAY_KEY = [
         'assertArrayHasKey' => 'hasKeys',
         'assertArrayNotHasKey' => 'doesNotHaveKeys',
-    ];
-
-    /**
-     * String assertions with a comparison mode → `Assert::string($subject)-><modifier>()-><matcher>()`.
-     * `$message` is preserved. PHPUnit's whitespace mode turns every run of whitespace, line breaks
-     * included, into one space and trims, which is `ignoringWhitespace(lineBreaks: true)`.
-     *
-     * @var array<non-empty-string, array{non-empty-string, non-empty-string}>
-     */
-    private const STRING_MODIFIED = [
-        'assertStringContainsStringIgnoringCase' => ['ignoringCase', 'contains'],
-        'assertStringNotContainsStringIgnoringCase' => ['ignoringCase', 'notContains'],
-        'assertStringContainsStringIgnoringLineEndings' => ['ignoringLineEndings', 'contains'],
-        'assertStringEqualsStringIgnoringLineEndings' => ['ignoringLineEndings', 'same'],
-        'assertStringEqualsStringIgnoringWhitespace' => ['ignoringWhitespace', 'same'],
-        'assertStringNotEqualsStringIgnoringWhitespace' => ['ignoringWhitespace', 'notSame'],
     ];
 
     /**
@@ -315,23 +306,22 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             return null;
         }
 
+        $string = $this->stringAssertion($method);
+        if ($string !== null) {
+            return $this->stringChain($node, ...$string);
+        }
+
+        # Other mappings do not yet model PHPUnit's named parameter contracts.
+        foreach ($node->args as $argument) {
+            if (!$argument instanceof Arg || $argument->unpack || $argument->name !== null) {
+                return null;
+            }
+        }
+
         return match (true) {
             isset(self::NUMERIC[$method]) => $this->typedChain('numeric', self::NUMERIC[$method], $node->args, keepMessage: true),
             isset(self::ARRAY_KEY[$method]) => $this->typedChain('array', self::ARRAY_KEY[$method], $node->args, keepMessage: false),
             $method === 'assertEqualsCanonicalizing' => $this->typedChain('array', 'sameElementsAs', $node->args, keepMessage: true),
-            $method === 'assertStringStartsWith' => $this->typedChain('string', 'startsWith', $node->args, keepMessage: true),
-            $method === 'assertStringEndsWith' => $this->typedChain('string', 'endsWith', $node->args, keepMessage: true),
-            $method === 'assertStringStartsNotWith' => $this->typedChain('string', 'notStartsWith', $node->args, keepMessage: true),
-            $method === 'assertStringEndsNotWith' => $this->typedChain('string', 'notEndsWith', $node->args, keepMessage: true),
-            $method === 'assertStringContainsString' => $this->typedChain('string', 'contains', $node->args, keepMessage: true),
-            $method === 'assertStringNotContainsString' => $this->typedChain('string', 'notContains', $node->args, keepMessage: true),
-            isset(self::STRING_MODIFIED[$method]) => $this->typedChain(
-                'string',
-                self::STRING_MODIFIED[$method][1],
-                $node->args,
-                keepMessage: true,
-                modifier: self::STRING_MODIFIED[$method][0],
-            ),
             isset(self::EQUALS_IGNORING_CASE[$method]) && $this->areStrings($node->args) => $this->typedChain(
                 'string',
                 self::EQUALS_IGNORING_CASE[$method],
@@ -339,10 +329,6 @@ final class TypedAssertCallToTestoRector extends AbstractRector
                 keepMessage: true,
                 modifier: 'ignoringCase',
             ),
-            $method === 'assertMatchesRegularExpression', $method === 'assertRegExp'
-                => $this->typedChain('string', 'matchesRegex', $node->args, keepMessage: true),
-            $method === 'assertDoesNotMatchRegularExpression', $method === 'assertNotRegExp'
-                => $this->typedChain('string', 'notMatchesRegex', $node->args, keepMessage: true),
             $method === 'assertNotContains' => $this->typedChain('iterable', 'notContains', $node->args, keepMessage: true),
             $method === 'assertObjectHasProperty' => $this->typedChain('object', 'hasProperty', $node->args, keepMessage: true),
             $method === 'assertIsList' => $this->subjectChain('array', 'isList', [], $node->args),
@@ -361,6 +347,95 @@ final class TypedAssertCallToTestoRector extends AbstractRector
             $method === 'assertObjectNotHasProperty' => $this->objectNotHasProperty($node->args),
             default => null,
         };
+    }
+
+    /**
+     * @return array{non-empty-string, non-empty-string, non-empty-string, non-empty-string|null}|null
+     */
+    private function stringAssertion(string $method): ?array
+    {
+        return match ($method) {
+            'assertStringStartsWith' => ['prefix', 'string', 'startsWith', null],
+            'assertStringEndsWith' => ['suffix', 'string', 'endsWith', null],
+            'assertStringStartsNotWith' => ['prefix', 'string', 'notStartsWith', null],
+            'assertStringEndsNotWith' => ['suffix', 'string', 'notEndsWith', null],
+            'assertStringContainsString' => ['needle', 'haystack', 'contains', null],
+            'assertStringNotContainsString' => ['needle', 'haystack', 'notContains', null],
+            'assertStringContainsStringIgnoringCase' => ['needle', 'haystack', 'contains', 'ignoringCase'],
+            'assertStringNotContainsStringIgnoringCase' => ['needle', 'haystack', 'notContains', 'ignoringCase'],
+            'assertStringContainsStringIgnoringLineEndings' => ['needle', 'haystack', 'contains', 'ignoringLineEndings'],
+            'assertStringEqualsStringIgnoringLineEndings' => ['expected', 'actual', 'same', 'ignoringLineEndings'],
+            'assertStringEqualsStringIgnoringWhitespace' => ['expected', 'actual', 'same', 'ignoringWhitespace'],
+            'assertStringNotEqualsStringIgnoringWhitespace' => ['expected', 'actual', 'notSame', 'ignoringWhitespace'],
+            'assertMatchesRegularExpression', 'assertRegExp' => ['pattern', 'string', 'matchesRegex', null],
+            'assertDoesNotMatchRegularExpression', 'assertNotRegExp' => ['pattern', 'string', 'notMatchesRegex', null],
+            default => null,
+        };
+    }
+
+    /**
+     * Keep the native string parameter boundary and lexical evaluation order when a direct
+     * head/matcher split would change them. Named arguments bind to the source parameter names.
+     *
+     * @param MethodCall|StaticCall|FuncCall $node
+     */
+    private function stringChain(Node $node, string $first, string $second, string $matcher, ?string $modifier): ?Expr
+    {
+        $args = $node->args;
+        $bound = [];
+        $named = false;
+        $parameters = [$first, $second, 'message'];
+        foreach ($args as $index => $argument) {
+            if (!$argument instanceof Arg || $argument->unpack || $argument->byRef
+                || ($named && $argument->name === null)
+            ) {
+                return null;
+            }
+            $named = $argument->name !== null;
+            $name = $argument->name?->toString() ?? ($parameters[$index] ?? null);
+            if ($name === null || !\in_array($name, $parameters, true) || isset($bound[$name])) {
+                return null;
+            }
+            $bound[$name] = $argument;
+        }
+        if (!isset($bound[$first], $bound[$second])) {
+            return null;
+        }
+
+        $direct = (new NodeFinder())->findFirst(
+            $this->getFile()->getNewStmts(),
+            static fn(Node $statement): bool => $statement instanceof Expression && $statement->expr === $node,
+        ) !== null;
+        foreach ($args as $argument) {
+            $direct = $direct
+                && ($argument->value instanceof String_ || ($argument->value instanceof Variable && \is_string($argument->value->name)))
+                && $this->getNativeType($argument->value)->isString()->yes();
+        }
+        if ($direct) {
+            $ordered = [];
+            foreach ($parameters as $name) {
+                if (isset($bound[$name])) {
+                    $ordered[] = new Arg($bound[$name]->value);
+                }
+            }
+            return $this->typedChain('string', $matcher, $ordered, keepMessage: true, modifier: $modifier);
+        }
+
+        $params = [];
+        $inner = [];
+        foreach ($parameters as $index => $name) {
+            $variable = new Variable($name);
+            $params[] = new Param($variable, default: $index === 2 ? new String_('') : null, type: new Identifier('string'));
+            $inner[] = new Arg($variable);
+        }
+        $chain = $this->typedChain('string', $matcher, $inner, keepMessage: true, modifier: $modifier);
+        \assert($chain instanceof MethodCall);
+        return new FuncCall(new Closure([
+            'static' => true,
+            'params' => $params,
+            'returnType' => new Identifier('void'),
+            'stmts' => [new Expression($chain)],
+        ]), $args);
     }
 
     /**

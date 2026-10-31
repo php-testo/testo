@@ -72,6 +72,14 @@ Testo's comparison assertions are `(actual, expected)`; PHPUnit's are `(expected
 Both `AssertCall*` rules swap the first two arguments accordingly — getting this wrong would
 silently invert every comparison, so it is covered by fixtures.
 
+### String assertion contracts
+
+String assertion calls with effectful or potentially coercible arguments, or a used result, use an inline
+typed closure with PHPUnit's parameter names. It keeps source evaluation order, weak/strict string
+coercion, message validation and the original `void` return. Simple standalone calls with native string
+types keep the shorter fluent form, normalising supported named arguments positionally. Other named
+assertion shapes remain for manual migration.
+
 ## Why Testo → PHPUnit
 
 Testo is self-hosted: the engine that discovers and runs tests is the same code Infection

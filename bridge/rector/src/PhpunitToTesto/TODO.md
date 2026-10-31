@@ -155,8 +155,11 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   error check, so a match that fails at runtime (backtrack or JIT stack limit) failed `assertRegExp`
   and passed `assertNotRegExp`; `matchesRegex()`/`notMatchesRegex()` throw
   `\InvalidArgumentException` there, as PHPUnit 10+ throws a framework exception. The string matchers
-  also need a string subject: outside `strict_types` PHPUnit's `string` parameter coerces an int,
-  float or `Stringable`, which `Assert::string()` rejects.
+  preserve the caller's string boundary through an inline typed void closure when native string types,
+  simple expressions and an unused result do not justify the shorter chain. Safe named string
+  arguments are normalised positionally; other named strings bind to
+  PHPUnit's source parameter names; argument evaluation order, Stringable coercion and message validation
+  stay at the call boundary. Other named assertion shapes remain manual.
 
   **Whitespace residual:** PHPUnit runs `preg_replace('/\s+/u', ' ')` and `trim()`, while
   `ignoringWhitespace(lineBreaks: true)` also counts the `\h`/`\v` characters outside `\s` (U+180E)
