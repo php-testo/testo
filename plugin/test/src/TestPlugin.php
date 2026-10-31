@@ -8,10 +8,11 @@ use Internal\Container\Container;
 use Testo\Common\PluginConfigurator;
 use Testo\Pipeline\InterceptorCollector;
 use Testo\Test;
+use Testo\Test\Internal\TestMetadataInterceptor;
 use Testo\Test\Internal\TestoAttributesLocatorInterceptor;
 
 /**
- * Find tests by the {@see Test} attribute.
+ * Find tests by the {@see Test} attribute, and report any {@see TestMetadata} they declare.
  *
  * @api
  */
@@ -20,6 +21,8 @@ final readonly class TestPlugin implements PluginConfigurator
     #[\Override]
     public function configure(Container $container): void
     {
-        $container->get(InterceptorCollector::class)->addInterceptor(new TestoAttributesLocatorInterceptor());
+        $collector = $container->get(InterceptorCollector::class);
+        $collector->addInterceptor(new TestoAttributesLocatorInterceptor());
+        $collector->addInterceptor(new TestMetadataInterceptor());
     }
 }
