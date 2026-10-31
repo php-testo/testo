@@ -19,6 +19,20 @@ also work with `$rectorConfig->import(...)`.
 
 `PHPUNIT_TO_TESTO` switches Rector to serial processing. A class that reaches `TestCase` through a project base class is recognised by the base's ancestry, and a parallel worker can read that base after another worker has already detached it, leaving the subclass's tests without `#[Test]` and silently undiscovered. Do not re-enable `withParallel()` for this set.
 
+### Generated-code compatibility
+
+Converting dynamic or repeated PHPUnit exception messages can generate
+`withMessage($message, exact: ...)`. The target project needs a `testo/assert` release providing
+`ExpectedException::withMessage(string $message, bool $exact = true)` before running that output.
+While this API is unreleased, use the matching Assert code from the same `1.x` checkout.
+The bridge's development dependencies do not constrain Assert in the target project, especially
+when Rector is installed separately.
+
+The generated flag is always named, including inside an unpacked argument array. An older Assert
+therefore reports an unknown `exact` parameter instead of silently ignoring a positional flag and
+changing a substring check to an exact match. Upgrade the target project's Assert before migration;
+keep independent regex message constraints when reviewing the result.
+
 ### Mock sets
 
 Testo core ships no mocking, so test doubles convert through their own sets, one per target library.

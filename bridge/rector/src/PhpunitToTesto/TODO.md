@@ -43,17 +43,24 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   `#[\Override]` and only gains the `#[\Testo\Test]` marks, as do the non-abstract test methods of a trait. **Residual:** methods are NOT renamed —
   Testo discovers by attribute, so keeping `testFoo()` is harmless, and prefix cleanup / call-site
   rewriting is left manual.
-- **ExpectExceptionToTestoRector** (registered) — now folds the fluent chain, not just the bare
-  head. It operates at the statements level (matches the enclosing `StmtsAwareInterface` node and
-  rewrites its `->stmts`): after a `$this->expectException($c)` statement it absorbs the
-  following sibling `expectExceptionMessage($m)` /
-  `expectExceptionMessageMatches($re)` / `expectExceptionCode($n)` statements into
-  `\Testo\Expect::exception($c)->withMessageContaining($m)->withMessageMatchingRegex($re)->withCode($n)`
-  and removes them. PHPUnit's `expectExceptionMessage()` matches a substring, hence
-  `withMessageContaining()` rather than the exact `withMessage()`. Conservative: only assignments that
-  cannot throw (`$message = '…';`) may stand between the calls, and the chain takes the place of the
-  last absorbed one after them; any other statement ends the run,
-  and a bare `expectExceptionMessage`/`Code` with no preceding `expectException` is left untouched.
+- **ExpectExceptionToTestoRector** (registered) — folds sibling class/message/regex/code
+  expectations while preserving argument evaluation order and last-wins messages/codes. A single
+  provably nonempty message uses `withMessageContaining()`, and an empty literal uses `withMessage('')`.
+  Adjacent overwritten message literals without comments are removed. Retained repeated nonempty
+  messages use `withMessage($message, exact: false)`; a string variable whose emptiness is unknown
+  uses `withMessage($message, exact: $message === '')`. Other expressions use
+  `withMessage(...(static fn(string $message): array => [$message, 'exact' => $message === ''])($expression))`
+  to evaluate and coerce the argument once before selecting the mode. The named `exact` key makes
+  older Assert versions fail explicitly instead of ignoring a positional flag. See the README's
+  generated-code compatibility requirements. Named source parameters are validated and emitted
+  positionally. Across assignments a fresh local holds the
+  handler, keeping registration and argument snapshots at the original statements. Other statements
+  end the run. Message and regex expectations retain independent fields, including dynamic and
+  repeated messages. Handler names are reserved across the containing function, including conditional
+  and later locals. Variable variables or locals introduced by `extract()` prevent introducing a
+  handler local. Assignments can throw,
+  so handler registration remains at its original statement.
+  A bare message/code with no preceding class expectation remains manual.
 - **GroupToTestoRector** (registered) — collapses every PHPUnit group source on a node — the
   `@group` docblock annotation(s) **and** the repeatable single-name `#[Group]` attribute(s) — into
   one variadic `#[\Testo\Filter\Group('a', 'b', …)]` (Testo's `Group` is variadic but not

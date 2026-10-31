@@ -81,6 +81,24 @@ final class ExpectExceptionNegative
         throw new \RuntimeException('haystack without the word');
     }
 
+    #[Test]
+    public function wrongSubstringMessage(): never
+    {
+        Expect::exception(\RuntimeException::class)->withMessage('needle', exact: false);
+
+        throw new \RuntimeException('haystack');
+    }
+
+    #[Test]
+    public function exactModeIsRestored(): never
+    {
+        Expect::exception(\RuntimeException::class)
+            ->withMessage('old', exact: false)
+            ->withMessage('expected');
+
+        throw new \RuntimeException('prefix expected');
+    }
+
     /**
      * Wrong message and wrong code at once.
      */

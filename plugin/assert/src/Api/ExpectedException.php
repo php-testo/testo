@@ -31,11 +31,12 @@ interface ExpectedException
     public function fromMethod(string $class, string $method): static;
 
     /**
-     * The expected exception should have the exact message.
+     * The expected exception should have the given message.
      *
-     * Subsequent calls replace the previous expectation.
+     * Exact by default; with `$exact = false`, the message must contain the given substring.
+     * Subsequent calls replace both the message and its comparison mode.
      */
-    public function withMessage(string $message): static;
+    public function withMessage(string $message, bool $exact = true): static;
 
     /**
      * The expected exception message should match the given regular expression.
