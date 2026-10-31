@@ -1,6 +1,6 @@
 <?php
 
-class SomeTest
+class SomeTest extends \PHPUnit\Framework\TestCase
 {
     public function test(array $rows)
     {
@@ -11,7 +11,7 @@ class SomeTest
 -----
 <?php
 
-class SomeTest
+class SomeTest extends \PHPUnit\Framework\TestCase
 {
     public function test(array $rows)
     {

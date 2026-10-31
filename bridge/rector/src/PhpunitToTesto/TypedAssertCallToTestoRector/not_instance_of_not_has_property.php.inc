@@ -4,7 +4,7 @@ interface NotInstanceOfContract {}
 
 trait NotInstanceOfTrait {}
 
-class NotInstanceOfNotHasPropertyTest
+class NotInstanceOfNotHasPropertyTest extends \PHPUnit\Framework\TestCase
 {
     public function test(\stdClass $entity, object $any, mixed $unknown, string $className)
     {
@@ -32,7 +32,7 @@ interface NotInstanceOfContract {}
 
 trait NotInstanceOfTrait {}
 
-class NotInstanceOfNotHasPropertyTest
+class NotInstanceOfNotHasPropertyTest extends \PHPUnit\Framework\TestCase
 {
     public function test(\stdClass $entity, object $any, mixed $unknown, string $className)
     {

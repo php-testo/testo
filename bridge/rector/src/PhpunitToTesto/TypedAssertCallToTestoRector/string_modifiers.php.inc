@@ -1,6 +1,6 @@
 <?php
 
-class StringModifierAssertTest
+class StringModifierAssertTest extends \PHPUnit\Framework\TestCase
 {
     public function test(string $out, string $html, int $count, $unknown)
     {
@@ -21,7 +21,7 @@ class StringModifierAssertTest
 -----
 <?php
 
-class StringModifierAssertTest
+class StringModifierAssertTest extends \PHPUnit\Framework\TestCase
 {
     public function test(string $out, string $html, int $count, $unknown)
     {

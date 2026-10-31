@@ -203,3 +203,7 @@ expectations belong to a test method (or a static data provider); a matching cal
 or at namespace level is left untouched. Each rule carries an `outside_method_left_unchanged` fixture
 proving the no-op. (Unlike the reverse direction the outputs — static `\Testo\Assert::*`/`\Testo\Expect::*`
 calls and `throw` — are valid anywhere, so this is a scoping/consistency choice, not a fatal-avoidance one.)
+
+Assertion methods handled by `AssertCallToTestoRector` and `TypedAssertCallToTestoRector` must
+resolve to a native PHPUnit Assert/TestCase declaration. Custom, overridden, magic, mixed-receiver
+and unresolved calls are left untouched. Keep PHPUnit resolvable until the migration is complete.

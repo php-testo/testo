@@ -150,6 +150,9 @@ convert as a documented 🟡 (`RepeatRetryRector` / `RepeatRetryToTestoRector`).
 PHPUnit's `markTestIncomplete` moved off this list — it now converts to a Skipped throw with an
 `Incomplete: ` reason prefix (`MarkTestIncompleteRector`), a documented lossy 🟡 rather than a ⛔.
 
+PHPUnit assertion methods require a resolved PHPUnit Assert/TestCase declaring class. Custom or
+unresolved methods remain manual.
+
 Also done: **declarative skip** — Testo's `#[Skip]` attribute (`testo/skip`) splits the skip rows in
 two. A skip that states something about the test rather than about a path through it now converts as
 an attribute in every direction: `SkipAttributeToPhpUnitRector` unrolls it into the leading

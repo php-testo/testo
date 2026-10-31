@@ -1,6 +1,6 @@
 <?php
 
-class JsonAssertionsTest
+class JsonAssertionsTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
@@ -17,7 +17,7 @@ class JsonAssertionsTest
 -----
 <?php
 
-class JsonAssertionsTest
+class JsonAssertionsTest extends \PHPUnit\Framework\TestCase
 {
     public function test()
     {
