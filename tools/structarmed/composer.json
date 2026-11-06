@@ -1,6 +1,6 @@
 {
     "require": {
-        "boundwize/structarmed": "^0.20.0"
+        "boundwize/structarmed": "^0.21.2"
     },
     "autoload": {
         "psr-4": {
