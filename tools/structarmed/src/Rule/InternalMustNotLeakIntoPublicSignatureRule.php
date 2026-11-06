@@ -42,12 +42,12 @@ final readonly class InternalMustNotLeakIntoPublicSignatureRule implements Signa
     public function evaluateAll(ClassNode $classNode): array
     {
         $violations = [];
-        $privatelyPromoted = $this->privatelyPromotedParams($classNode);
 
         foreach ($classNode->signatures as $signature) {
+            // A privately promoted constructor param is a private property, not public surface.
             if (! $signature->isExposed()
+                || ($signature->kind === ClassSignature::PARAM && $signature->isPromoted)
                 || ! \str_contains($signature->type, self::SEGMENT)
-                || isset($privatelyPromoted[self::key($signature)])
             ) {
                 continue;
             }
@@ -69,31 +69,6 @@ final readonly class InternalMustNotLeakIntoPublicSignatureRule implements Signa
         }
 
         return $violations;
-    }
-
-    /**
-     * StructArmed records a privately promoted constructor param both as a private
-     * property and as a param of the constructor. It is a private property, not
-     * public surface, so the param entry sharing its name, type and line is exempt.
-     *
-     * @return array<string, true>
-     */
-    private function privatelyPromotedParams(ClassNode $classNode): array
-    {
-        $keys = [];
-
-        foreach ($classNode->signatures as $signature) {
-            if ($signature->kind === ClassSignature::PROPERTY && ! $signature->isExposed()) {
-                $keys[self::key($signature)] = true;
-            }
-        }
-
-        return $keys;
-    }
-
-    private static function key(ClassSignature $signature): string
-    {
-        return "{$signature->name}|{$signature->type}|{$signature->line}";
     }
 
     private function isInternal(ClassNode $classNode): bool
