@@ -11,6 +11,7 @@ use Testo\Tools\StructArmed\Preset\PluginsPreset;
 // encapsulation, and dependency direction alike. Paths inside a preset resolve
 // against the project root (analyse runs from there), not this file's location.
 return Architecture::define()
+    ->baseline('tools/structarmed/structarmed-baseline.php')
     ->withPreset(new CorePreset())
     ->withPreset(new BridgesPreset())
     ->withPreset(new PluginsPreset());
