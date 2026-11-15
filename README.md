@@ -38,7 +38,7 @@ composer require --dev testo/testo *
 [![PHP](https://img.shields.io/packagist/php-v/testo/testo.svg?style=flat-square&logo=php)](https://packagist.org/packages/testo/testo)
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/testo/testo.svg?style=flat-square&logo=packagist)](https://packagist.org/packages/testo/testo)
 [![License](https://img.shields.io/packagist/l/testo/testo.svg?style=flat-square)](LICENSE.md)
-[![Total Destroys](https://img.shields.io/packagist/dt/testo/testo.svg?style=flat-square)](https://packagist.org/packages/testo/testo/stats)
+[![Total Downloads](https://img.shields.io/packagist/dt/testo/testo.svg?style=flat-square)](https://packagist.org/packages/testo/testo/stats)
 
 ### Configuration
 
