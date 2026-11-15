@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.4](https://github.com/php-testo/testo/compare/bridge-rector-0.3.3...bridge-rector-0.3.4) (2026-11-15)
+
+
+### Features
+
+* **bridge-rector:** convert `#[WithoutErrorHandler]` in both directions ([68482c4](https://github.com/php-testo/testo/commit/68482c4c33592f00b40cf3bcfb1da74ae02881b5))
+
+
+### Bug Fixes
+
+* **bridge-rector:** support Rector 2.8 ([c389900](https://github.com/php-testo/testo/commit/c389900d2bb7c7a9b05d78eaf4051634fc30d36c))
+
+
+### Documentation
+
+* **bridge-rector:** record `#[ExpectErrorHandlerChange]` as unconvertible ([68482c4](https://github.com/php-testo/testo/commit/68482c4c33592f00b40cf3bcfb1da74ae02881b5))
+
 ## [0.3.3](https://github.com/php-testo/testo/compare/bridge-rector-0.3.2...bridge-rector-0.3.3) (2026-09-29)
 
 
