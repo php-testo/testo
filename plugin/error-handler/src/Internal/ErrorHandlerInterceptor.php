@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Testo\ErrorHandler\Internal;
 
+use Testo\Common\Messenger;
 use Testo\Common\Reflection;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
@@ -14,6 +15,7 @@ use Testo\Core\Value\Status;
 use Testo\ErrorHandler\CapturedErrors;
 use Testo\ErrorHandler\Exception\ErrorHandlerUnchanged;
 use Testo\ErrorHandler\ExpectErrorHandlerChange;
+use Testo\ErrorHandler\WithoutErrorHandler;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
 
@@ -30,6 +32,8 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  * A passing test that leaves the handler stack changed is reported {@see Status::Risky} unless it
  * carries {@see ExpectErrorHandlerChange}; a test that carries it and leaves the stack unchanged
  * fails. The stack is restored either way.
+ *
+ * A test carrying {@see WithoutErrorHandler} runs untouched: no handler, no capture, no verdict.
  *
  * @internal
  * @psalm-internal Testo\ErrorHandler
@@ -50,11 +54,27 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
+        if (self::declares($info, WithoutErrorHandler::class)) {
+            $result = $next($info);
+
+            return self::declares($info, ExpectErrorHandlerChange::class)
+                ? $result->withMessages(new MessageLog([
+                    ...$result->messages->all(),
+                    new Message(
+                        \microtime(true),
+                        Messenger::CHANNEL_STDERR,
+                        Level::Warning,
+                        '#[ExpectErrorHandlerChange] has no effect together with #[WithoutErrorHandler]: no handler is installed, so no stack change is checked.',
+                    ),
+                ]))
+                : $result;
+        }
+
         $scope = new HandlerScope();
         $result = $this->run($info, $next, $scope);
 
         if ($result->status === Status::Passed) {
-            $declared = self::declaresHandlerChange($info);
+            $declared = self::declares($info, ExpectErrorHandlerChange::class);
             if ($declared && !$scope->changed()) {
                 $result = $result->with(status: Status::Failed)->withFailure(new ErrorHandlerUnchanged());
             } elseif (!$declared && $scope->changed()) {
@@ -86,11 +106,14 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
         return $result;
     }
 
-    private static function declaresHandlerChange(TestInfo $info): bool
+    /**
+     * @param class-string $attribute
+     */
+    private static function declares(TestInfo $info, string $attribute): bool
     {
         if (Reflection::fetchFunctionAttributes(
             $info->testDefinition->reflection,
-            attributeClass: ExpectErrorHandlerChange::class,
+            attributeClass: $attribute,
         ) !== []) {
             return true;
         }
@@ -99,7 +122,7 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
 
         return $class !== null && Reflection::fetchClassAttributes(
             $class,
-            attributeClass: ExpectErrorHandlerChange::class,
+            attributeClass: $attribute,
         ) !== [];
     }
 

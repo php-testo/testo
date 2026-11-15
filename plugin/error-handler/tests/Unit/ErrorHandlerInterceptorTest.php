@@ -21,15 +21,19 @@ use Testo\ErrorHandler\CapturedErrors;
 use Testo\ErrorHandler\Exception\ErrorHandlerUnchanged;
 use Testo\ErrorHandler\ExpectErrorHandlerChange;
 use Testo\ErrorHandler\Internal\ErrorHandlerInterceptor;
+use Testo\ErrorHandler\WithoutErrorHandler;
 use Testo\Test;
 use Tests\ErrorHandler\Stub\HandlerChange;
 use Tests\ErrorHandler\Stub\HandlerChangeCase;
+use Tests\ErrorHandler\Stub\NoHandler;
+use Tests\ErrorHandler\Stub\NoHandlerCase;
 
 #[Test]
 #[Covers(ErrorHandlerInterceptor::class)]
 #[Covers(CapturedError::class)]
 #[Covers(CapturedErrors::class)]
 #[Covers(ExpectErrorHandlerChange::class)]
+#[Covers(WithoutErrorHandler::class)]
 final class ErrorHandlerInterceptorTest
 {
     public function noErrorsPassesResultThrough(): void
@@ -443,6 +447,11 @@ final class ErrorHandlerInterceptorTest
         Assert::same($observed, \E_ALL & ~\E_NOTICE);
     }
 
+    /**
+     * The handler the self-run installs around this test would take the error before the
+     * interceptor under test sees it unhandled.
+     */
+    #[WithoutErrorHandler]
     public function unhandledErrorIsWrittenToStderrChannel(): void
     {
         $interceptor = new ErrorHandlerInterceptor();
@@ -452,14 +461,7 @@ final class ErrorHandlerInterceptorTest
             return new TestResult(info: $info, status: Status::Passed);
         };
 
-        // The self-run wraps this test in its own capturing handler, which takes every error; the
-        // built-in handler on top leaves the interceptor under test with nothing to forward to.
-        \set_error_handler(null);
-        try {
-            $result = $interceptor->runTest($info, $next);
-        } finally {
-            \restore_error_handler();
-        }
+        $result = $interceptor->runTest($info, $next);
 
         $errors = $result->getAttribute(CapturedErrors::class);
         Assert::instanceOf($errors, CapturedErrors::class);
@@ -738,14 +740,173 @@ final class ErrorHandlerInterceptorTest
         }
     }
 
-    private static function createTestInfo(?\ReflectionMethod $reflection = null): TestInfo
+    public function optedOutTestRunsWithTheStackItInherited(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
+
+        $ambient = static fn(): bool => true;
+        $top = null;
+        $next = static function (TestInfo $info) use (&$top): TestResult {
+            $top = \set_error_handler(static fn(): bool => true);
+            \restore_error_handler();
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        \set_error_handler($ambient);
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($top, $ambient);
+        Assert::same($result->status, Status::Passed);
+        Assert::null($result->getAttribute(CapturedErrors::class));
+    }
+
+    public function optedOutTestLeavesItsErrorsToTheAmbientHandler(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
+        $next = static function (TestInfo $info): TestResult {
+            \trigger_error('nobody captures this', \E_USER_WARNING);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        $count = 0;
+        \set_error_handler(static function () use (&$count): bool {
+            $count++;
+            return true;
+        });
+
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($count, 1);
+        Assert::same($result->status, Status::Passed);
+        Assert::null($result->getAttribute(CapturedErrors::class));
+        Assert::same($result->messages->channel(Messenger::CHANNEL_STDERR), []);
+    }
+
+    public function optedOutTestLeavingAHandlerIsNotRisky(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
+        $next = static function (TestInfo $info): TestResult {
+            \set_error_handler(static fn(): bool => true);
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        try {
+            $result = $interceptor->runTest($info, $next);
+        } finally {
+            // Nothing restores the stack for an opted-out test, so the handler it left is ours to remove.
+            \restore_error_handler();
+        }
+
+        Assert::same($result->status, Status::Passed);
+        Assert::true($result->messages->isEmpty());
+    }
+
+    public function optedOutOnClassAppliesToItsTests(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(NoHandlerCase::class, 'inherited'));
+
+        $ambient = static fn(): bool => true;
+        $top = null;
+        $next = static function (TestInfo $info) use (&$top): TestResult {
+            $top = \set_error_handler(static fn(): bool => true);
+            \restore_error_handler();
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        \set_error_handler($ambient);
+        try {
+            $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($top, $ambient);
+    }
+
+    public function optedOutWinsOverDeclaredHandlerChange(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOutAndDeclaringChange'));
+        $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result->status, Status::Passed);
+        Assert::null($result->failure);
+        $stderr = $result->messages->channel(Messenger::CHANNEL_STDERR);
+        Assert::same(\count($stderr), 1);
+        Assert::same($stderr[0]->level, Level::Warning);
+        Assert::string($stderr[0]->content)->contains('#[ExpectErrorHandlerChange]');
+    }
+
+    public function optedOutAloneWritesNoWarning(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
+        $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::true($result->messages->isEmpty());
+    }
+
+    public function optedOutFunctionRunsWithTheStackItInherited(): void
+    {
+        require_once __DIR__ . '/../Stub/no-handler-function.php';
+
+        $interceptor = new ErrorHandlerInterceptor();
+        $info = self::createTestInfo(new \ReflectionFunction('Tests\ErrorHandler\Stub\optedOutFunction'));
+
+        $ambient = static fn(): bool => true;
+        $top = null;
+        $next = static function (TestInfo $info) use (&$top): TestResult {
+            $top = \set_error_handler(static fn(): bool => true);
+            \restore_error_handler();
+            return new TestResult(info: $info, status: Status::Passed);
+        };
+
+        \set_error_handler($ambient);
+        try {
+            $interceptor->runTest($info, $next);
+        } finally {
+            \restore_error_handler();
+        }
+
+        Assert::same($top, $ambient);
+    }
+
+    public function optedOutFailingTestKeepsItsResult(): void
+    {
+        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
+        $failed = new TestResult(info: $info, status: Status::Failed, failure: new \RuntimeException('own failure'));
+        $next = static fn(TestInfo $info): TestResult => $failed;
+
+        $result = $interceptor->runTest($info, $next);
+
+        Assert::same($result, $failed);
+    }
+
+    private static function createTestInfo(?\ReflectionFunctionAbstract $reflection = null): TestInfo
     {
         $reflection ??= new \ReflectionMethod(self::class, 'createTestInfo');
         $caseDefinition = new CaseDefinition(
             name: 'TestCase',
             type: 'test',
             file: Path::create(__FILE__),
-            reflection: $reflection->getDeclaringClass(),
+            reflection: $reflection instanceof \ReflectionMethod ? $reflection->getDeclaringClass() : null,
         );
         $caseInfo = new CaseInfo(definition: $caseDefinition, suiteIdentity: new SuiteIdentity('ErrorHandler/Unit'));
         $testDefinition = new TestDefinition(reflection: $reflection);
