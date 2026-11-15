@@ -1,6 +1,7 @@
 {
     "require": {
-        "vimeo/psalm": "^7.0@dev"
+        "roxblnfk/unpoly": "^1.8.2",
+        "vimeo/psalm": "^7"
     },
     "minimum-stability": "dev",
     "prefer-stable": true

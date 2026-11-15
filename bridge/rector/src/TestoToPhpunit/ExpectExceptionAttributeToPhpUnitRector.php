@@ -16,6 +16,7 @@ use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Internal\DroppedAttributes;
+use Testo\Bridge\Rector\Internal\OriginalTokens;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -46,6 +47,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 #[TestRectorFixtures('ExpectExceptionAttributeToPhpUnitRector')]
 final class ExpectExceptionAttributeToPhpUnitRector extends AbstractRector
 {
+    use OriginalTokens;
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -112,7 +115,7 @@ final class ExpectExceptionAttributeToPhpUnitRector extends AbstractRector
         }
 
         $node->attrGroups = $remainingGroups;
-        DroppedAttributes::keepFormat($node, $this->file->getOldTokens());
+        DroppedAttributes::keepFormat($node, $this->originalTokens());
 
         // Bodyless (abstract/interface) method: nothing to guard, just drop the attribute.
         if ($node->stmts !== null) {

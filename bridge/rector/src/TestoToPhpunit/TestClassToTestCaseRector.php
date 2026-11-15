@@ -16,6 +16,7 @@ use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Internal\DroppedAttributes;
+use Testo\Bridge\Rector\Internal\OriginalTokens;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -42,6 +43,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 #[TestRectorFixtures('TestClassToTestCaseRector')]
 final class TestClassToTestCaseRector extends AbstractRector
 {
+    use OriginalTokens;
+
     /**
      * Lifecycle hooks must never be turned into tests: Testo's locator excludes them from the test
      * set, and a method named setUp/tearDown carrying #[Test] would be run by PHPUnit both as a hook
@@ -162,7 +165,7 @@ final class TestClassToTestCaseRector extends AbstractRector
 
         if ($found) {
             $class->attrGroups = $keptGroups;
-            DroppedAttributes::keepFormat($class, $this->file->getOldTokens());
+            DroppedAttributes::keepFormat($class, $this->originalTokens());
         }
 
         return $found;

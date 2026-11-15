@@ -13,6 +13,7 @@ use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Internal\DroppedAttributes;
+use Testo\Bridge\Rector\Internal\OriginalTokens;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -32,6 +33,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 #[TestRectorFixtures('CoversToCoversClassRector')]
 final class CoversToCoversClassRector extends AbstractRector
 {
+    use OriginalTokens;
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -104,7 +107,7 @@ final class CoversToCoversClassRector extends AbstractRector
         }
 
         $node->attrGroups = $keptGroups;
-        DroppedAttributes::keepFormat($node, $this->file->getOldTokens());
+        DroppedAttributes::keepFormat($node, $this->originalTokens());
 
         return $node;
     }

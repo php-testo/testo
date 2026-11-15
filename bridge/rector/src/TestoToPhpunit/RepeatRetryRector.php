@@ -18,6 +18,7 @@ use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Internal\DroppedAttributes;
+use Testo\Bridge\Rector\Internal\OriginalTokens;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -47,6 +48,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 #[TestRectorFixtures('RepeatRetryRector')]
 final class RepeatRetryRector extends AbstractRector
 {
+    use OriginalTokens;
+
     private const REPEAT_TESTO = 'Testo\\Repeat';
     private const RETRY_TESTO = 'Testo\\Retry';
     private const REPEAT_PHPUNIT = 'PHPUnit\\Framework\\Attributes\\Repeat';
@@ -188,7 +191,7 @@ final class RepeatRetryRector extends AbstractRector
         }
 
         $class->attrGroups = $kept;
-        DroppedAttributes::keepFormat($class, $this->file->getOldTokens());
+        DroppedAttributes::keepFormat($class, $this->originalTokens());
     }
 
     /**
