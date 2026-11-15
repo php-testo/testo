@@ -1,6 +1,7 @@
 {
     "require": {
-        "mockery/mockery": "^1.6"
+        "mockery/mockery": "^1.6",
+        "roxblnfk/unpoly": "^1.8.2"
     },
     "config": {
         "platform-check": false

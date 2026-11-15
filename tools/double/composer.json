@@ -1,6 +1,7 @@
 {
     "require": {
-        "jasonmccreary/double": "^1.0"
+        "jasonmccreary/double": "^1.0",
+        "roxblnfk/unpoly": "^1.8.2"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

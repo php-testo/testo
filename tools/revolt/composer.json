@@ -1,6 +1,7 @@
 {
     "require": {
-        "revolt/event-loop": "^1.0"
+        "revolt/event-loop": "^1.0",
+        "roxblnfk/unpoly": "^1.8.2"
     },
     "config": {
         "platform-check": false

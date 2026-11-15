@@ -1,5 +1,6 @@
 {
     "require": {
-        "phpunit/phpunit": "^13.0"
+        "phpunit/phpunit": "^13.0",
+        "roxblnfk/unpoly": "^1.8.2"
     }
 }
