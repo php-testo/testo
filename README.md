@@ -172,3 +172,5 @@ Testo comes with the [IDEA plugin `Testo`](https://plugins.jetbrains.com/plugin/
 [![Version](https://img.shields.io/jetbrains/plugin/v/28842-testo?style=flat-square)](https://plugins.jetbrains.com/plugin/28842-testo/versions)
 [![Rating](https://img.shields.io/jetbrains/plugin/r/rating/28842-testo?style=flat-square)](https://plugins.jetbrains.com/plugin/28842-testo/reviews)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/28842-testo?style=flat-square)](https://plugins.jetbrains.com/plugin/28842-testo)
+
+For [OpenIDE](https://openide.ru), the plugin is available on the [OpenIDE Marketplace](https://marketplace.openide.ru/plugin/testo/461/).
