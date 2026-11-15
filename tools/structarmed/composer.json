@@ -1,6 +1,7 @@
 {
     "require": {
-        "boundwize/structarmed": "^0.21.2"
+        "boundwize/structarmed": "^0.21.2",
+        "roxblnfk/unpoly": "^1.8.2"
     },
     "autoload": {
         "psr-4": {
