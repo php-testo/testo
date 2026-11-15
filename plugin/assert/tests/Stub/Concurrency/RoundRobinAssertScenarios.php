@@ -36,6 +36,14 @@ final class RoundRobinAssertScenarios
         self::assertAcrossSuspends(5);
     }
 
+    public function recordsCustomAssertionsAcrossSuspends(): void
+    {
+        for ($i = 1; $i <= 3; $i++) {
+            Assert::success($i, 'is custom assertion');
+            \Fiber::suspend();
+        }
+    }
+
     /**
      * Record exactly `$count` passing assertions, suspending after each so the other tests interleave.
      */

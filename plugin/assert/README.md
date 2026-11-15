@@ -27,6 +27,26 @@
 
 Provides Testo's assertion machinery: a fluent assertion facade, expectation lifecycle, and exception-matching helpers. Tests can describe what they expect to happen and the plugin reports the comparison result through Testo's regular pipeline.
 
+### Custom assertions
+
+Domain-specific checks can use the public `Testo\Assert` facade without importing internal state:
+
+```php
+use Testo\Assert;
+use Testo\Assert\State\Assertion\AssertionException;
+
+Assert::success($actual, 'satisfies the domain rule', 'optional context');
+Assert::failure(new AssertionException(
+    value: (string) $actual,
+    assertion: 'satisfies the domain rule',
+    context: '',
+    reason: 'the rule was violated',
+    details: '',
+));
+```
+
+`success()` requires a non-empty description. `failure()` accepts only the public `AssertionException` contract (including `ComparisonFailure`), records it, and throws without returning; arbitrary throwables are unsupported. Empty descriptions are rejected before history changes. A caught failure remains in history and may leave the test passed, while matching `Expect::exception()` uses normal expectation handling. `Assert::fail()` retains its existing semantics.
+
 ## Install
 
 ```bash
