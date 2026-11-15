@@ -15,6 +15,12 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
 
 ## Implemented since the first cut
 
+- **WithoutErrorHandlerRector** (registered) — `#[WithoutErrorHandler]` renames to
+  `#[\Testo\ErrorHandler\WithoutErrorHandler]`, which means the same thing: the runner installs no
+  error handler of its own around that test. The Testo side ships with the `testo/error-handler`
+  plugin; in a suite that does not enable the plugin the converted attribute is inert, exactly as
+  the PHPUnit one is in a suite whose tests raise no errors.
+
 - **MarkTestSkippedToSkipAttributeRector** (registered) — a `markTestSkipped('literal')` opening a test
   method is a statement about the test, not about a path through it, so it becomes `#[\Testo\Skip('literal')]`
   and the call is dropped. That buys what the throw cannot: Testo keeps such a test out of the per-test

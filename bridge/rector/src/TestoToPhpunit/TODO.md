@@ -9,8 +9,19 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   memory-leak assertion or post-test object-liveness hook.
 - **`CancelTestRector`** — `CancelTest` is an external interruption signal with no
   PHPUnit equivalent (not the same as skip/incomplete).
+- **`ExpectErrorHandlerChangeRector`** — `#[\Testo\ErrorHandler\ExpectErrorHandlerChange]` waives
+  the error-handler plugin's risky verdict for a test that leaves a handler installed; PHPUnit runs
+  the same stack check unconditionally and has no attribute that waives it (`#[WithoutErrorHandler]`
+  only stops PHPUnit installing its own handler).
 
 ## Implemented since the first cut
+
+- **`WithoutErrorHandlerToPhpUnitRector`** (registered) — `#[\Testo\ErrorHandler\WithoutErrorHandler]`
+  renames to PHPUnit's `#[WithoutErrorHandler]`, the same per-test opt-out from the runner's error
+  handler. PHPUnit's attribute is `TARGET_METHOD` only, so a class-level Testo attribute is fanned
+  out onto each test method — the method set `TestClassToTestCaseRector` uses — and removed from the
+  class; a method already carrying its own copy is left alone. **Residual:** the attribute on a free
+  function is left untouched, as PHPUnit has no function-level test to host it.
 
 - **`SkipAttributeToPhpUnitRector`** (registered) — unrolls Testo's declarative `#[\Testo\Skip]` into
   the only skip PHPUnit has: a `$this->markTestSkipped($reason)` call opening the test method, with the

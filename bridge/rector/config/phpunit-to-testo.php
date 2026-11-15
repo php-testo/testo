@@ -18,6 +18,7 @@ use Testo\Bridge\Rector\PhpunitToTesto\MarkTestSkippedToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\MergeAssertChainRector;
 use Testo\Bridge\Rector\PhpunitToTesto\RepeatRetryToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\TypedAssertCallToTestoRector;
+use Testo\Bridge\Rector\PhpunitToTesto\WithoutErrorHandlerRector;
 
 /**
  * PHPUnit -> Testo conversion set.
@@ -63,6 +64,9 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->rule(GroupToTestoRector::class);
 
     $rectorConfig->rule(DoesNotPerformAssertionsToTestoRector::class);
+
+    # Per-test opt-out of the runner's error handler; inert until testo/error-handler is enabled.
+    $rectorConfig->rule(WithoutErrorHandlerRector::class);
 
     # Structural: detach from PHPUnit's TestCase base class and make discovery attribute-based.
     $rectorConfig->rule(ExtendsTestCaseToTestoRector::class);
