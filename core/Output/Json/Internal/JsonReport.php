@@ -277,9 +277,7 @@ final class JsonReport
             $output[] = ['channel' => $message->channel, 'content' => $message->content];
         }
 
-        # array_values: in-place content mutation above makes Psalm widen the list back to a
-        # keyed array; the keys are already 0..n, this just restores the list<> shape.
-        return \array_values($output);
+        return $output;
     }
 
     /**

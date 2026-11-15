@@ -108,6 +108,7 @@ final class Pipeline
      *
      * @return TOutput
      * @psalm-suppress ImpureFunctionCall
+     * @psalm-suppress ImpureMethodCall
      */
     public function __invoke(object $input): mixed
     {

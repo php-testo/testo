@@ -5,11 +5,6 @@
       <code><![CDATA[callable(TestInfo): mixed]]></code>
     </InvalidParamDefault>
   </file>
-  <file src="core/Core/Log/MessageLog.php">
-    <ImpureMethodCall>
-      <code><![CDATA[new \ArrayIterator($this->messages)]]></code>
-    </ImpureMethodCall>
-  </file>
   <file src="core/Pipeline/Internal/AttributesInterceptor.php">
     <DocblockTypeContradiction>
       <code><![CDATA[$next instanceof Pipeline]]></code>
