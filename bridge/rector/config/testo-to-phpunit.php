@@ -18,6 +18,7 @@ use Testo\Bridge\Rector\TestoToPhpunit\SkipAttributeToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\TestClassToTestCaseRector;
 use Testo\Bridge\Rector\TestoToPhpunit\ThrowSkipTestToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\TypedAssertChainRector;
+use Testo\Bridge\Rector\TestoToPhpunit\WithoutErrorHandlerToPhpUnitRector;
 
 /**
  * Testo -> PHPUnit conversion set.
@@ -42,6 +43,9 @@ return static function (RectorConfig $rectorConfig): void {
 
     # Repeat/Retry method attributes map onto PHPUnit's #[Repeat]/#[Retry] (PHPUnit 13.3+).
     $rectorConfig->rule(RepeatRetryRector::class);
+
+    # Per-test opt-out of the runner's error handler; class-level fans out onto the test methods.
+    $rectorConfig->rule(WithoutErrorHandlerToPhpUnitRector::class);
 
     # Structural: attach PHPUnit's TestCase base class and convert #[\Testo\Test] discovery.
     $rectorConfig->rule(TestClassToTestCaseRector::class);
