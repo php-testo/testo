@@ -27,6 +27,7 @@ use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Internal\DroppedAttributes;
+use Testo\Bridge\Rector\Internal\OriginalTokens;
 use Testo\Bridge\Rector\Internal\PhpDocTagText;
 use Testo\Bridge\Rector\Internal\PhpunitTestCaseClass;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
@@ -75,6 +76,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 #[TestRectorFixtures('ExtendsTestCaseToTestoRector')]
 final class ExtendsTestCaseToTestoRector extends AbstractRector
 {
+    use OriginalTokens;
+
     public function __construct(
         private readonly PhpDocInfoFactory $phpDocInfoFactory,
         private readonly PhpDocTagRemover $phpDocTagRemover,
@@ -331,6 +334,6 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         }
 
         $method->attrGroups = $keptGroups;
-        DroppedAttributes::keepFormat($method, $this->file->getOldTokens());
+        DroppedAttributes::keepFormat($method, $this->originalTokens());
     }
 }

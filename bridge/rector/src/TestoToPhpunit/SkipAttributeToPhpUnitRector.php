@@ -17,6 +17,7 @@ use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 use Testo\Bridge\Rector\Internal\DroppedAttributes;
+use Testo\Bridge\Rector\Internal\OriginalTokens;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -44,6 +45,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 #[TestRectorFixtures('SkipAttributeToPhpUnitRector')]
 final class SkipAttributeToPhpUnitRector extends AbstractRector
 {
+    use OriginalTokens;
+
     private const SKIP_TESTO = 'Testo\\Skip';
 
     /** @var list<non-empty-string> */
@@ -151,7 +154,7 @@ final class SkipAttributeToPhpUnitRector extends AbstractRector
 
         if ($found !== null) {
             $method->attrGroups = $kept;
-            DroppedAttributes::keepFormat($method, $this->file->getOldTokens());
+            DroppedAttributes::keepFormat($method, $this->originalTokens());
         }
 
         return $found;
@@ -182,7 +185,7 @@ final class SkipAttributeToPhpUnitRector extends AbstractRector
         }
 
         $class->attrGroups = $kept;
-        DroppedAttributes::keepFormat($class, $this->file->getOldTokens());
+        DroppedAttributes::keepFormat($class, $this->originalTokens());
     }
 
     /**
