@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.10.57](https://github.com/php-testo/testo/compare/0.10.56...0.10.57) (2026-11-15)
+
+
+### Features
+
+* **error-handler:** add `#[ExpectErrorHandlerChange]` ([4cb0fc4](https://github.com/php-testo/testo/commit/4cb0fc438dd3b27a84e649859906e1f19d4aa01d))
+* **error-handler:** add `#[WithoutErrorHandler]` to opt a test out of the plugin ([49aaa3d](https://github.com/php-testo/testo/commit/49aaa3da49675f713d167e90f9bbfaf29a2bdcf7))
+* **error-handler:** add the error-handler plugin capturing PHP errors per test ([#73](https://github.com/php-testo/testo/issues/73)) ([f5d0052](https://github.com/php-testo/testo/commit/f5d00520df75aa137ac5a17105861acc9c31aad5))
+* **error-handler:** forward errors to the previous handler and police the handler stack per test ([4cb0fc4](https://github.com/php-testo/testo/commit/4cb0fc438dd3b27a84e649859906e1f19d4aa01d))
+* **error-handler:** register the plugin by default when the package is installed ([50d4ddd](https://github.com/php-testo/testo/commit/50d4ddd50820307573d7d738da0fa537e8017bf0))
+
+
+### Bug Fixes
+
+* **bridge-rector:** support Rector 2.8 ([c389900](https://github.com/php-testo/testo/commit/c389900d2bb7c7a9b05d78eaf4051634fc30d36c))
+
+
+### Documentation
+
+* add the OpenIDE Marketplace plugin link to README ([#406](https://github.com/php-testo/testo/issues/406)) ([5669639](https://github.com/php-testo/testo/commit/5669639d795e0ebdca938dcf2c084d970b76ca14))
+* fix the downloads badge label ([a987667](https://github.com/php-testo/testo/commit/a98766726d68511f521e37118f144d54d0e25fdb))
+* **skills:** add the testo-php-errors skill ([d0e5058](https://github.com/php-testo/testo/commit/d0e505874d7026cc953badc40265cbb97dd26c98))
+* **spec:** add a spec for regrouping skills by direction ([316cc10](https://github.com/php-testo/testo/commit/316cc105f28a424b55e579d05cb0d25a472d6462))
+
 ## [0.10.56](https://github.com/php-testo/testo/compare/0.10.55...0.10.56) (2026-10-13)
 
 
