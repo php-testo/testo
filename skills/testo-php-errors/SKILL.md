@@ -9,8 +9,6 @@ Testo core leaves PHP errors to PHP: a warning raised inside a test is printed b
 the test still passes. The `testo/error-handler` plugin puts an error handler around every test,
 records what it sees on the `TestResult`, and can turn an error into a failure.
 
-Fetch `https://php-testo.github.io/llms.txt` before editing tests or `testo.php`.
-
 ## Enable
 
 ```bash
@@ -83,6 +81,35 @@ declaration is a two-way contract: a marked test that leaves the stack unchanged
 
 A test that installs a handler and removes it again before returning needs no attribute.
 
+## Opting a test out
+
+`#[WithoutErrorHandler]` takes one test out of the plugin altogether: no handler of the plugin's
+own is installed, nothing is captured, nothing reaches the `stderr` channel, `failOnError` does not
+apply, and the handler stack is neither judged nor restored afterwards.
+
+```php
+use Testo\ErrorHandler\WithoutErrorHandler;
+
+#[Test]
+#[WithoutErrorHandler]
+public function reportsWhichHandlerIsOnTop(): void
+{
+    $top = \set_error_handler(static fn(): bool => true);
+    \restore_error_handler();
+
+    Assert::same($top, $expected);
+}
+```
+
+For a test that needs PHP's error handling exactly as the process has it: one that asserts on what
+`set_error_handler()` returns, walks the stack itself, or expects PHP's own printing. Allowed on a
+method, a function, or a class, and it wins over `#[ExpectErrorHandlerChange]` on the same test —
+with no handler of the plugin's own in place there is no stack change to check, and the idle
+declaration is reported as a warning on the `stderr` channel. Whatever such a test leaves on the
+stack stays there for the tests after it, so it cleans up itself.
+
+The attribute is PHPUnit's `#[WithoutErrorHandler]` under the same name and with the same meaning.
+
 ## Fibers
 
 The plugin's handler and anything the test installed above it leave the stack whenever the test
@@ -100,3 +127,6 @@ sees its own handler after every `await`, and a sibling running in the gap never
   it to "fail from inside" a test, throw or `Assert::fail()` instead.
 - `#[ExpectErrorHandlerChange]` is for tests *about* error handlers. A test that merely triggers
   errors never needs it.
+- `#[WithoutErrorHandler]` on a test that leaks a handler hides the leak instead of fixing it: the
+  handler survives into the tests that follow. Reach for it when the plugin's handler is in the way
+  of what the test asserts, not to silence a `Risky` verdict.
