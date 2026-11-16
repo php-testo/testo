@@ -4,209 +4,210 @@ declare(strict_types=1);
 
 namespace PHPUnit\Framework;
 
-// Abstract declarations for reflection only; runtime parity uses the isolated real PHPUnit tool.
+// Abstract declarations for reflection only, with PHPUnit's parameter names for named-argument binding;
+// runtime parity uses the isolated real PHPUnit tool.
 if (!\class_exists(Assert::class, false)) {
     abstract class Assert
     {
-        abstract public static function assertArrayHasKey(...$arguments): void;
+        abstract public static function assertArrayHasKey($key, $array, $message = ''): void;
 
-        abstract public static function assertArrayNotHasKey(...$arguments): void;
+        abstract public static function assertArrayNotHasKey($key, $array, $message = ''): void;
 
-        abstract public static function assertContains(...$arguments): void;
+        abstract public static function assertContains($needle, $haystack, $message = ''): void;
 
-        abstract public static function assertContainsOnlyArray(...$arguments): void;
+        abstract public static function assertContainsOnlyArray($haystack, $message = ''): void;
 
-        abstract public static function assertContainsOnlyBool(...$arguments): void;
+        abstract public static function assertContainsOnlyBool($haystack, $message = ''): void;
 
-        abstract public static function assertContainsOnlyFloat(...$arguments): void;
+        abstract public static function assertContainsOnlyFloat($haystack, $message = ''): void;
 
-        abstract public static function assertContainsOnlyInstancesOf(...$arguments): void;
+        abstract public static function assertContainsOnlyInstancesOf($className, $haystack, $message = ''): void;
 
-        abstract public static function assertContainsOnlyInt(...$arguments): void;
+        abstract public static function assertContainsOnlyInt($haystack, $message = ''): void;
 
-        abstract public static function assertContainsOnlyNull(...$arguments): void;
+        abstract public static function assertContainsOnlyNull($haystack, $message = ''): void;
 
-        abstract public static function assertContainsOnlyString(...$arguments): void;
+        abstract public static function assertContainsOnlyString($haystack, $message = ''): void;
 
-        abstract public static function assertCount(...$arguments): void;
+        abstract public static function assertCount($expectedCount, $haystack, $message = ''): void;
 
-        abstract public static function assertDirectoryDoesNotExist(...$arguments): void;
+        abstract public static function assertDirectoryDoesNotExist($directory, $message = ''): void;
 
-        abstract public static function assertDirectoryExists(...$arguments): void;
+        abstract public static function assertDirectoryExists($directory, $message = ''): void;
 
-        abstract public static function assertDirectoryIsNotReadable(...$arguments): void;
+        abstract public static function assertDirectoryIsNotReadable($directory, $message = ''): void;
 
-        abstract public static function assertDirectoryIsNotWritable(...$arguments): void;
+        abstract public static function assertDirectoryIsNotWritable($directory, $message = ''): void;
 
-        abstract public static function assertDirectoryIsReadable(...$arguments): void;
+        abstract public static function assertDirectoryIsReadable($directory, $message = ''): void;
 
-        abstract public static function assertDirectoryIsWritable(...$arguments): void;
+        abstract public static function assertDirectoryIsWritable($directory, $message = ''): void;
 
-        abstract public static function assertDoesNotMatchRegularExpression(...$arguments): void;
+        abstract public static function assertDoesNotMatchRegularExpression($pattern, $string, $message = ''): void;
 
-        abstract public static function assertEmpty(...$arguments): void;
+        abstract public static function assertEmpty($actual, $message = ''): void;
 
-        abstract public static function assertEquals(...$arguments): void;
+        abstract public static function assertEquals($expected, $actual, $message = ''): void;
 
-        abstract public static function assertEqualsCanonicalizing(...$arguments): void;
+        abstract public static function assertEqualsCanonicalizing($expected, $actual, $message = ''): void;
 
-        abstract public static function assertEqualsIgnoringCase(...$arguments): void;
+        abstract public static function assertEqualsIgnoringCase($expected, $actual, $message = ''): void;
 
-        abstract public static function assertFalse(...$arguments): void;
+        abstract public static function assertFalse($condition, $message = ''): void;
 
-        abstract public static function assertFileDoesNotExist(...$arguments): void;
+        abstract public static function assertFileDoesNotExist($filename, $message = ''): void;
 
-        abstract public static function assertFileExists(...$arguments): void;
+        abstract public static function assertFileExists($filename, $message = ''): void;
 
-        abstract public static function assertFileIsNotReadable(...$arguments): void;
+        abstract public static function assertFileIsNotReadable($file, $message = ''): void;
 
-        abstract public static function assertFileIsNotWritable(...$arguments): void;
+        abstract public static function assertFileIsNotWritable($file, $message = ''): void;
 
-        abstract public static function assertFileIsReadable(...$arguments): void;
+        abstract public static function assertFileIsReadable($file, $message = ''): void;
 
-        abstract public static function assertFileIsWritable(...$arguments): void;
+        abstract public static function assertFileIsWritable($file, $message = ''): void;
 
-        abstract public static function assertFinite(...$arguments): void;
+        abstract public static function assertFinite($actual, $message = ''): void;
 
-        abstract public static function assertGreaterThan(...$arguments): void;
+        abstract public static function assertGreaterThan($minimum, $actual, $message = ''): void;
 
-        abstract public static function assertGreaterThanOrEqual(...$arguments): void;
+        abstract public static function assertGreaterThanOrEqual($minimum, $actual, $message = ''): void;
 
-        abstract public static function assertInfinite(...$arguments): void;
+        abstract public static function assertInfinite($actual, $message = ''): void;
 
-        abstract public static function assertInstanceOf(...$arguments): void;
+        abstract public static function assertInstanceOf($expected, $actual, $message = ''): void;
 
-        abstract public static function assertIsArray(...$arguments): void;
+        abstract public static function assertIsArray($actual, $message = ''): void;
 
-        abstract public static function assertIsBool(...$arguments): void;
+        abstract public static function assertIsBool($actual, $message = ''): void;
 
-        abstract public static function assertIsCallable(...$arguments): void;
+        abstract public static function assertIsCallable($actual, $message = ''): void;
 
-        abstract public static function assertIsClosedResource(...$arguments): void;
+        abstract public static function assertIsClosedResource($actual, $message = ''): void;
 
-        abstract public static function assertIsFloat(...$arguments): void;
+        abstract public static function assertIsFloat($actual, $message = ''): void;
 
-        abstract public static function assertIsInt(...$arguments): void;
+        abstract public static function assertIsInt($actual, $message = ''): void;
 
-        abstract public static function assertIsIterable(...$arguments): void;
+        abstract public static function assertIsIterable($actual, $message = ''): void;
 
-        abstract public static function assertIsList(...$arguments): void;
+        abstract public static function assertIsList($array, $message = ''): void;
 
-        abstract public static function assertIsNotArray(...$arguments): void;
+        abstract public static function assertIsNotArray($actual, $message = ''): void;
 
-        abstract public static function assertIsNotBool(...$arguments): void;
+        abstract public static function assertIsNotBool($actual, $message = ''): void;
 
-        abstract public static function assertIsNotCallable(...$arguments): void;
+        abstract public static function assertIsNotCallable($actual, $message = ''): void;
 
-        abstract public static function assertIsNotClosedResource(...$arguments): void;
+        abstract public static function assertIsNotClosedResource($actual, $message = ''): void;
 
-        abstract public static function assertIsNotFloat(...$arguments): void;
+        abstract public static function assertIsNotFloat($actual, $message = ''): void;
 
-        abstract public static function assertIsNotInt(...$arguments): void;
+        abstract public static function assertIsNotInt($actual, $message = ''): void;
 
-        abstract public static function assertIsNotIterable(...$arguments): void;
+        abstract public static function assertIsNotIterable($actual, $message = ''): void;
 
-        abstract public static function assertIsNotNumeric(...$arguments): void;
+        abstract public static function assertIsNotNumeric($actual, $message = ''): void;
 
-        abstract public static function assertIsNotObject(...$arguments): void;
+        abstract public static function assertIsNotObject($actual, $message = ''): void;
 
-        abstract public static function assertIsNotReadable(...$arguments): void;
+        abstract public static function assertIsNotReadable($filename, $message = ''): void;
 
-        abstract public static function assertIsNotResource(...$arguments): void;
+        abstract public static function assertIsNotResource($actual, $message = ''): void;
 
-        abstract public static function assertIsNotScalar(...$arguments): void;
+        abstract public static function assertIsNotScalar($actual, $message = ''): void;
 
-        abstract public static function assertIsNotString(...$arguments): void;
+        abstract public static function assertIsNotString($actual, $message = ''): void;
 
-        abstract public static function assertIsNotWritable(...$arguments): void;
+        abstract public static function assertIsNotWritable($filename, $message = ''): void;
 
-        abstract public static function assertIsNumeric(...$arguments): void;
+        abstract public static function assertIsNumeric($actual, $message = ''): void;
 
-        abstract public static function assertIsObject(...$arguments): void;
+        abstract public static function assertIsObject($actual, $message = ''): void;
 
-        abstract public static function assertIsReadable(...$arguments): void;
+        abstract public static function assertIsReadable($filename, $message = ''): void;
 
-        abstract public static function assertIsResource(...$arguments): void;
+        abstract public static function assertIsResource($actual, $message = ''): void;
 
-        abstract public static function assertIsScalar(...$arguments): void;
+        abstract public static function assertIsScalar($actual, $message = ''): void;
 
-        abstract public static function assertIsString(...$arguments): void;
+        abstract public static function assertIsString($actual, $message = ''): void;
 
-        abstract public static function assertIsWritable(...$arguments): void;
+        abstract public static function assertIsWritable($filename, $message = ''): void;
 
-        abstract public static function assertJson(...$arguments): void;
+        abstract public static function assertJson($actual, $message = ''): void;
 
-        abstract public static function assertLessThan(...$arguments): void;
+        abstract public static function assertLessThan($maximum, $actual, $message = ''): void;
 
-        abstract public static function assertLessThanOrEqual(...$arguments): void;
+        abstract public static function assertLessThanOrEqual($maximum, $actual, $message = ''): void;
 
-        abstract public static function assertMatchesRegularExpression(...$arguments): void;
+        abstract public static function assertMatchesRegularExpression($pattern, $string, $message = ''): void;
 
-        abstract public static function assertNan(...$arguments): void;
+        abstract public static function assertNan($actual, $message = ''): void;
 
-        abstract public static function assertNotContains(...$arguments): void;
+        abstract public static function assertNotContains($needle, $haystack, $message = ''): void;
 
-        abstract public static function assertNotEmpty(...$arguments): void;
+        abstract public static function assertNotEmpty($actual, $message = ''): void;
 
-        abstract public static function assertNotEquals(...$arguments): void;
+        abstract public static function assertNotEquals($expected, $actual, $message = ''): void;
 
-        abstract public static function assertNotEqualsIgnoringCase(...$arguments): void;
+        abstract public static function assertNotEqualsIgnoringCase($expected, $actual, $message = ''): void;
 
-        abstract public static function assertNotFalse(...$arguments): void;
+        abstract public static function assertNotFalse($condition, $message = ''): void;
 
-        abstract public static function assertNotInstanceOf(...$arguments): void;
+        abstract public static function assertNotInstanceOf($expected, $actual, $message = ''): void;
 
-        abstract public static function assertNotNull(...$arguments): void;
+        abstract public static function assertNotNull($actual, $message = ''): void;
 
-        abstract public static function assertNotRegExp(...$arguments): void;
+        abstract public static function assertNotRegExp($pattern, $string, $message = ''): void;
 
-        abstract public static function assertNotSame(...$arguments): void;
+        abstract public static function assertNotSame($expected, $actual, $message = ''): void;
 
-        abstract public static function assertNotTrue(...$arguments): void;
+        abstract public static function assertNotTrue($condition, $message = ''): void;
 
-        abstract public static function assertNull(...$arguments): void;
+        abstract public static function assertNull($actual, $message = ''): void;
 
-        abstract public static function assertObjectEquals(...$arguments): void;
+        abstract public static function assertObjectEquals($expected, $actual, $method = 'equals', $message = ''): void;
 
-        abstract public static function assertObjectHasProperty(...$arguments): void;
+        abstract public static function assertObjectHasProperty($propertyName, $object, $message = ''): void;
 
-        abstract public static function assertObjectNotHasProperty(...$arguments): void;
+        abstract public static function assertObjectNotHasProperty($propertyName, $object, $message = ''): void;
 
-        abstract public static function assertRegExp(...$arguments): void;
+        abstract public static function assertRegExp($pattern, $string, $message = ''): void;
 
-        abstract public static function assertSame(...$arguments): void;
+        abstract public static function assertSame($expected, $actual, $message = ''): void;
 
-        abstract public static function assertSameSize(...$arguments): void;
+        abstract public static function assertSameSize($expected, $actual, $message = ''): void;
 
-        abstract public static function assertStringContainsString(...$arguments): void;
+        abstract public static function assertStringContainsString($needle, $haystack, $message = ''): void;
 
-        abstract public static function assertStringContainsStringIgnoringCase(...$arguments): void;
+        abstract public static function assertStringContainsStringIgnoringCase($needle, $haystack, $message = ''): void;
 
-        abstract public static function assertStringContainsStringIgnoringLineEndings(...$arguments): void;
+        abstract public static function assertStringContainsStringIgnoringLineEndings($needle, $haystack, $message = ''): void;
 
-        abstract public static function assertStringEndsNotWith(...$arguments): void;
+        abstract public static function assertStringEndsNotWith($suffix, $string, $message = ''): void;
 
-        abstract public static function assertStringEndsWith(...$arguments): void;
+        abstract public static function assertStringEndsWith($suffix, $string, $message = ''): void;
 
-        abstract public static function assertStringEqualsStringIgnoringLineEndings(...$arguments): void;
+        abstract public static function assertStringEqualsStringIgnoringLineEndings($expected, $actual, $message = ''): void;
 
-        abstract public static function assertStringEqualsStringIgnoringWhitespace(...$arguments): void;
+        abstract public static function assertStringEqualsStringIgnoringWhitespace($expected, $actual, $message = ''): void;
 
-        abstract public static function assertStringNotContainsString(...$arguments): void;
+        abstract public static function assertStringNotContainsString($needle, $haystack, $message = ''): void;
 
-        abstract public static function assertStringNotContainsStringIgnoringCase(...$arguments): void;
+        abstract public static function assertStringNotContainsStringIgnoringCase($needle, $haystack, $message = ''): void;
 
-        abstract public static function assertStringNotEqualsStringIgnoringWhitespace(...$arguments): void;
+        abstract public static function assertStringNotEqualsStringIgnoringWhitespace($expected, $actual, $message = ''): void;
 
-        abstract public static function assertStringStartsNotWith(...$arguments): void;
+        abstract public static function assertStringStartsNotWith($prefix, $string, $message = ''): void;
 
-        abstract public static function assertStringStartsWith(...$arguments): void;
+        abstract public static function assertStringStartsWith($prefix, $string, $message = ''): void;
 
-        abstract public static function assertThat(...$arguments): void;
+        abstract public static function assertThat($value, $constraint, $message = ''): void;
 
-        abstract public static function assertTrue(...$arguments): void;
+        abstract public static function assertTrue($condition, $message = ''): void;
 
-        abstract public static function fail(...$arguments): void;
+        abstract public static function fail($message = ''): void;
     }
 }
 
