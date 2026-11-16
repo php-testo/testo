@@ -55,6 +55,7 @@ final class ClassLevelTestAttributeRector extends AbstractRector
 
     /** Attributes whose methods the lifecycle plugin excludes from the class-level selection. */
     private const LIFECYCLE = [
+        'Testo\\Common\\Attribute\\AssertMethod',
         'Testo\\Lifecycle\\BeforeTest',
         'Testo\\Lifecycle\\AfterTest',
         'Testo\\Lifecycle\\BeforeClass',

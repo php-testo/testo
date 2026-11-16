@@ -54,6 +54,8 @@ final class TestClassToTestCaseRector extends AbstractRector
      * @var list<non-empty-string>
      */
     private const LIFECYCLE_ATTRIBUTES = [
+        # Not a hook, but the same lifecycle attribute keeps an assertion helper out of the test set.
+        'Testo\\Common\\Attribute\\AssertMethod',
         'Testo\\Lifecycle\\BeforeTest',
         'Testo\\Lifecycle\\AfterTest',
         'Testo\\Lifecycle\\BeforeClass',
@@ -227,6 +229,14 @@ final class TestClassToTestCaseRector extends AbstractRector
 
     private function convertMethodLevelTestAttribute(ClassMethod $method): void
     {
+        # Testo takes a method with a lifecycle attribute out of the tests even when it says #[Test],
+        # so PHPUnit must not run it either.
+        if ($this->hasTestoLifecycleAttribute($method)) {
+            $this->dropTestoTestAttribute($method);
+
+            return;
+        }
+
         $converted = false;
         foreach ($method->attrGroups as $attrGroup) {
             foreach ($attrGroup->attrs as $attr) {
@@ -245,6 +255,36 @@ final class TestClassToTestCaseRector extends AbstractRector
         if ($converted && $method->isStatic()) {
             $method->flags &= ~Modifiers::STATIC;
         }
+    }
+
+    private function hasTestoLifecycleAttribute(ClassMethod $method): bool
+    {
+        foreach ($method->attrGroups as $attrGroup) {
+            foreach ($attrGroup->attrs as $attr) {
+                foreach (self::LIFECYCLE_ATTRIBUTES as $lifecycle) {
+                    if (\str_starts_with($lifecycle, 'Testo\\') && $this->isName($attr->name, $lifecycle)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function dropTestoTestAttribute(ClassMethod $method): void
+    {
+        $kept = [];
+        foreach ($method->attrGroups as $attrGroup) {
+            $attrGroup->attrs = \array_values(\array_filter(
+                $attrGroup->attrs,
+                fn(Attribute $attr): bool => !$this->isName($attr->name, 'Testo\\Test'),
+            ));
+            $attrGroup->attrs === [] or $kept[] = $attrGroup;
+        }
+
+        $method->attrGroups = $kept;
+        DroppedAttributes::keepFormat($method, $this->originalTokens());
     }
 
     private function addPhpUnitTestAttribute(ClassMethod $method): void

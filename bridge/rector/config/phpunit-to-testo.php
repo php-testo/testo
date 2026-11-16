@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Testo\Bridge\Rector\PhpunitToTesto\AssertCallToTestoRector;
+use Testo\Bridge\Rector\PhpunitToTesto\AssertMethodAttributeRector;
 use Testo\Bridge\Rector\PhpunitToTesto\CoversClassToCoversRector;
 use Testo\Bridge\Rector\PhpunitToTesto\DataProviderAnnotationToTestoRector;
 use Testo\Bridge\Rector\PhpunitToTesto\DataProviderAttributeToTestoRector;
@@ -42,6 +43,9 @@ return static function (RectorConfig $rectorConfig): void {
     # Assertions that map onto a typed Assert head + matcher (comparisons, array keys, canonicalizing,
     # emptiness) rather than a flat facade call — see TypedAssertCallToTestoRector.
     $rectorConfig->rule(TypedAssertCallToTestoRector::class);
+
+    # Custom `assert*` helpers that assert get `#[AssertMethod]`, so a failure points at the helper.
+    $rectorConfig->rule(AssertMethodAttributeRector::class);
 
     # A skip that opens a test method is a property of the test: it becomes `#[Skip]`, and only what
     # is left — a guarded or non-literal skip — falls through to the throw form below.

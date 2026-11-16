@@ -11,7 +11,9 @@ Rector converts assertion methods only when their declaring class resolves to PH
 or `TestCase`. Keep PHPUnit available during migration; custom, overridden, magic and unresolved
 methods remain untouched. Calls in a helper trait convert unless the trait implements or intercepts
 that method itself, or requires an abstract version that returns a value. Convert a base class together with its subclasses: once a base is detached from
-`TestCase`, a later run no longer converts its subclasses' assertions.
+`TestCase`, a later run no longer converts its subclasses' assertions. A custom `assert*` helper that
+asserts gains `#[\Testo\Common\Attribute\AssertMethod]`, which trims the failure trace to the
+helper's frame; a test method is never marked, since Testo would stop running it.
 
 ## Which rows Rector handles
 

@@ -76,6 +76,16 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
 - **DoesNotPerformAssertionsToTestoRector** (registered) — direct attribute rename
   `#[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]` → `#[\Testo\Assert\ExpectNoAssertions]`
   (equivalent "no assertions expected" markers).
+- **AssertMethodAttributeRector** (registered) — an `assert*` method or function whose own body calls
+  a PHPUnit assertion (`$this->`/`self::`/`static::`/`parent::`, `Assert::assertX()`, the functions),
+  `\Testo\Assert`, or another helper of the same class gains `#[\Testo\Common\Attribute\AssertMethod]`,
+  so Testo reports a failure from the helper's frame. Calls inside a closure or a nested class run in
+  another frame and do not count. Testo does not run a method that carries the attribute, so a method
+  it would run as a test is never marked: `#[Test]`, `@test`, and a public `void`/`never` method of a
+  class-level `#[\Testo\Test]` class (own, inherited or from a trait) or of a trait, which cannot tell
+  whether such a class uses it. **Residual:** a helper that only delegates to an inherited helper is
+  not marked. PHPUnit filters its own frames without a marker, so the source has nothing to rename; a
+  method that already carries the attribute is left as is.
 - **MergeAssertChainRector** (registered) — a cleanup pass that collapses adjacent
   `\Testo\Assert::<type>($var)->…` fluent chains sharing an **identical** typed head (same
   `Assert::<type>` method applied to the same single **variable**) into one chain, concatenating the

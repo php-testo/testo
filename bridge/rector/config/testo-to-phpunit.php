@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Testo\Bridge\Rector\TestoToPhpunit\AssertCallToPhpUnitRector;
+use Testo\Bridge\Rector\TestoToPhpunit\AssertMethodToPhpUnitRector;
 use Testo\Bridge\Rector\TestoToPhpunit\ConstructorDestructorToLifecycleRector;
 use Testo\Bridge\Rector\TestoToPhpunit\CoversToCoversClassRector;
 use Testo\Bridge\Rector\TestoToPhpunit\DataProviderToPhpUnitRector;
@@ -40,6 +41,7 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->rule(GroupInheritanceToPhpUnitRector::class);
     $rectorConfig->rule(ExpectNoAssertionsToPhpUnitRector::class);
     $rectorConfig->rule(DataProviderToPhpUnitRector::class);
+    $rectorConfig->rule(AssertMethodToPhpUnitRector::class);
 
     # Repeat/Retry method attributes map onto PHPUnit's #[Repeat]/#[Retry] (PHPUnit 13.3+).
     $rectorConfig->rule(RepeatRetryRector::class);
