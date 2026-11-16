@@ -72,6 +72,21 @@ final class StackTraceTest
         Assert::same($hasThrowingFrames, []);
     }
 
+    /**
+     * A free function frame has no class, yet `#[AssertMethod]` targets functions too.
+     */
+    public function cutsFramesBelowAssertFunction(): void
+    {
+        require_once __DIR__ . '/../../Stub/assert_method_function.php';
+        $trace = \Tests\Output\Stub\runAssertFunction(ThrowingStub::captureTrace(...));
+
+        $result = StackTrace::cutStackTrace($trace);
+
+        Assert::true(\count($result) < \count($trace));
+        Assert::same($result[0]['class'] ?? null, null);
+        Assert::same($result[0]['function'], 'Tests\\Output\\Stub\\runAssertFunction');
+    }
+
     public function doesNotAssertMethodWithoutAttribute(): void
     {
         // Arrange
