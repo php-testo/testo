@@ -9,6 +9,7 @@ use Testo\Assert\Internal\Pattern;
 use Testo\Assert\State\Expectation;
 use Testo\Assert\State\Expectation\ExpectationComposite;
 use Testo\Assert\TestState;
+use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
 
@@ -164,8 +165,11 @@ final class ExpectExceptionHandler implements ExpectedException
     {
         # The check runs after the test body, outside the runner's catch: an invalid pattern
         # would abort the whole pipeline instead of erroring the test.
+        $actual = $result->failure;
+        self::isImplicitNeverReturn($result->info, $actual) and $actual = null;
+
         try {
-            $record = $this->evaluate($result->failure);
+            $record = $this->evaluate($actual);
         } catch (\InvalidArgumentException $e) {
             return $result->with(status: Status::Error)->withFailure($e);
         }
@@ -175,6 +179,20 @@ final class ExpectExceptionHandler implements ExpectedException
         return $record->isSuccess()
             ? $result->with(status: Status::Passed)
             : $result->with(status: Status::Failed)->withFailure($record);
+    }
+
+    /**
+     * A `never` test falling off its end throws nothing of its own: PHP raises a TypeError on the
+     * test's closing line, which must not be taken for the exception under test.
+     */
+    private static function isImplicitNeverReturn(TestInfo $info, ?\Throwable $failure): bool
+    {
+        $function = $info->testDefinition->reflection;
+
+        return $failure instanceof \TypeError
+            && $failure->getFile() === $function->getFileName()
+            && $failure->getLine() === $function->getEndLine()
+            && \str_ends_with($failure->getMessage(), 'must not implicitly return');
     }
 
     private function evaluate(?\Throwable $actual): Expectation|\Throwable
