@@ -98,6 +98,16 @@ final readonly class RectorRunner
         $this->channel->debug("# Input:\n$input");
         $this->channel->debug("# Expected:\n$expected");
 
+        $changed = $this->convert($input, $fixturePath->name());
+
+        Assert::same($changed, $expected, \sprintf('Fixture "%s" was not converted as expected', $fixturePath->name()));
+    }
+
+    /**
+     * Run the configured rules and return executable PHP for runtime regression tests.
+     */
+    public function convert(string $input, string $name = 'input'): string
+    {
         $inputFile = $this->writeTempFile($input);
 
         try {
@@ -127,7 +137,7 @@ final readonly class RectorRunner
 
                 throw new \RuntimeException(\sprintf(
                     "Rector failed on fixture \"%s\":\n%s",
-                    $fixturePath->name(),
+                    $name,
                     \implode("\n", \array_map(static fn(SystemError $error): string => $error->getMessage(), $errors)),
                 ), previous: $crash);
             }
@@ -137,7 +147,7 @@ final readonly class RectorRunner
             @\unlink($inputFile);
         }
 
-        Assert::same($changed, $expected, \sprintf('Fixture "%s" was not converted as expected', $fixturePath->name()));
+        return $changed;
     }
 
     /**

@@ -158,6 +158,43 @@ final class ExpectExceptionTest
     }
 
     #[Test]
+    public function substringMessageReplacesEarlierExactMessage(): never
+    {
+        Expect::exception(\RuntimeException::class)
+            ->withMessage('old')
+            ->withMessage('new', exact: false);
+
+        throw new \RuntimeException('prefix new suffix');
+    }
+
+    #[Test]
+    public function exactMessageReplacesEarlierSubstring(): never
+    {
+        Expect::exception(\RuntimeException::class)
+            ->withMessage('old', exact: false)
+            ->withMessage('new');
+
+        throw new \RuntimeException('new');
+    }
+
+    #[Test]
+    public function emptySubstringAcceptsANonemptyMessage(): never
+    {
+        Expect::exception(\RuntimeException::class)->withMessage('', exact: false);
+
+        throw new \RuntimeException('nonempty');
+    }
+
+    #[Test]
+    public function longSubstringMessage(): never
+    {
+        $message = \str_repeat('a', 100000);
+        Expect::exception(\RuntimeException::class)->withMessage($message, exact: false);
+
+        throw new \RuntimeException('prefix ' . $message . ' suffix');
+    }
+
+    #[Test]
     public function previous(): void
     {
         Expect::exception(\Throwable::class)

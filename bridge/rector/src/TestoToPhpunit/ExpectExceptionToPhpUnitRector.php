@@ -7,10 +7,12 @@ namespace Testo\Bridge\Rector\TestoToPhpunit;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\Expression;
 use PHPStan\Analyser\Scope;
 use Rector\NodeTypeResolver\Node\AttributeKey;
@@ -113,16 +115,23 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
 
         $stmts = [$this->expectStmt('expectException', [$this->arg($headArg->value)])];
         $emitted = [];
+        $hasMessage = false;
 
         foreach (\array_reverse($links) as $link) {
             $modifier = $this->getName($link->name);
+            if ($modifier === 'withMessage') {
+                if ($hasMessage) {
+                    return null;
+                }
+                $hasMessage = true;
+            }
             $mapped = $modifier === null ? null : $this->mapModifier($modifier, $link->args);
             if ($mapped === null) {
                 # Any unmapped modifier aborts the whole conversion — never half-convert.
                 return null;
             }
 
-            # A repeated PHPUnit expectation overrides the earlier one, while Testo checks both.
+            # Independent Testo constraints must not collapse onto one replaceable PHPUnit field.
             \assert($mapped->expr instanceof MethodCall);
             $method = (string) $this->getName($mapped->expr->name);
             if (isset($emitted[$method])) {
@@ -147,9 +156,30 @@ final class ExpectExceptionToPhpUnitRector extends AbstractRector
      */
     private function mapModifier(string $modifier, array $args): ?Expression
     {
-        $first = ($args[0] ?? null) instanceof Arg ? $args[0]->value : null;
-        if ($first === null) {
+        $argument = $args[0] ?? null;
+        if (!$argument instanceof Arg || $argument->unpack) {
             return null;
+        }
+        $first = $argument->value;
+
+        if ($modifier === 'withMessage' && \count($args) > 1) {
+            $exact = $args[1];
+            if (\count($args) !== 2 || !$exact instanceof Arg || $exact->unpack
+                || ($argument->name !== null && !$this->isName($argument->name, 'message'))
+                || ($exact->name !== null && !$this->isName($exact->name, 'exact'))
+                || !$exact->value instanceof ConstFetch
+                || (!$this->isName($exact->value->name, 'true') && !$this->isName($exact->value->name, 'false'))
+            ) {
+                return null;
+            }
+            if ($this->isName($exact->value->name, 'false')) {
+                if (!$first instanceof String_) {
+                    return null;
+                }
+                if ($first->value === '') {
+                    return $this->expectStmt('expectExceptionMessageMatches', [$this->arg(new String_('~~'))]);
+                }
+            }
         }
 
         return match ($modifier) {
