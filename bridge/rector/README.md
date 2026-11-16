@@ -78,6 +78,13 @@ returns a value; an untyped, `void` or `never` abstract declaration restates PHP
 A class detached from `TestCase` by an earlier run no longer reaches PHPUnit, so convert a base class
 and its subclasses in the same run: the subclasses' assertions stay PHPUnit calls otherwise.
 
+A custom `assert*` helper whose body asserts gains `#[\Testo\Common\Attribute\AssertMethod]`
+(`AssertMethodAttributeRector`), so a failure inside it is reported from the helper's frame. Testo
+does not run a method that carries the attribute, so a method it would run as a test is never marked:
+one with `#[Test]` or `@test`, and a public `void`/`never` method of a class-level `#[\Testo\Test]`
+class or of a trait. The Testo → PHPUnit set drops the attribute again, with its import
+(`AssertMethodToPhpUnitRector`).
+
 ### Argument order (important)
 
 Testo's comparison assertions are `(actual, expected)`; PHPUnit's are `(expected, actual)`.

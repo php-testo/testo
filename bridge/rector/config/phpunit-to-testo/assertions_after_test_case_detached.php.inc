@@ -36,6 +36,7 @@ use PHPUnit\Framework\TestCase;
 
 trait HelperAssertions
 {
+    #[\Testo\Common\Attribute\AssertMethod]
     protected function assertValid($value): void
     {
         \Testo\Assert::same($value, 1);
@@ -54,6 +55,7 @@ final class DirectTest
         \Testo\Assert::string('x');
     }
 
+    #[\Testo\Common\Attribute\AssertMethod]
     protected function assertViaParent($value): void
     {
         \Testo\Assert::true($value);

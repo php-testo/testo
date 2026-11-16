@@ -16,6 +16,11 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
 
 ## Implemented since the first cut
 
+- **`AssertMethodToPhpUnitRector`** (registered) — drops `#[\Testo\Common\Attribute\AssertMethod]`
+  from a method or function. PHPUnit filters its own frames from a failure's trace without a marker,
+  so the helper still reports from its own frame. The import goes too once nothing else in the file
+  refers to the attribute.
+
 - **`WithoutErrorHandlerToPhpUnitRector`** (registered) — `#[\Testo\ErrorHandler\WithoutErrorHandler]`
   renames to PHPUnit's `#[WithoutErrorHandler]`, the same per-test opt-out from the runner's error
   handler. PHPUnit's attribute is `TARGET_METHOD` only, so a class-level Testo attribute is fanned
@@ -38,7 +43,8 @@ directory but are **not** registered in `config/testo-to-phpunit.php`.
   `#[\PHPUnit\Framework\Attributes\Test]` is added to every public, non-static method with a `void`/`never`
   return type — exactly the set Testo's locator treats as tests from a class-level marker, so static and
   `iterable`-returning providers/helpers are skipped. A method-level `#[\Testo\Test]` is renamed in place to
-  the PHPUnit attribute; if that method is `static` it is also made an instance method (Testo invokes tests
+  the PHPUnit attribute, or dropped from a method that also carries a Testo lifecycle attribute or
+  `#[AssertMethod]`, since Testo does not run that method as a test; if a renamed method is `static` it is also made an instance method (Testo invokes tests
   with or without an instance, but PHPUnit only ever calls them on one and flags a `static` `#[Test]` — a
   static body has no `$this`, so dropping `static` is behaviour-preserving; data providers keep `static` as
   they carry no `#[Test]`). Idempotent at method level. **Residuals:** (1) only a class that extends *nothing*
