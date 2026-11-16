@@ -52,11 +52,11 @@ final class StackTrace
                 break;
             }
 
-            if ($class === null or $function === null) {
+            if ($function === null) {
                 continue;
             }
 
-            $key = $class . '::' . $function;
+            $key = $class === null ? $function : $class . '::' . $function;
 
             if (self::$cutTraceCache[$key] ?? self::resolveHasAssertMethod($key, $class, $function)) {
                 $cutIndex = $index;
@@ -76,16 +76,18 @@ final class StackTrace
             : $trace;
     }
 
-    private static function resolveHasAssertMethod(string $key, string $class, string $function): bool
+    private static function resolveHasAssertMethod(string $key, ?string $class, string $function): bool
     {
         try {
             /** @psalm-suppress ArgumentTypeCoercion */
-            $method = new \ReflectionMethod($class, $function);
+            $reflection = $class === null
+                ? new \ReflectionFunction($function)
+                : new \ReflectionMethod($class, $function);
         } catch (\ReflectionException) {
             return false;
         }
 
-        if ($method->getAttributes(AssertMethod::class) === []) {
+        if ($reflection->getAttributes(AssertMethod::class) === []) {
             return false;
         }
 
