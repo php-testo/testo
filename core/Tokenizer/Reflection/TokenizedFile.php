@@ -35,6 +35,13 @@ final class TokenizedFile
      */
     private const IDENTIFIER = '/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/';
 
+    /**
+     * Ids of the single-character `{` and `}` tokens: PHP gives such tokens the character's code.
+     */
+    private const OPEN_BRACE = 123;
+
+    private const CLOSE_BRACE = 125;
+
     public readonly Path $path;
 
     /**
@@ -776,13 +783,15 @@ final class TokenizedFile
         $entered = false;
         for ($localID = $tokenID; $localID < $this->countTokens; ++$localID) {
             $token = $this->tokens[$localID];
-            if ($token->text === '{') {
+            // Matched by id, not text: string content such as `"$a}"` yields a T_ENCAPSED_AND_WHITESPACE
+            // token spelled `}`, and `"${a}"` opens with `${` but still closes with a real `}`.
+            if ($token->id === self::OPEN_BRACE || $token->is([T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES])) {
                 ++$level;
                 $entered = true;
                 continue;
             }
 
-            if ($token->text === '}') {
+            if ($token->id === self::CLOSE_BRACE) {
                 --$level;
             }
 
