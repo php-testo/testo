@@ -6,6 +6,7 @@ namespace Tests\Tokenizer\Unit\Reflection;
 
 use Testo\Assert;
 use Testo\Codecov\Covers;
+use Testo\Data\DataSet;
 use Testo\Test;
 use Testo\Tokenizer\Reflection\TokenizedFile;
 
@@ -479,6 +480,52 @@ final class TokenizedFileTest
             'Tests\Tokenizer\Stub\Repeated\RepeatedFirst',
             'Tests\Tokenizer\Stub\Repeated\RepeatedSecond',
         ]);
+    }
+
+    // --- braces inside interpolated strings ---
+
+    public function braceClosingNothingInInterpolatedStringDoesNotEndTheClass(): void
+    {
+        $tokenized = self::tokenize('BracesInInterpolatedStrings.php');
+
+        Assert::same($tokenized->getMethodsFQN(), [
+            'Tests\Tokenizer\Stub\BracesInInterpolatedStrings::interpolate',
+            'Tests\Tokenizer\Stub\BracesInInterpolatedStrings::afterInterpolation',
+        ]);
+        Assert::same($tokenized->getFunctions(), ['Tests\Tokenizer\Stub\afterInterpolatedClass']);
+    }
+
+    #[DataSet(['"x $v}"'], 'variable followed by a stray closing brace')]
+    #[DataSet(['"${v}"'], 'dollar-brace interpolation')]
+    #[DataSet(['"$v{"'], 'variable followed by a stray opening brace')]
+    #[DataSet(['"{$v}"'], 'curly interpolation')]
+    public function interpolatedStringKeepsDeclarationScopes(string $expression): void
+    {
+        $tokenized = self::tokenizeSource(<<<PHP
+            <?php
+            namespace Acme;
+            class Host
+            {
+                public function first(\$v) { return {$expression}; }
+                public function second() {}
+            }
+            function after() {}
+            PHP);
+
+        Assert::same($tokenized->getMethodsFQN(), ['Acme\Host::first', 'Acme\Host::second']);
+        Assert::same($tokenized->getFunctions(), ['Acme\after']);
+    }
+
+    private static function tokenizeSource(string $source): TokenizedFile
+    {
+        $path = \sys_get_temp_dir() . '/testo-tokenizer-' . \bin2hex(\random_bytes(4)) . '.php';
+        \file_put_contents($path, $source);
+
+        try {
+            return new TokenizedFile(new \SplFileInfo($path), $path);
+        } finally {
+            \unlink($path);
+        }
     }
 
     private static function tokenize(string $stub): TokenizedFile
