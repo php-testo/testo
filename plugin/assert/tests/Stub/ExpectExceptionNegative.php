@@ -23,6 +23,26 @@ final class ExpectExceptionNegative
     }
 
     /**
+     * No exception thrown from a `never` test: it falls off its end.
+     */
+    #[Test]
+    public function noneThrownFromNever(): never
+    {
+        Expect::exception(\RuntimeException::class);
+    }
+
+    /**
+     * The code under test falls off the end of its own `never` function.
+     */
+    #[Test]
+    public function neverCalleeReturnsImplicitly(): never
+    {
+        Expect::exception(\RuntimeException::class);
+
+        self::returnFromNever();
+    }
+
+    /**
      * Wrong exception type.
      */
     #[Test]
@@ -213,4 +233,6 @@ final class ExpectExceptionNegative
 
         throw new class('subclass') extends \RuntimeException {};
     }
+
+    private static function returnFromNever(): never {}
 }

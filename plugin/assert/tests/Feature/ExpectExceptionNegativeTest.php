@@ -37,6 +37,30 @@ final class ExpectExceptionNegativeTest
             ->contains('none thrown');
     }
 
+    public function noneThrownFromNever(): void
+    {
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'noneThrownFromNever']);
+
+        Assert::same($result->status, Status::Failed);
+        Assert::instanceOf($result->failure, Expectation::class);
+        Assert::string($result->failure->getFailReason())
+            ->contains('none thrown');
+    }
+
+    /**
+     * Only the test's own implicit return is forgiven: the same TypeError from the code under test
+     * is a real exception.
+     */
+    public function neverCalleeReturnsImplicitly(): void
+    {
+        $result = TestRunner::runTest([ExpectExceptionNegative::class, 'neverCalleeReturnsImplicitly']);
+
+        Assert::same($result->status, Status::Failed);
+        Assert::instanceOf($result->failure, Expectation::class);
+        Assert::string($result->failure->getFailReason())
+            ->contains('got TypeError');
+    }
+
     public function wrongType(): void
     {
         $result = TestRunner::runTest([ExpectExceptionNegative::class, 'wrongType']);
