@@ -91,6 +91,11 @@ Testo's comparison assertions are `(actual, expected)`; PHPUnit's are `(expected
 Both `AssertCall*` rules swap the first two arguments accordingly — getting this wrong would
 silently invert every comparison, so it is covered by fixtures.
 
+Named arguments are bound by PHPUnit's own parameter names, read through reflection of the installed
+`PHPUnit\Framework\Assert`, and the call converts as if written positionally. A binding that cannot be
+resolved (an unknown name, a missing argument before a bound one, an unpacked argument, a first-class
+callable) leaves the call untouched.
+
 ## Why Testo → PHPUnit
 
 Testo is self-hosted: the engine that discovers and runs tests is the same code Infection

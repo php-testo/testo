@@ -38,6 +38,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * PHPUnit constraint objects) are intentionally left untouched, so the surrounding
  * test stays visibly unconverted instead of being silently mistranslated.
  *
+ * Named arguments bind by PHPUnit's parameter names ({@see PhpunitAssertionCall::positionalArgs()});
+ * a binding that cannot be resolved leaves the call untouched.
+ *
  * Only rewrites a call that lives inside a class (a test method or a `static` data provider) — the
  * only place a PHPUnit assertion belongs. A matching call in a free function or at namespace level
  * is left untouched.
@@ -109,22 +112,22 @@ final class AssertCallToTestoRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         $method = $this->assertionCall->name($node);
-        if ($method === null) {
+        if ($method === null || (!isset(self::NOT_BOOL[$method]) && !isset(self::MAP[$method]))) {
+            return null;
+        }
+
+        $args = $this->assertionCall->positionalArgs($node, $method);
+        if ($args === null) {
             return null;
         }
 
         if (isset(self::NOT_BOOL[$method])) {
-            return $this->notBool(self::NOT_BOOL[$method], $node->args);
-        }
-
-        if (!isset(self::MAP[$method])) {
-            return null;
+            return $this->notBool(self::NOT_BOOL[$method], $args);
         }
 
         [$testoMethod, $swap] = self::MAP[$method];
 
-        $args = $node->args;
-        if ($swap && \count($args) >= 2 && $args[0] instanceof Arg && $args[1] instanceof Arg) {
+        if ($swap && \count($args) >= 2) {
             [$args[0], $args[1]] = [$args[1], $args[0]];
         }
 

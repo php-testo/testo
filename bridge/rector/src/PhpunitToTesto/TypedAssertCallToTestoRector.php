@@ -114,7 +114,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * either, so one on `assertJson` is dropped as well.
  *
  * Recognises the same call spellings as {@see AssertCallToTestoRector}, `PHPUnit\Framework\assert*()`
- * functions included, and likewise only inside a class.
+ * functions included, and likewise only inside a class. Named arguments bind the same way too
+ * ({@see PhpunitAssertionCall::positionalArgs()}).
  */
 #[TestRectorFixtures('TypedAssertCallToTestoRector')]
 final class TypedAssertCallToTestoRector extends AbstractRector
@@ -311,54 +312,55 @@ final class TypedAssertCallToTestoRector extends AbstractRector
     public function refactor(Node $node): ?Node
     {
         $method = $this->assertionCall->name($node);
-        if ($method === null) {
+        $args = $method === null ? null : $this->assertionCall->positionalArgs($node, $method);
+        if ($args === null) {
             return null;
         }
 
         return match (true) {
-            isset(self::NUMERIC[$method]) => $this->typedChain('numeric', self::NUMERIC[$method], $node->args, keepMessage: true),
-            isset(self::ARRAY_KEY[$method]) => $this->typedChain('array', self::ARRAY_KEY[$method], $node->args, keepMessage: false),
-            $method === 'assertEqualsCanonicalizing' => $this->typedChain('array', 'sameElementsAs', $node->args, keepMessage: true),
-            $method === 'assertStringStartsWith' => $this->typedChain('string', 'startsWith', $node->args, keepMessage: true),
-            $method === 'assertStringEndsWith' => $this->typedChain('string', 'endsWith', $node->args, keepMessage: true),
-            $method === 'assertStringStartsNotWith' => $this->typedChain('string', 'notStartsWith', $node->args, keepMessage: true),
-            $method === 'assertStringEndsNotWith' => $this->typedChain('string', 'notEndsWith', $node->args, keepMessage: true),
-            $method === 'assertStringContainsString' => $this->typedChain('string', 'contains', $node->args, keepMessage: true),
-            $method === 'assertStringNotContainsString' => $this->typedChain('string', 'notContains', $node->args, keepMessage: true),
+            isset(self::NUMERIC[$method]) => $this->typedChain('numeric', self::NUMERIC[$method], $args, keepMessage: true),
+            isset(self::ARRAY_KEY[$method]) => $this->typedChain('array', self::ARRAY_KEY[$method], $args, keepMessage: false),
+            $method === 'assertEqualsCanonicalizing' => $this->typedChain('array', 'sameElementsAs', $args, keepMessage: true),
+            $method === 'assertStringStartsWith' => $this->typedChain('string', 'startsWith', $args, keepMessage: true),
+            $method === 'assertStringEndsWith' => $this->typedChain('string', 'endsWith', $args, keepMessage: true),
+            $method === 'assertStringStartsNotWith' => $this->typedChain('string', 'notStartsWith', $args, keepMessage: true),
+            $method === 'assertStringEndsNotWith' => $this->typedChain('string', 'notEndsWith', $args, keepMessage: true),
+            $method === 'assertStringContainsString' => $this->typedChain('string', 'contains', $args, keepMessage: true),
+            $method === 'assertStringNotContainsString' => $this->typedChain('string', 'notContains', $args, keepMessage: true),
             isset(self::STRING_MODIFIED[$method]) => $this->typedChain(
                 'string',
                 self::STRING_MODIFIED[$method][1],
-                $node->args,
+                $args,
                 keepMessage: true,
                 modifier: self::STRING_MODIFIED[$method][0],
             ),
-            isset(self::EQUALS_IGNORING_CASE[$method]) && $this->areStrings($node->args) => $this->typedChain(
+            isset(self::EQUALS_IGNORING_CASE[$method]) && $this->areStrings($args) => $this->typedChain(
                 'string',
                 self::EQUALS_IGNORING_CASE[$method],
-                $node->args,
+                $args,
                 keepMessage: true,
                 modifier: 'ignoringCase',
             ),
             $method === 'assertMatchesRegularExpression', $method === 'assertRegExp'
-                => $this->typedChain('string', 'matchesRegex', $node->args, keepMessage: true),
+                => $this->typedChain('string', 'matchesRegex', $args, keepMessage: true),
             $method === 'assertDoesNotMatchRegularExpression', $method === 'assertNotRegExp'
-                => $this->typedChain('string', 'notMatchesRegex', $node->args, keepMessage: true),
-            $method === 'assertNotContains' => $this->typedChain('iterable', 'notContains', $node->args, keepMessage: true),
-            $method === 'assertObjectHasProperty' => $this->typedChain('object', 'hasProperty', $node->args, keepMessage: true),
-            $method === 'assertIsList' => $this->subjectChain('array', 'isList', [], $node->args),
-            isset(self::CONTAINS_ONLY[$method]) => $this->subjectChain('iterable', 'allOf', [new Arg(new String_(self::CONTAINS_ONLY[$method]))], $node->args),
-            $method === 'assertContainsOnlyInstancesOf' => $this->typedChain('iterable', 'allInstanceOf', $node->args, keepMessage: true),
-            $method === 'assertSameSize' => $this->sameSize($node->args),
-            $method === 'assertJson' => $this->json($node->args),
-            $method === 'assertEmpty' => $this->emptiness('blank', 'true', $node->args),
-            $method === 'assertNotEmpty' => $this->emptiness('notBlank', 'false', $node->args),
-            isset(self::TYPE_HEAD[$method]) => $this->typeCheck($method, $node->args),
-            isset(self::PREDICATE[$method]) => $this->predicate(...self::PREDICATE[$method], args: $node->args),
-            isset(self::PATH_PERMISSION[$method]) => $this->pathPermission(...self::PATH_PERMISSION[$method], args: $node->args),
-            isset(self::MATH[$method]) => $this->math(self::MATH[$method], $node->args),
-            isset(self::RESOURCE[$method]) => $this->resource(self::RESOURCE[$method], $node->args),
-            $method === 'assertNotInstanceOf' => $this->notInstanceOf($node->args),
-            $method === 'assertObjectNotHasProperty' => $this->objectNotHasProperty($node->args),
+                => $this->typedChain('string', 'notMatchesRegex', $args, keepMessage: true),
+            $method === 'assertNotContains' => $this->typedChain('iterable', 'notContains', $args, keepMessage: true),
+            $method === 'assertObjectHasProperty' => $this->typedChain('object', 'hasProperty', $args, keepMessage: true),
+            $method === 'assertIsList' => $this->subjectChain('array', 'isList', [], $args),
+            isset(self::CONTAINS_ONLY[$method]) => $this->subjectChain('iterable', 'allOf', [new Arg(new String_(self::CONTAINS_ONLY[$method]))], $args),
+            $method === 'assertContainsOnlyInstancesOf' => $this->typedChain('iterable', 'allInstanceOf', $args, keepMessage: true),
+            $method === 'assertSameSize' => $this->sameSize($args),
+            $method === 'assertJson' => $this->json($args),
+            $method === 'assertEmpty' => $this->emptiness('blank', 'true', $args),
+            $method === 'assertNotEmpty' => $this->emptiness('notBlank', 'false', $args),
+            isset(self::TYPE_HEAD[$method]) => $this->typeCheck($method, $args),
+            isset(self::PREDICATE[$method]) => $this->predicate(...self::PREDICATE[$method], args: $args),
+            isset(self::PATH_PERMISSION[$method]) => $this->pathPermission(...self::PATH_PERMISSION[$method], args: $args),
+            isset(self::MATH[$method]) => $this->math(self::MATH[$method], $args),
+            isset(self::RESOURCE[$method]) => $this->resource(self::RESOURCE[$method], $args),
+            $method === 'assertNotInstanceOf' => $this->notInstanceOf($args),
+            $method === 'assertObjectNotHasProperty' => $this->objectNotHasProperty($args),
             default => null,
         };
     }

@@ -104,6 +104,13 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   (`same`/`true`/`count`/…) are `void` static calls or would need a typed head that turns a `TypeError`
   into an `AssertionException`, changing the failure status; so converted PHPUnit `assert*` runs stay
   as separate flat lines. This rule only tidies pre-existing typed pipes.
+- **Named arguments** (`AssertCallToTestoRector`, `TypedAssertCallToTestoRector`) — a named argument
+  binds to its position through the reflection of `PHPUnit\Framework\Assert`, so the parameter names
+  of the installed PHPUnit decide, and the call converts as if written positionally. A call stays
+  untouched when the binding cannot be resolved: PHPUnit is not installed, a name the declaration
+  lacks, a missing argument before a bound one (`assertEquals(expected: 1, message: 'm')`), an unpacked
+  argument or a first-class callable. **Residual:** the arguments are evaluated in Testo's order, so
+  side effects that depend on each other can run in a different order than in the source.
 - **TypedAssertCallToTestoRector** (registered) — the sibling of `AssertCallToTestoRector` for the
   assertions whose faithful Testo form is a **typed head + matcher** rather than a flat facade call.
   The subject moves from an argument to the head argument (evaluated once, no hoisting needed):
@@ -174,7 +181,9 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   and passed `assertNotRegExp`; `matchesRegex()`/`notMatchesRegex()` throw
   `\InvalidArgumentException` there, as PHPUnit 10+ throws a framework exception. The string matchers
   also need a string subject: outside `strict_types` PHPUnit's `string` parameter coerces an int,
-  float or `Stringable`, which `Assert::string()` rejects.
+  float or `Stringable`, which `Assert::string()` rejects, and under `strict_types` PHPUnit's
+  `TypeError` becomes an assertion failure. The converted test fails loudly in both cases, so the
+  difference is never a false pass.
 
   **Whitespace residual:** PHPUnit runs `preg_replace('/\s+/u', ' ')` and `trim()`, while
   `ignoringWhitespace(lineBreaks: true)` also counts the `\h`/`\v` characters outside `\s` (U+180E)

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\Bridge\Rector\Internal;
 
 use PhpParser\Node;
+use PhpParser\Node\Arg;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
@@ -82,6 +83,46 @@ final class PhpunitAssertionCall
         $viaParent = $node instanceof StaticCall && $this->nodeNameResolver->isName($node->class, 'parent');
 
         return $this->phpunitMethodName($scope, $name, $viaParent);
+    }
+
+    /**
+     * The call's arguments in PHPUnit's parameter order. Named ones are bound through the reflection
+     * of `Assert`, so the installed PHPUnit version decides the names. Null when the binding cannot be
+     * resolved: an unpacked argument, a first-class callable, a name the declaration lacks, a variadic
+     * declaration, or a missing argument before a bound one.
+     *
+     * @param non-empty-string $method The assertion's method name, as returned by {@see name()}.
+     * @return list<Arg>|null
+     */
+    public function positionalArgs(MethodCall|StaticCall|FuncCall $call, string $method): ?array
+    {
+        if ($call->isFirstClassCallable()) {
+            return null;
+        }
+
+        $bound = [];
+        $parameters = null;
+        foreach ($call->getArgs() as $position => $arg) {
+            if ($arg->unpack) {
+                return null;
+            }
+
+            if ($arg->name !== null) {
+                $parameters ??= $this->parameterNames($method) ?? [];
+                $position = \array_search($arg->name->toString(), $parameters, true);
+                if ($position === false || isset($bound[$position])) {
+                    return null;
+                }
+
+                $arg = new Arg($arg->value, $arg->byRef, attributes: $arg->getAttributes());
+            }
+
+            $bound[$position] = $arg;
+        }
+
+        \ksort($bound);
+
+        return \array_is_list($bound) ? $bound : null;
     }
 
     /**
@@ -184,6 +225,33 @@ final class PhpunitAssertionCall
         return $method->isAbstract() && ($type === null || \in_array((string) $type, self::RESTATED_RETURN_TYPES, true))
             ? $declared
             : null;
+    }
+
+    /**
+     * @param non-empty-string $method
+     * @return list<string>|null Null when `Assert` or the method is unknown, or the method is variadic.
+     */
+    private function parameterNames(string $method): ?array
+    {
+        if (!$this->reflectionProvider->hasClass(self::ASSERT)) {
+            return null;
+        }
+
+        $class = $this->reflectionProvider->getClass(self::ASSERT);
+        if (!$class->hasNativeMethod($method)) {
+            return null;
+        }
+
+        $names = [];
+        foreach ($class->getNativeMethod($method)->getOnlyVariant()->getParameters() as $parameter) {
+            if ($parameter->isVariadic()) {
+                return null;
+            }
+
+            $names[] = $parameter->getName();
+        }
+
+        return $names;
     }
 
     private function functionName(FuncCall $call): ?string
