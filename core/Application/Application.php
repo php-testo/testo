@@ -30,6 +30,7 @@ use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Framework\WorkerFinished;
 use Testo\Event\Framework\WorkerStarting;
+use Testo\Event\TestSuite\TestSuitesLocated;
 use Testo\Filter;
 
 final readonly class Application
@@ -125,9 +126,12 @@ final readonly class Application
             $discovery = 0.0;
             $tests = 0.0;
 
+            $suites = $container->make(SuiteLocator::class)->locate($appConfig);
+            $dispatcher->dispatch(new TestSuitesLocated($suites));
+
             # Iterate and run Test Suites
             $suiteResults = [];
-            foreach ($container->make(SuiteLocator::class)->locate($appConfig) as $config) {
+            foreach ($suites as $config) {
                 # Resolve a Test Suite from config and
                 # run a separate container scope to isolate services and plugins.
                 $suiteResult = self::scope(

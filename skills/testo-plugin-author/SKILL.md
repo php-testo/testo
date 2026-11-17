@@ -242,6 +242,11 @@ over those.
 `addListener()` takes a third `int $priority` argument, highest first. It matters when several listeners
 share one event and the order is part of the behaviour.
 
+To size anything to the whole run (a progress bar, a pre-allocated report), listen to `TestSuitesLocated`:
+it fires once, before the first suite is scanned, with the final `list<SuiteConfig>` (`--suite` already
+applied). Test counts are not known that early: suites are scanned one at a time, so a suite's cases
+and tests are known only from its `TestSuiteStarting`. A suite that turns out empty never starts.
+
 Writing a report file? Announce it via `ReportFileGenerating`/`ReportFileGenerated` instead of printing
 anything yourself — the flow, the `ReportInfo` card, and the priority trick for large files are in
 `references/reporting.md`.
