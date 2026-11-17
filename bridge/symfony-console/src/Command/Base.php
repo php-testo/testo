@@ -127,14 +127,19 @@ abstract class Base extends Command
 
     /**
      * Maps Symfony's console verbosity onto the framework's {@see Verbosity} level.
+     *
+     * Symfony 7.2+ adds `--silent` below `--quiet`; it is compared by value because the constant does
+     * not exist in the older versions this bridge supports.
      */
     private static function resolveVerbosity(OutputInterface $output): Verbosity
     {
-        return match ($output->getVerbosity()) {
-            OutputInterface::VERBOSITY_QUIET => Verbosity::Quiet,
-            OutputInterface::VERBOSITY_VERBOSE => Verbosity::Verbose,
-            OutputInterface::VERBOSITY_VERY_VERBOSE => Verbosity::VeryVerbose,
-            OutputInterface::VERBOSITY_DEBUG => Verbosity::Debug,
+        $verbosity = $output->getVerbosity();
+
+        return match (true) {
+            $verbosity <= OutputInterface::VERBOSITY_QUIET => Verbosity::Quiet,
+            $verbosity === OutputInterface::VERBOSITY_VERBOSE => Verbosity::Verbose,
+            $verbosity === OutputInterface::VERBOSITY_VERY_VERBOSE => Verbosity::VeryVerbose,
+            $verbosity === OutputInterface::VERBOSITY_DEBUG => Verbosity::Debug,
             default => Verbosity::Normal,
         };
     }

@@ -117,7 +117,7 @@ over-narrow filter — widen it (a typo in `--filter`, a `--path` that matches n
 - `--config=path/to/testo.php` when the config is not at the project root.
 - In an interactive terminal the default renderer also reports the run's progress and outcome to the
   terminal itself (OSC 7501 program status, shown in the tab by terminals that support it). It is off
-  for `--json`, `--teamcity`, `--quiet`, `--no-ansi`, `NO_COLOR` and redirected output; set
+  for `--json`, `--teamcity`, `--quiet`, `--silent`, `--no-ansi`, `NO_COLOR` and redirected output; set
   `TESTO_TERMINAL_STATUS=0` to turn it off everywhere. A Composer script (`composer test`) on Windows
   counts as redirected output: Composer pipes it, so run `vendor/bin/testo` directly to see the status.
 - Full flag list: `vendor/bin/testo --help`.
