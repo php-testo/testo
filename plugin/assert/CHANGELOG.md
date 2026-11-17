@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.18](https://github.com/php-testo/testo/compare/assert-0.1.17...assert-0.1.18) (2026-11-17)
+
+
+### Bug Fixes
+
+* **assert:** report "none thrown" when a `never` test with an expected exception falls off its end ([#407](https://github.com/php-testo/testo/issues/407)) ([5056469](https://github.com/php-testo/testo/commit/505646911e1e789073ccf68679af5d66c2a3c601))
+
 ## [0.1.17](https://github.com/php-testo/testo/compare/assert-0.1.16...assert-0.1.17) (2026-09-26)
 
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.10.58](https://github.com/php-testo/testo/compare/0.10.57...0.10.58) (2026-11-17)
+
+
+### Features
+
+* **rector:** drop `#[AssertMethod]` when converting to PHPUnit ([d8de3ea](https://github.com/php-testo/testo/commit/d8de3ead2c5ecd381838ee83587a4af9915e887d))
+* **rector:** mark custom assertion helpers with `#[AssertMethod]` ([d8de3ea](https://github.com/php-testo/testo/commit/d8de3ead2c5ecd381838ee83587a4af9915e887d))
+
+
+### Bug Fixes
+
+* **output:** trim the stack trace at a function marked with `#[AssertMethod]` ([bc6a75a](https://github.com/php-testo/testo/commit/bc6a75a619f96f52d7890184607ec66af6dcb143))
+* **rector:** bind named arguments in exception expectations and test attributes ([963b837](https://github.com/php-testo/testo/commit/963b8374a4e9e43fc3948c8c44e0d643d8ac8aab))
+* **rector:** bind named assertion arguments by PHPUnit parameter names ([9766dc6](https://github.com/php-testo/testo/commit/9766dc6a5e38961385c6ae7606d7bbb6bebbe9e1))
+* **rector:** leave custom assertion methods unchanged ([ba6e4c5](https://github.com/php-testo/testo/commit/ba6e4c5f4e23bfa82834953834fbf2c6b87b72ac)), closes [#390](https://github.com/php-testo/testo/issues/390)
+* **tokenizer:** count only real brace tokens when locating a declaration's end ([#409](https://github.com/php-testo/testo/issues/409)) ([38692ec](https://github.com/php-testo/testo/commit/38692ec3e59a8fbddce305a9132c62eedde2f9e1))
+
 ## [0.10.57](https://github.com/php-testo/testo/compare/0.10.56...0.10.57) (2026-11-15)
 
 
