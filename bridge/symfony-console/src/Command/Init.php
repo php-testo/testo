@@ -149,13 +149,17 @@ final class Init extends Command
     }
 
     /**
-     * Program status goes where the prompts are drawn, and only when they are drawn for a person: a quiet
-     * or undecorated run gets none. The prompts go through {@see SymfonyStyle}, which the question helper
-     * does not treat as a console output, so they are drawn on stdout rather than on the error output.
+     * Program status goes where the prompts are drawn, and only when they are drawn for a person: a quiet,
+     * silent or undecorated run gets none. The prompts go through {@see SymfonyStyle}, which the question
+     * helper does not treat as a console output, so they are drawn on stdout rather than on the error output.
+     * Verbosity is compared by value: `--silent` (Symfony 7.2+) sits below `--quiet`, and `isQuiet()`
+     * matches only the latter.
      */
     private static function programStatus(OutputInterface $output): ProgramStatus
     {
-        return $output instanceof StreamOutput && $output->isDecorated() && !$output->isQuiet()
+        return $output instanceof StreamOutput
+            && $output->isDecorated()
+            && $output->getVerbosity() > OutputInterface::VERBOSITY_QUIET
             ? ProgramStatus::detect($output->getStream())
             : ProgramStatus::disabled();
     }
