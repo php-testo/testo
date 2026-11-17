@@ -86,43 +86,16 @@ final class PhpunitAssertionCall
     }
 
     /**
-     * The call's arguments in PHPUnit's parameter order. Named ones are bound through the reflection
-     * of `Assert`, so the installed PHPUnit version decides the names. Null when the binding cannot be
-     * resolved: an unpacked argument, a first-class callable, a name the declaration lacks, a variadic
-     * declaration, or a missing argument before a bound one.
+     * The call's arguments in PHPUnit's parameter order ({@see PositionalArgs::bind()}). Named ones
+     * are bound through the reflection of `Assert`, so the installed PHPUnit version decides the
+     * names; a variadic declaration or a missing `Assert` leaves them unresolved.
      *
      * @param non-empty-string $method The assertion's method name, as returned by {@see name()}.
      * @return list<Arg>|null
      */
     public function positionalArgs(MethodCall|StaticCall|FuncCall $call, string $method): ?array
     {
-        if ($call->isFirstClassCallable()) {
-            return null;
-        }
-
-        $bound = [];
-        $parameters = null;
-        foreach ($call->getArgs() as $position => $arg) {
-            if ($arg->unpack) {
-                return null;
-            }
-
-            if ($arg->name !== null) {
-                $parameters ??= $this->parameterNames($method) ?? [];
-                $position = \array_search($arg->name->toString(), $parameters, true);
-                if ($position === false || isset($bound[$position])) {
-                    return null;
-                }
-
-                $arg = new Arg($arg->value, $arg->byRef, attributes: $arg->getAttributes());
-            }
-
-            $bound[$position] = $arg;
-        }
-
-        \ksort($bound);
-
-        return \array_is_list($bound) ? $bound : null;
+        return PositionalArgs::bind($call->args, fn(): ?array => $this->parameterNames($method));
     }
 
     /**

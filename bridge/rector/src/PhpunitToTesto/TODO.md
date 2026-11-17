@@ -72,7 +72,9 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   the `@dataProvider` docblock tag (mechanics adapted from Rector's own rule, minus the
   `TestCase` gate, so no `phpunit/phpunit` dependency) and the PHPUnit `#[DataProvider]` attribute.
   Cross-class providers (`Other::method` / `#[DataProviderExternal]`) are still left in place —
-  Testo's `DataProvider` takes a single provider and the external form is rare.
+  Testo's `DataProvider` takes a single provider and the external form is rare. **Residual:** the
+  attribute's `validateArgumentCount` and `skipWhenEmpty` have no Testo option and are dropped; an
+  empty provider then marks the test Risky where `skipWhenEmpty: true` made PHPUnit skip it.
 - **DoesNotPerformAssertionsToTestoRector** (registered) — direct attribute rename
   `#[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]` → `#[\Testo\Assert\ExpectNoAssertions]`
   (equivalent "no assertions expected" markers).
@@ -111,6 +113,10 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   lacks, a missing argument before a bound one (`assertEquals(expected: 1, message: 'm')`), an unpacked
   argument or a first-class callable. **Residual:** the arguments are evaluated in Testo's order, so
   side effects that depend on each other can run in a different order than in the source.
+  The other rules that carry PHPUnit arguments over bind them by PHPUnit's parameter names too, since
+  Testo spells its own differently: `expectException`/`expectExceptionMessage`/`MessageMatches`/`Code`
+  (`ExpectExceptionToTestoRector`), `#[Repeat]`/`#[Retry]`, `#[CoversClass]` and `#[DataProvider]`.
+  There the names are fixed in the rule, and an unknown name leaves the call or attribute untouched.
 - **TypedAssertCallToTestoRector** (registered) — the sibling of `AssertCallToTestoRector` for the
   assertions whose faithful Testo form is a **typed head + matcher** rather than a flat facade call.
   The subject moves from an argument to the head argument (evaluated once, no hoisting needed):

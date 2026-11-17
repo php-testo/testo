@@ -27,6 +27,7 @@ use Rector\PhpParser\Enum\NodeGroup;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\PositionalArgs;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -60,6 +61,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *
  * Only folds inside a class: the expectations belong to a test method, so a run in a free function
  * or at namespace level is left untouched.
+ *
+ * A named argument binds by PHPUnit's parameter name and moves over positionally, since Testo's
+ * methods spell theirs differently; an unknown name or an unpacked argument ends the run there.
  */
 #[TestRectorFixtures('ExpectExceptionToTestoRector')]
 final class ExpectExceptionToTestoRector extends AbstractRector
@@ -117,7 +121,8 @@ final class ExpectExceptionToTestoRector extends AbstractRector
             $stmt = $stmts[$i];
 
             $head = $stmt instanceof Expression ? $this->matchExpectException($stmt) : null;
-            if ($head === null) {
+            $headArgs = $head === null ? null : PositionalArgs::bind($head->args, ['exception']);
+            if ($headArgs === null) {
                 $result[] = $stmt;
                 continue;
             }
@@ -125,7 +130,7 @@ final class ExpectExceptionToTestoRector extends AbstractRector
             $chain = new StaticCall(
                 new FullyQualified('Testo\\Expect'),
                 new Identifier('exception'),
-                $head->args,
+                $headArgs,
             );
 
             # Absorb the expectExceptionMessage/Code siblings that follow, across assignments that
@@ -192,9 +197,10 @@ final class ExpectExceptionToTestoRector extends AbstractRector
 
     /**
      * Maps a foldable `$this->expectExceptionMessage/MessageMatches/Code(...)` statement to a `[method, args]`
-     * pair for the fluent chain, or null when the statement is not a foldable modifier.
+     * pair for the fluent chain, or null when the statement is not a foldable modifier. A named
+     * argument binds by PHPUnit's parameter name, since Testo's matchers spell theirs differently.
      *
-     * @return array{0: non-empty-string, 1: array<int, Arg|Node\VariadicPlaceholder>}|null
+     * @return array{0: non-empty-string, 1: list<Arg>}|null
      */
     private function matchModifier(Expression $stmt): ?array
     {
@@ -212,12 +218,15 @@ final class ExpectExceptionToTestoRector extends AbstractRector
             return null;
         }
 
-        return match (true) {
-            $this->isName($expr->name, 'expectExceptionMessage') => ['withMessageContaining', $expr->args],
-            $this->isName($expr->name, 'expectExceptionMessageMatches') => ['withMessageMatchingRegex', $expr->args],
-            $this->isName($expr->name, 'expectExceptionCode') => ['withCode', $expr->args],
-            default => null,
+        [$method, $parameter] = match (true) {
+            $this->isName($expr->name, 'expectExceptionMessage') => ['withMessageContaining', 'message'],
+            $this->isName($expr->name, 'expectExceptionMessageMatches') => ['withMessageMatchingRegex', 'regularExpression'],
+            $this->isName($expr->name, 'expectExceptionCode') => ['withCode', 'code'],
+            default => [null, null],
         };
+        $args = $method === null ? null : PositionalArgs::bind($expr->args, [$parameter]);
+
+        return $args === null ? null : [$method, $args];
     }
 
     /**
