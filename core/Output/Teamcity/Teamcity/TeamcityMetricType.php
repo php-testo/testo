@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Testo\Output\Teamcity\Teamcity;
 
 use Testo\Core\Metric\Memory;
-use Testo\Metric\Unit;
-use Testo\Metric\Metric;
 use Testo\Core\Metric\Percent;
 use Testo\Core\Metric\Scalar;
 use Testo\Core\Metric\Time;
+use Testo\Metric\Metric;
+use Testo\Metric\Unit;
 
 /**
  * The number dimensions a TeamCity `testMetadata` message can carry, and the conversion of a Core
