@@ -56,6 +56,7 @@ Session         → Outermost level (entire test run lifecycle)
 ```php
 SessionStarting        // Before any tests are discovered or executed
   WorkerStarting       // Before a subprocess starts (parallel/isolated mode)
+    TestSuitesLocated  // The suites the run will go through, before the first is scanned
     TestSuiteStarting  // Before a test suite (collection of cases) starts
       TestCaseStarting // Before a test case (file-scope group of tests) starts
         TestPipelineStarting   // Before run interceptors start
@@ -203,6 +204,7 @@ WorkerFinished         // After a subprocess finishes
 
 ### Suite and Case Events
 ```php
+TestSuitesLocated      // Once, with every suite the run will go through (filters applied), before the first starts
 TestSuiteStarting      // Before a suite (configured collection of test cases) starts
 TestSuiteFinished      // After a suite finishes
 TestCaseStarting       // Before a test case (one class, or the functions of one file) starts
