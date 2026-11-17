@@ -7,20 +7,27 @@ namespace Tests\Output\Unit\Terminal;
 use Internal\Path;
 use Internal\Container\ObjectContainer;
 use Testo\Application\Internal\EventDispatcher;
+use Testo\Application\Config\SuiteConfig;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Common\EventListenerCollector;
 use Testo\Core\Context\CaseInfo;
 use Testo\Core\Context\Identity\SuiteIdentity;
+use Testo\Core\Context\RunResult;
+use Testo\Core\Context\SuiteInfo;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Definition\CaseDefinition;
+use Testo\Core\Definition\CaseDefinitions;
 use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Value\Status;
+use Testo\Core\Value\Summary;
 use Testo\Core\Value\Verbosity;
 use Testo\Core\Report\ReportInfo;
+use Testo\Event\Framework\SessionFinished;
+use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Message\MessageReceived;
 use Testo\Event\Report\ReportFileGenerated;
 use Testo\Event\Report\ReportFileGenerating;
@@ -29,7 +36,11 @@ use Testo\Event\Test\TestBatchStarting;
 use Testo\Event\Test\TestDataSetFinished;
 use Testo\Event\Test\TestDataSetStarting;
 use Testo\Event\Test\TestPipelineFinished;
+use Testo\Event\TestCase\TestCaseStarting;
+use Testo\Event\TestSuite\TestSuitesLocated;
+use Testo\Event\TestSuite\TestSuiteStarting;
 use Testo\Output\ConsoleStreams;
+use Testo\Output\Terminal\ProgramStatus;
 use Testo\Output\Terminal\Renderer\ColorMode;
 use Testo\Output\Terminal\Renderer\Style;
 use Testo\Output\Terminal\TerminalPlugin;
@@ -172,6 +183,41 @@ final class TerminalPluginTest
         Assert::string($output)->notContains('Testo HTML report');
     }
 
+    public function aRunIsReportedAsProgramStatus(): void
+    {
+        $info = self::makeTestInfo('passingTest');
+        $suite = new SuiteInfo('Output/Unit', CaseDefinitions::fromArray($info->caseInfo->definition));
+
+        $output = self::capture(
+            static function (EventDispatcher $dispatcher) use ($info, $suite): void {
+                $dispatcher->dispatch(new SessionStarting());
+                $dispatcher->dispatch(new TestSuitesLocated([new SuiteConfig('Output/Unit', location: [])]));
+                $dispatcher->dispatch(new TestSuiteStarting($suite));
+                $dispatcher->dispatch(new TestCaseStarting($info->caseInfo));
+                $dispatcher->dispatch(new TestPipelineFinished($info, self::passed($info)));
+                $dispatcher->dispatch(new SessionFinished(new RunResult(
+                    [],
+                    status: Status::Passed,
+                    summary: new Summary(['Passed' => 1]),
+                )));
+            },
+            status: true,
+        );
+
+        Assert::string($output)->contains("\033]7501;state=working:app=testo\033\\");
+        Assert::string($output)->contains('state=working:app=testo:progress=0:msg=' . \base64_encode('Output/Unit'));
+        Assert::string($output)->contains('state=done:app=testo');
+    }
+
+    public function withoutATerminalNoProgramStatusIsWritten(): void
+    {
+        $output = self::capture(static function (EventDispatcher $dispatcher): void {
+            $dispatcher->dispatch(new SessionStarting());
+        });
+
+        Assert::string($output)->notContains("\033]7501;");
+    }
+
     private static function report(): ReportInfo
     {
         return new ReportInfo('html', 'Testo HTML report', Path::create('runtime/report/index.html'));
@@ -182,8 +228,9 @@ final class TerminalPluginTest
      * terminal stream. Verbose, because that is the verbosity at which output streams live.
      *
      * @param \Closure(EventDispatcher): void $scenario
+     * @param bool $status Report program status to the terminal stream, as on an interactive terminal.
      */
-    private static function capture(\Closure $scenario): string
+    private static function capture(\Closure $scenario, bool $status = false): string
     {
         $stdout = \fopen('php://memory', 'w+');
         $stderr = \fopen('php://memory', 'w+');
@@ -199,6 +246,7 @@ final class TerminalPluginTest
             $container->set($dispatcher, EventListenerCollector::class);
             $container->set(new ConsoleStreams($stdout, $stderr), ConsoleStreams::class);
             $container->set(Verbosity::Verbose, Verbosity::class);
+            $status and $container->set(new ProgramStatus($stdout), ProgramStatus::class);
             (new TerminalPlugin(ColorMode::Never))->configure($container);
 
             $scenario($dispatcher);

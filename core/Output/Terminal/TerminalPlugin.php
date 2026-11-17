@@ -7,6 +7,7 @@ namespace Testo\Output\Terminal;
 use Internal\Container\Container;
 use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
+use Testo\Core\Value\Verbosity;
 use Testo\Event\Framework\SessionFinished;
 use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Message\MessageReceived;
@@ -19,8 +20,11 @@ use Testo\Event\Test\TestPipelineFinished;
 use Testo\Event\TestCase\TestCaseFinished;
 use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuiteFinished;
+use Testo\Event\TestSuite\TestSuitesLocated;
 use Testo\Event\TestSuite\TestSuiteStarting;
+use Testo\Output\ConsoleStreams;
 use Testo\Output\Terminal\Renderer\ColorMode;
+use Testo\Output\Terminal\Renderer\RunStatus;
 use Testo\Output\Terminal\Renderer\Style;
 use Testo\Output\Terminal\Renderer\TerminalLogger;
 
@@ -64,6 +68,8 @@ final class TerminalPlugin implements PluginConfigurator
         $listeners->addListener(SessionStarting::class, $this->onSessionStarting(...));
         $listeners->addListener(SessionFinished::class, $this->onSessionFinished(...));
 
+        $this->listenRunStatus($listeners, self::programStatus($container, $colorMode));
+
         // Report files announced by any reporter plugin
         $listeners->addListener(ReportFileGenerated::class, $this->onReportFileGenerated(...));
 
@@ -88,6 +94,50 @@ final class TerminalPlugin implements PluginConfigurator
         // TestSuite events
         $listeners->addListener(TestSuiteStarting::class, $this->onTestSuiteStarting(...));
         $listeners->addListener(TestSuiteFinished::class, $this->onTestSuiteFinished(...));
+    }
+
+    /**
+     * A bound {@see ProgramStatus} wins; otherwise the reports follow the terminal and stay off when the
+     * user asked for quiet or plain output.
+     */
+    private static function programStatus(Container $container, ColorMode $colorMode): ProgramStatus
+    {
+        if ($container->has(ProgramStatus::class)) {
+            return $container->get(ProgramStatus::class);
+        }
+
+        $quiet = $container->has(Verbosity::class) && $container->get(Verbosity::class) === Verbosity::Quiet;
+
+        return $quiet || $colorMode === ColorMode::Never
+            ? ProgramStatus::disabled()
+            : ProgramStatus::detect($container->get(ConsoleStreams::class)->stdout);
+    }
+
+    private function listenRunStatus(EventListenerCollector $listeners, ProgramStatus $status): void
+    {
+        if (!$status->isEnabled()) {
+            return;
+        }
+
+        $run = new RunStatus($status);
+        $listeners->addListener(SessionStarting::class, static fn() => $run->sessionStarted());
+        $listeners->addListener(
+            TestSuitesLocated::class,
+            static fn(TestSuitesLocated $event) => $run->suitesLocated($event->suites),
+        );
+        $listeners->addListener(
+            TestSuiteStarting::class,
+            static fn(TestSuiteStarting $event) => $run->suiteStarted($event->suiteInfo),
+        );
+        $listeners->addListener(
+            TestCaseStarting::class,
+            static fn(TestCaseStarting $event) => $run->caseStarted($event->caseInfo),
+        );
+        $listeners->addListener(TestPipelineFinished::class, static fn() => $run->testFinished());
+        $listeners->addListener(
+            SessionFinished::class,
+            static fn(SessionFinished $event) => $run->sessionFinished($event->result),
+        );
     }
 
     private function onSessionStarting(SessionStarting $event): void
