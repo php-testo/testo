@@ -10,7 +10,9 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\StreamOutput;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Testo\Output\Terminal\ProgramStatus;
 
 /**
  * Initializes Testo in the project:
@@ -50,12 +52,14 @@ final class Init extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+        $status = self::programStatus($output);
+        $status->working();
 
         try {
             $basePath = Path::create((string) $input->getOption('path'));
             self::ensureDirectory($basePath, $io);
 
-            $srcPath = self::discoverSourceDirectory($input, $basePath, $io);
+            $srcPath = self::discoverSourceDirectory($input, $basePath, $io, $status);
 
             $testsPath = $basePath->join('tests');
             self::ensureDirectory($testsPath, $io);
@@ -68,17 +72,21 @@ final class Init extends Command
             # Non-interactive + existing config: bail out before touching the file.
             if ($configPath->isFile() && !$input->isInteractive()) {
                 $io->warning(\sprintf('%s already exists. Skipping (non-interactive mode).', $configPath));
+                $status->done('Configuration left untouched');
                 return Command::SUCCESS;
             }
 
-            if (self::writeConfig($configPath, $srcPath, $suites, $io)) {
+            if (self::writeConfig($configPath, $srcPath, $suites, $io, $status)) {
                 self::printSummary($configPath, $composerKeys, $io);
+                $status->done('Configuration created');
             } else {
                 $io->note(\sprintf('Left existing %s untouched.', $configPath));
+                $status->done('Configuration left untouched');
             }
         } catch (\Throwable $exception) {
             $output->writeln('');
             $output->writeln(\sprintf('<fg=red>%s</>', $exception->getMessage()));
+            $status->error('Initialization failed');
             return Command::FAILURE;
         }
 
@@ -102,8 +110,12 @@ final class Init extends Command
      * keeps the generated config self-consistent — paths like `src` always resolve
      * next to testo.php, regardless of where the user runs the command from.
      */
-    private static function discoverSourceDirectory(InputInterface $input, Path $basePath, SymfonyStyle $io): Path
-    {
+    private static function discoverSourceDirectory(
+        InputInterface $input,
+        Path $basePath,
+        SymfonyStyle $io,
+        ProgramStatus $status,
+    ): Path {
         if ($basePath->join('src')->isDir()) {
             return Path::create('src');
         }
@@ -115,7 +127,8 @@ final class Init extends Command
             ));
         }
 
-        return Path::create((string) $io->ask(
+        $status->blocked('Path to source code');
+        $path = Path::create((string) $io->ask(
             question: 'Path to source code (relative to project root)',
             default: 'src',
             validator: static function (?string $value) use ($basePath): string {
@@ -130,6 +143,21 @@ final class Init extends Command
                 return $value;
             },
         ));
+        $status->working();
+
+        return $path;
+    }
+
+    /**
+     * Program status goes where the prompts are drawn, and only when they are drawn for a person: a quiet
+     * or undecorated run gets none. The prompts go through {@see SymfonyStyle}, which the question helper
+     * does not treat as a console output, so they are drawn on stdout rather than on the error output.
+     */
+    private static function programStatus(OutputInterface $output): ProgramStatus
+    {
+        return $output instanceof StreamOutput && $output->isDecorated() && !$output->isQuiet()
+            ? ProgramStatus::detect($output->getStream())
+            : ProgramStatus::disabled();
     }
 
     /**
@@ -213,10 +241,21 @@ final class Init extends Command
      *
      * @param list<string> $suites
      */
-    private static function writeConfig(Path $configPath, Path $srcPath, array $suites, SymfonyStyle $io): bool
-    {
-        if ($configPath->isFile() && !$io->confirm(\sprintf('%s already exists. Overwrite?', $configPath), false)) {
-            return false;
+    private static function writeConfig(
+        Path $configPath,
+        Path $srcPath,
+        array $suites,
+        SymfonyStyle $io,
+        ProgramStatus $status,
+    ): bool {
+        if ($configPath->isFile()) {
+            $status->blocked('Overwrite the existing configuration?');
+            $overwrite = $io->confirm(\sprintf('%s already exists. Overwrite?', $configPath), false);
+            $status->working();
+
+            if (!$overwrite) {
+                return false;
+            }
         }
 
         $suitesCode = '';
