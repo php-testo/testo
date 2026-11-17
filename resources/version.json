@@ -1,5 +1,5 @@
 {
-    ".": "0.10.58",
+    ".": "0.10.59",
     "plugin/repeat": "0.1.9",
     "plugin/convention": "0.1.5",
     "plugin/lifecycle": "0.1.9",
@@ -15,7 +15,7 @@
     "plugin/fiber": "0.1.3",
     "plugin/skip": "0.1.1",
     "bridge/double": "0.1.2",
-    "bridge/symfony-console": "0.1.14",
+    "bridge/symfony-console": "0.1.15",
     "bridge/infection": "0.1.9",
     "bridge/mockery": "0.1.2",
     "bridge/rector": "0.3.5",
