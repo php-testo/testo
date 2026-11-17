@@ -34,7 +34,7 @@ final readonly class SuiteLocator
 
         /**
          * @see SuiteLocatorInterceptor::locateTestSuites()
-         * @var callable(ApplicationConfig): list<SuiteConfig> $pipeline
+         * @var callable(ApplicationConfig): array<array-key, SuiteConfig> $pipeline
          */
         $pipeline = Pipeline::prepare(
             new PipeOptions(includeTypes: $this->filter->type, excludeTypes: $this->filter->notType),
@@ -42,6 +42,8 @@ final readonly class SuiteLocator
         )
             ->with(static fn(ApplicationConfig $config): array => $config->suites, 'locateTestSuites');
 
-        return $pipeline($config);
+        # An interceptor that filters with `array_filter()` hands back a keyed array; consumers count
+        # positions in this list, so the keys are dropped here once for all of them.
+        return \array_values($pipeline($config));
     }
 }

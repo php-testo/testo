@@ -15,6 +15,8 @@ use Testo\Common\EventListenerCollector;
 use Testo\Common\PluginConfigurator;
 use Testo\Event\TestSuite\TestSuitesLocated;
 use Testo\Event\TestSuite\TestSuiteStarting;
+use Testo\Pipeline\InterceptorProvider;
+use Testo\Pipeline\Middleware\SuiteLocatorInterceptor;
 use Testo\Test;
 
 /**
@@ -57,5 +59,42 @@ final class SuitesLocatedTest
         ))->run($recorder);
 
         Assert::same($events, ['located: Empty, Runner', 'starting: Runner']);
+    }
+
+    public function suitesFilteredIntoAKeyedArrayAreAnnouncedAsAList(): void
+    {
+        $located = null;
+        $plugin = new class($located) implements PluginConfigurator {
+            public function __construct(private ?array &$located) {}
+
+            #[\Override]
+            public function configure(Container $container): void
+            {
+                $container->get(InterceptorProvider::class)->addInterceptor(new class implements SuiteLocatorInterceptor {
+                    #[\Override]
+                    public function locateTestSuites(ApplicationConfig $config, callable $next): array
+                    {
+                        // Keeps the key of the surviving suite, as `array_filter()` does.
+                        return \array_filter($next($config), static fn(SuiteConfig $suite): bool => $suite->name === 'Runner');
+                    }
+                });
+                $container->get(EventListenerCollector::class)->addListener(
+                    TestSuitesLocated::class,
+                    function (TestSuitesLocated $event): void {
+                        $this->located = $event->suites;
+                    },
+                );
+            }
+        };
+
+        Application::createFromConfig(new ApplicationConfig(
+            src: [],
+            suites: [
+                new SuiteConfig('Empty', location: new FinderConfig(include: [__DIR__ . '/../../Stub/EmptyRun'])),
+                new SuiteConfig('Runner', location: new FinderConfig(include: [__DIR__ . '/../../Stub/Runner'])),
+            ],
+        ))->run($plugin);
+
+        Assert::array($located)->isList()->hasCount(1);
     }
 }
