@@ -14,6 +14,7 @@ use PhpParser\Node\Scalar\Int_;
 use Rector\Rector\AbstractRector;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+use Testo\Bridge\Rector\Internal\PositionalArgs;
 use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 
 /**
@@ -28,6 +29,9 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * Testo's `maxFailures` (default 0) is the number of failures **tolerated** before the loop fails —
  * off by one. So `maxFailures = failureThreshold - 1`, and the PHPUnit default of `1` maps to the
  * Testo default of `0`, which is therefore omitted rather than emitted.
+ *
+ * Named arguments bind by PHPUnit's parameter names (`times`, `failureThreshold`, `maxAttempts`); an
+ * unknown name, an extra argument or an unpacked one leaves the attribute untouched.
  *
  * PHPUnit's `Repeat`/`Retry` are method-only, so no target reconciliation is needed on the Testo
  * side (Testo's attributes additionally allow class/function targets, a strict superset).
@@ -77,28 +81,30 @@ final class RepeatRetryToTestoRector extends AbstractRector
 
     private function convertRepeat(Attribute $node): ?Attribute
     {
-        $times = $node->args[0] ?? null;
-        if (!$times instanceof Arg) {
+        $args = PositionalArgs::bind($node->args, ['times', 'failureThreshold']);
+        $times = $args[0] ?? null;
+        if ($times === null || \count($args) > 2) {
             return null;
         }
 
-        $args = [new Arg($times->value, name: new Identifier('times'))];
+        $converted = [new Arg($times->value, name: new Identifier('times'))];
 
-        $threshold = $node->args[1] ?? null;
-        if ($threshold instanceof Arg && ($maxFailures = $this->thresholdToMaxFailures($threshold->value)) !== null) {
-            $args[] = new Arg($maxFailures, name: new Identifier('maxFailures'));
+        $threshold = $args[1] ?? null;
+        if ($threshold !== null && ($maxFailures = $this->thresholdToMaxFailures($threshold->value)) !== null) {
+            $converted[] = new Arg($maxFailures, name: new Identifier('maxFailures'));
         }
 
         $node->name = new FullyQualified('Testo\\Repeat');
-        $node->args = $args;
+        $node->args = $converted;
 
         return $node;
     }
 
     private function convertRetry(Attribute $node): ?Attribute
     {
-        $maxAttempts = $node->args[0] ?? null;
-        if (!$maxAttempts instanceof Arg) {
+        $args = PositionalArgs::bind($node->args, ['maxAttempts']);
+        $maxAttempts = $args[0] ?? null;
+        if ($maxAttempts === null || \count($args) > 1) {
             return null;
         }
 
