@@ -8,7 +8,9 @@ use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Attribute;
 use PhpParser\Node\AttributeGroup;
+use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Name\FullyQualified;
@@ -18,6 +20,7 @@ use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Expression;
 use PhpParser\Node\Stmt\Trait_;
 use PhpParser\NodeVisitor;
+use PHPStan\Reflection\ClassReflection;
 use PHPStan\Reflection\ReflectionProvider;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfo;
 use Rector\BetterPhpDocParser\PhpDocInfo\PhpDocInfoFactory;
@@ -44,8 +47,12 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *     `TestCase` hooks), since PHP rejects the attribute on a method without a parent declaration.
  *     A method declared by one of the class's interfaces keeps it, as does every method when an
  *     interface cannot be resolved;
- *   - drops the `parent::setUp()`-style call statements that resolve into PHPUnit, since PHP rejects
- *     `parent` in a class without one. A call whose result is used is left for the manual pass.
+ *   - rewrites the `parent::` call statements that resolve into PHPUnit, since PHP rejects `parent`
+ *     in a class without one: a `parent::setUp()`-style hook call, or a call to the PHPUnit method
+ *     its own enclosing method overrides, is dropped, and any other call, such as
+ *     `parent::markTestSkipped()`, becomes `self::`/`$this->` for the skip and expectation rules to
+ *     convert. A call whose result is used is left for the manual pass. An anonymous class that
+ *     extends `TestCase` directly is handled the same way; one on a project base is left untouched.
  *
  * "Test method" mirrors PHPUnit's own discovery: a method carrying the PHPUnit
  * `#[\PHPUnit\Framework\Attributes\Test]` attribute, a method with a `@test` docblock
@@ -58,8 +65,8 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * `extends` and its `#[\Override]` attributes — the base is still there, converted on its own —
  * and only gains `#[\Testo\Test]` on its test methods. Without them Testo would not discover the
  * subclass's tests at all. Its `parent::` calls to a PHPUnit method the base does not override are
- * dropped as well. A base that cannot be resolved, or does not lead to `TestCase`, leaves the class
- * untouched.
+ * rewritten the same way. A base that cannot be resolved, or does not lead to `TestCase`, leaves the
+ * class untouched.
  *
  * A base from outside the processed paths, such as a framework's test case in vendor, stays a
  * PHPUnit class. Its subclasses are converted all the same, keep their `parent::` calls, and the
@@ -81,6 +88,21 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
 final class ExtendsTestCaseToTestoRector extends AbstractRector
 {
     use OriginalTokens;
+
+    /**
+     * `TestCase` methods whose `parent::` call only reaches PHPUnit's own plumbing; Testo runs the
+     * overriding method on its own, so the call has nothing left to do.
+     */
+    private const DROPPED_HOOKS = [
+        '__construct',
+        'setup',
+        'teardown',
+        'setupbeforeclass',
+        'teardownafterclass',
+        'assertpreconditions',
+        'assertpostconditions',
+        'onnotsuccessfultest',
+    ];
 
     public function __construct(
         private readonly PhpDocInfoFactory $phpDocInfoFactory,
@@ -153,10 +175,11 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
 
             # Indirect subclass: the base stays, only discovery needs the attribute.
             $vendorBase = $this->testCaseClass->phpunitBaseFromVendor($node);
+            $base = $vendorBase === null ? $this->base($node) : null;
             $changed = false;
             foreach ($node->getMethods() as $method) {
                 $method->isPublic() && $this->markTestMethod($method) and $changed = true;
-                $vendorBase === null && $this->removePhpunitParentCalls($node, $method) and $changed = true;
+                $base !== null && $this->rewritePhpunitParentCalls($base, $method) and $changed = true;
             }
 
             $vendorBase !== null && $vendorBase['direct'] && $this->skipOnVendorBase($node, $vendorBase['name'])
@@ -165,13 +188,14 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
             return $changed ? $node : null;
         }
 
+        $base = $this->base($node);
         $node->extends = null;
 
         $interfaces = $this->nodeNameResolver->getNames($node->implements);
         foreach ($node->getMethods() as $method) {
             $method->isPublic() and $this->markTestMethod($method);
             $this->isDeclaredByInterface($method, $interfaces) or $this->removeOverrideAttribute($method);
-            $this->removePhpunitParentCalls($node, $method);
+            $this->rewritePhpunitParentCalls($base, $method);
         }
 
         return $node;
@@ -209,27 +233,46 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
     }
 
     /**
-     * Drops the `parent::method()` statements that resolve into PHPUnit, which the converted chain no
-     * longer extends: without a parent PHP rejects `parent` at compile time, and on a converted base
+     * The class's direct base as loaded from source, read from the name it extends before its
+     * `extends` is removed: an anonymous class has no name of its own to reflect.
+     *
+     * @return ClassReflection|null Null when the base cannot be resolved.
+     */
+    private function base(Class_ $class): ?ClassReflection
+    {
+        $base = $class->extends === null ? null : $this->getName($class->extends);
+
+        return $base !== null && $this->reflectionProvider->hasClass($base)
+            ? $this->reflectionProvider->getClass($base)
+            : null;
+    }
+
+    /**
+     * Rewrites the `parent::method()` statements that resolve into PHPUnit, which the converted chain
+     * no longer extends: without a parent PHP rejects `parent` at compile time, and on a converted base
      * the method is gone. A call reaching a method a local base declares stays, as does a call whose
      * result is used. An anonymous class inside the method has a parent of its own and is not entered.
      *
-     * A PHPUnit assertion is kept as an explicit `\PHPUnit\Framework\Assert::` call instead: the
-     * assertion rules convert the ones Testo maps, and the rest stay valid PHPUnit calls rather than
-     * a `parent::` that would stop the whole file from compiling.
+     * Only a call to a `TestCase` hook, or to the PHPUnit method the enclosing one overrides, is
+     * dropped. A PHPUnit assertion becomes an explicit `\PHPUnit\Framework\Assert::` call: the
+     * assertion rules convert the ones Testo maps, and the rest stay valid PHPUnit calls. Any other
+     * call, such as `markTestSkipped()` or `expectException()`, becomes `self::` or `$this->`, the
+     * spelling the skip and expectation rules convert by name; dropping it would silently change what
+     * the test checks.
+     *
+     * Without the base's reflection, as for a class extending `TestCase` directly while PHPUnit cannot
+     * be resolved, every call is taken to reach PHPUnit.
      *
      * @return bool Whether a call was changed.
      */
-    private function removePhpunitParentCalls(Class_ $class, ClassMethod $method): bool
+    private function rewritePhpunitParentCalls(?ClassReflection $base, ClassMethod $method): bool
     {
-        $name = $class->namespacedName?->toString();
-        if ($name === null || !$this->reflectionProvider->hasClass($name)) {
-            return false;
-        }
-
-        $parents = $this->reflectionProvider->getClass($name)->getParents();
+        $native = $base?->getNativeReflection();
         $changed = false;
-        $this->traverseNodesWithCallable($method, function (Node $node) use ($parents, &$changed): ?int {
+        # Within its own override a rewritten call would reach the override again.
+        $dropped = [...self::DROPPED_HOOKS, $method->name->toLowerString()];
+        $inStatic = $method->isStatic();
+        $this->traverseNodesWithCallable($method, function (Node $node) use ($native, $dropped, $inStatic, &$changed): ?int {
             if ($node instanceof Class_) {
                 return NodeVisitor::DONT_TRAVERSE_CHILDREN;
             }
@@ -244,14 +287,17 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
             }
 
             $called = $node->expr->name->toString();
-            foreach ($parents as $parent) {
-                $native = $parent->getNativeReflection();
-                if (!\str_starts_with($parent->getName(), 'PHPUnit\\')
-                    && $native->hasMethod($called)
-                    && !\str_starts_with($native->getMethod($called)->getDeclaringClass()->getName(), 'PHPUnit\\')
-                ) {
+            # The base's reflection covers every inherited method. A method no ancestor declares
+            # becomes `$this->` too: a visible call to a missing method rather than a statement that
+            # silently disappears.
+            $static = false;
+            if ($native?->hasMethod($called)) {
+                $declared = $native->getMethod($called);
+                if (!\str_starts_with($declared->getDeclaringClass()->getName(), 'PHPUnit\\')) {
                     return null;
                 }
+
+                $static = $declared->isStatic();
             }
 
             $changed = true;
@@ -261,15 +307,26 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
                 return null;
             }
 
-            return NodeVisitor::REMOVE_NODE;
+            if (\in_array(\strtolower($called), $dropped, true)) {
+                return NodeVisitor::REMOVE_NODE;
+            }
+
+            # A static method has no `$this` to call on.
+            if ($static || $inStatic) {
+                $node->expr->class = new Name('self');
+            } else {
+                $node->expr = new MethodCall(new Variable('this'), $node->expr->name, $node->expr->args);
+            }
+
+            return null;
         });
 
         return $changed;
     }
 
     /**
-     * Only a static assertion declared on `Assert` survives the rewrite; `TestCase` hooks such as
-     * `assertPostConditions()` exist on the instance alone and are dropped with the other calls.
+     * Only a static assertion declared on `Assert` counts; `TestCase` hooks such as
+     * `assertPostConditions()` exist on the instance alone and are dropped as hooks.
      */
     private function isPhpunitAssertion(StaticCall $call): bool
     {

@@ -208,12 +208,22 @@ if (!\class_exists(Assert::class, false)) {
         abstract public static function assertTrue($condition, $message = ''): void;
 
         abstract public static function fail($message = ''): void;
+
+        abstract public static function markTestIncomplete($message = ''): never;
+
+        abstract public static function markTestSkipped($message = ''): never;
     }
 }
 
 if (!\class_exists(TestCase::class, false)) {
     abstract class TestCase extends Assert
     {
+        abstract public function addToAssertionCount($count): void;
+
+        abstract public function expectException($exception): void;
+
+        abstract public function expectExceptionMessage($message): void;
+
         abstract protected function assertPreConditions(): void;
 
         abstract protected function assertPostConditions(): void;
