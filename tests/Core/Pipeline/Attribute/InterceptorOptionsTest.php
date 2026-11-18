@@ -38,6 +38,24 @@ final class InterceptorOptionsTest
         Assert::same(ConflictPolicy::Merge, $options->onConflict);
         Assert::same(['unit', 'integration'], $options->testType);
     }
+
+    /**
+     * On 32-bit PHP a literal above 2^31-1 compiles to float and breaks the `int $order` parameter.
+     */
+    public function orderConstantsFitIn32BitInt(): void
+    {
+        $constants = (new \ReflectionClass(InterceptorOptions::class))->getConstants();
+
+        foreach ($constants as $name => $value) {
+            if (!\str_starts_with($name, 'ORDER_')) {
+                continue;
+            }
+
+            Assert::int($value)
+                ->greaterThanOrEqual(-2_147_483_648)
+                ->lessThanOrEqual(2_147_483_647);
+        }
+    }
 }
 
 #[InterceptorOptions(
