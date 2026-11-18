@@ -23,6 +23,7 @@ use Testo\Event\TestSuite\TestSuiteFinished;
 use Testo\Event\TestSuite\TestSuitesLocated;
 use Testo\Event\TestSuite\TestSuiteStarting;
 use Testo\Output\ConsoleStreams;
+use Testo\Output\Terminal\Internal\TerminalInput;
 use Testo\Output\Terminal\Renderer\ColorMode;
 use Testo\Output\Terminal\Renderer\RunStatus;
 use Testo\Output\Terminal\Renderer\Style;
@@ -60,7 +61,9 @@ final class TerminalPlugin implements PluginConfigurator
             ?? ($container->has(ColorMode::class) ? $container->get(ColorMode::class) : ColorMode::Always);
         Style::setColorsEnabled($colorMode->shouldUseColors());
 
-        $this->logger = $container->get(TerminalLogger::class);
+        $this->logger = $container->get(TerminalLogger::class, [
+            'progress' => !$container->get(TerminalInput::class)->noProgress,
+        ]);
 
         $listeners = $container->get(EventListenerCollector::class);
 

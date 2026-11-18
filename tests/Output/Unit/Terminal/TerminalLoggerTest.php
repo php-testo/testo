@@ -279,6 +279,149 @@ final class TerminalLoggerTest
             ->contains('1 passed');
     }
 
+    public function withoutProgressOnlyTheFinalReportIsWritten(): void
+    {
+        $passed = self::test('passingTest', Status::Passed);
+        $failed = self::test('failingTest', Status::Failed, new \RuntimeException('boom'));
+        $batch = self::test('describedTest', Status::Passed);
+        $caseInfo = $passed->info->caseInfo;
+        $suiteInfo = new SuiteInfo('Output/Unit', CaseDefinitions::fromArray());
+        $summary = new Summary(['Passed' => 2, 'Failed' => 1]);
+        $caseResult = new CaseResult([$passed, $failed, $batch], Status::Failed, $summary);
+        $suiteResult = new SuiteResult([$caseResult], Status::Failed, $summary);
+        $run = new RunResult([$suiteResult], Status::Failed, $summary, new RunTiming());
+
+        $output = self::withoutColors(static fn(): string => self::capture(
+            static function (TerminalLogger $logger) use (
+                $suiteInfo, $caseInfo, $passed, $failed, $batch, $caseResult, $suiteResult, $run,
+            ): void {
+                $logger->suiteStartedFromInfo($suiteInfo);
+                $logger->caseStartedFromInfo($caseInfo);
+                $logger->handleTestResult($passed, 0);
+                $logger->handleTestResult($failed, 0);
+                $logger->batchStartedFromInfo($batch->info);
+                $logger->testStartedFromInfo($batch->info, 'Dataset #0 [a]');
+                $logger->handleTestResult($batch, 0);
+                $logger->batchFinishedFromInfo($batch->info);
+                $logger->closeTest($batch->info);
+                $logger->handleCaseResult($caseInfo, $caseResult);
+                $logger->handleSuiteResult($suiteInfo, $suiteResult);
+                $logger->printSummary($run);
+            },
+            format: OutputFormat::Verbose,
+            progress: false,
+        ));
+
+        Assert::string($output)
+            ->notContains('Suite: Output/Unit')
+            ->notContains('Case:')
+            ->notContains('passingTest')
+            ->notContains('describedTest')
+            ->notContains('Sample description line')
+            ->contains('Failures:')
+            ->contains('Output/Unit / ')
+            ->contains(':: failingTest')
+            ->contains('Total')
+            ->contains('2 passed, 1 failed');
+        Assert::same(\substr_count($output, 'failingTest'), 1);
+        Assert::same(\substr_count($output, 'boom'), 2);
+    }
+
+    public function verboseRunWithoutProgressPrintsCapturedOutputOnlyInTheFailureBlock(): void
+    {
+        $message = new Message(0.0, 'stdout', Level::Info, "captured line\n");
+        $failed = self::test('failingTest', Status::Failed, new \RuntimeException('boom'), new MessageLog([$message]));
+        $run = self::run([$failed], Status::Failed, summary: new Summary(['Failed' => 1]));
+
+        $output = self::withoutColors(static fn(): string => self::capture(
+            static function (TerminalLogger $logger) use ($message, $failed, $run): void {
+                $logger->logMessage($message, $failed->info->identity->pipelineId);
+                $logger->handleTestResult($failed, 0);
+                $logger->closeTest($failed->info);
+                $logger->printSummary($run);
+            },
+            verbosity: Verbosity::Verbose,
+            progress: false,
+        ));
+
+        Assert::same(\substr_count($output, 'captured line'), 1);
+        Assert::string($output)->matchesRegex('/Failures:.*Output:.*captured line/s');
+    }
+
+    public function verboseSingleTestRunWithoutProgressSurfacesItsOutput(): void
+    {
+        $test = self::test('passingTest', Status::Passed, messages: new MessageLog([
+            new Message(0.0, 'stdout', Level::Info, 'nothing streamed live'),
+        ]));
+        $run = self::run([$test], Status::Passed);
+
+        $output = self::capture(
+            static function (TerminalLogger $logger) use ($test, $run): void {
+                $logger->handleTestResult($test, 0);
+                $logger->printSummary($run);
+            },
+            verbosity: Verbosity::Verbose,
+            progress: false,
+        );
+
+        Assert::same(\substr_count($output, 'nothing streamed live'), 1);
+    }
+
+    public function dotsWithoutProgressPrintNothingWhileTheRunGoes(): void
+    {
+        $passed = self::test('passingTest', Status::Passed);
+        $failed = self::test('failingTest', Status::Failed, new \RuntimeException('boom'));
+        $caseResult = new CaseResult([$passed, $failed], Status::Failed, new Summary(['Passed' => 1, 'Failed' => 1]));
+
+        $output = self::capture(
+            static function (TerminalLogger $logger) use ($passed, $failed, $caseResult): void {
+                $logger->caseStartedFromInfo($passed->info->caseInfo);
+                $logger->handleTestResult($passed, 0);
+                $logger->handleTestResult($failed, 0);
+                $logger->handleCaseResult($passed->info->caseInfo, $caseResult);
+            },
+            format: OutputFormat::Dots,
+            progress: false,
+        );
+
+        Assert::same($output, '');
+    }
+
+    public function multipleRunsAreOmittedWithoutProgress(): void
+    {
+        $runA = self::test('passingTest', Status::Passed);
+        $runB = self::test('passingTest', Status::Failed);
+        $test = self::test('passingTest', Status::Passed, attributes: [
+            MultipleResult::class => new MultipleResult(['first' => $runA, 'second' => $runB]),
+        ]);
+
+        $output = self::capture(
+            static fn(TerminalLogger $logger) => $logger->handleTestResult($test, 0),
+            progress: false,
+        );
+
+        Assert::same($output, '');
+    }
+
+    #[DataSet([Status::Failed, 'Failures:'], 'failures come first')]
+    #[DataSet([Status::Passed, 'Summary'], 'summary comes first')]
+    public function withoutProgressTheReportIsOneBlankLineBelowTheEnvironment(Status $status, string $heading): void
+    {
+        $test = self::test('passingTest', $status);
+        $run = self::run([$test], $status, summary: new Summary([$status->name => 1]));
+
+        $output = self::withoutColors(static fn(): string => self::capture(
+            static function (TerminalLogger $logger) use ($test, $run): void {
+                $logger->printEnvironment();
+                $logger->handleTestResult($test, 0);
+                $logger->printSummary($run);
+            },
+            progress: false,
+        ));
+
+        Assert::string($output)->matchesRegex('/OPcache: [^\n]*\n\n ' . \preg_quote($heading, '/') . '/');
+    }
+
     #[DataSet([Status::Skipped, '○'], 'skipped renders the open circle')]
     #[DataSet([Status::Cancelled, '○'], 'cancelled reuses the skipped circle')]
     #[DataSet([Status::Risky, '?'], 'risky renders the question mark')]
@@ -549,12 +692,13 @@ final class TerminalLoggerTest
         \Closure $scenario,
         OutputFormat $format = OutputFormat::Compact,
         Verbosity $verbosity = Verbosity::Normal,
+        bool $progress = true,
     ): string {
         $stream = \fopen('php://memory', 'rb+');
         \assert($stream !== false);
 
         try {
-            $scenario(new TerminalLogger(new ConsoleStreams($stream), $format, $verbosity));
+            $scenario(new TerminalLogger(new ConsoleStreams($stream), $format, $verbosity, $progress));
             \rewind($stream);
             $output = \stream_get_contents($stream);
         } finally {
