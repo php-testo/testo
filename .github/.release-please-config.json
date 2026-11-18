@@ -95,6 +95,12 @@
             "include-component-in-tag": true,
             "changelog-path": "CHANGELOG.md"
         },
+        "plugin/error-handler": {
+            "package-name": "testo/error-handler",
+            "component": "error-handler",
+            "include-component-in-tag": true,
+            "changelog-path": "CHANGELOG.md"
+        },
         "bridge/symfony-console": {
             "package-name": "testo/bridge-symfony-console",
             "component": "bridge-symfony-console",
