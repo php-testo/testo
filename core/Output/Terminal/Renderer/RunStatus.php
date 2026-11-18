@@ -110,8 +110,8 @@ final class RunStatus
 
         $width = $this->suiteEnd - $this->suiteStart;
         $count = \count($this->cases);
-        $this->caseStart = $this->suiteStart + \intdiv($width * $index, $count);
-        $this->caseEnd = $this->suiteStart + \intdiv($width * ($index + 1), $count);
+        $this->caseStart = $this->suiteStart + self::share($width, $index, $count);
+        $this->caseEnd = $this->suiteStart + self::share($width, $index + 1, $count);
         $this->caseTests = \count($case->definition->tests->getTests());
         $this->caseFinished = 0;
         $this->report($this->caseStart);
@@ -125,7 +125,7 @@ final class RunStatus
 
         $this->caseFinished = \min($this->caseFinished + 1, $this->caseTests);
         $this->report(
-            $this->caseStart + \intdiv(($this->caseEnd - $this->caseStart) * $this->caseFinished, $this->caseTests),
+            $this->caseStart + self::share($this->caseEnd - $this->caseStart, $this->caseFinished, $this->caseTests),
         );
     }
 
@@ -148,6 +148,17 @@ final class RunStatus
 
     private function report(int $position): void
     {
-        $this->status->working(\intdiv(100 * $position, self::SCALE), $this->suiteName);
+        $this->status->working(self::share(100, $position, self::SCALE), $this->suiteName);
+    }
+
+    /**
+     * The `$part` of `$whole` shares of `$width`, rounded down.
+     *
+     * The product is taken in float: on 32-bit PHP it overflows int. It stays exact below 2^53, and the full
+     * share gives exactly `$width`.
+     */
+    private static function share(int $width, int $part, int $whole): int
+    {
+        return (int) \floor((float) $width * $part / $whole);
     }
 }
