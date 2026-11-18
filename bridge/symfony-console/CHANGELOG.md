@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.15](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.14...bridge-symfony-console-0.1.15) (2026-11-17)
+
+
+### Features
+
+* **output:** report terminal program status (OSC 7501) for `run` and `init` ([bd251a4](https://github.com/php-testo/testo/commit/bd251a429788c8be3b76378d2f129d056db8ed5d)), closes [#413](https://github.com/php-testo/testo/issues/413)
+
+
+### Bug Fixes
+
+* **output:** treat `--silent` as quiet, so it turns the terminal status off ([d1ec71d](https://github.com/php-testo/testo/commit/d1ec71d04799514e5b04dc3bddad6088d1907e9a))
+
 ## [0.1.14](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.13...bridge-symfony-console-0.1.14) (2026-09-19)
 
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.59](https://github.com/php-testo/testo/compare/0.10.58...0.10.59) (2026-11-17)
+
+
+### Features
+
+* **core:** announce the located suites with `TestSuitesLocated` before the first suite runs ([f697064](https://github.com/php-testo/testo/commit/f6970640c7cef500746eaf6b1b91ddebb1f1ff05))
+* **output:** report terminal program status (OSC 7501) for `run` and `init` ([bd251a4](https://github.com/php-testo/testo/commit/bd251a429788c8be3b76378d2f129d056db8ed5d)), closes [#413](https://github.com/php-testo/testo/issues/413)
+
+
+### Bug Fixes
+
+* **core:** hand suite locator results on as a list ([a0eb45f](https://github.com/php-testo/testo/commit/a0eb45f3c4ea10bb4fd26657066ad5a2dcaf5a7d))
+* **output:** treat `--silent` as quiet, so it turns the terminal status off ([d1ec71d](https://github.com/php-testo/testo/commit/d1ec71d04799514e5b04dc3bddad6088d1907e9a))
+
 ## [0.10.58](https://github.com/php-testo/testo/compare/0.10.57...0.10.58) (2026-11-17)
 
 
