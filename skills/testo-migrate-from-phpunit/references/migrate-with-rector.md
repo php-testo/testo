@@ -66,9 +66,9 @@ vendor/bin/rector process --config=rector-testo-migration.php
 (`git commit -am "migrate: mechanical Rector pass"`) so the structural pass has a clean base to diff against.
 
 > Rector detaches each class from `TestCase` and marks its test methods with `#[\Testo\Test]`, including
-> subclasses of a project base class. Of its `parent::` statements that call into PHPUnit, a
-> `parent::setUp();`-style hook call is dropped, as is a call inside an override of that same method
-> (a wrapper around `expectException()` loses its delegation), and any other, such as
+> subclasses of a project base class, named or anonymous. Of its `parent::` statements that call
+> into PHPUnit, a `parent::setUp();`-style hook call is dropped, as is a call inside an override of
+> that same method (a wrapper around `expectException()` loses its delegation), and any other, such as
 > `parent::markTestSkipped()`, becomes `self::`/`$this->` for the skip and expectation rules to
 > convert. A class on a PHPUnit base from `vendor/` (a framework's `TestCase`) is converted as well,
 > but the class extending that base gets `#[\Testo\Skip]` naming it, since the base still runs on

@@ -107,7 +107,8 @@ like), or to the PHPUnit method its enclosing method overrides, is dropped; a ca
 assertion of PHPUnit's `Assert` becomes `\PHPUnit\Framework\Assert::assertX()`, which the assertion
 rules convert when Testo maps it and which stays a valid PHPUnit call otherwise; any other call, such
 as `parent::markTestSkipped()` or `parent::expectException()`, becomes `self::`/`$this->` and converts
-like that spelling. An anonymous class extending `TestCase` directly is handled the same way. The mirror
+like that spelling. An anonymous class extending `TestCase`, directly or through a project base, is
+handled the same way. The mirror
 `TestClassToTestCaseRector` (Testo → PHPUnit) adds `extends \PHPUnit\Framework\TestCase` and, for a
 class-level `#[\Testo\Test]`, removes it and adds a per-method `#[\PHPUnit\Framework\Attributes\Test]`
 to every public, non-static, `void`/`never` method (mirroring Testo's locator, so static/`iterable`
