@@ -52,7 +52,7 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  *     its own enclosing method overrides, is dropped, and any other call, such as
  *     `parent::markTestSkipped()`, becomes `self::`/`$this->` for the skip and expectation rules to
  *     convert. A call whose result is used is left for the manual pass. An anonymous class that
- *     extends `TestCase` directly is handled the same way; one on a project base is left untouched.
+ *     extends `TestCase` directly is handled the same way.
  *
  * "Test method" mirrors PHPUnit's own discovery: a method carrying the PHPUnit
  * `#[\PHPUnit\Framework\Attributes\Test]` attribute, a method with a `@test` docblock
@@ -65,13 +65,13 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * `extends` and its `#[\Override]` attributes — the base is still there, converted on its own —
  * and only gains `#[\Testo\Test]` on its test methods. Without them Testo would not discover the
  * subclass's tests at all. Its `parent::` calls to a PHPUnit method the base does not override are
- * rewritten the same way. A base that cannot be resolved, or does not lead to `TestCase`, leaves the
- * class untouched.
+ * rewritten the same way. An anonymous class on such a base is handled alike. A base that cannot be
+ * resolved, or does not lead to `TestCase`, leaves the class untouched.
  *
  * A base from outside the processed paths, such as a framework's test case in vendor, stays a
  * PHPUnit class. Its subclasses are converted all the same, keep their `parent::` calls, and the
  * class extending that base gets `#[\Testo\Skip]` with a reason naming it, until the base is
- * rewritten for Testo.
+ * rewritten for Testo. An anonymous class gets no skip: Testo never discovers it.
  *
  * A trait gets `#[\Testo\Test]` on the same test methods, since the classes that use it are out of
  * sight: a test method a PHPUnit class takes from a trait would otherwise go undiscovered. Abstract
@@ -175,20 +175,21 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
 
             # Indirect subclass: the base stays, only discovery needs the attribute.
             $vendorBase = $this->testCaseClass->phpunitBaseFromVendor($node);
-            $base = $vendorBase === null ? $this->base($node) : null;
+            $base = $vendorBase === null ? $this->testCaseClass->base($node) : null;
             $changed = false;
             foreach ($node->getMethods() as $method) {
                 $method->isPublic() && $this->markTestMethod($method) and $changed = true;
                 $base !== null && $this->rewritePhpunitParentCalls($base, $method) and $changed = true;
             }
 
-            $vendorBase !== null && $vendorBase['direct'] && $this->skipOnVendorBase($node, $vendorBase['name'])
+            $vendorBase !== null && $vendorBase['direct'] && !$node->isAnonymous()
+                && $this->skipOnVendorBase($node, $vendorBase['name'])
                 and $changed = true;
 
             return $changed ? $node : null;
         }
 
-        $base = $this->base($node);
+        $base = $this->testCaseClass->base($node);
         $node->extends = null;
 
         $interfaces = $this->nodeNameResolver->getNames($node->implements);
@@ -230,21 +231,6 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         $class->attrGroups[] = $group;
 
         return true;
-    }
-
-    /**
-     * The class's direct base as loaded from source, read from the name it extends before its
-     * `extends` is removed: an anonymous class has no name of its own to reflect.
-     *
-     * @return ClassReflection|null Null when the base cannot be resolved.
-     */
-    private function base(Class_ $class): ?ClassReflection
-    {
-        $base = $class->extends === null ? null : $this->getName($class->extends);
-
-        return $base !== null && $this->reflectionProvider->hasClass($base)
-            ? $this->reflectionProvider->getClass($base)
-            : null;
     }
 
     /**
