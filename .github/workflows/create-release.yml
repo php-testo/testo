@@ -29,17 +29,53 @@ jobs:
   release:
     runs-on: ubuntu-latest
     outputs:
-      # Root testo/testo version released by this run, by release-please or by the guard; empty otherwise.
-      root_version: ${{ steps.release.outputs.release_created == 'true' && steps.release.outputs.version || steps.guard.outputs.version }}
+      # Root testo/testo version released by this run, by release-please, the guard or the recovery; empty otherwise.
+      root_version: ${{ steps.release.outputs.release_created == 'true' && steps.release.outputs.version || steps.guard.outputs.version || steps.recover.outputs.version }}
     steps:
+      # A single 5xx from the GitHub API fails release-please, and walking a long
+      # history for a package with no release yet makes one likely. A second run
+      # is safe: it finds the releases and the PR the failed attempt already made.
       - name: 🎉 Create release
         uses: googleapis/release-please-action@v5
-        id: release
-        with:
+        id: attempt
+        continue-on-error: true
+        with: &release-please-inputs
           token: ${{ secrets.RELEASE_TOKEN }}
           config-file: .github/.release-please-config.json
           manifest-file: resources/version.json
           target-branch: 1.x
+
+      - name: ⏳ Wait before retrying release-please
+        if: ${{ steps.attempt.outcome == 'failure' }}
+        run: sleep 60
+
+      - name: 🎉 Create release (retry)
+        uses: googleapis/release-please-action@v5
+        id: retry
+        if: ${{ steps.attempt.outcome == 'failure' }}
+        with: *release-please-inputs
+
+      # release-please writes the release outputs before it handles PRs, so an
+      # attempt that failed on PRs still reports the releases it made; per output,
+      # `||` takes what the attempt reported and falls back to the retry.
+      - name: 🧾 Collect release-please outputs
+        id: release
+        env:
+          RELEASE_CREATED: ${{ steps.attempt.outputs.release_created || steps.retry.outputs.release_created }}
+          VERSION: ${{ steps.attempt.outputs.version || steps.retry.outputs.version }}
+          PRS_CREATED: ${{ steps.attempt.outputs.prs_created || steps.retry.outputs.prs_created }}
+          PR: ${{ steps.attempt.outputs.pr || steps.retry.outputs.pr }}
+        run: |
+          pr_branch=''
+          if [ -n "${PR}" ]; then
+            pr_branch=$(jq -r '.headBranchName // empty' <<< "${PR}")
+          fi
+          {
+            echo "release_created=${RELEASE_CREATED}"
+            echo "version=${VERSION}"
+            echo "prs_created=${PRS_CREATED}"
+            echo "pr_branch=${pr_branch}"
+          } >> "$GITHUB_OUTPUT"
 
       # Guard against the root-only release deadlock. release-please cannot tag
       # a *combined* release PR whose body has a single, root (empty-component)
@@ -106,6 +142,27 @@ jobs:
               || echo "::notice::Tagged ${version} but could not update labels on PR #${number}; remove 'autorelease: pending' manually if it lingers."
           fi
 
+      # An attempt that created the root release and failed before reporting it
+      # leaves only the tag behind, and the retry finds nothing left to release.
+      # A release made by this run tags the very commit the run was pushed for.
+      - name: 🩹 Recover the root version after a failed attempt
+        id: recover
+        if: ${{ steps.attempt.outcome == 'failure' && steps.release.outputs.release_created != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          version=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/contents/resources/version.json?ref=${GITHUB_SHA}" \
+            -H "Accept: application/vnd.github.raw" --jq '."."')
+          [ -n "${version}" ] && [ "${version}" != "null" ] || exit 0
+
+          tagged=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${version}" --jq '.object.sha' 2>/dev/null || true)
+          if [ "${tagged}" = "${GITHUB_SHA}" ]; then
+            echo "version=${version}" >> "$GITHUB_OUTPUT"
+          fi
+
       # Mirror the just-released versions into every testo/* constraint of the
       # release PR. Re-applied on every run, so it survives release-please
       # regenerating (force-pushing) the PR branch.
@@ -113,7 +170,7 @@ jobs:
         if: ${{ steps.release.outputs.prs_created == 'true' }}
         uses: actions/checkout@v7
         with:
-          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          ref: ${{ steps.release.outputs.pr_branch }}
           token: ${{ secrets.RELEASE_TOKEN }}
           fetch-depth: 0
 

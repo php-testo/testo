@@ -94,17 +94,14 @@ jobs:
           echo "name=${branch}" >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Push subtree to php-testo/${{ steps.c.outputs.component }}
-        uses: symplify/monorepo-split-github-action@v2.3.0
-        with:
-          tag: ${{ steps.c.outputs.version }}
-          package_directory: ${{ steps.c.outputs.directory }}
-          repository_organization: php-testo
-          repository_name: ${{ steps.c.outputs.component }}
-          branch: ${{ steps.branch.outputs.name }}
-          user_name: 'github-actions[bot]'
-          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: >-
+          bash .github/release-please/split-publish.sh
+          "${{ steps.c.outputs.directory }}"
+          "php-testo/${{ steps.c.outputs.component }}"
+          "${{ steps.branch.outputs.name }}"
+          "${{ steps.c.outputs.version }}"
 
   packagist:
     name: 🔎 Verify Packagist
