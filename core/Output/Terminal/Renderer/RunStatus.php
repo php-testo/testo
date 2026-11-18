@@ -146,11 +146,6 @@ final class RunStatus
         };
     }
 
-    private function report(int $position): void
-    {
-        $this->status->working(self::share(100, $position, self::SCALE), $this->suiteName);
-    }
-
     /**
      * The `$part` of `$whole` shares of `$width`, rounded down.
      *
@@ -160,5 +155,10 @@ final class RunStatus
     private static function share(int $width, int $part, int $whole): int
     {
         return (int) \floor((float) $width * $part / $whole);
+    }
+
+    private function report(int $position): void
+    {
+        $this->status->working(self::share(100, $position, self::SCALE), $this->suiteName);
     }
 }
