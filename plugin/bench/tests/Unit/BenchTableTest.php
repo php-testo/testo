@@ -170,7 +170,7 @@ final class BenchTableTest
     #[DataSet([0.5, 512, '500.00ns', '512 B'], 'sub-microsecond -> ns, sub-kibibyte -> bytes')]
     #[DataSet([5.0, 2048, '5.00µs', '2.00 KB'], 'microseconds and kibibytes')]
     #[DataSet([5000.0, 3145728, '5.00ms', '3.00 MB'], 'milliseconds and mebibytes')]
-    #[DataSet([2000000.0, 2147483648, '2.00s', '2.00 GB'], 'seconds and gibibytes')]
+    #[DataSet([2000000.0, 1610612736, '2.00s', '1.50 GB'], 'seconds and gibibytes')]
     public function roundsFormatsTimeAndMemoryMagnitudes(
         float $time,
         int $memory,

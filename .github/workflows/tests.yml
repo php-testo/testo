@@ -76,6 +76,42 @@ jobs:
       - name: Run Tests
         run: composer test:ci
 
+  ci-32bit:
+    runs-on: ubuntu-latest
+    name: Tests PHP8.4-32bit
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve root package version
+        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
+
+      # Dependencies are installed by a 64-bit PHP of the same version: the runner's actions do not
+      # run inside an i386 container, and the vendor code is the same for both.
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: highest
+
+      - name: Install bin tools
+        run: composer bin all install --ignore-platform-req=php
+
+      # Rector itself packs 64-bit values, so its fixtures cannot run on 32-bit PHP.
+      - name: Run Tests on 32-bit PHP
+        run: >-
+          docker run --rm --platform linux/386
+          -v "$PWD":/app -w /app -e TESTO_CI=1
+          php:8.4-cli
+          sh -c 'php -r "echo PHP_INT_SIZE * 8, \" bit\n\"; exit(PHP_INT_SIZE === 4 ? 0 : 1);" && php vendor/bin/testo --type=!rector-fixture'
+
   code-coverage:
     runs-on: ubuntu-latest
     name: Code Coverage
