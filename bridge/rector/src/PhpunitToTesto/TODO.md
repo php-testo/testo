@@ -242,10 +242,12 @@ resolve to a native PHPUnit Assert/TestCase declaration. Custom, overridden, mag
 and unresolved calls are left untouched. Keep PHPUnit resolvable until the migration is complete.
 `parent::assertX()` resolves from the parent class on, and an explicit `Assert::assertX()` or
 `TestCase::assertX()` on PHPUnit's classes converts as well. `ExtendsTestCaseToTestoRector` rewrites a
-`parent::` call to a static assertion of `Assert` into `Assert::` instead of dropping it with the other
-`parent::` calls into PHPUnit: a mapped one converts, an unmapped one stays a valid call, and a user
+`parent::` call to a static assertion of `Assert` into `Assert::` instead of dropping it like a
+`TestCase` hook: a mapped one converts, an unmapped one stays a valid call, and a user
 override that delegates to PHPUnit's assertion keeps asserting. `TestCase` hooks such as
-`assertPostConditions()` are instance methods and are dropped.
+`assertPostConditions()` are instance methods and are dropped. Any other `parent::` call into PHPUnit,
+such as `markTestSkipped()` or `expectException()`, becomes `self::` (static) or `$this->` (instance),
+so the skip and expectation rules convert it; one no rule maps stays a visible call to a missing method.
 Ownership is read from PHPStan's reflection of the class as loaded from source, so a class that
 `ExtendsTestCaseToTestoRector` detaches from `TestCase` in the same run still converts; that reflection
 is looked up by name, so it only counts when it comes from the same file. A class detached by an

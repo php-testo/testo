@@ -100,11 +100,14 @@ Done since the first cut: **structural class/method conversion** (Testo ↔ PHPU
 `#[\PHPUnit\Framework\Attributes\Test]` attribute is renamed to `#[\Testo\Test]`, a `@test` docblock
 annotation is dropped and replaced by the attribute, and a bare `test`-prefixed method simply gains
 the attribute (idempotent — a method already carrying `#[\Testo\Test]` is left alone); a trait's
-non-abstract test methods gain it the same way. `parent::method();` statements that resolve into
-PHPUnit are dropped, while calls reaching a method of a converted local base stay; a `parent::` call
-to a static assertion of PHPUnit's `Assert` becomes `\PHPUnit\Framework\Assert::assertX()`, which the
-assertion rules convert when Testo maps it and which stays a valid PHPUnit call otherwise (a
-`TestCase` hook such as `assertPostConditions()` is dropped with the rest). The mirror
+non-abstract test methods gain it the same way. Calls reaching a method of a converted local base
+stay, while `parent::method();` statements that resolve into PHPUnit, which would no longer compile,
+are rewritten: a call to a `TestCase` hook (`setUp()`, `tearDown()`, `assertPostConditions()` and the
+like), or to the PHPUnit method its enclosing method overrides, is dropped; a call to a static
+assertion of PHPUnit's `Assert` becomes `\PHPUnit\Framework\Assert::assertX()`, which the assertion
+rules convert when Testo maps it and which stays a valid PHPUnit call otherwise; any other call, such
+as `parent::markTestSkipped()` or `parent::expectException()`, becomes `self::`/`$this->` and converts
+like that spelling. An anonymous class extending `TestCase` directly is handled the same way. The mirror
 `TestClassToTestCaseRector` (Testo → PHPUnit) adds `extends \PHPUnit\Framework\TestCase` and, for a
 class-level `#[\Testo\Test]`, removes it and adds a per-method `#[\PHPUnit\Framework\Attributes\Test]`
 to every public, non-static, `void`/`never` method (mirroring Testo's locator, so static/`iterable`
