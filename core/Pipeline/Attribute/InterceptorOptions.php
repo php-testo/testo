@@ -17,7 +17,7 @@ final readonly class InterceptorOptions
     /**
      * Handles {@see Interceptable} attributes
      */
-    public const ORDER_ATTRIBUTES = -300_000_000_000;
+    public const ORDER_ATTRIBUTES = -1_000_000_000;
 
     /**
      * Filtering files, classes, tests, etc.
@@ -40,7 +40,7 @@ final readonly class InterceptorOptions
     /**
      * Interceptors that are applied right before the test function.
      */
-    public const ORDER_RIGHT_BEFORE_TEST = 300_000_000_000;
+    public const ORDER_RIGHT_BEFORE_TEST = 1_000_000_000;
 
     /**
      * Collects code coverage for the test.
@@ -48,7 +48,7 @@ final readonly class InterceptorOptions
      * Outer to {@see ORDER_ASYNC_COROUTINE} on purpose: a collector has to close its window around
      * every fiber switch it can see, and it can only do that for fibers Testo drives itself.
      */
-    public const ORDER_COVERAGE = 300_000_100_000;
+    public const ORDER_COVERAGE = 1_001_000_000;
 
     /**
      * Hands the test body to a coroutine — an event loop, a coroutine scope — that owns the fiber it
@@ -58,7 +58,7 @@ final readonly class InterceptorOptions
      * {@see ORDER_COVERAGE}: a suspension relayed out of a fiber the interceptor does not drive is
      * never resumed.
      */
-    public const ORDER_ASYNC_COROUTINE = 300_000_300_000;
+    public const ORDER_ASYNC_COROUTINE = 1_003_000_000;
 
     public function __construct(
         /**
