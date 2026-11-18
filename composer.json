@@ -47,7 +47,7 @@
         "testo/convention": "^0.1.5",
         "testo/data": "^0.1.10",
         "testo/filter": "^0.1.8",
-        "testo/error-handler": "^0.1",
+        "testo/error-handler": "^0.1.1",
         "testo/inline": "^0.1.9",
         "testo/lifecycle": "^0.1.9",
         "testo/repeat": "^0.1.9",
