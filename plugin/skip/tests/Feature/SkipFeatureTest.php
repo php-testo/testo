@@ -10,10 +10,11 @@ use Testo\Core\Exception\SkipTest;
 use Testo\Core\Value\Status;
 use Testo\Data\MultipleResult;
 use Testo\Filter\Group;
-use Testo\Test;
+use Testo\Skip;
+use Testo\Skip\Internal\SkipDecision;
 use Testo\Skip\Internal\SkipInterceptor;
 use Testo\Skip\Internal\SkipLocatorInterceptor;
-use Testo\Skip;
+use Testo\Test;
 use Testo\Testing\Attribute\TestingSuite;
 use Testo\Testing\Helper\TestRunner;
 use Tests\Skip\Stub\PipelineEntrySpyPlugin;
@@ -50,6 +51,7 @@ use Tests\Skip\Stub\Skip\SkipWithRetryStub;
 #[Covers(Skip::class)]
 #[Covers(SkipInterceptor::class)]
 #[Covers(SkipLocatorInterceptor::class)]
+#[Covers(SkipDecision::class)]
 final class SkipFeatureTest
 {
     public function __construct()

@@ -9,26 +9,30 @@ use Testo\Core\Definition\CaseDefinitions;
 use Testo\Core\Value\TestType;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\CaseLocatorInterceptor;
-use Testo\Skip;
 use Testo\Tokenizer\Reflection\FileDefinitions;
 
 /**
- * Flags the `#[Skip]`-annotated tests as {@see \Testo\Core\Definition\TestDefinition::$skipped}
- * once the cases of a file are located.
+ * Flags the tests skipped by `#[Skip]` or an unmet `#[Requires]` as
+ * {@see \Testo\Core\Definition\TestDefinition::$skipped} once the cases of a file are located.
  *
- * The flag alone: the reason travels with the attribute, to {@see SkipInterceptor}.
+ * The flag alone: {@see SkipInterceptor} takes the message from the decision {@see SkipDecision}
+ * keeps.
  *
  * A class-level attribute is inherited from parents and traits, a method-level one from the
  * overridden method — {@see Reflection} walks both chains by default.
  *
+ * Ordering: outer to the filter, so its deactivations are in place by the time this interceptor
+ * looks at the cases. A deactivated test is left alone: it never runs, and checking its
+ * requirements would only probe the environment for nothing.
+ *
  * `testType: TestType::Test` only drops this interceptor from a run filtered to other types; a
- * located file still yields cases of every type, hence the per-case check that keeps `#[Skip]`
- * inert outside a plain test.
+ * located file still yields cases of every type, hence the per-case check that keeps both
+ * attributes inert outside a plain test.
  *
  * @internal
  * @psalm-internal Testo\Skip
  */
-#[InterceptorOptions(testType: TestType::Test)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_FILTER - 1_000, testType: TestType::Test)]
 final readonly class SkipLocatorInterceptor implements CaseLocatorInterceptor
 {
     #[\Override]
@@ -42,13 +46,15 @@ final readonly class SkipLocatorInterceptor implements CaseLocatorInterceptor
                 continue;
             }
 
-            $classSkipped = $case->reflection !== null
-                && Reflection::fetchClassAttributes($case->reflection, attributeClass: Skip::class, limit: 1) !== [];
-
-            foreach ($case->tests->getTests(active: null) as $test) {
-                $classSkipped
-                    || Reflection::fetchFunctionAttributes($test->reflection, attributeClass: Skip::class, limit: 1) !== []
-                    and $test->skipped = true;
+            foreach ($case->tests->getTests() as $test) {
+                try {
+                    SkipDecision::of($test, $case->reflection) === null or $test->skipped = true;
+                } catch (\Throwable) {
+                    # The body is not going to run either way: the decision keeps the throw and
+                    # rethrows it in the test's own pipeline, which reports it against that test
+                    # instead of failing the file. Flagged, so the case's hooks stay silent for it.
+                    $test->skipped = true;
+                }
             }
         }
 

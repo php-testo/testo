@@ -29,6 +29,7 @@
             "Testo\\Skip\\": "src/"
         },
         "files": [
+            "Requires.php",
             "Skip.php"
         ]
     },

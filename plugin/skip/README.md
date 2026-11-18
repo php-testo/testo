@@ -29,6 +29,8 @@ Marks a test, a test class or a test function as skipped without deleting or hid
 
 The skip is declared ahead of time, next to the test; skipping at runtime from the test body is covered by the core `SkipTest` exception instead.
 
+`#[Requires]` makes the skip conditional on the environment: the test runs only when its callable requirement is met, and is reported as Skipped otherwise.
+
 ## Install
 
 ```bash
