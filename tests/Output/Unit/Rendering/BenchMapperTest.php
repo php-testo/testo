@@ -12,10 +12,6 @@ use Testo\Bench\Dto\Report\HighVariance;
 use Testo\Bench\Dto\Snap;
 use Testo\Bench\Dto\ValueRel;
 use Testo\Codecov\Covers;
-use Testo\Core\Metric\Memory;
-use Testo\Core\Metric\Percent;
-use Testo\Core\Metric\Scalar;
-use Testo\Core\Metric\Time;
 use Testo\Output\Rendering\BenchMapper;
 use Testo\Test;
 
@@ -74,44 +70,6 @@ final class BenchMapperTest
         Assert::string($diagnostics[0]['advice'])->contains('Increase');
     }
 
-    public function metricsCarryTheUnitOnTheMetricNotInTheLeaf(): void
-    {
-        $metrics = BenchMapper::metrics(self::result());
-
-        // The dimension rides on the Metric so a consumer reports it natively; the leaf is unit-free.
-        Assert::same($metrics['bench.shift.Time results.mean']->unit, Time::Microseconds);
-        Assert::same($metrics['bench.shift.Time results.rstdev']->unit, Percent::Percent);
-        Assert::same($metrics['bench.shift.Summary.memory']->unit, Memory::Bytes);
-        Assert::same($metrics['bench.shift.Summary.place']->unit, Scalar::Number);
-
-        // The unit-bearing spellings must not leak back into the key.
-        Assert::false(\array_key_exists('bench.shift.Time results.meanUs', $metrics));
-        Assert::false(\array_key_exists('bench.shift.Summary.memoryBytes', $metrics));
-    }
-
-    public function metricsKeepTimeInItsNativeMicroseconds(): void
-    {
-        $metrics = BenchMapper::metrics(self::result());
-
-        // The source keeps microseconds; a consumer that needs another unit converts at its own boundary.
-        // The same leaf lives under two bands; the group segment keeps them apart.
-        Assert::same($metrics['bench.shift.Time results.mean']->value, 5.1);
-        Assert::same($metrics['bench.shift.Filtered results.mean']->value, 5.05);
-    }
-
-    public function metricsCarryTheSameNumbersAsTheMap(): void
-    {
-        $metrics = BenchMapper::metrics(self::result());
-
-        Assert::same($metrics['bench.shift.Benchmark setup.iters']->value, 2);
-        Assert::same($metrics['bench.shift.Benchmark setup.calls']->value, 20);
-        Assert::same($metrics['bench.shift.Summary.place']->value, 1);
-        Assert::same($metrics['bench.shift.Summary.memory']->value, 300);
-        Assert::same($metrics['bench.push.Summary.memory']->value, 0);
-        Assert::same($metrics['bench.push.Filtered results.rejected']->value, 1);
-        Assert::same($metrics['bench.push.Time results.rstdev']->value, 12.0);
-    }
-
     public function anEmptyResultProducesNoCasesAndNoDiagnostics(): void
     {
         $map = BenchMapper::map(new BenchResult([], []));
@@ -119,33 +77,6 @@ final class BenchMapperTest
         Assert::same($map['iterations'], 0);
         Assert::same($map['cases'], []);
         Assert::same($map['diagnostics'], []);
-    }
-
-    public function anEmptyResultReportsNoMetrics(): void
-    {
-        // No case, no row — a grid with nothing to place, so nothing is emitted.
-        Assert::same(BenchMapper::metrics(new BenchResult([], [])), []);
-    }
-
-    public function formatMetricKeepsAnIntegerExact(): void
-    {
-        Assert::same(BenchMapper::formatMetric(20), '20');
-        Assert::same(BenchMapper::formatMetric(0), '0');
-    }
-
-    public function formatMetricTrimsTrailingZerosOfAFloat(): void
-    {
-        Assert::same(BenchMapper::formatMetric(5.1), '5.1');
-        Assert::same(BenchMapper::formatMetric(0.25), '0.25');
-        // A whole-valued float loses its fractional part rather than reading as `3.000000`.
-        Assert::same(BenchMapper::formatMetric(3.0), '3');
-    }
-
-    public function formatMetricWritesANearZeroFloatInFixedNotation(): void
-    {
-        // Fixed notation, not `1.0E-6`, which a JUnit consumer or a TeamCity `type='number'` would have
-        // to special-case.
-        Assert::same(BenchMapper::formatMetric(0.000001), '0.000001');
     }
 
     /**

@@ -11,7 +11,8 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Log\MessageLog;
 use Testo\Core\Metric\Scalar;
 use Testo\Core\Value\Status;
-use Testo\Output\Rendering\BenchMapper;
+use Testo\Metric\Metric;
+use Testo\Output\Rendering\NumberFormat;
 use Testo\Output\Terminal\Renderer\Helper;
 
 /**
@@ -176,9 +177,7 @@ final class JUnitWriter
             providerIndex: $providerIndex,
             datasetIndex: $datasetIndex,
             datasetKey: $datasetKey,
-            properties: BenchMapper::supports($result->result)
-                ? BenchMapper::metrics($result->result)
-                : [],
+            properties: $result->metadata,
             systemOut: self::outputOf($result->messages, Messenger::CHANNEL_STDOUT),
             systemErr: self::outputOf($result->messages, Messenger::CHANNEL_STDERR),
             reruns: \array_map(
@@ -545,18 +544,24 @@ final class JUnitWriter
             $case->datasetKey === null or $xml->writeAttribute('testo:data-set-key', self::xmlSafe((string) $case->datasetKey));
         }
 
-        // Measurements a plain testcase has nowhere else to carry. `<properties>` under `<testcase>` is
-        // the shape PHPUnit emits and CI servers already read, so a consumer needs no Testo-specific
-        // knowledge to pick the numbers up.
-        if ($case->properties !== []) {
+        // Values a plain testcase has nowhere else to carry. `<properties>` under `<testcase>` is the
+        // shape PHPUnit emits and CI servers already read, so a consumer needs no Testo-specific
+        // knowledge to pick them up.
+        if (!$case->properties->isEmpty()) {
             $xml->startElement('properties');
-            foreach ($case->properties as $name => $metric) {
+            foreach ($case->properties as $entry) {
                 $xml->startElement('property');
-                // A `<property>` carries no dimension of its own, so the unit rides on the name as one
-                // more key segment: `…mean.ms`, `…memory.B`. A bare count stays legible without one.
-                $unit = $metric->unit;
-                $xml->writeAttribute('name', $unit instanceof Scalar ? $name : "{$name}.{$unit->value}");
-                $xml->writeAttribute('value', BenchMapper::formatMetric($metric->value));
+                $value = $entry->value;
+                if ($value instanceof Metric) {
+                    // A `<property>` carries no dimension of its own, so the unit rides on the name as one
+                    // more key segment: `…mean.us`, `…memory.B`. A bare count stays legible without one.
+                    $unit = $value->unit;
+                    $xml->writeAttribute('name', $unit instanceof Scalar ? $entry->name : "{$entry->name}.{$unit->value}");
+                    $xml->writeAttribute('value', NumberFormat::fixed($value->value));
+                } else {
+                    $xml->writeAttribute('name', $entry->name);
+                    $xml->writeAttribute('value', self::xmlSafe($value));
+                }
                 $xml->endElement();
             }
             $xml->endElement();

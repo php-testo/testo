@@ -25,16 +25,22 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
+use Testo\Core\Metadata\Metadata;
+use Testo\Core\Metadata\MetadataEntry;
+use Testo\Core\Metric\Time;
 use Testo\Core\Value\RunTiming;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Data\MultipleResult;
+use Testo\Metric\Metric;
 use Testo\Output\Json\Internal\JsonReport;
+use Testo\Output\Rendering\MetadataMapper;
 use Testo\Test;
 use Tests\Output\Stub\JUnit\SampleTestClass;
 
 #[Test]
 #[Covers(JsonReport::class)]
+#[Covers(MetadataMapper::class)]
 final class JsonReportTest
 {
     public function passingRunReportsStatusTotalsAndEmptyFailures(): void
@@ -305,6 +311,89 @@ final class JsonReportTest
             SampleTestClass::class . '::failingTest umbrella',
             SampleTestClass::class . '::failingTest:0:0 set',
         ]);
+    }
+
+    public function metadataIsListedForEveryTestThatReportedSomeWhateverItsStatus(): void
+    {
+        $test = self::test('passingTest', Status::Passed)->withMetadata(new Metadata([
+            MetadataEntry::number('db.queries', 12),
+            MetadataEntry::number('db.time', new Metric(1.5, Time::Milliseconds)),
+            MetadataEntry::text('build', 'nightly'),
+            MetadataEntry::link('issue', 'https://example.com/1'),
+            MetadataEntry::image('screenshot', '/tmp/shot.png'),
+            MetadataEntry::artifact('dump', '/tmp/dump.sql'),
+        ]));
+
+        $report = self::decode(self::run(Status::Passed, results: [$test]));
+
+        Assert::same($report['metadata'], [[
+            'test' => SampleTestClass::class . '::passingTest',
+            'entries' => [
+                ['name' => 'db.queries', 'type' => 'number', 'value' => 12, 'unit' => 'number'],
+                ['name' => 'db.time', 'type' => 'number', 'value' => 1.5, 'unit' => 'ms'],
+                ['name' => 'build', 'type' => 'text', 'value' => 'nightly'],
+                ['name' => 'issue', 'type' => 'link', 'value' => 'https://example.com/1'],
+                ['name' => 'screenshot', 'type' => 'image', 'value' => '/tmp/shot.png'],
+                ['name' => 'dump', 'type' => 'artifact', 'value' => '/tmp/dump.sql'],
+            ],
+        ]]);
+    }
+
+    public function aRunWithoutMetadataOmitsTheSectionEntirely(): void
+    {
+        $report = self::decode(self::run(
+            Status::Passed,
+            results: [self::test('passingTest', Status::Passed)],
+        ));
+
+        Assert::false(\array_key_exists('metadata', $report));
+    }
+
+    public function eachDataSetListsItsOwnMetadataUnderItsFilterAddress(): void
+    {
+        $identity = self::identity('passingTest');
+        $multiple = new MultipleResult([
+            self::test('passingTest', Status::Passed, identity: $identity->toDataSet(0, 0)),
+            self::test('passingTest', Status::Passed, identity: $identity->toDataSet(0, 1))
+                ->withMetadata(new Metadata([MetadataEntry::text('note', 'second')])),
+        ]);
+        $test = self::test('passingTest', Status::Passed)
+            ->withAttribute(MultipleResult::class, $multiple)
+            ->withMetadata(new Metadata([MetadataEntry::text('note', 'umbrella')]));
+
+        $report = self::decode(self::run(Status::Passed, results: [$test]));
+
+        $listed = \array_map(
+            static fn(array $m): string => "{$m['test']} {$m['entries'][0]['value']}",
+            $report['metadata'],
+        );
+        Assert::same($listed, [
+            SampleTestClass::class . '::passingTest umbrella',
+            SampleTestClass::class . '::passingTest:0:1 second',
+        ]);
+    }
+
+    public function aBenchmarkLeavesItsMeasurementGridToTheBenchmarksSection(): void
+    {
+        $test = self::benchTest('shiftVsPush', self::benchResult())->withMetadata(new Metadata([
+            MetadataEntry::number('bench.shift.Time results.mean', new Metric(5.1, Time::Microseconds)),
+            MetadataEntry::text('host', 'ci-1'),
+        ]));
+
+        $report = self::decode(self::run(Status::Passed, results: [$test]));
+
+        Assert::same($report['metadata'][0]['entries'], [['name' => 'host', 'type' => 'text', 'value' => 'ci-1']]);
+        Assert::count($report['benchmarks'], 1);
+    }
+
+    public function aNonFiniteNumberIsReportedAsNull(): void
+    {
+        $test = self::test('passingTest', Status::Passed)
+            ->withMetadata(new Metadata([MetadataEntry::number('ratio', \NAN)]));
+
+        $report = self::decode(self::run(Status::Passed, results: [$test]));
+
+        Assert::same($report['metadata'][0]['entries'][0]['value'], null);
     }
 
     /**

@@ -6,11 +6,6 @@ namespace Tests\Output\Unit\JUnit;
 
 use Internal\Path;
 use Testo\Assert;
-use Testo\Bench\Dto\BenchResult;
-use Testo\Bench\Dto\CaseSet;
-use Testo\Bench\Dto\Line;
-use Testo\Bench\Dto\Snap;
-use Testo\Bench\Dto\ValueRel;
 use Testo\Codecov\Covers;
 use Testo\Common\Messenger;
 use Testo\Core\Context\CaseInfo;
@@ -23,6 +18,11 @@ use Testo\Core\Exception\SkipTest;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
+use Testo\Core\Metadata\Metadata;
+use Testo\Core\Metadata\MetadataEntry;
+use Testo\Core\Metric\Memory;
+use Testo\Core\Metric\Time;
+use Testo\Metric\Metric;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Output\JUnit\Internal\JUnitWriter;
@@ -232,11 +232,11 @@ final class JUnitWriterTest
     }
 
     #[Covers(JUnitWriter::class)]
-    public function benchmarkTestCarriesItsMeasurementsAsProperties(): void
+    public function resultMetadataIsWrittenAsProperties(): void
     {
         $writer = new JUnitWriter();
         $writer->startSuite('MySuite');
-        $writer->addTestResult(self::makeBenchResult('shiftVsPush'));
+        $writer->addTestResult(self::makeMetadataResult('passingTest'));
         $writer->finishSuite();
 
         $xml = self::loadXml($writer->generate('Testo'));
@@ -244,16 +244,42 @@ final class JUnitWriterTest
         $properties = $xml->testsuite->testcase->properties;
         Assert::count($properties, 1);
 
-        // `<property name value>` pairs — the shape PHPUnit emits, keyed to survive as data.
+        // `<property name value>` pairs, the shape PHPUnit emits, in the order the metadata holds them.
         $byName = [];
         foreach ($properties->property as $property) {
             $byName[(string) $property['name']] = (string) $property['value'];
         }
-        Assert::same($byName['bench.shift.Benchmark setup.iters'], '1');
-        // The dimension has no `type` attribute to live in here, so it rides on the property name — and
-        // JUnit keeps the native microseconds rather than TeamCity's converted milliseconds.
-        Assert::same($byName['bench.shift.Time results.mean.us'], '5.1');
-        Assert::same($byName['bench.shift.Benchmark setup.calls'], '20');
+        Assert::same($byName, [
+            'bench.shift.Benchmark setup.iters' => '1',
+            // The dimension has no `type` attribute to live in here, so it rides on the property name, and
+            // JUnit keeps the native microseconds rather than TeamCity's converted milliseconds.
+            'bench.shift.Time results.mean.us' => '5.1',
+            'bench.shift.Summary.memory.B' => '2048',
+            'ratio' => '0.000001',
+            'note' => 'a < b & "c"',
+            'docs' => 'https://example.com/docs',
+            'chart' => '/tmp/chart.png',
+        ]);
+    }
+
+    #[Covers(JUnitWriter::class)]
+    public function aNonNumberEntryKeepsItsBareName(): void
+    {
+        $writer = new JUnitWriter();
+        $writer->startSuite('MySuite');
+        $writer->addTestResult(
+            self::makeResult('passingTest', Status::Passed)
+                ->withMetadata(new Metadata([MetadataEntry::text('build.label', 'nightly')])),
+        );
+        $writer->finishSuite();
+
+        $xml = self::loadXml($writer->generate('Testo'));
+        $property = $xml->testsuite->testcase->properties->property;
+
+        // Only a number carries a unit to append; text keeps the name exactly as reported.
+        Assert::count($property, 1);
+        Assert::same((string) $property['name'], 'build.label');
+        Assert::same((string) $property['value'], 'nightly');
     }
 
     #[Covers(JUnitWriter::class)]
@@ -270,12 +296,12 @@ final class JUnitWriterTest
     }
 
     #[Covers(JUnitWriter::class)]
-    public function aDataSetBenchmarkStillCarriesItsMeasurements(): void
+    public function aDataSetStillCarriesItsMetadata(): void
     {
         $writer = new JUnitWriter();
         $writer->startSuite('MySuite');
         $writer->addTestResult(
-            self::makeBenchResult('shiftVsPush'),
+            self::makeMetadataResult('shiftVsPush'),
             overrideName: 'shiftVsPush#0',
             providerIndex: 0,
             datasetIndex: 1,
@@ -285,7 +311,7 @@ final class JUnitWriterTest
         $xml = self::loadXml($writer->generate('Testo'));
         $case = $xml->testsuite->testcase;
 
-        // The measurements ride on the data-set entry itself, under its own name, not on an umbrella case.
+        // The metadata rides on the data-set entry itself, under its own name, not on an umbrella case.
         Assert::same((string) $case['name'], 'shiftVsPush#0');
         Assert::count($case->properties, 1);
     }
@@ -889,7 +915,7 @@ final class JUnitWriterTest
             datasetKey: 'first',
             discardedAttempts: [self::makeResult('passingTest', Status::Failed, failure: new \LogicException('retry'))],
         );
-        $writer->addTestResult(self::makeBenchResult('passingTest'));
+        $writer->addTestResult(self::makeMetadataResult('passingTest'));
         $writer->finishSuite();
         $writer->finishSuite();
 
@@ -965,7 +991,7 @@ final class JUnitWriterTest
         );
     }
 
-    private static function makeBenchResult(string $method): TestResult
+    private static function makeMetadataResult(string $method): TestResult
     {
         $info = new TestInfo(
             name: $method,
@@ -973,7 +999,7 @@ final class JUnitWriterTest
                 suiteIdentity: new SuiteIdentity('Output/Unit'),
                 definition: new CaseDefinition(
                     name: SampleTestClass::class,
-                    type: 'bench',
+                    type: 'test',
                     file: Path::create(__FILE__),
                     reflection: new \ReflectionClass(SampleTestClass::class),
                 ),
@@ -981,25 +1007,18 @@ final class JUnitWriterTest
             testDefinition: new TestDefinition(new \ReflectionMethod(SampleTestClass::class, 'passingTest')),
         );
 
-        $bench = new BenchResult(
-            cases: [new CaseSet('shift', [new Snap(calls: 20, memory: 0, time: 5.1)])],
-            results: [],
-            lines: [
-                new Line(
-                    place: 1,
-                    name: 'shift',
-                    avg: new ValueRel(5.1, 0.0),
-                    med: new ValueRel(5.1, 0.0),
-                    rstdev: 2.0,
-                    favg: new ValueRel(5.1, 0.0),
-                    frstdev: 2.0,
-                    rejected: 0,
-                    reports: [],
-                ),
-            ],
-        );
+        $metadata = new Metadata([
+            MetadataEntry::number('bench.shift.Benchmark setup.iters', 1),
+            MetadataEntry::number('bench.shift.Time results.mean', new Metric(5.1, Time::Microseconds)),
+            MetadataEntry::number('bench.shift.Summary.memory', new Metric(2048, Memory::Bytes)),
+            MetadataEntry::number('ratio', 0.000001),
+            MetadataEntry::text('note', 'a < b & "c"'),
+            MetadataEntry::link('docs', 'https://example.com/docs'),
+            MetadataEntry::image('chart', '/tmp/chart.png'),
+        ]);
 
-        return new TestResult(info: $info, status: Status::Passed, result: $bench, attributes: ['duration' => 0]);
+        return (new TestResult(info: $info, status: Status::Passed, attributes: ['duration' => 0]))
+            ->withMetadata($metadata);
     }
 
     private static function makeInheritedResult(Status $status): TestResult

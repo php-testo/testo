@@ -11,15 +11,13 @@ use Testo\Test\MetadataType;
 use Testo\Test\TestMetadata;
 
 /**
- * Playground for the `testMetadata` TeamCity protocol.
+ * Playground for test metadata.
  *
- * Every test declares one or more {@see TestMetadata} values that the test plugin's interceptor turns
- * into `##teamcity[testMetadata …]` messages. Run the `sandbox` suite against an IDE or CI server that
- * understands the protocol and watch each type render: numbers as charts and a table, text and links
- * inline, images and artifacts as attachments, sourced from both local files and URLs.
- *
- * The leading `echo` in each test is deliberate: it makes the test emit output, which opens its
- * `testStarted` node before the interceptor writes the metadata into it.
+ * Every test declares one or more {@see TestMetadata} values that the test plugin's interceptor adds to
+ * the test's result, and every reporter renders them: TeamCity as `##teamcity[testMetadata …]` messages,
+ * JUnit as `<property>` elements. Run the `sandbox` suite against an IDE or CI server that understands
+ * the TeamCity protocol and watch each type render: numbers as charts and a table, text and links inline,
+ * images and artifacts as attachments, sourced from both local files and URLs.
  */
 #[Test]
 #[Group('sandbox', 'metadata')]
@@ -35,7 +33,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'allocations', value: '20483', type: MetadataType::Number)]
     public function numbers(): void
     {
-        echo "Reporting a table of numeric metrics.\n";
         Assert::true(true);
     }
 
@@ -45,7 +42,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'score', value: '97.3', type: MetadataType::Number)]
     public function singleNumber(): void
     {
-        echo "Reporting one number.\n";
         Assert::true(true);
     }
 
@@ -57,7 +53,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'coverage', value: '91.2', type: MetadataType::Percent)]
     public function dimensionedNumbers(): void
     {
-        echo "Reporting numbers with measurement dimensions.\n";
         Assert::true(true);
     }
 
@@ -80,7 +75,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'response time.postgres.32', value: '9.4', type: MetadataType::Milliseconds)]
     public function graphTable(): void
     {
-        echo "Reporting a uniform three-level table to plot as a graph.\n";
         Assert::true(true);
     }
 
@@ -88,7 +82,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'commit', value: 'feature/sandbox-test-metadata @ 64f100e4', type: MetadataType::Text)]
     public function text(): void
     {
-        echo "Reporting free-form text metadata.\n";
         Assert::true(true);
     }
 
@@ -96,7 +89,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'docs', value: 'https://php-testo.github.io/llms.txt', type: MetadataType::Link)]
     public function links(): void
     {
-        echo "Reporting clickable links.\n";
         Assert::true(true);
     }
 
@@ -110,7 +102,6 @@ final class MetadataShowcaseTest
     )]
     public function imageFromUrl(): void
     {
-        echo "Reporting an image by URL.\n";
         Assert::true(true);
     }
 
@@ -120,7 +111,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'local image', value: 'resources/chart.png', type: MetadataType::Image)]
     public function imageFromLocalFile(): void
     {
-        echo "Reporting an image from a local file.\n";
         Assert::true(true);
     }
 
@@ -130,7 +120,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'measurements.csv', value: 'resources/report.csv', type: MetadataType::Artifact)]
     public function artifactFromLocalFile(): void
     {
-        echo "Reporting an artifact from a local file.\n";
         Assert::true(true);
     }
 
@@ -144,7 +133,6 @@ final class MetadataShowcaseTest
     )]
     public function artifactFromUrl(): void
     {
-        echo "Reporting an artifact by URL.\n";
         Assert::true(true);
     }
 
@@ -157,7 +145,6 @@ final class MetadataShowcaseTest
     #[TestMetadata(name: 'chart source', value: 'https://php-testo.github.io/', type: MetadataType::Link)]
     public function mixedTypes(): void
     {
-        echo "Reporting several metadata types from one test.\n";
         Assert::true(true);
     }
 }

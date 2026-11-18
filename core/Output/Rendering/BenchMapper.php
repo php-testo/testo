@@ -10,12 +10,6 @@ use Testo\Bench\Dto\Line;
 use Testo\Bench\Dto\Report;
 use Testo\Bench\Dto\Report\Severity;
 use Testo\Bench\Dto\Snap;
-use Testo\Core\Metric\Memory;
-use Testo\Core\Metric\Percent;
-use Testo\Core\Metric\Scalar;
-use Testo\Core\Metric\Time;
-use Testo\Metric\Metric;
-use Testo\Metric\Unit;
 
 /**
  * Benchmark measurements as data rather than as the ASCII table the terminal prints.
@@ -29,9 +23,9 @@ use Testo\Metric\Unit;
  * be trusted. Times stay in microseconds, the unit the plugin measures in — converting here would only add a
  * rounding step for the renderer to undo.
  *
- * Two shapes are offered, because the reporters need different ones: {@see map()} for documents that can
- * hold structure (HTML, JSON), {@see metrics()} for protocols whose vocabulary is a flat list of named
- * numbers (JUnit `<property>`, TeamCity `testMetadata`).
+ * This is the structured shape for documents that can hold it (HTML, JSON). The flat list of named
+ * numbers that JUnit `<property>` and TeamCity `testMetadata` carry is the test's metadata, which the
+ * bench plugin attaches itself.
  *
  * @internal
  */
@@ -83,70 +77,6 @@ final class BenchMapper
     }
 
     /**
-     * The same numbers flattened into `bench.<case>.<columnGroup>.<column>` entries, for protocols that
-     * carry metrics as a flat list of named numbers rather than as a document.
-     *
-     * The four-segment key spells a grid a consumer can rebuild as a table — `bench` names it, the case
-     * is the row, and the last two segments place the value under a spanning column-group band matching
-     * the ASCII table the terminal prints: `Benchmark setup`, `Time results`, `Filtered results`,
-     * `Summary`. Every row carries every column, so the grid stays rectangular; a single-case result has
-     * no grid to form and reads as the flat list it degrades to.
-     *
-     * The unit rides on the {@see Metric}, not in the key, so each consumer reports it natively — the
-     * TeamCity number `type` it charts, a JUnit property name suffixed with the unit — instead of parsing
-     * it out of the leaf. Values stay in the unit the plugin measured them in (time in microseconds); a
-     * consumer that needs another converts at its own boundary. The column group says which family a
-     * number belongs to, and the same leaf may repeat across groups (`mean` under both `Time results` and
-     * `Filtered results`); the group segment tells them apart.
-     *
-     * @return array<non-empty-string, Metric<Unit>>
-     */
-    public static function metrics(BenchResult $result): array
-    {
-        $metrics = [];
-
-        /** @var Line $line */
-        foreach ($result->lines as $line) {
-            $set = self::caseSet($result, $line->name);
-            $row = "bench.{$line->name}.";
-
-            $metrics[$row . 'Benchmark setup.iters'] = new Metric(self::iterationsOf($set), Scalar::Number);
-            $metrics[$row . 'Benchmark setup.calls'] = new Metric(self::callsOf($set), Scalar::Number);
-
-            $metrics[$row . 'Time results.mean'] = new Metric($line->avg->value, Time::Microseconds);
-            $metrics[$row . 'Time results.meanDiff'] = new Metric($line->avg->diff, Percent::Percent);
-            $metrics[$row . 'Time results.median'] = new Metric($line->med->value, Time::Microseconds);
-            $metrics[$row . 'Time results.medianDiff'] = new Metric($line->med->diff, Percent::Percent);
-            $metrics[$row . 'Time results.rstdev'] = new Metric($line->rstdev, Percent::Percent);
-
-            $metrics[$row . 'Filtered results.rejected'] = new Metric($line->rejected, Scalar::Number);
-            $metrics[$row . 'Filtered results.mean'] = new Metric($line->favg->value, Time::Microseconds);
-            $metrics[$row . 'Filtered results.meanDiff'] = new Metric($line->favg->diff, Percent::Percent);
-            $metrics[$row . 'Filtered results.rstdev'] = new Metric($line->frstdev, Percent::Percent);
-
-            $metrics[$row . 'Summary.place'] = new Metric($line->place, Scalar::Number);
-            $metrics[$row . 'Summary.memory'] = new Metric(self::memoryOf($set), Memory::Bytes);
-        }
-
-        /** @var array<non-empty-string, Metric<Unit>> */
-        return $metrics;
-    }
-
-    /**
-     * One {@see metrics()} value as text.
-     *
-     * An integer keeps its exact form; a float is written in fixed notation with trailing zeros
-     * trimmed, so a near-zero difference reads as `0.000001` rather than as `1.0E-6` — which a JUnit
-     * consumer or a TeamCity `type='number'` metric would have to special-case.
-     */
-    public static function formatMetric(int|float $value): string
-    {
-        return \is_int($value)
-            ? (string) $value
-            : \rtrim(\rtrim(\sprintf('%.6F', $value), '0'), '.');
-    }
-
-    /**
      * @param int<0, max> $calls
      * @param int<0, max> $memory
      * @return array<non-empty-string, mixed>
@@ -188,14 +118,6 @@ final class BenchMapper
         }
 
         return null;
-    }
-
-    /**
-     * @return int<0, max>
-     */
-    private static function iterationsOf(?CaseSet $case): int
-    {
-        return \count($case?->iterations ?? []);
     }
 
     /**

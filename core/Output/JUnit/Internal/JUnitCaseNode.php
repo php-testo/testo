@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Output\JUnit\Internal;
 
+use Testo\Core\Metadata\Metadata;
 use Testo\Core\Value\Status;
-use Testo\Metric\Metric;
-use Testo\Metric\Unit;
 
 /**
  * Captured `<testcase>` payload produced from a single `TestResult`.
@@ -55,13 +54,10 @@ final readonly class JUnitCaseNode
         public string|int|null $datasetKey = null,
 
         /**
-         * Named numeric measurements to emit as `<properties>` inside the `<testcase>` — currently the
-         * benchmark counters, for tests that are benchmarks. Empty for an ordinary test, in which case
-         * no `<properties>` element is written at all.
-         *
-         * @var array<non-empty-string, Metric<Unit>>
+         * The test's metadata, emitted as `<properties>` inside the `<testcase>`. When empty, no
+         * `<properties>` element is written at all.
          */
-        public array $properties = [],
+        public Metadata $properties = new Metadata(),
 
         /**
          * Native output the test printed (echo, var_dump), recorded in the `stdout` channel.

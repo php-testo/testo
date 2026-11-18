@@ -18,6 +18,7 @@ use Testo\Data\DataSet;
 use Testo\Test;
 use Tests\Metric\Fixture\Distance;
 use Tests\Metric\Fixture\NegativeFactor;
+use Tests\Metric\Fixture\NoBase;
 use Tests\Metric\Fixture\NotAUnit;
 use Tests\Metric\Fixture\Plain;
 
@@ -42,7 +43,11 @@ final class UnitsTest
         $family = Units::family(Distance::class);
 
         Assert::same($family->units, [Distance::Centimeters, Distance::Meters, Distance::Kilometers]);
-        Assert::same($family->base(), Distance::Centimeters);
+    }
+
+    public function baseIsTheUnitWithFactorOneEvenWithSmallerUnits(): void
+    {
+        Assert::same(Units::family(Distance::class)->base(), Distance::Meters);
     }
 
     public function familyWithoutAttributesFallsBackToClassNameAndUnitFactors(): void
@@ -125,6 +130,9 @@ final class UnitsTest
     #[DataSet([-3_000_000, Time::Microseconds, new Metric(-3, Time::Seconds)], 'sign is ignored when fitting')]
     #[DataSet([3 * 1024 ** 3, Memory::Bytes, new Metric(3, Memory::Gibibytes)], 'memory scales by 1024')]
     #[DataSet([1, Plain::Other, new Metric(1, Plain::Other)], 'equal factors keep the given unit')]
+    #[DataSet([2_000, Distance::Centimeters, new Metric(20.0, Distance::Meters)], 'sub-base unit scales up to the base')]
+    #[DataSet([0.5, Distance::Kilometers, new Metric(500.0, Distance::Meters)], 'scales down to the base')]
+    #[DataSet([50, Distance::Centimeters, new Metric(50, Distance::Centimeters)], 'below one base unit stays in the sub-unit')]
     public function compactPicksTheLargestUnitTheValueReaches(int|float $value, $unit, Metric $expected): void
     {
         Assert::equals(Units::compact($value, $unit), $expected);
@@ -134,6 +142,12 @@ final class UnitsTest
     public function nonPositiveFactorIsRejected(): void
     {
         Units::family(NegativeFactor::class);
+    }
+
+    #[ExpectException(InvalidUnitDeclaration::class)]
+    public function familyWithoutFactorOneIsRejected(): void
+    {
+        Units::family(NoBase::class);
     }
 
     #[ExpectException(InvalidUnitDeclaration::class)]

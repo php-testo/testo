@@ -6,119 +6,82 @@ namespace Testo\Test\Internal;
 
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
+use Testo\Core\Metadata\MetadataEntry;
+use Testo\Core\Metric\Memory;
+use Testo\Core\Metric\Percent;
+use Testo\Core\Metric\Time;
 use Testo\Core\Value\TestType;
+use Testo\Metric\Metric;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
 use Testo\Test\MetadataType;
 use Testo\Test\TestMetadata;
 
 /**
- * Emits a `##teamcity[testMetadata …]` service message for every {@see TestMetadata} on the test.
+ * Adds every {@see TestMetadata} declared on the test to its result's metadata.
  *
- * The message must land between the test's `testStarted` and `testFinished`, so it is written after
- * `$next()` — the test body has run and produced its output by then, which is what triggers
- * `testStarted` — but before the pipeline finishes and the reporter closes the node with `testFinished`.
- * It goes straight to the stream {@see \fwrite}, bypassing output capture, exactly as the built-in
- * TeamCity logger does for benchmark metrics. The message is built here rather than through the core
- * formatter so the plugin depends on nothing internal; the format is TeamCity's own stable protocol.
- *
- * @link https://www.jetbrains.com/help/teamcity/reporting-test-metadata.html
+ * Runs closest to the test, so each data set and each retry attempt carries its own copy and the result
+ * a reporter finally renders holds the declared values exactly once.
  */
 #[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST, testType: TestType::Test)]
 final readonly class TestMetadataInterceptor implements TestRunInterceptor
 {
-    /**
-     * @param resource $output Stream the metadata messages are written to.
-     */
-    public function __construct(private mixed $output = \STDOUT) {}
-
     #[\Override]
     public function runTest(TestInfo $info, callable $next): TestResult
     {
-        try {
-            return $next($info);
-        } finally {
-            $this->publish($info);
-        }
-    }
-
-    private function publish(TestInfo $info): void
-    {
         $reflection = $info->testDefinition->reflection;
         $attributes = $reflection->getAttributes(TestMetadata::class);
-
         if ($attributes === []) {
-            return;
+            return $next($info);
         }
 
+        // Built ahead of the body, so a malformed declaration fails before the test spends its run.
         $baseDir = \dirname($reflection->getFileName() ?: '.');
-        $flowId = (string) $info->identity->pipelineId;
+        $entries = \array_map(
+            static fn(\ReflectionAttribute $attribute): MetadataEntry => self::entry($attribute->newInstance(), $baseDir),
+            $attributes,
+        );
 
-        foreach ($attributes as $attribute) {
-            $meta = $attribute->newInstance();
-            $value = $this->resolveValue($meta, $baseDir);
-
-            $value === '' or \fwrite($this->output, $this->format([
-                'testName' => $info->name,
-                'name' => $meta->name,
-                'type' => $meta->type->value,
-                'value' => $value,
-                'flowId' => $flowId,
-            ]) . "\n");
-        }
+        $result = $next($info);
+        return $result->withMetadata($result->metadata->with(...$entries));
     }
 
-    /**
-     * Resolves a local file reference against the test's directory; a URL or an absolute path passes
-     * through untouched, as do the non-file types.
-     */
-    private function resolveValue(TestMetadata $meta, string $baseDir): string
+    private static function entry(TestMetadata $meta, string $baseDir): MetadataEntry
     {
-        $isFileType = $meta->type === MetadataType::Image || $meta->type === MetadataType::Artifact;
-
-        return match (true) {
-            !$isFileType,
-            $this->isUrl($meta->value),
-            $this->isAbsolute($meta->value) => $meta->value,
-            default => $baseDir . \DIRECTORY_SEPARATOR . \strtr($meta->value, '/', \DIRECTORY_SEPARATOR),
+        return match ($meta->type) {
+            MetadataType::Number => MetadataEntry::number($meta->name, self::number($meta)),
+            MetadataType::Milliseconds => MetadataEntry::number($meta->name, new Metric(self::number($meta), Time::Milliseconds)),
+            MetadataType::Bytes => MetadataEntry::number($meta->name, new Metric(self::number($meta), Memory::Bytes)),
+            MetadataType::Percent => MetadataEntry::number($meta->name, new Metric(self::number($meta), Percent::Percent)),
+            MetadataType::Text => MetadataEntry::text($meta->name, $meta->value),
+            MetadataType::Link => MetadataEntry::link($meta->name, $meta->value),
+            MetadataType::Image => MetadataEntry::image($meta->name, self::location($meta->value, $baseDir)),
+            MetadataType::Artifact => MetadataEntry::artifact($meta->name, self::location($meta->value, $baseDir)),
         };
     }
 
     /**
-     * Builds a `##teamcity[testMetadata …]` service message from already-resolved attribute values.
-     *
-     * @param array<non-empty-string, string> $attributes
-     * @return non-empty-string
+     * @throws \InvalidArgumentException When a numeric type is given a value that is not a number.
      */
-    private function format(array $attributes): string
+    private static function number(TestMetadata $meta): int|float
     {
-        $parts = '';
-        foreach ($attributes as $key => $value) {
-            $parts .= " {$key}='{$this->escape($value)}'";
-        }
+        \is_numeric($meta->value) or throw new \InvalidArgumentException(
+            "Test metadata `{$meta->name}` of type `{$meta->type->value}` expects a number, got `{$meta->value}`.",
+        );
 
-        return "##teamcity[testMetadata{$parts}]";
+        return $meta->value + 0;
     }
 
     /**
-     * Escapes a value per the TeamCity service-message rules.
+     * A relative path resolves against the test's directory; a URL or an absolute path passes through.
      */
-    private function escape(string $value): string
+    private static function location(string $value, string $baseDir): string
     {
-        return \str_replace(
-            ['|', "'", "\n", "\r", '[', ']'],
-            ['||', "|'", '|n', '|r', '|[', '|]'],
-            $value,
-        );
-    }
+        $isUrl = \preg_match('#^[a-z][a-z0-9+.-]*://#i', $value) === 1;
+        $isAbsolute = $value !== '' && ($value[0] === '/' || \preg_match('#^[a-z]:[\\\\/]#i', $value) === 1);
 
-    private function isUrl(string $value): bool
-    {
-        return \preg_match('#^[a-z][a-z0-9+.-]*://#i', $value) === 1;
-    }
-
-    private function isAbsolute(string $value): bool
-    {
-        return $value !== '' && ($value[0] === '/' || \preg_match('#^[a-z]:[\\\\/]#i', $value) === 1);
+        return $isUrl || $isAbsolute
+            ? $value
+            : $baseDir . \DIRECTORY_SEPARATOR . \strtr($value, '/', \DIRECTORY_SEPARATOR);
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Testo\Metric;
 
+use Testo\Metric\Exception\InvalidUnitDeclaration;
+
 /**
  * Everything the metric core knows about one {@see Unit} enum, read once from its attributes.
  *
@@ -33,22 +35,31 @@ final readonly class UnitFamily
     }
 
     /**
-     * The unit every factor is expressed in.
+     * The unit every factor is expressed in: the case with factor `1`, the first declared one among several.
+     *
+     * @throws InvalidUnitDeclaration When no case has factor `1`.
      */
     public function base(): Unit
     {
-        return $this->units[0];
+        foreach ($this->units as $unit) {
+            if ($this->factor($unit) == 1) {
+                return $unit;
+            }
+        }
+
+        throw InvalidUnitDeclaration::missingBase($this->class);
     }
 
     /**
      * The unit in which a base-unit amount reads most compactly: the largest one it still reaches at
      * least one of, so `1500` base units of a thousand-step family become `1.5` of the next unit up.
-     * Amounts below one of the smallest unit, and zero, stay in the smallest.
+     * Amounts below one of the smallest unit, and zero, stay in the smallest, which may be a fraction of
+     * the base.
      */
     public function fit(int|float $baseValue): Unit
     {
         $magnitude = \abs($baseValue);
-        $fit = $this->base();
+        $fit = $this->units[0];
         foreach ($this->units as $unit) {
             $magnitude >= $this->factor($unit) and $fit = $unit;
         }

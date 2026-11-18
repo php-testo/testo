@@ -6,6 +6,8 @@ namespace Testo\Bench\Internal\Pipeline;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Testo\Bench;
+use Testo\Bench\Dto\BenchResult;
+use Testo\Bench\Internal\BenchMetadata;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Value\Status;
@@ -48,7 +50,7 @@ final readonly class BenchInterceptor implements TestRunInterceptor
 
         if (\count($attributes) === 1) {
             $attr = \reset($attributes);
-            return $next($info->with(arguments: $attr->arguments)->withAttribute(Bench::class, $attr));
+            return self::withMetadata($next($info->with(arguments: $attr->arguments)->withAttribute(Bench::class, $attr)));
         }
 
         # Dispatch batch starting event
@@ -93,6 +95,9 @@ final readonly class BenchInterceptor implements TestRunInterceptor
                 );
             }
 
+            # Attached before the data set is announced finished: that is where reporters render it.
+            $result = self::withMetadata($result);
+
             # Dispatch dataset finished event
             $this->eventDispatcher->dispatch(
                 new TestDataSetFinished($newInfo, $result, $label, null, $index),
@@ -129,5 +134,15 @@ final readonly class BenchInterceptor implements TestRunInterceptor
         $this->eventDispatcher->dispatch(new TestBatchFinished($info, $finalResult));
 
         return $finalResult;
+    }
+
+    /**
+     * The result with its benchmark measurements added to the metadata; any other result as is.
+     */
+    private static function withMetadata(TestResult $result): TestResult
+    {
+        return $result->result instanceof BenchResult
+            ? $result->withMetadata($result->metadata->with(...BenchMetadata::of($result->result)))
+            : $result;
     }
 }

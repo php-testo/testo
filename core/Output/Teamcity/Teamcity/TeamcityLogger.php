@@ -19,8 +19,9 @@ use Testo\Core\Context\TestResult;
 use Testo\Core\Log\Message;
 use Testo\Core\Report\ReportInfo;
 use Testo\Core\Value\Status;
+use Testo\Metric\Metric;
 use Testo\Output\ConsoleStreams;
-use Testo\Output\Rendering\BenchMapper;
+use Testo\Output\Rendering\NumberFormat;
 use Testo\Output\Rendering\StackTrace;
 use Testo\Output\Terminal\Renderer\Style;
 
@@ -380,7 +381,7 @@ final class TeamcityLogger
     {
         // Before the status handler, which closes the test with testFinished — metadata after that
         // point has no test left to attach to.
-        $this->logBenchMetrics($result, $overrideName);
+        $this->logMetadata($result, $overrideName);
 
         match ($result->status) {
             Status::Passed, Status::Flaky => $this->handlePassedTest($result, $duration, $overrideName),
@@ -436,26 +437,29 @@ final class TeamcityLogger
     }
 
     /**
-     * Publishes a benchmark's measurements as `testMetadata`, one message per counter.
+     * Publishes the result's metadata as `testMetadata`, one message per entry.
      *
-     * Nothing happens for an ordinary test: `testo/bench` is a soft dependency, and the check is on the
-     * result's type, so a project without the plugin never reaches this.
+     * A number goes out in the TeamCity unit {@see TeamcityMetricType} maps its family to; every other
+     * kind passes its string through under the TeamCity type of the same name.
      *
      * @param non-empty-string|null $overrideName
      */
-    private function logBenchMetrics(TestResult $result, ?string $overrideName = null): void
+    private function logMetadata(TestResult $result, ?string $overrideName = null): void
     {
-        if (!BenchMapper::supports($result->result)) {
-            return;
-        }
-
         $name = $overrideName ?? $result->info->name;
         $identity = $result->info->identity;
 
-        foreach (BenchMapper::metrics($result->result) as $key => $metric) {
-            [$type, $value] = TeamcityMetricType::convert($metric);
+        foreach ($result->metadata as $entry) {
+            if ($entry->value instanceof Metric) {
+                [$type, $value] = TeamcityMetricType::convert($entry->value);
+                $this->publish(
+                    Formatter::testMetadata($name, $entry->name, NumberFormat::fixed($value), $type->value, $identity),
+                );
+                continue;
+            }
+
             $this->publish(
-                Formatter::testMetadata($name, $key, BenchMapper::formatMetric($value), $type->value, $identity),
+                Formatter::testMetadata($name, $entry->name, $entry->value, $entry->kind->value, $identity),
             );
         }
     }

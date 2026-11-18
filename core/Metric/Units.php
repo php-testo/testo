@@ -106,6 +106,8 @@ final class Units
             $factors[$case] = $factor;
         }
         $factors === [] and throw InvalidUnitDeclaration::notAUnitEnum($class);
+        \in_array(1, $factors, true) || \in_array(1.0, $factors, true)
+            or throw InvalidUnitDeclaration::missingBase($class);
 
         // `asort` is stable, so equal factors keep their declaration order.
         $ordered = $factors;

@@ -22,6 +22,9 @@ use Testo\Core\Definition\TestDefinition;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
 use Testo\Core\Log\MessageLog;
+use Testo\Core\Metadata\Metadata;
+use Testo\Core\Metadata\MetadataEntry;
+use Testo\Core\Metric\Percent;
 use Testo\Core\Value\RunTiming;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
@@ -30,9 +33,11 @@ use Testo\Event\Framework\SessionStarting;
 use Testo\Event\Test\TestDataSetStarting;
 use Testo\Event\Test\TestPipelineStarting;
 use Testo\Event\Test\TestRetrying;
+use Testo\Metric\Metric;
 use Testo\Output\Html\Internal\DocumentBuilder;
 use Testo\Output\Html\Internal\Json;
 use Testo\Output\Html\Internal\Recorder;
+use Testo\Output\Rendering\MetadataMapper;
 use Testo\Retry;
 use Testo\Test;
 use Tests\Output\Stub\Html\SampleTestClass;
@@ -44,6 +49,7 @@ use Tests\Output\Stub\Html\SampleTestClass;
 #[Test]
 #[Covers(DocumentBuilder::class)]
 #[Covers(Recorder::class)]
+#[Covers(MetadataMapper::class)]
 final class DocumentBuilderTest
 {
     public function theDocumentOpensWithItsSchemaVersion(): void
@@ -403,6 +409,75 @@ final class DocumentBuilderTest
         Assert::same($rendered['truncated']['messages']['total'], 3);
         Assert::same($rendered['truncated']['messages']['shown'], 1);
         Assert::same(\count($rendered['messages']), 1);
+    }
+
+    public function metadataIsMappedOntoTheTestAndItsDataSets(): void
+    {
+        $recorder = new Recorder();
+        $dispatcher = self::dispatcher($recorder);
+        $info = self::start($dispatcher, 'datasetTest');
+
+        $plain = $info->with(arguments: ['x', 1], identity: $info->identity->toDataSet(dataProvider: 0, dataSet: 0));
+        $dispatcher->dispatch(new TestDataSetStarting($plain, 'plain', 0, 0));
+        $plainResult = new TestResult(info: $plain, status: Status::Passed, summary: Summary::forTest(Status::Passed));
+
+        $noted = $info->with(arguments: ['y', 2], identity: $info->identity->toDataSet(dataProvider: 0, dataSet: 1));
+        $dispatcher->dispatch(new TestDataSetStarting($noted, 'noted', 0, 1));
+        $notedResult = new TestResult(
+            info: $noted,
+            status: Status::Passed,
+            summary: Summary::forTest(Status::Passed),
+            metadata: new Metadata([MetadataEntry::image('chart', 'C:\\out\\chart.png')]),
+        );
+
+        $multiple = new MultipleResult([$plainResult, $notedResult]);
+        $test = new TestResult(
+            info: $info,
+            status: Status::Passed,
+            result: $multiple,
+            attributes: [MultipleResult::class => $multiple],
+            summary: Summary::combine([$plainResult->summary, $notedResult->summary]),
+            metadata: new Metadata([
+                MetadataEntry::number('coverage', new Metric(87.5, Percent::Percent)),
+                MetadataEntry::link('docs', 'https://example.com'),
+            ]),
+        );
+
+        $rendered = self::documentOf([$test], $recorder)['suites'][0]['cases'][0]['tests'][0];
+        Assert::same($rendered['metadata'], [
+            ['name' => 'coverage', 'type' => 'number', 'value' => 87.5, 'unit' => 'percent'],
+            ['name' => 'docs', 'type' => 'link', 'value' => 'https://example.com'],
+        ]);
+        // A set without metadata carries no key, the same as a test without any.
+        Assert::false(isset($rendered['dataSets'][0]['metadata']));
+        Assert::same($rendered['dataSets'][1]['metadata'], [
+            ['name' => 'chart', 'type' => 'image', 'value' => 'C:\\out\\chart.png'],
+        ]);
+    }
+
+    public function aBenchmarkLeavesItsMeasurementGridToTheBenchBlock(): void
+    {
+        $recorder = new Recorder();
+        $info = self::start(self::dispatcher($recorder), 'passingTest');
+
+        $test = new TestResult(
+            info: $info,
+            status: Status::Passed,
+            result: new BenchResult(cases: [], results: [], lines: []),
+            summary: Summary::forTest(Status::Passed),
+            metadata: new Metadata([
+                MetadataEntry::number('bench.shift.Summary.place', 1),
+                MetadataEntry::text('host', 'ci-1'),
+            ]),
+        );
+
+        $rendered = self::documentOf([$test], $recorder)['suites'][0]['cases'][0]['tests'][0];
+        Assert::same($rendered['metadata'], [['name' => 'host', 'type' => 'text', 'value' => 'ci-1']]);
+    }
+
+    public function aTestWithoutMetadataCarriesNoKey(): void
+    {
+        Assert::false(isset(self::firstTest(self::build())['metadata']));
     }
 
     /**
