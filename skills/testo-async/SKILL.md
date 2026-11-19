@@ -141,3 +141,4 @@ public function resolvesAfterDelay(): void
 - **Don't let helper fibers outlive the test.** State attribution holds while the test runs — for its coroutines and for fibers it drives itself, at any nesting depth. A fiber handed to someone else to resume after the test finished has no such guarantee.
 - **Leaked watchers are a smell.** A `repeat()`/timer/stream watcher left enabled when a `#[RunInRevolt]` test returns lives on the process-global loop; cancel what you register.
 - **Revolt is the reactor only** — futures, channels, HTTP clients live in **amphp** on top of it. Pull in the amphp package you need as a dev dependency.
+- **Another loop or coroutine runtime needs its own interceptor**, and its order decides whether spawned tasks keep the test's context: see `references/async-interceptor.md` in the `testo-plugin-author` skill.
