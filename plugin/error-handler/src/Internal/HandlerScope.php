@@ -6,7 +6,6 @@ namespace Testo\ErrorHandler\Internal;
 
 use Testo\Common\Messenger;
 use Testo\Core\Log\Level;
-use Testo\Core\Log\Message;
 use Testo\ErrorHandler\CapturedError;
 
 /**
@@ -25,9 +24,6 @@ final class HandlerScope
     /** @var list<CapturedError> */
     public array $errors = [];
 
-    /** @var list<Message> What PHP would have printed for the errors nobody handled. */
-    public array $stderr = [];
-
     private readonly \Closure $handler;
 
     /** @var list<callable> Stack as it was before {@see install()}, bottom first. */
@@ -40,9 +36,12 @@ final class HandlerScope
     private bool $removed = false;
     private bool $left = false;
 
-    public function __construct()
+    /**
+     * @param Messenger $messenger Receives what PHP would have printed for the errors nobody handled.
+     */
+    public function __construct(Messenger $messenger)
     {
-        $this->handler = function (int $severity, string $message, string $file, int $line): bool {
+        $this->handler = function (int $severity, string $message, string $file, int $line) use ($messenger): bool {
             // Forwarded first: a previous handler that throws turns the error into control flow of
             // the test, and then there is nothing to capture.
             $handled = $this->previous !== null && (bool) ($this->previous)($severity, $message, $file, $line);
@@ -57,11 +56,10 @@ final class HandlerScope
 
             $error = new CapturedError($severity, $message, $file, $line, $handled);
             $this->errors[] = $error;
-            $handled or $this->stderr[] = new Message(
-                \microtime(true),
+            $handled or $messenger->log(
                 Messenger::CHANNEL_STDERR,
-                self::level($severity),
                 (string) $error,
+                self::level($severity),
                 ['severity' => $severity, 'file' => $file, 'line' => $line],
             );
 

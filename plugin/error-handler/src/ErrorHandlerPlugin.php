@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testo\ErrorHandler;
 
 use Internal\Container\Container;
+use Testo\Common\Messenger;
 use Testo\Common\PluginConfigurator;
 use Testo\ErrorHandler\Internal\ErrorHandlerInterceptor;
 use Testo\Pipeline\InterceptorCollector;
@@ -32,6 +33,6 @@ final readonly class ErrorHandlerPlugin implements PluginConfigurator
     public function configure(Container $container): void
     {
         $container->get(InterceptorCollector::class)
-            ->addInterceptor(new ErrorHandlerInterceptor($this->failOnError));
+            ->addInterceptor(new ErrorHandlerInterceptor($container->get(Messenger::class), $this->failOnError));
     }
 }
