@@ -174,3 +174,17 @@ Testo comes with the [IDEA plugin `Testo`](https://plugins.jetbrains.com/plugin/
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/28842-testo?style=flat-square)](https://plugins.jetbrains.com/plugin/28842-testo)
 
 For [OpenIDE](https://openide.ru), the plugin is available on the [OpenIDE Marketplace](https://marketplace.openide.ru/plugin/testo/461/).
+
+## Agent Skills
+
+Testo comes with a set of `testo-*` [Agent Skills](https://agentskills.io): they teach coding agents such as Claude Code
+and Codex to write, run and migrate tests the Testo way — attributes, assertions, data providers, test doubles,
+benchmarks, coverage, mutation testing and plugins — instead of guessing from PHPUnit habits.
+Install the [llm/skills](https://github.com/roxblnfk/skills) Composer plugin, and it copies the skills into
+`.agents/skills/` on every `composer install` and `update`, in the version of Testo the project has:
+
+```bash
+composer require --dev llm/skills
+```
+
+→ [Agent skills](skills/README.md)
