@@ -9,8 +9,6 @@ use Testo\Common\Reflection;
 use Testo\Core\Context\TestInfo;
 use Testo\Core\Context\TestResult;
 use Testo\Core\Log\Level;
-use Testo\Core\Log\Message;
-use Testo\Core\Log\MessageLog;
 use Testo\Core\Value\Status;
 use Testo\ErrorHandler\CapturedErrors;
 use Testo\ErrorHandler\Exception\ErrorHandlerUnchanged;
@@ -26,8 +24,8 @@ use Testo\Pipeline\Policy\ConflictPolicy;
  * Installs a capturing error handler for the duration of the test and forwards every error to the
  * handler that was active before. Errors silenced with `@` or excluded by `error_reporting()` are
  * forwarded but not captured. Captured errors are stored in the returned {@see TestResult} as a
- * {@see CapturedErrors} attribute; those the previous handler did not take are also written to the
- * `stderr` message channel in place of PHP's own printing. `E_USER_ERROR` is thrown as an
+ * {@see CapturedErrors} attribute; those the previous handler did not take are also logged to the
+ * `stderr` channel of the {@see Messenger} in place of PHP's own printing. `E_USER_ERROR` is thrown as an
  * {@see \ErrorException}.
  *
  * A passing test that leaves the handler stack changed is reported {@see Status::Risky} unless it
@@ -48,10 +46,13 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
     private const CHANNEL = 'error-handler';
 
     /**
+     * @param Messenger $messenger Receives the unhandled errors and the plugin's verdicts on the
+     *        handler stack, attributed to the running test.
      * @param bool $failOnError When true, any captured error upgrades a passing test to
      *        {@see Status::Failed} with the first error wrapped in an {@see \ErrorException} as the failure.
      */
     public function __construct(
+        private Messenger $messenger,
         private bool $failOnError = false,
     ) {}
 
@@ -61,20 +62,16 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
         if (self::declares($info, WithoutErrorHandler::class)) {
             $result = $next($info);
 
-            return self::declares($info, ExpectErrorHandlerChange::class)
-                ? $result->withMessages(new MessageLog([
-                    ...$result->messages->all(),
-                    new Message(
-                        \microtime(true),
-                        Messenger::CHANNEL_STDERR,
-                        Level::Warning,
-                        '#[ExpectErrorHandlerChange] has no effect together with #[WithoutErrorHandler]: no handler is installed, so no stack change is checked.',
-                    ),
-                ]))
-                : $result;
+            self::declares($info, ExpectErrorHandlerChange::class) and $this->messenger->log(
+                Messenger::CHANNEL_STDERR,
+                '#[ExpectErrorHandlerChange] has no effect together with #[WithoutErrorHandler]: no handler is installed, so no stack change is checked.',
+                Level::Warning,
+            );
+
+            return $result;
         }
 
-        $scope = new HandlerScope();
+        $scope = new HandlerScope($this->messenger);
         $result = $this->run($info, $next, $scope);
 
         if ($result->status === Status::Passed) {
@@ -82,14 +79,10 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
             if ($declared && !$scope->changed()) {
                 $result = $result->with(status: Status::Failed)->withFailure(new ErrorHandlerUnchanged());
             } elseif (!$declared && $scope->changed()) {
-                $result = $result
-                    ->with(status: Status::Risky)
-                    ->withMessages(new MessageLog([
-                        ...$result->messages->all(),
-                        new Message(\microtime(true), self::CHANNEL, Level::Warning, $scope->removed()
-                            ? 'Test code or tested code removed error handlers other than its own.'
-                            : 'Test code or tested code did not remove its own error handlers.'),
-                    ]));
+                $result = $result->with(status: Status::Risky);
+                $this->messenger->log(self::CHANNEL, $scope->removed()
+                    ? 'Test code or tested code removed error handlers other than its own.'
+                    : 'Test code or tested code did not remove its own error handlers.', Level::Warning);
             }
         }
 
@@ -98,7 +91,6 @@ final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
         }
 
         $result = $result->withAttribute(CapturedErrors::class, new CapturedErrors($scope->errors));
-        $scope->stderr === [] or $result = $result->withMessages(new MessageLog([...$result->messages->all(), ...$scope->stderr]));
 
         if ($this->failOnError && $result->status === Status::Passed) {
             $first = $scope->errors[0];

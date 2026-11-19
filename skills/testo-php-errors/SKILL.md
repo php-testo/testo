@@ -43,8 +43,8 @@ PHP's own printing is suppressed: the `stderr` channel replaces it, so nothing a
 
 Captured errors live in the result attribute `Testo\ErrorHandler\CapturedErrors::class`, a list of
 `CapturedError` (`severity`, `message`, `file`, `line`, `handled`; `(string) $error` gives the PHP
-wording). The `stderr` channel shows in the terminal under a `[stderr]` header and reaches every
-reporter that renders messages.
+wording). The `stderr` channel goes to the process STDERR as soon as the error is raised, at any
+verbosity, and stays in the test's messages for every reporter that renders them.
 
 `failOnError: true` upgrades only a **passing** test: the first captured error becomes an
 `\ErrorException` failure. A test that already failed or errored keeps its own failure.

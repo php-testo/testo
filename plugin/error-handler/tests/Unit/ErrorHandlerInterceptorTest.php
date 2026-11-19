@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\ErrorHandler\Unit;
 
 use Internal\Path;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Testo\Application\Internal\MessengerHub;
 use Testo\Assert;
 use Testo\Codecov\Covers;
 use Testo\Common\Messenger;
@@ -38,7 +40,7 @@ final class ErrorHandlerInterceptorTest
 {
     public function noErrorsPassesResultThrough(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
 
@@ -50,7 +52,7 @@ final class ErrorHandlerInterceptorTest
 
     public function capturedErrorIsStoredAsAttribute(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('test warning', \E_USER_WARNING);
@@ -70,7 +72,7 @@ final class ErrorHandlerInterceptorTest
 
     public function multipleErrorsAreAllCaptured(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('first', \E_USER_NOTICE);
@@ -91,7 +93,7 @@ final class ErrorHandlerInterceptorTest
 
     public function collectModePreservesPassingStatus(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: false);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: false);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('deprecated usage', \E_USER_DEPRECATED);
@@ -106,7 +108,7 @@ final class ErrorHandlerInterceptorTest
 
     public function failModeUpgradesPassingTestToFailed(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('user warning', \E_USER_WARNING);
@@ -123,7 +125,7 @@ final class ErrorHandlerInterceptorTest
 
     public function failModeUsesFirstErrorAsFailure(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('first error', \E_USER_WARNING);
@@ -140,7 +142,7 @@ final class ErrorHandlerInterceptorTest
 
     public function failModeDoesNotOverrideAlreadyFailedTest(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo();
         $originalFailure = new \RuntimeException('assertion failure');
         $next = static function (TestInfo $info) use ($originalFailure): TestResult {
@@ -156,7 +158,7 @@ final class ErrorHandlerInterceptorTest
 
     public function failModeDoesNotOverrideErrorStatus(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo();
         $originalFailure = new \RuntimeException('unexpected throw');
         $next = static function (TestInfo $info) use ($originalFailure): TestResult {
@@ -172,7 +174,7 @@ final class ErrorHandlerInterceptorTest
 
     public function handlerIsRestoredAfterTestCompletes(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
 
@@ -194,7 +196,7 @@ final class ErrorHandlerInterceptorTest
 
     public function handlerIsRestoredEvenWhenTestThrows(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static fn(): TestResult => throw new \RuntimeException('unexpected throw');
 
@@ -219,7 +221,7 @@ final class ErrorHandlerInterceptorTest
 
     public function restoresTheOuterHandlerWhileSuspendedAndReinstallsItsOwnOnResume(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
 
         $outer = [];
@@ -260,7 +262,7 @@ final class ErrorHandlerInterceptorTest
 
     public function silencedErrorIsNotCaptured(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             @\trigger_error('silenced', \E_USER_WARNING);
@@ -278,7 +280,7 @@ final class ErrorHandlerInterceptorTest
      */
     public function silencedErrorStaysAvailableToErrorGetLast(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $last = null;
         $next = static function (TestInfo $info) use (&$last): TestResult {
@@ -295,7 +297,7 @@ final class ErrorHandlerInterceptorTest
 
     public function errorOutsideErrorReportingIsNotCaptured(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('deprecated', \E_USER_DEPRECATED);
@@ -315,7 +317,7 @@ final class ErrorHandlerInterceptorTest
 
     public function handlerLeftByTestDoesNotShadowOuterHandler(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \set_error_handler(static fn(): bool => true);
@@ -340,7 +342,7 @@ final class ErrorHandlerInterceptorTest
 
     public function handlerLeftByTestDoesNotCaptureSiblingErrorsWhileSuspended(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \set_error_handler(static fn(): bool => true);
@@ -370,7 +372,7 @@ final class ErrorHandlerInterceptorTest
 
     public function previousHandlerStillReceivesCapturedErrors(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('forwarded', \E_USER_WARNING);
@@ -397,7 +399,7 @@ final class ErrorHandlerInterceptorTest
 
     public function previousHandlerTurningErrorIntoExceptionLeavesNothingCaptured(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             try {
@@ -423,7 +425,7 @@ final class ErrorHandlerInterceptorTest
 
     public function previousHandlerObservesTheRealErrorReportingLevel(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('probe', \E_USER_WARNING);
@@ -454,7 +456,8 @@ final class ErrorHandlerInterceptorTest
     #[WithoutErrorHandler]
     public function unhandledErrorIsWrittenToStderrChannel(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $messenger = self::createMessenger();
+        $interceptor = new ErrorHandlerInterceptor($messenger);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('to stderr', \E_USER_WARNING);
@@ -467,7 +470,7 @@ final class ErrorHandlerInterceptorTest
         Assert::instanceOf($errors, CapturedErrors::class);
         Assert::false($errors->errors[0]->handled);
 
-        $stderr = $result->messages->channel(Messenger::CHANNEL_STDERR);
+        $stderr = $messenger->getMessages()->channel(Messenger::CHANNEL_STDERR);
         Assert::same(\count($stderr), 1);
         Assert::same($stderr[0]->level, Level::Warning);
         Assert::same($stderr[0]->content, \sprintf('Warning: to stderr in %s on line %d', __FILE__, $errors->errors[0]->line));
@@ -476,7 +479,8 @@ final class ErrorHandlerInterceptorTest
 
     public function errorDeclinedByPreviousHandlerIsWrittenToStderr(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $messenger = self::createMessenger();
+        $interceptor = new ErrorHandlerInterceptor($messenger);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('declined', \E_USER_NOTICE);
@@ -491,12 +495,13 @@ final class ErrorHandlerInterceptorTest
         }
 
         Assert::false($result->getAttribute(CapturedErrors::class)->errors[0]->handled);
-        Assert::same(\count($result->messages->channel(Messenger::CHANNEL_STDERR)), 1);
+        Assert::same(\count($messenger->getMessages()->channel(Messenger::CHANNEL_STDERR)), 1);
     }
 
     public function errorHandledByPreviousHandlerIsCapturedButKeptOutOfStderr(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $messenger = self::createMessenger();
+        $interceptor = new ErrorHandlerInterceptor($messenger);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('handled upstream', \E_USER_WARNING);
@@ -513,12 +518,12 @@ final class ErrorHandlerInterceptorTest
         $errors = $result->getAttribute(CapturedErrors::class);
         Assert::instanceOf($errors, CapturedErrors::class);
         Assert::true($errors->errors[0]->handled);
-        Assert::same($result->messages->channel(Messenger::CHANNEL_STDERR), []);
+        Assert::same($messenger->getMessages()->channel(Messenger::CHANNEL_STDERR), []);
     }
 
     public function failModeFailsOnErrorHandledUpstreamToo(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('handled upstream', \E_USER_WARNING);
@@ -537,7 +542,7 @@ final class ErrorHandlerInterceptorTest
 
     public function unhandledErrorIsNotPrintedByPhp(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $printed = null;
         $next = static function (TestInfo $info) use (&$printed): TestResult {
@@ -559,7 +564,7 @@ final class ErrorHandlerInterceptorTest
 
     public function userErrorBecomesAnException(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('fatal by contract', \E_USER_ERROR);
@@ -577,7 +582,8 @@ final class ErrorHandlerInterceptorTest
 
     public function handlerLeftByTestMarksPassingTestRisky(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $messenger = self::createMessenger();
+        $interceptor = new ErrorHandlerInterceptor($messenger);
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \set_error_handler(static fn(): bool => true);
@@ -587,12 +593,12 @@ final class ErrorHandlerInterceptorTest
         $result = $interceptor->runTest($info, $next);
 
         Assert::same($result->status, Status::Risky);
-        Assert::false($result->messages->isEmpty());
+        Assert::false($messenger->getMessages()->isEmpty());
     }
 
     public function handlerLeftByTestDoesNotOverrideFailedStatus(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $failure = new \RuntimeException('assertion failure');
         $next = static function (TestInfo $info) use ($failure): TestResult {
@@ -608,7 +614,7 @@ final class ErrorHandlerInterceptorTest
 
     public function handlerRemovedByTestMarksPassingTestRiskyAndKeepsOuterHandler(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo();
         $next = static function (TestInfo $info): TestResult {
             \restore_error_handler();
@@ -634,7 +640,7 @@ final class ErrorHandlerInterceptorTest
 
     public function declaredHandlerChangeKeepsPassedStatus(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'declared'));
         $next = static function (TestInfo $info): TestResult {
             \set_error_handler(static fn(): bool => true);
@@ -660,7 +666,7 @@ final class ErrorHandlerInterceptorTest
 
     public function declaredHandlerChangeOnClassAppliesToItsTests(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo(new \ReflectionMethod(HandlerChangeCase::class, 'inherited'));
         $next = static function (TestInfo $info): TestResult {
             \set_error_handler(static fn(): bool => true);
@@ -674,7 +680,7 @@ final class ErrorHandlerInterceptorTest
 
     public function declaredHandlerChangeThatDoesNotHappenFails(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'declared'));
         $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
 
@@ -686,7 +692,7 @@ final class ErrorHandlerInterceptorTest
 
     public function undeclaredStubMethodIsHeldToThePlainContract(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'undeclared'));
         $next = static function (TestInfo $info): TestResult {
             \set_error_handler(static fn(): bool => true);
@@ -700,7 +706,7 @@ final class ErrorHandlerInterceptorTest
 
     public function handlerInstalledByTestIsBackAfterResume(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo(new \ReflectionMethod(HandlerChange::class, 'declared'));
 
         $ownCount = 0;
@@ -742,7 +748,7 @@ final class ErrorHandlerInterceptorTest
 
     public function optedOutTestRunsWithTheStackItInherited(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
 
         $ambient = static fn(): bool => true;
@@ -767,7 +773,8 @@ final class ErrorHandlerInterceptorTest
 
     public function optedOutTestLeavesItsErrorsToTheAmbientHandler(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $messenger = self::createMessenger();
+        $interceptor = new ErrorHandlerInterceptor($messenger, failOnError: true);
         $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
         $next = static function (TestInfo $info): TestResult {
             \trigger_error('nobody captures this', \E_USER_WARNING);
@@ -789,12 +796,13 @@ final class ErrorHandlerInterceptorTest
         Assert::same($count, 1);
         Assert::same($result->status, Status::Passed);
         Assert::null($result->getAttribute(CapturedErrors::class));
-        Assert::same($result->messages->channel(Messenger::CHANNEL_STDERR), []);
+        Assert::same($messenger->getMessages()->channel(Messenger::CHANNEL_STDERR), []);
     }
 
     public function optedOutTestLeavingAHandlerIsNotRisky(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $messenger = self::createMessenger();
+        $interceptor = new ErrorHandlerInterceptor($messenger);
         $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
         $next = static function (TestInfo $info): TestResult {
             \set_error_handler(static fn(): bool => true);
@@ -809,12 +817,12 @@ final class ErrorHandlerInterceptorTest
         }
 
         Assert::same($result->status, Status::Passed);
-        Assert::true($result->messages->isEmpty());
+        Assert::true($messenger->getMessages()->isEmpty());
     }
 
     public function optedOutOnClassAppliesToItsTests(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo(new \ReflectionMethod(NoHandlerCase::class, 'inherited'));
 
         $ambient = static fn(): bool => true;
@@ -837,7 +845,8 @@ final class ErrorHandlerInterceptorTest
 
     public function optedOutWinsOverDeclaredHandlerChange(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $messenger = self::createMessenger();
+        $interceptor = new ErrorHandlerInterceptor($messenger);
         $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOutAndDeclaringChange'));
         $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
 
@@ -845,7 +854,7 @@ final class ErrorHandlerInterceptorTest
 
         Assert::same($result->status, Status::Passed);
         Assert::null($result->failure);
-        $stderr = $result->messages->channel(Messenger::CHANNEL_STDERR);
+        $stderr = $messenger->getMessages()->channel(Messenger::CHANNEL_STDERR);
         Assert::same(\count($stderr), 1);
         Assert::same($stderr[0]->level, Level::Warning);
         Assert::string($stderr[0]->content)->contains('#[ExpectErrorHandlerChange]');
@@ -853,20 +862,21 @@ final class ErrorHandlerInterceptorTest
 
     public function optedOutAloneWritesNoWarning(): void
     {
-        $interceptor = new ErrorHandlerInterceptor();
+        $messenger = self::createMessenger();
+        $interceptor = new ErrorHandlerInterceptor($messenger);
         $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
         $next = static fn(TestInfo $info): TestResult => new TestResult(info: $info, status: Status::Passed);
 
         $result = $interceptor->runTest($info, $next);
 
-        Assert::true($result->messages->isEmpty());
+        Assert::true($messenger->getMessages()->isEmpty());
     }
 
     public function optedOutFunctionRunsWithTheStackItInherited(): void
     {
         require_once __DIR__ . '/../Stub/no-handler-function.php';
 
-        $interceptor = new ErrorHandlerInterceptor();
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger());
         $info = self::createTestInfo(new \ReflectionFunction('Tests\ErrorHandler\Stub\optedOutFunction'));
 
         $ambient = static fn(): bool => true;
@@ -889,7 +899,7 @@ final class ErrorHandlerInterceptorTest
 
     public function optedOutFailingTestKeepsItsResult(): void
     {
-        $interceptor = new ErrorHandlerInterceptor(failOnError: true);
+        $interceptor = new ErrorHandlerInterceptor(self::createMessenger(), failOnError: true);
         $info = self::createTestInfo(new \ReflectionMethod(NoHandler::class, 'optedOut'));
         $failed = new TestResult(info: $info, status: Status::Failed, failure: new \RuntimeException('own failure'));
         $next = static fn(TestInfo $info): TestResult => $failed;
@@ -898,6 +908,18 @@ final class ErrorHandlerInterceptorTest
 
         Assert::same($result, $failed);
     }
+
+    private static function createMessenger(): Messenger
+    {
+        return new MessengerHub(new class() implements EventDispatcherInterface {
+            #[\Override]
+            public function dispatch(object $event): object
+            {
+                return $event;
+            }
+        });
+    }
+
 
     private static function createTestInfo(?\ReflectionFunctionAbstract $reflection = null): TestInfo
     {
