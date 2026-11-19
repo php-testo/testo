@@ -1,6 +1,6 @@
 ---
 name: testo-plugin-author
-description: Author a Testo plugin — interceptors (middleware), event listeners, container bindings, custom attributes, or full test-environment provisioning. Use when the user wants to extend how Testo runs tests (wrap every test, provision a database/service, custom reporters, attribute-driven behaviour, integrating an external system) rather than writing a single test.
+description: Author a Testo plugin — interceptors (middleware), event listeners, container bindings, custom attributes, or full test-environment provisioning. Use when the user wants to extend how Testo runs tests (wrap every test, provision a database/service, custom reporters, attribute-driven behaviour, running the test body on an event loop or coroutine scheduler, integrating an external system) rather than writing a single test.
 ---
 
 # Authoring a Testo plugin
@@ -26,6 +26,8 @@ before relying on memory** — the APIs below are stable but version-specific.
   details, the `ReportFileGenerating`/`ReportFileGenerated` announcement events).
 - **Provisioning an external resource** (database, service) per case/test → full worked plugin in
   `references/database-plugin-example.md`.
+- **Running the test body on an event loop**, coroutine scope or fiber scheduler (the interceptor owns
+  the fiber and resumes it itself) → read `references/async-interceptor.md` before choosing the order.
 
 ## Vocabulary (get this right)
 
@@ -113,7 +115,10 @@ final readonly class MyInterceptor implements TestRunInterceptor { … }
 ```
 
 - `order` — **higher = closer to the test**. Constants: `ORDER_FILTER`, `ORDER_DATA_PROVIDER`,
-  `ORDER_DEFAULT` (0), `ORDER_ASSERTIONS`, `ORDER_CLOSE_TO_TEST`, `ORDER_RIGHT_BEFORE_TEST`.
+  `ORDER_DEFAULT` (0), `ORDER_ASSERTIONS`, `ORDER_CLOSE_TO_TEST`, `ORDER_RIGHT_BEFORE_TEST`,
+  `ORDER_COVERAGE`, `ORDER_ASYNC_COROUTINE`. An interceptor that hands the body to an event loop or
+  coroutine scheduler takes `ORDER_ASYNC_COROUTINE`, the innermost slot; at any other order the loop
+  runs the test's spawned tasks outside its context (`references/async-interceptor.md`).
 - `testType` — restrict to a kind of test (e.g. `TestType::Test`, not benches/inline). Omit to apply to all.
 
 ### Context objects you read/return
@@ -283,6 +288,8 @@ case ahead of the run (a skipped test, say) is flagged on the definitions from a
   Never return early from a **case** interceptor to skip — flag the definitions as `skipped` from a
   locator instead, and let the core report them.
 - **Cleanup**: wrap `$next()` in `try/finally`; a later interceptor may throw.
+- **Event loop / coroutine interceptors**: `ORDER_ASYNC_COROUTINE`, with nothing that suspends between
+  it and `ORDER_COVERAGE`.
 - **State**: prefer pipeline attributes / container scope over mutable interceptor fields.
 - **Listeners** observe; **interceptors** change behaviour. Don't try to alter a run from a listener.
 - **Don't capture `$container` in listener closures** — resolve and inject in `configure()`.
