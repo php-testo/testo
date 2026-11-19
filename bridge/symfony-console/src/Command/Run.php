@@ -64,6 +64,9 @@ use Testo\Output\Terminal\TerminalPlugin;
  *  # Runs tests in Unit directory that match testImportant* AND are in Critical suite
  *  ./bin/testo run --path="tests/Unit/*" --filter=testImportant --suite=Critical
  *
+ *  # Hide the per-test progress; failures and the final report are still printed
+ *  ./bin/testo run --no-progress
+ *
  *  # Run tests with custom config
  *  ./bin/testo run --config=./testo.php
  * ```
@@ -93,6 +96,13 @@ final class Run extends Base
             InputOption::VALUE_REQUIRED,
             'Write the minimalistic JSON report (run summary + failed tests) to the given path. '
             . 'Unlike --json this keeps the human-readable terminal output; mirrors --log-junit.',
+        );
+        $this->addOption(
+            'no-progress',
+            null,
+            InputOption::VALUE_NONE,
+            'Print nothing per suite, case or test while the run goes; the failures and the final '
+            . 'report still come out at the end. Affects the terminal output only.',
         );
         $this->addOption(
             'filter',

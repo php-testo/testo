@@ -13,10 +13,12 @@ use Testo\Lifecycle\AfterTest;
 use Testo\Lifecycle\BeforeTest;
 use Testo\Output\Html\HtmlPlugin;
 use Testo\Test;
+use Tests\Bridge\SymfonyConsole\Stub\CapturedConsoleStreams;
+use Tests\Bridge\SymfonyConsole\Stub\DiscardConsoleStreams;
 use Tests\Bridge\SymfonyConsole\Testo\Sandbox;
 
 /**
- * Acceptance tests for the `--log-html` flag of `testo run`.
+ * Acceptance tests for the `--log-html` and `--no-progress` flags of `testo run`.
  *
  * Each test drives the real command end-to-end — Symfony parses the flags, {@see Run::initialize()}
  * normalizes them and a whole nested run happens in-process — inside a fresh {@see Sandbox} holding a
@@ -94,6 +96,36 @@ final class RunCommandTest
         );
     }
 
+    public function noProgressLeavesOnlyTheFinalReport(): void
+    {
+        $this->sandbox->writeFile('testo.php', self::configPointingAtTheStubSuite(CapturedConsoleStreams::class));
+
+        $tester = $this->run(['--no-progress' => true]);
+        $output = CapturedConsoleStreams::output();
+
+        Assert::same($tester->getStatusCode(), Command::SUCCESS, $output);
+        Assert::string($output)->ignoringAnsi()
+            ->notContains('Suite: Stub')
+            ->notContains('PassingCase')
+            ->notContains('itPasses')
+            ->contains('Summary')
+            ->contains('1 passed');
+    }
+
+    public function withoutNoProgressTheTestsAreListedAsTheyRun(): void
+    {
+        $this->sandbox->writeFile('testo.php', self::configPointingAtTheStubSuite(CapturedConsoleStreams::class));
+
+        $tester = $this->run();
+        $output = CapturedConsoleStreams::output();
+
+        Assert::same($tester->getStatusCode(), Command::SUCCESS, $output);
+        Assert::string($output)->ignoringAnsi()
+            ->contains('Suite: Stub')
+            ->contains('itPasses')
+            ->contains('Summary');
+    }
+
     #[BeforeTest]
     public function setUp(): void
     {
@@ -111,8 +143,10 @@ final class RunCommandTest
      * The smallest config a nested run needs: no sources, one suite pointing at this module's stub case,
      * and a fresh inert reporter in place of the process-wide default (see the class docblock).
      * The stub directory is embedded as an absolute path — the sandbox CWD is elsewhere.
+     *
+     * @param class-string $streams Plugin that binds the run's console streams.
      */
-    private static function configPointingAtTheStubSuite(): string
+    private static function configPointingAtTheStubSuite(string $streams = DiscardConsoleStreams::class): string
     {
         $stub = \var_export(\dirname(__DIR__) . '/Stub/Run', true);
 
@@ -126,7 +160,6 @@ final class RunCommandTest
             use Testo\\Application\\Config\\Plugin\\ApplicationPlugins;
             use Testo\\Application\\Config\\SuiteConfig;
             use Testo\\Output\\Html\\HtmlPlugin;
-            use Tests\\Bridge\\SymfonyConsole\\Stub\\DiscardConsoleStreams;
 
             return new ApplicationConfig(
                 src: [],
@@ -137,7 +170,7 @@ final class RunCommandTest
                     ),
                 ],
                 plugins: ApplicationPlugins::without(HtmlPlugin::class)
-                    ->with(HtmlPlugin::inert(), new DiscardConsoleStreams()),
+                    ->with(HtmlPlugin::inert(), new \\{$streams}()),
             );
             PHP;
     }

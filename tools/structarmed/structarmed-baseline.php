@@ -718,6 +718,20 @@ return [
         'layer' => 'Core',
     ],
     [
+        'rule' => 'core.internal_is_usable_only_within_its_package',
+        'message' => 'Class [Testo\Output\Terminal\Internal\TerminalInput] must not use internal [Testo\Application\Config\Internal\Attribute\InflectableConfig] — it is private to package [Testo\Application\Config]',
+        'file' => 'core/Output/Terminal/Internal/TerminalInput.php',
+        'class' => 'Testo\Output\Terminal\Internal\TerminalInput',
+        'layer' => 'Core',
+    ],
+    [
+        'rule' => 'core.internal_is_usable_only_within_its_package',
+        'message' => 'Class [Testo\Output\Terminal\Internal\TerminalInput] must not use internal [Testo\Application\Config\Internal\Attribute\InputOption] — it is private to package [Testo\Application\Config]',
+        'file' => 'core/Output/Terminal/Internal/TerminalInput.php',
+        'class' => 'Testo\Output\Terminal\Internal\TerminalInput',
+        'layer' => 'Core',
+    ],
+    [
         'rule' => 'core.class_must_declare_api_or_internal',
         'message' => 'Enum [Testo\Output\Terminal\Renderer\ColorMode] must be annotated @api or @internal',
         'file' => 'core/Output/Terminal/Renderer/ColorMode.php',

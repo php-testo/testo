@@ -82,16 +82,26 @@ final class TerminalLogger
     private ?ChannelRenderer $unownedChannels = null;
 
     /**
+     * The stdout stream ends with a blank line, so leading line breaks of the next text are dropped.
+     * Without progress lines the final report follows the environment block directly, and its blocks
+     * open with blank lines of their own.
+     */
+    private bool $endsWithBlankLine = false;
+
+    /**
      * @param ConsoleStreams $streams Streams the report and framework-fault channels go to. The report
      *        writes straight to the stdout stream, bypassing PHP output buffering, so it is not captured
      *        by the messenger's output interceptor. {@see Messenger::CHANNEL_STDERR} (framework faults)
      *        goes to the stderr stream so those messages never corrupt the structured report the stdout
      *        stream carries.
+     * @param bool $progress Print suites, cases and tests as they finish. Without it the run stays silent
+     *        until the final report, which still lists every failure.
      */
     public function __construct(
         ConsoleStreams $streams,
         private readonly OutputFormat $format = OutputFormat::Compact,
         private readonly Verbosity $verbosity = Verbosity::Normal,
+        private readonly bool $progress = true,
     ) {
         $this->out = new SharedStream($streams->stdout);
         $this->errorOutput = $streams->stderr;
@@ -103,7 +113,7 @@ final class TerminalLogger
     public function suiteStartedFromInfo(SuiteInfo $info): void
     {
         $this->currentSuiteName = $info->name;
-        $this->write(null, Formatter::suiteHeader($info->name, $this->format));
+        $this->writeProgress(null, Formatter::suiteHeader($info->name, $this->format));
     }
 
     /**
@@ -111,7 +121,7 @@ final class TerminalLogger
      */
     public function handleSuiteResult(SuiteInfo $info, SuiteResult $result): void
     {
-        $this->write(null, Formatter::suiteSummary($result));
+        $this->writeProgress(null, Formatter::suiteSummary($result));
     }
 
     /**
@@ -119,7 +129,7 @@ final class TerminalLogger
      */
     public function caseStartedFromInfo(CaseInfo $info): void
     {
-        $this->write(null, Formatter::caseHeader($info->name, $this->format));
+        $this->writeProgress(null, Formatter::caseHeader($info->name, $this->format));
     }
 
     /**
@@ -135,8 +145,8 @@ final class TerminalLogger
         $this->currentTestName = [];
         $this->currentIndentLevel = [];
 
-        $this->write(null, Formatter::caseFooter($this->format));
-        $this->write(null, Formatter::caseSummary($result, $this->format));
+        $this->writeProgress(null, Formatter::caseFooter($this->format));
+        $this->writeProgress(null, Formatter::caseSummary($result, $this->format));
     }
 
     /**
@@ -154,11 +164,11 @@ final class TerminalLogger
         $indent = $this->format === OutputFormat::Verbose ? '     ' : '   ';
         $symbol = Style::dim(Symbol::DataProvider->value);
         $id = $info->identity->pipelineId;
-        $this->write($id, "{$indent}{$symbol} {$info->name}\n");
+        $this->writeProgress($id, "{$indent}{$symbol} {$info->name}\n");
 
         // The description belongs to the test, not to each dataset — print it once here, at the root
         // of the dataset tree, so it is not repeated under every dataset (see handle*Test).
-        $this->write($id, Formatter::description(
+        $this->writeProgress($id, Formatter::description(
             (string) $info->testDefinition->getDescription(),
             0,
             $this->format,
@@ -217,10 +227,10 @@ final class TerminalLogger
      * Streams a captured channel {@see Message} to the terminal in real time.
      *
      * A colored channel header (name + time of the group's first message) is printed when the group
-     * changes; same-group content is appended verbatim. Live streaming happens only at
-     * {@see Verbosity::Verbose} and above; at lower verbosity the output of a *failed* test is shown
-     * after the fact (see {@see printFailures()}). Suppressed in Dots mode, whose single-character
-     * per-test layout multi-line output would break.
+     * changes; same-group content is appended verbatim. Live streaming is part of the progress and
+     * happens only at {@see Verbosity::Verbose} and above; otherwise the output of a *failed* test is
+     * shown after the fact (see {@see printFailures()}). Suppressed in Dots mode, whose
+     * single-character per-test layout multi-line output would break.
      *
      * @param int|null $owner Run of the test the message belongs to
      *        ({@see \Testo\Core\Context\Identity\TestIdentity::$pipelineId}), which decides both the
@@ -241,9 +251,9 @@ final class TerminalLogger
             return;
         }
 
-        # Every other channel streams only at Verbose+ and is suppressed in the Dots layout (whose
-        # single-character-per-test format multi-line output would break).
-        if ($this->format === OutputFormat::Dots || !$this->verbosity->atLeast(Verbosity::Verbose)) {
+        # Every other channel streams only at Verbose+ with progress on and is suppressed in the Dots
+        # layout (whose single-character-per-test format multi-line output would break).
+        if ($this->format === OutputFormat::Dots || !$this->streamsLive()) {
             return;
         }
 
@@ -321,6 +331,7 @@ final class TerminalLogger
             default => 'enabled',
         };
         $this->write(null, \sprintf('   %s %s', Style::info('OPcache:'), $opcache) . "\n\n");
+        $this->endsWithBlankLine = !$this->progress;
     }
 
     /**
@@ -373,7 +384,7 @@ final class TerminalLogger
      * invocation, so its channels are worth printing even for a passing test — which normally stays
      * quiet at {@see Verbosity::Normal}.
      *
-     * Skipped when the output was already streamed live ({@see Verbosity::Verbose} and above),
+     * Skipped when the output was already streamed live ({@see streamsLive()}),
      * when the user asked for less noise ({@see Verbosity::Quiet}), in the single-character Dots
      * layout, and for a failed/aborted test whose output {@see printFailures()} already prints.
      */
@@ -384,7 +395,8 @@ final class TerminalLogger
             $test === null
             || $result->summary->total() !== 1
             || $this->format === OutputFormat::Dots
-            || $this->verbosity !== Verbosity::Normal
+            || $this->verbosity === Verbosity::Quiet
+            || $this->streamsLive()
             || $test->status->isFailure()
             || $test->status === Status::Aborted
         ) {
@@ -401,7 +413,33 @@ final class TerminalLogger
      */
     private function write(?int $owner, string $text): void
     {
+        if ($this->endsWithBlankLine) {
+            $text = \ltrim($text, "\n");
+            if ($text === '') {
+                return;
+            }
+
+            $this->endsWithBlankLine = false;
+        }
+
         $this->out->write($owner, $text);
+    }
+
+    /**
+     * Whether channel messages reach the terminal while the test runs.
+     */
+    private function streamsLive(): bool
+    {
+        return $this->progress && $this->verbosity->atLeast(Verbosity::Verbose);
+    }
+
+    /**
+     * Writes a line of the live progress: a suite, case or test as it goes. The final report does not
+     * depend on any of it.
+     */
+    private function writeProgress(?int $owner, string $text): void
+    {
+        $this->progress and $this->write($owner, $text);
     }
 
     /**
@@ -429,7 +467,7 @@ final class TerminalLogger
             description: $this->resultDescription($result),
         );
 
-        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+        $this->writeProgress($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
         unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
@@ -456,7 +494,7 @@ final class TerminalLogger
             description: $this->resultDescription($result),
         );
 
-        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+        $this->writeProgress($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
         $this->printMultipleRuns($result);
         unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
@@ -515,7 +553,7 @@ final class TerminalLogger
                 description: (string) $runKey,
             );
 
-            $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+            $this->writeProgress($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
             $runNumber++;
         }
     }
@@ -534,7 +572,7 @@ final class TerminalLogger
             indentLevel: $this->indentLevel($result),
         );
 
-        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+        $this->writeProgress($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
         unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
@@ -552,7 +590,7 @@ final class TerminalLogger
             indentLevel: $this->indentLevel($result),
         );
 
-        $this->write($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
+        $this->writeProgress($result->info->identity->pipelineId, Formatter::formatRun($item, $this->format));
         unset($this->currentTestName[$result->info->identity->pipelineId]);
     }
 
@@ -587,8 +625,8 @@ final class TerminalLogger
                 $details = $details === '' ? $diffBlock : $diffBlock . "\n\n" . $details;
             }
 
-            // At lower verbosity nothing was streamed live — surface the test's captured output here.
-            if (!$this->verbosity->atLeast(Verbosity::Verbose)) {
+            // Nothing was streamed live — surface the test's captured output here.
+            if (!$this->streamsLive()) {
                 $output = self::renderMessages($result->messages);
                 $output === '' or $details = $details === '' ? $output : $details . "\n\n" . $output;
             }

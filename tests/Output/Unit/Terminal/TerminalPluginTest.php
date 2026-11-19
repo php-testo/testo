@@ -40,6 +40,7 @@ use Testo\Event\TestCase\TestCaseStarting;
 use Testo\Event\TestSuite\TestSuitesLocated;
 use Testo\Event\TestSuite\TestSuiteStarting;
 use Testo\Output\ConsoleStreams;
+use Testo\Output\Terminal\Internal\TerminalInput;
 use Testo\Output\Terminal\ProgramStatus;
 use Testo\Output\Terminal\Renderer\ColorMode;
 use Testo\Output\Terminal\Renderer\Style;
@@ -218,6 +219,39 @@ final class TerminalPluginTest
         Assert::string($output)->notContains("\033]7501;");
     }
 
+    public function noProgressInputLeavesOnlyTheFinalReport(): void
+    {
+        $passed = self::makeTestInfo('passingTest');
+        $failed = self::makeTestInfo('failingTest');
+        $failure = new TestResult(info: $failed, status: Status::Failed, failure: new \RuntimeException('boom'));
+        $suite = new SuiteInfo('Output/Unit', CaseDefinitions::fromArray($passed->caseInfo->definition));
+
+        $output = self::capture(
+            static function (EventDispatcher $dispatcher) use ($passed, $failed, $failure, $suite): void {
+                $dispatcher->dispatch(new SessionStarting());
+                $dispatcher->dispatch(new TestSuiteStarting($suite));
+                $dispatcher->dispatch(new TestCaseStarting($passed->caseInfo));
+                $dispatcher->dispatch(new TestPipelineFinished($passed, self::passed($passed)));
+                $dispatcher->dispatch(new TestPipelineFinished($failed, $failure));
+                $dispatcher->dispatch(new SessionFinished(new RunResult(
+                    [],
+                    status: Status::Failed,
+                    summary: new Summary(['Passed' => 1, 'Failed' => 1]),
+                )));
+            },
+            noProgress: true,
+        );
+
+        Assert::string($output)
+            ->contains('Testo')
+            ->notContains('Suite: Output/Unit')
+            ->notContains('passingTest')
+            ->contains('Failures:')
+            ->contains(':: failingTest')
+            ->contains('1 passed, 1 failed');
+        Assert::same(\substr_count($output, 'failingTest'), 1);
+    }
+
     private static function report(): ReportInfo
     {
         return new ReportInfo('html', 'Testo HTML report', Path::create('runtime/report/index.html'));
@@ -229,8 +263,9 @@ final class TerminalPluginTest
      *
      * @param \Closure(EventDispatcher): void $scenario
      * @param bool $status Report program status to the terminal stream, as on an interactive terminal.
+     * @param bool $noProgress Run as with `--no-progress`.
      */
-    private static function capture(\Closure $scenario, bool $status = false): string
+    private static function capture(\Closure $scenario, bool $status = false, bool $noProgress = false): string
     {
         $stdout = \fopen('php://memory', 'w+');
         $stderr = \fopen('php://memory', 'w+');
@@ -247,6 +282,9 @@ final class TerminalPluginTest
             $container->set(new ConsoleStreams($stdout, $stderr), ConsoleStreams::class);
             $container->set(Verbosity::Verbose, Verbosity::class);
             $status and $container->set(new ProgramStatus($stdout), ProgramStatus::class);
+            $input = new TerminalInput();
+            $input->noProgress = $noProgress;
+            $container->set($input);
             (new TerminalPlugin(ColorMode::Never))->configure($container);
 
             $scenario($dispatcher);

@@ -114,6 +114,9 @@ over-narrow filter — widen it (a typo in `--filter`, a `--path` that matches n
   bare `--log-html` → `runtime/report`),
   `--log-report=` (the full run as a versioned JSON document — the data behind the HTML),
   `--teamcity` — reports for CI and IDEs, not for agent parsing.
+- `--no-progress` — terminal output without the per-test stream (no suite, case or test lines, no
+  dots): only the failure details and the final summary. Pair it with `--log-json=` for a short CI
+  log; `--json`, `--teamcity` and the `--log-*` reports are unaffected.
 - `--config=path/to/testo.php` when the config is not at the project root.
 - In an interactive terminal the default renderer also reports the run's progress and outcome to the
   terminal itself (OSC 7501 program status, shown in the tab by terminals that support it). It is off
