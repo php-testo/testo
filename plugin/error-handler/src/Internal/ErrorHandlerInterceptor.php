@@ -18,6 +18,7 @@ use Testo\ErrorHandler\ExpectErrorHandlerChange;
 use Testo\ErrorHandler\WithoutErrorHandler;
 use Testo\Pipeline\Attribute\InterceptorOptions;
 use Testo\Pipeline\Middleware\TestRunInterceptor;
+use Testo\Pipeline\Policy\ConflictPolicy;
 
 /**
  * Intercepts PHP errors raised during test execution.
@@ -35,10 +36,13 @@ use Testo\Pipeline\Middleware\TestRunInterceptor;
  *
  * A test carrying {@see WithoutErrorHandler} runs untouched: no handler, no capture, no verdict.
  *
+ * Of several instances in one pipeline the last one registered wins: a plugin configured for a suite
+ * comes after the default instance and overrides it.
+ *
  * @internal
  * @psalm-internal Testo\ErrorHandler
  */
-#[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST)]
+#[InterceptorOptions(order: InterceptorOptions::ORDER_CLOSE_TO_TEST, onConflict: ConflictPolicy::Last)]
 final readonly class ErrorHandlerInterceptor implements TestRunInterceptor
 {
     private const CHANNEL = 'error-handler';
