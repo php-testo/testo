@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.6](https://github.com/php-testo/testo/compare/bridge-rector-0.3.5...bridge-rector-0.3.6) (2026-11-19)
+
+
+### Bug Fixes
+
+* **rector:** convert `parent::` skip and expectation calls instead of dropping them ([a43fe0c](https://github.com/php-testo/testo/commit/a43fe0c5555529e9a9ce119b9980a5275da82f1c))
+* **rector:** rewrite `parent::` calls in an anonymous class detached from `TestCase` ([a43fe0c](https://github.com/php-testo/testo/commit/a43fe0c5555529e9a9ce119b9980a5275da82f1c)), closes [#410](https://github.com/php-testo/testo/issues/410) [#411](https://github.com/php-testo/testo/issues/411)
+
 ## [0.3.5](https://github.com/php-testo/testo/compare/bridge-rector-0.3.4...bridge-rector-0.3.5) (2026-11-17)
 
 

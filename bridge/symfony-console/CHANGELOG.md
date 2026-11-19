@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.16](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.15...bridge-symfony-console-0.1.16) (2026-11-19)
+
+
+### Features
+
+* **cli:** add `--no-progress` flag to hide test progress ([#435](https://github.com/php-testo/testo/issues/435)) ([d994276](https://github.com/php-testo/testo/commit/d994276d745c3772a34e6a52900f6b5ba864ffb6)), closes [#433](https://github.com/php-testo/testo/issues/433)
+
 ## [0.1.15](https://github.com/php-testo/testo/compare/bridge-symfony-console-0.1.14...bridge-symfony-console-0.1.15) (2026-11-17)
 
 
