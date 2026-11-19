@@ -124,6 +124,64 @@ final class OutputInterceptorTest
         Assert::false($result->messages->isEmpty());
     }
 
+    public function runTestKeepsMessagesAttachedByInnerInterceptorInTimeOrder(): void
+    {
+        $testInfo = $this->makeTestInfo();
+        $messenger = new TestMessenger();
+        $interceptor = new OutputInterceptor($messenger);
+
+        $result = $interceptor->runTest($testInfo, static function () use ($messenger, $testInfo): TestResult {
+            $messenger->recordMessage(new Message(1.0, 'stdout', Level::Info, 'first output'));
+            $messenger->recordMessage(new Message(3.0, 'assert-history', Level::Info, 'history'));
+            return new TestResult($testInfo, Status::Passed, messages: new MessageLog([
+                new Message(2.0, 'stderr', Level::Warning, 'attached by inner interceptor'),
+            ]));
+        });
+
+        Assert::same(
+            \array_map(static fn(Message $message): string => $message->content, $result->messages->all()),
+            ['first output', 'attached by inner interceptor', 'history'],
+        );
+    }
+
+    public function runTestPutsAttachedMessagesFirstOnEqualTime(): void
+    {
+        $testInfo = $this->makeTestInfo();
+        $messenger = new TestMessenger();
+        $interceptor = new OutputInterceptor($messenger);
+
+        $result = $interceptor->runTest($testInfo, static function () use ($messenger, $testInfo): TestResult {
+            $messenger->recordMessage(new Message(1.0, 'stdout', Level::Info, 'recorded'));
+            return new TestResult($testInfo, Status::Passed, messages: new MessageLog([
+                new Message(1.0, 'stderr', Level::Warning, 'attached'),
+            ]));
+        });
+
+        Assert::same(
+            \array_map(static fn(Message $message): string => $message->content, $result->messages->all()),
+            ['attached', 'recorded'],
+        );
+    }
+
+    public function runTestDoesNotDuplicateMessagesOfNestedScope(): void
+    {
+        $testInfo = $this->makeTestInfo();
+        $messenger = new TestMessenger();
+        $outer = new OutputInterceptor($messenger);
+        $inner = new OutputInterceptor($messenger);
+
+        $result = $outer->runTest($testInfo, static fn(TestInfo $info): TestResult => $inner->runTest(
+            $info,
+            static function () use ($messenger, $info): TestResult {
+                $messenger->recordMessage(new Message(1.0, 'stdout', Level::Info, 'inner output'));
+                return new TestResult($info, Status::Passed);
+            },
+        ));
+
+        Assert::count($result->messages, 1);
+        Assert::same($result->messages->all()[0]->content, 'inner output');
+    }
+
     private function makeTestInfo(): TestInfo
     {
         $caseDefinition = new CaseDefinition(
