@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/php-testo/testo/compare/error-handler-0.1.1...error-handler-0.1.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* **error-handler:** let a plugin configured for a suite override the default instance ([#434](https://github.com/php-testo/testo/issues/434)) ([e88a8ab](https://github.com/php-testo/testo/commit/e88a8ab6415d5af25b482898bb8174e30e92b997))
+* **error-handler:** log unhandled errors and stack verdicts through the messenger ([#436](https://github.com/php-testo/testo/issues/436)) ([548a7c8](https://github.com/php-testo/testo/commit/548a7c8bd3cc768c048d91e47da46478d9fbf91a))
+
 ## [0.1.1](https://github.com/php-testo/testo/compare/error-handler-0.1.0...error-handler-0.1.1) (2026-11-18)
 
 

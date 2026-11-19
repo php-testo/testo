@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.10.60](https://github.com/php-testo/testo/compare/0.10.59...0.10.60) (2026-11-19)
+
+
+### Features
+
+* **cli:** add `--no-progress` flag to hide test progress ([#435](https://github.com/php-testo/testo/issues/435)) ([d994276](https://github.com/php-testo/testo/commit/d994276d745c3772a34e6a52900f6b5ba864ffb6)), closes [#433](https://github.com/php-testo/testo/issues/433)
+
+
+### Bug Fixes
+
+* **core:** keep `InterceptorOptions` order constants within 32-bit int ([ca9956d](https://github.com/php-testo/testo/commit/ca9956d93a444d50f749707ba6a18679c4205a3d)), closes [#418](https://github.com/php-testo/testo/issues/418)
+* **core:** keep messages an interceptor attached to the test result ([#437](https://github.com/php-testo/testo/issues/437)) ([3097d72](https://github.com/php-testo/testo/commit/3097d724b18c8d31c751ae55b854b6687ee35345))
+* **error-handler:** log unhandled errors and stack verdicts through the messenger ([#436](https://github.com/php-testo/testo/issues/436)) ([548a7c8](https://github.com/php-testo/testo/commit/548a7c8bd3cc768c048d91e47da46478d9fbf91a))
+* **output:** compute terminal progress shares in float ([98ebeb7](https://github.com/php-testo/testo/commit/98ebeb7fdcf7a5e6c72d5a0df0abcad3e9e580a2))
+* **rector:** convert `parent::` skip and expectation calls instead of dropping them ([a43fe0c](https://github.com/php-testo/testo/commit/a43fe0c5555529e9a9ce119b9980a5275da82f1c))
+* **rector:** rewrite `parent::` calls in an anonymous class detached from `TestCase` ([a43fe0c](https://github.com/php-testo/testo/commit/a43fe0c5555529e9a9ce119b9980a5275da82f1c)), closes [#410](https://github.com/php-testo/testo/issues/410) [#411](https://github.com/php-testo/testo/issues/411)
+
+
+### Documentation
+
+* **skills:** document the interceptor order for event-loop and coroutine plugins ([#439](https://github.com/php-testo/testo/issues/439)) ([568adce](https://github.com/php-testo/testo/commit/568adce47b3a43ee7b85d6399bdeb712b48acbfd))
+
 ## [0.10.59](https://github.com/php-testo/testo/compare/0.10.58...0.10.59) (2026-11-17)
 
 

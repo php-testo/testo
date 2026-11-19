@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/php-testo/testo/compare/bridge-double-0.1.2...bridge-double-0.1.3) (2026-11-19)
+
+
+### Documentation
+
+* fix the downloads badge label ([a987667](https://github.com/php-testo/testo/commit/a98766726d68511f521e37118f144d54d0e25fdb))
+
 ## [0.1.2](https://github.com/php-testo/testo/compare/bridge-double-0.1.1...bridge-double-0.1.2) (2026-09-29)
 
 
