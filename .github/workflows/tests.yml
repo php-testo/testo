@@ -11,6 +11,7 @@ on:
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/tests.yml'
+      - '.github/workflows/coverage-driver.yml'
       - '.github/scripts/**'
 
 jobs:
@@ -63,216 +64,22 @@ jobs:
       - name: Run Tests
         run: composer test:ci
 
-  code-coverage:
-    runs-on: ubuntu-latest
-    name: Code Coverage
-    concurrency:
-      group: code-coverage-${{ github.ref }}
-      cancel-in-progress: true
-
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Resolve root package version
-        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          coverage: xdebug
-
-      - name: Install Composer dependencies
-        uses: ramsey/composer-install@v3
-        with:
-          dependency-versions: highest
-
-      - name: Install bin tools
-        run: composer bin all install --ignore-platform-req=php
-
-      - name: Run Tests with Coverage
-        run: composer test:cc
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: runtime/clover.xml
-          disable_search: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload clover report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: clover-xdebug
-          path: runtime/clover.xml
-
-  code-coverage-pcov:
-    runs-on: ubuntu-latest
-    name: Code Coverage (PCOV)
-    concurrency:
-      group: code-coverage-pcov-${{ github.ref }}
-      cancel-in-progress: true
-
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Resolve root package version
-        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          coverage: pcov
-
-      - name: Install Composer dependencies
-        uses: ramsey/composer-install@v3
-        with:
-          dependency-versions: highest
-
-      - name: Install bin tools
-        run: composer bin all install --ignore-platform-req=php
-
-      # PCOV takes a single root directory; vendor code is excluded to match the other drivers' whitelist.
-      - name: Run Tests with Coverage
-        env:
-          TESTO_CI: 1
-        run: >-
-          time php -d pcov.directory="$GITHUB_WORKSPACE" -d pcov.exclude='~/vendor/~'
-          vendor/bin/testo --coverage --coverage-clover=runtime/clover.xml --type=!bench
-
-      - name: Upload clover report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: clover-pcov
-          path: runtime/clover.xml
-
-  code-coverage-turbocov:
-    runs-on: ubuntu-latest
-    name: Code Coverage (turbocov)
-    concurrency:
-      group: code-coverage-turbocov-${{ github.ref }}
-      cancel-in-progress: true
-
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Resolve root package version
-        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          coverage: none
-          tools: pie
-          ini-values: opcache.enable_cli=0
-
-      - name: Resolve turbocov build key
-        id: turbocov
-        run: |
-          echo "version=$(curl -fsSL https://repo.packagist.org/p2/shipmonk/turbocov.json | jq -r '.packages["shipmonk/turbocov"][0].version')" >> "$GITHUB_OUTPUT"
-          echo "php=$(php -r 'echo PHP_VERSION;')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache turbocov build
-        id: turbocov-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.turbocov
-          key: turbocov-${{ runner.os }}-php${{ steps.turbocov.outputs.php }}-${{ steps.turbocov.outputs.version }}-impersonate-pcov
-
-      # The impersonation mode registers turbocov as `pcov`, so Testo picks its PCOV driver unchanged.
-      - name: Build turbocov
-        if: steps.turbocov-cache.outputs.cache-hit != 'true'
-        run: |
-          sudo pie install "shipmonk/turbocov:${{ steps.turbocov.outputs.version }}" --enable-turbocov-impersonate-pcov
-          mkdir -p ~/.turbocov
-          cp "$(php-config --extension-dir)/turbocov.so" ~/.turbocov/
-
-      # PIE cannot detect the extension under the `pcov` name and leaves it disabled.
-      - name: Enable turbocov
-        run: |
-          echo "extension=$HOME/.turbocov/turbocov.so" | sudo tee "$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')/99-turbocov.ini"
-          php --ri pcov
-
-      - name: Install Composer dependencies
-        uses: ramsey/composer-install@v3
-        with:
-          dependency-versions: highest
-
-      - name: Install bin tools
-        run: composer bin all install --ignore-platform-req=php
-
-      # turbocov needs an explicit whitelist; finer excludes are applied by the driver.
-      - name: Run Tests with Coverage
-        env:
-          TESTO_CI: 1
-        run: >-
-          time php -d pcov.directory="$GITHUB_WORKSPACE/core:$GITHUB_WORKSPACE/plugin:$GITHUB_WORKSPACE/bridge"
-          vendor/bin/testo --coverage --coverage-clover=runtime/clover.xml --type=!bench
-
-      - name: Upload clover report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: clover-turbocov
-          path: runtime/clover.xml
-
-  coverage-driver-diff:
-    runs-on: ubuntu-latest
-    name: Coverage Driver Diff
-    needs: [code-coverage, code-coverage-pcov, code-coverage-turbocov]
+  coverage-xdebug:
+    name: Coverage Xdebug
+    uses: ./.github/workflows/coverage-driver.yml
+    with:
+      driver: xdebug
+      label: Xdebug
     permissions:
       contents: read
       pull-requests: write
 
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          coverage: none
-
-      - name: Download clover reports
-        uses: actions/download-artifact@v4
-        with:
-          pattern: clover-*
-          path: runtime/clover
-
-      - name: Render diff
-        env:
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: >-
-          php .github/scripts/coverage-diff.php "$GITHUB_WORKSPACE"
-          turbocov=runtime/clover/clover-turbocov/clover.xml
-          Xdebug=runtime/clover/clover-xdebug/clover.xml
-          PCOV=runtime/clover/clover-pcov/clover.xml
-          > runtime/coverage-diff.md
-
-      # One comment per PR, found by the marker the script puts on its first line and rewritten in place.
-      - name: Post or update PR comment
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          pr=$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number')
-          if [ -z "$pr" ]; then echo "No open PR for $GITHUB_REF_NAME"; exit 0; fi
-          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --paginate \
-            --jq '.[] | select(.body | startswith("<!-- coverage-driver-diff -->")) | .id' | head -n1)
-          jq -Rs '{body: .}' runtime/coverage-diff.md > runtime/coverage-diff.json
-          if [ -n "$id" ]; then
-            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" --input runtime/coverage-diff.json > /dev/null
-          else
-            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --input runtime/coverage-diff.json > /dev/null
-          fi
+  coverage-pcov:
+    name: Coverage PCOV
+    uses: ./.github/workflows/coverage-driver.yml
+    with:
+      driver: pcov
+      label: PCOV
+    permissions:
+      contents: read
+      pull-requests: write
