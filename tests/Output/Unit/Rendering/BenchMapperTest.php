@@ -70,32 +70,6 @@ final class BenchMapperTest
         Assert::string($diagnostics[0]['advice'])->contains('Increase');
     }
 
-    public function metricsNameTheUnitInEveryKey(): void
-    {
-        $metrics = BenchMapper::metrics(self::result());
-
-        // A flat namespace has nowhere else to record the unit, so it lives in the key. The unit-less
-        // spelling must not leak through alongside it.
-        Assert::true(\array_key_exists('bench.shift.meanUs', $metrics));
-        Assert::false(\array_key_exists('bench.shift.mean', $metrics));
-        Assert::true(\array_key_exists('bench.shift.rstdevPct', $metrics));
-        Assert::true(\array_key_exists('bench.shift.memoryBytes', $metrics));
-    }
-
-    public function metricsCarryTheSameNumbersAsTheMap(): void
-    {
-        $metrics = BenchMapper::metrics(self::result());
-
-        Assert::same($metrics['bench.iterations'], 2);
-        Assert::same($metrics['bench.shift.calls'], 20);
-        Assert::same($metrics['bench.shift.place'], 1);
-        Assert::same($metrics['bench.shift.meanUs'], 5.1);
-        Assert::same($metrics['bench.shift.memoryBytes'], 300);
-        Assert::same($metrics['bench.push.memoryBytes'], 0);
-        Assert::same($metrics['bench.push.rejected'], 1);
-        Assert::same($metrics['bench.push.rstdevPct'], 12.0);
-    }
-
     public function anEmptyResultProducesNoCasesAndNoDiagnostics(): void
     {
         $map = BenchMapper::map(new BenchResult([], []));
@@ -103,32 +77,6 @@ final class BenchMapperTest
         Assert::same($map['iterations'], 0);
         Assert::same($map['cases'], []);
         Assert::same($map['diagnostics'], []);
-    }
-
-    public function anEmptyResultStillReportsItsIterationCounter(): void
-    {
-        Assert::same(BenchMapper::metrics(new BenchResult([], [])), ['bench.iterations' => 0]);
-    }
-
-    public function formatMetricKeepsAnIntegerExact(): void
-    {
-        Assert::same(BenchMapper::formatMetric(20), '20');
-        Assert::same(BenchMapper::formatMetric(0), '0');
-    }
-
-    public function formatMetricTrimsTrailingZerosOfAFloat(): void
-    {
-        Assert::same(BenchMapper::formatMetric(5.1), '5.1');
-        Assert::same(BenchMapper::formatMetric(0.25), '0.25');
-        // A whole-valued float loses its fractional part rather than reading as `3.000000`.
-        Assert::same(BenchMapper::formatMetric(3.0), '3');
-    }
-
-    public function formatMetricWritesANearZeroFloatInFixedNotation(): void
-    {
-        // Fixed notation, not `1.0E-6`, which a JUnit consumer or a TeamCity `type='number'` would have
-        // to special-case.
-        Assert::same(BenchMapper::formatMetric(0.000001), '0.000001');
     }
 
     /**

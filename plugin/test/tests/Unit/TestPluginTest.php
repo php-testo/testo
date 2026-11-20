@@ -6,6 +6,7 @@ namespace Tests\Test\Unit;
 
 use Testo\Codecov\Covers;
 use Testo\Test;
+use Testo\Test\Internal\TestMetadataInterceptor;
 use Testo\Test\Internal\TestoAttributesLocatorInterceptor;
 use Testo\Test\TestPlugin;
 use Testo\Testing\Helper\PluginTester;
@@ -17,11 +18,12 @@ use Testo\Testing\Helper\PluginTester;
 #[Covers(TestPlugin::class)]
 final class TestPluginTest
 {
-    public function registersOnlyTheAttributeLocator(): void
+    public function registersTheAttributeLocatorAndMetadataReporter(): void
     {
         PluginTester::for(new TestPlugin())
             ->addsInterceptor(TestoAttributesLocatorInterceptor::class)
-            ->addsInterceptors(1)
+            ->addsInterceptor(TestMetadataInterceptor::class)
+            ->addsInterceptors(2)
             ->addsListeners(0);
     }
 }

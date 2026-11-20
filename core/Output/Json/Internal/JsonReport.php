@@ -12,6 +12,7 @@ use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Data\MultipleResult;
 use Testo\Output\Rendering\BenchMapper;
+use Testo\Output\Rendering\MetadataMapper;
 use Testo\Output\Rendering\StackTrace;
 
 /**
@@ -43,6 +44,11 @@ final class JsonReport
         # unchanged.
         $benchmarks = self::benchmarks($result);
         $benchmarks === [] or $payload['benchmarks'] = $benchmarks;
+
+        # Metadata is likewise what a test reported beside its status, whatever that status was; absent
+        # when no test reported any.
+        $metadata = self::metadata($result);
+        $metadata === [] or $payload['metadata'] = $metadata;
 
         # JSON_INVALID_UTF8_SUBSTITUTE: failure messages, traces and captured output are raw strings
         # from user code and may contain malformed UTF-8 (binary stdout, non-UTF-8 encodings). Without
@@ -124,6 +130,42 @@ final class JsonReport
         }
 
         return $benchmarks;
+    }
+
+    /**
+     * Walks the result tree and collects the metadata of every test and data set that reported any, in
+     * encounter order, each addressed by its FQN the way --filter takes it.
+     *
+     * A data set carries its own metadata, listed after the umbrella's. The ench.* grid of a benchmark
+     * is left to enchmarks, which holds the same measurements structured; see {@see MetadataMapper}.
+     *
+     * @return list<array{test: non-empty-string, entries: non-empty-list<array<non-empty-string, mixed>>}>
+     */
+    private static function metadata(RunResult $result): array
+    {
+        $metadata = [];
+        foreach ($result as $suite) {
+            foreach ($suite as $case) {
+                foreach ($case as $test) {
+                    $multiple = \class_exists(MultipleResult::class)
+                        ? $test->getAttribute(MultipleResult::class)
+                        : null;
+
+                    $tests = [$test];
+                    $multiple instanceof MultipleResult and $tests = [$test, ...$multiple->results];
+
+                    foreach ($tests as $item) {
+                        $entries = MetadataMapper::map($item);
+                        $entries === [] or $metadata[] = [
+                            'test' => $item->info->identity->fqn(),
+                            'entries' => $entries,
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $metadata;
     }
 
     /**
