@@ -81,17 +81,19 @@ function merge(string $existingPath, string $sectionPath): void
 
     $subject = \current($sections)['meta']['subject'] ?? 'turbocov';
     $table = [
-        "| Baseline | No coverage | Baseline driver | $subject |",
-        '|---|---:|---:|---:|',
+        "| Baseline | No coverage | Baseline driver | $subject | Run faster | Overhead smaller |",
+        '|---|---:|---:|---:|---:|---:|',
     ];
     foreach ($sections as $section) {
-        $meta = $section['meta'];
+        ['label' => $label, 'none' => $none, 'base' => $base, 'turbo' => $turbo] = $section['meta'];
         $table[] = \sprintf(
-            '| %s | %.1f s | %.1f s | %.1f s |',
-            $meta['label'],
-            $meta['none'],
-            $meta['base'],
-            $meta['turbo'],
+            '| %s | %.1f s | %s | %s | %s | %s |',
+            $label,
+            $none,
+            withOverhead($base, $none),
+            withOverhead($turbo, $none),
+            ratio($base, $turbo),
+            ratio($base - $none, $turbo - $none),
         );
     }
 
@@ -99,11 +101,9 @@ function merge(string $existingPath, string $sectionPath): void
         MARKER,
         '## Coverage driver diff',
         '',
-        'Each row is one job: the same suite (`--type=!bench`) run without coverage, with the baseline driver and with ' . $subject . ', one after another on the same runner.',
+        'Each row is one job: the same suite (`--type=!bench`) run without coverage, with the baseline driver and with ' . $subject . ', one after another on the same runner. Overhead is the time added to the run without coverage.',
         '',
         ...$table,
-        '',
-        '✅ covered, ❌ executable but not covered, ➖ not executable.',
         '',
         ...\array_column($sections, 'text'),
     ]), "\n";
@@ -194,6 +194,8 @@ function renderDiff(string $baseLabel, array $base, string $subjectLabel, array 
     return \implode("\n", [
         \sprintf('<details><summary>%d line(s) in %d file(s) differ</summary>', $lineCount, \count($blocks)),
         '',
+        '✅ executed, ❌ executable but never executed, ➖ not executable: absent from that driver\'s report.',
+        '',
         \rtrim($content),
         '',
         '</details>',
@@ -248,6 +250,18 @@ function loadClover(string $path, string $root): array
     }
 
     return $result;
+}
+
+function withOverhead(float $time, float $none): string
+{
+    return $none > 0
+        ? \sprintf('%.1f s (+%d %%)', $time, \round(($time - $none) / $none * 100))
+        : \sprintf('%.1f s', $time);
+}
+
+function ratio(float $a, float $b): string
+{
+    return $b > 0 ? \sprintf('%.1f×', $a / $b) : 'n/a';
 }
 
 function mark(?bool $state): string
