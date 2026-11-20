@@ -78,9 +78,10 @@ jobs:
         run: |
           w="$GITHUB_WORKSPACE"
           args=(vendor/bin/testo --type=!bench)
+          # PCOV takes a single root, so its exclude pattern narrows it to the same whitelist as turbocov.
           case "${{ inputs.driver }}" in
             xdebug) base=(-d zend_extension=xdebug -d xdebug.mode=coverage) ;;
-            pcov) base=(-d extension=pcov -d pcov.enabled=1 -d pcov.directory="$w" -d pcov.exclude='~/vendor/~') ;;
+            pcov) base=(-d extension=pcov -d pcov.enabled=1 -d pcov.directory="$w" -d pcov.exclude="~^(?!$w/(core|plugin|bridge)/)~") ;;
           esac
           turbo=(-d extension="$HOME/.turbocov/turbocov.so" -d pcov.directory="$w/core:$w/plugin:$w/bridge")
 
