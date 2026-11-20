@@ -11,6 +11,7 @@ on:
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/tests.yml'
+      - '.github/scripts/**'
   pull_request:
     paths:
       - 'core/**'
@@ -21,6 +22,7 @@ on:
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/tests.yml'
+      - '.github/scripts/**'
 
 jobs:
   ci:
