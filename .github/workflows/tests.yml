@@ -150,3 +150,64 @@ jobs:
           files: runtime/clover.xml
           disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload clover report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clover-xdebug
+          path: runtime/clover.xml
+
+  code-coverage-turbocov:
+    runs-on: ubuntu-latest
+    name: Code Coverage (turbocov)
+    concurrency:
+      group: code-coverage-turbocov-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve root package version
+        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          coverage: none
+          tools: pie
+          ini-values: opcache.enable_cli=0
+
+      # The impersonation mode registers turbocov as `pcov`, so Testo picks its PCOV driver unchanged.
+      # PIE cannot detect it under that name and leaves it disabled, hence the explicit ini file.
+      - name: Install turbocov
+        run: |
+          sudo pie install shipmonk/turbocov --enable-turbocov-impersonate-pcov
+          echo "extension=turbocov" | sudo tee "$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')/99-turbocov.ini"
+          php --ri pcov
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: highest
+
+      - name: Install bin tools
+        run: composer bin all install --ignore-platform-req=php
+
+      # turbocov needs an explicit whitelist; finer excludes are applied by the driver.
+      - name: Run Tests with Coverage
+        env:
+          TESTO_CI: 1
+        run: >-
+          time php -d pcov.directory="$GITHUB_WORKSPACE/core:$GITHUB_WORKSPACE/plugin:$GITHUB_WORKSPACE/bridge"
+          vendor/bin/testo --coverage --coverage-clover=runtime/clover.xml --type=!bench
+
+      - name: Upload clover report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clover-turbocov
+          path: runtime/clover.xml
