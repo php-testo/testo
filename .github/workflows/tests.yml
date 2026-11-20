@@ -181,12 +181,31 @@ jobs:
           tools: pie
           ini-values: opcache.enable_cli=0
 
-      # The impersonation mode registers turbocov as `pcov`, so Testo picks its PCOV driver unchanged.
-      # PIE cannot detect it under that name and leaves it disabled, hence the explicit ini file.
-      - name: Install turbocov
+      - name: Resolve turbocov build key
+        id: turbocov
         run: |
-          sudo pie install shipmonk/turbocov --enable-turbocov-impersonate-pcov
-          echo "extension=turbocov" | sudo tee "$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')/99-turbocov.ini"
+          echo "version=$(curl -fsSL https://repo.packagist.org/p2/shipmonk/turbocov.json | jq -r '.packages["shipmonk/turbocov"][0].version')" >> "$GITHUB_OUTPUT"
+          echo "php=$(php -r 'echo PHP_VERSION;')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache turbocov build
+        id: turbocov-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.turbocov
+          key: turbocov-${{ runner.os }}-php${{ steps.turbocov.outputs.php }}-${{ steps.turbocov.outputs.version }}-impersonate-pcov
+
+      # The impersonation mode registers turbocov as `pcov`, so Testo picks its PCOV driver unchanged.
+      - name: Build turbocov
+        if: steps.turbocov-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo pie install "shipmonk/turbocov:${{ steps.turbocov.outputs.version }}" --enable-turbocov-impersonate-pcov
+          mkdir -p ~/.turbocov
+          cp "$(php-config --extension-dir)/turbocov.so" ~/.turbocov/
+
+      # PIE cannot detect the extension under the `pcov` name and leaves it disabled.
+      - name: Enable turbocov
+        run: |
+          echo "extension=$HOME/.turbocov/turbocov.so" | sudo tee "$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')/99-turbocov.ini"
           php --ri pcov
 
       - name: Install Composer dependencies
