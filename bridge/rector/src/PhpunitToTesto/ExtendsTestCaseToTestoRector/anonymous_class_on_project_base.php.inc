@@ -34,7 +34,6 @@ final class AnonymousOnProjectBaseFactory
     public function make(): object
     {
         return new class extends AnonymousProjectBaseTestCase {
-            #[\Override]
             protected function setUp(): void
             {
                 self::markTestSkipped('later');
