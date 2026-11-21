@@ -1,0 +1,163 @@
+name: Coverage Driver Comparison
+
+on:
+  workflow_call:
+    inputs:
+      driver:
+        description: Baseline driver extension, `xdebug` or `pcov`.
+        type: string
+        required: true
+      label:
+        description: Baseline name shown in the PR comment.
+        type: string
+        required: true
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    name: Measure (${{ inputs.label }} vs turbocov)
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve root package version
+        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: ${{ inputs.driver }}
+          tools: pie
+          ini-values: opcache.enable_cli=0, zend.assertions=1
+
+      # turbocov cannot be loaded next to Xdebug or PCOV, so no driver is enabled globally:
+      # each run loads its own with `-d`.
+      - name: Unload the baseline driver
+        run: |
+          scan="$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')"
+          grep -lE '^\s*(zend_)?extension\s*=.*(xdebug|pcov)' "$scan"/*.ini | xargs -r sudo rm -f
+          if php -m | grep -qiE '^(xdebug|pcov)$'; then echo 'Baseline driver is still loaded'; exit 1; fi
+          test -f "$(php-config --extension-dir)/${{ inputs.driver }}.so"
+
+      - name: Resolve turbocov build key
+        id: turbocov
+        run: |
+          echo "version=$(curl -fsSL https://repo.packagist.org/p2/shipmonk/turbocov.json | jq -r '.packages["shipmonk/turbocov"][0].version')" >> "$GITHUB_OUTPUT"
+          echo "php=$(php -r 'echo PHP_VERSION;')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache turbocov build
+        id: turbocov-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.turbocov
+          key: turbocov-${{ runner.os }}-php${{ steps.turbocov.outputs.php }}-${{ steps.turbocov.outputs.version }}-impersonate-pcov
+
+      # The impersonation mode registers turbocov as `pcov`, so Testo picks its PCOV driver unchanged.
+      # PIE cannot detect it under that name and leaves it disabled, which is what the runs below need.
+      - name: Build turbocov
+        if: steps.turbocov-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo pie install "shipmonk/turbocov:${{ steps.turbocov.outputs.version }}" --enable-turbocov-impersonate-pcov
+          mkdir -p ~/.turbocov
+          cp "$(php-config --extension-dir)/turbocov.so" ~/.turbocov/
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: highest
+
+      - name: Install bin tools
+        run: composer bin all install --ignore-platform-req=php
+
+      - name: Run the suite three times
+        env:
+          TESTO_CI: 1
+        run: |
+          w="$GITHUB_WORKSPACE"
+          args=(vendor/bin/testo --type=!bench)
+          # PCOV takes a single root, so its exclude pattern narrows it to the same whitelist as turbocov.
+          case "${{ inputs.driver }}" in
+            xdebug) base=(-d zend_extension=xdebug -d xdebug.mode=coverage) ;;
+            pcov) base=(-d extension=pcov -d pcov.enabled=1 -d pcov.directory="$w" -d pcov.exclude="~^(?!$w/(core|plugin|bridge|coverage-probe/src)/)~") ;;
+          esac
+          turbo=(-d extension="$HOME/.turbocov/turbocov.so" -d pcov.directory="$w/core:$w/plugin:$w/bridge:$w/coverage-probe/src")
+
+          timed() {
+            local name=$1; shift
+            local start=$(date +%s.%N)
+            "$@"
+            echo "TIME_$name=$(awk "BEGIN { print $(date +%s.%N) - $start }")" >> "$GITHUB_ENV"
+          }
+
+          timed NONE php "${args[@]}"
+          timed BASE php "${base[@]}" "${args[@]}" --coverage --coverage-clover=runtime/clover-base.xml
+          timed TURBO php "${turbo[@]}" "${args[@]}" --coverage --coverage-clover=runtime/clover-turbocov.xml
+
+      - name: Render section
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: >-
+          php .github/scripts/coverage-diff.php section "$GITHUB_WORKSPACE" ${{ inputs.driver }}
+          "${{ inputs.label }}=runtime/clover-base.xml" turbocov=runtime/clover-turbocov.xml
+          "$TIME_NONE" "$TIME_BASE" "$TIME_TURBO"
+          > runtime/section.md
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ inputs.driver }}
+          path: |
+            runtime/section.md
+            runtime/clover-base.xml
+            runtime/clover-turbocov.xml
+
+  publish:
+    runs-on: ubuntu-latest
+    name: Publish (${{ inputs.label }})
+    needs: measure
+    # Both baselines edit the same comment; one writer at a time keeps their read-modify-write from
+    # dropping the other's section.
+    concurrency:
+      group: coverage-driver-comment-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+
+      - name: Download reports
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-${{ inputs.driver }}
+          path: runtime
+
+      - name: Update PR comment section
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number')
+          if [ -z "$pr" ]; then echo "No open PR for $GITHUB_REF_NAME"; exit 0; fi
+          comment=$(gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --paginate \
+            | jq -s 'add | map(select(.body | startswith("<!-- coverage-driver-diff -->"))) | .[0] // empty')
+          echo "$comment" | jq -r '.body // ""' > runtime/existing.md
+          php .github/scripts/coverage-diff.php merge runtime/existing.md runtime/section.md \
+            | jq -Rs '{body: .}' > runtime/comment.json
+          id=$(echo "$comment" | jq -r '.id // empty')
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" --input runtime/comment.json > /dev/null
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$pr/comments" --input runtime/comment.json > /dev/null
+          fi

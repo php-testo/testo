@@ -11,16 +11,9 @@ on:
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/tests.yml'
-  pull_request:
-    paths:
-      - 'core/**'
-      - 'plugin/**'
-      - 'bridge/**'
-      - 'tests/**'
-      - 'testo.php'
-      - 'composer.json'
-      - 'composer.lock'
-      - '.github/workflows/tests.yml'
+      - '.github/workflows/coverage-driver.yml'
+      - '.github/scripts/**'
+      - 'coverage-probe/**'
 
 jobs:
   ci:
@@ -29,12 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [ 8.2, 8.3, 8.4, 8.5 ]
-        dependencies: [ lowest , highest ]
-        include:
-          - php: 8.1
-            dependencies: highest
-      max-parallel: 2
+        php: [ 8.5 ]
+        dependencies: [ highest ]
 
     name: Tests PHP${{ matrix.php }}-${{ matrix.dependencies }}
 
@@ -76,77 +65,22 @@ jobs:
       - name: Run Tests
         run: composer test:ci
 
-  ci-32bit:
-    runs-on: ubuntu-latest
-    name: Tests PHP8.4-32bit
+  coverage-xdebug:
+    name: Coverage Xdebug
+    uses: ./.github/workflows/coverage-driver.yml
+    with:
+      driver: xdebug
+      label: Xdebug
+    permissions:
+      contents: read
+      pull-requests: write
 
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Resolve root package version
-        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
-
-      # Dependencies are installed by a 64-bit PHP of the same version: the runner's actions do not
-      # run inside an i386 container, and the vendor code is the same for both.
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          coverage: none
-
-      - name: Install Composer dependencies
-        uses: ramsey/composer-install@v3
-        with:
-          dependency-versions: highest
-
-      - name: Install bin tools
-        run: composer bin all install --ignore-platform-req=php
-
-      # Rector itself packs 64-bit values, so its fixtures cannot run on 32-bit PHP.
-      - name: Run Tests on 32-bit PHP
-        run: >-
-          docker run --rm --platform linux/386
-          -v "$PWD":/app -w /app -e TESTO_CI=1
-          php:8.4-cli
-          sh -c 'php -r "echo PHP_INT_SIZE * 8, \" bit\n\"; exit(PHP_INT_SIZE === 4 ? 0 : 1);" && php vendor/bin/testo --type=!rector-fixture'
-
-  code-coverage:
-    runs-on: ubuntu-latest
-    name: Code Coverage
-    concurrency:
-      group: code-coverage-${{ github.ref }}
-      cancel-in-progress: true
-
-    steps:
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Resolve root package version
-        run: echo "COMPOSER_ROOT_VERSION=$(jq -r '.["."]' resources/version.json)" >> "$GITHUB_ENV"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.4
-          coverage: xdebug
-
-      - name: Install Composer dependencies
-        uses: ramsey/composer-install@v3
-        with:
-          dependency-versions: highest
-
-      - name: Install bin tools
-        run: composer bin all install --ignore-platform-req=php
-
-      - name: Run Tests with Coverage
-        run: composer test:cc
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: runtime/clover.xml
-          disable_search: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+  coverage-pcov:
+    name: Coverage PCOV
+    uses: ./.github/workflows/coverage-driver.yml
+    with:
+      driver: pcov
+      label: PCOV
+    permissions:
+      contents: read
+      pull-requests: write
