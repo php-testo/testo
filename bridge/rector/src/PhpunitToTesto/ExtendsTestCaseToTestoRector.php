@@ -62,11 +62,13 @@ use Testo\Bridge\Rector\Testing\TestRectorFixtures;
  * idempotent — a method that already carries `#[\Testo\Test]` is left as-is.
  *
  * A class that reaches `TestCase` through an intermediate base (`extends RuleTestCase`) keeps its
- * `extends` and its `#[\Override]` attributes — the base is still there, converted on its own —
- * and only gains `#[\Testo\Test]` on its test methods. Without them Testo would not discover the
- * subclass's tests at all. Its `parent::` calls to a PHPUnit method the base does not override are
- * rewritten the same way. An anonymous class on such a base is handled alike. A base that cannot be
- * resolved, or does not lead to `TestCase`, leaves the class untouched.
+ * `extends` — the base is still there, converted on its own — and gains `#[\Testo\Test]` on its test
+ * methods. Without them Testo would not discover the subclass's tests at all. It keeps `#[\Override]`
+ * where the base or one of the class's interfaces declares the method; on a method only PHPUnit
+ * declares, such as a `setUp()` the base does not override, the attribute goes, as it does for a
+ * direct subclass. Its `parent::` calls to a PHPUnit method the base does not override are rewritten
+ * the same way. An anonymous class on such a base is handled alike. A base that cannot be resolved,
+ * or does not lead to `TestCase`, leaves the class untouched.
  *
  * A base from outside the processed paths, such as a framework's test case in vendor, stays a
  * PHPUnit class. Its subclasses are converted all the same, keep their `parent::` calls, and the
@@ -176,10 +178,16 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
             # Indirect subclass: the base stays, only discovery needs the attribute.
             $vendorBase = $this->testCaseClass->phpunitBaseFromVendor($node);
             $base = $vendorBase === null ? $this->testCaseClass->base($node) : null;
+            $interfaces = $this->nodeNameResolver->getNames($node->implements);
             $changed = false;
             foreach ($node->getMethods() as $method) {
                 $method->isPublic() && $this->markTestMethod($method) and $changed = true;
                 $base !== null && $this->rewritePhpunitParentCalls($base, $method) and $changed = true;
+                $base !== null
+                    && $this->overridesPhpunitOnly($base, $method)
+                    && !$this->isDeclaredByInterface($method, $interfaces)
+                    && $this->removeOverrideAttribute($method)
+                    and $changed = true;
             }
 
             $vendorBase !== null && $vendorBase['direct'] && !$node->isAnonymous()
@@ -400,19 +408,40 @@ final class ExtendsTestCaseToTestoRector extends AbstractRector
         return false;
     }
 
-    private function removeOverrideAttribute(ClassMethod $method): void
+    /**
+     * Whether the method overrides one that only PHPUnit declares: once the base is detached from
+     * `TestCase`, its `#[\Override]` has no parent method left and PHP rejects the class on load.
+     */
+    private function overridesPhpunitOnly(ClassReflection $base, ClassMethod $method): bool
+    {
+        $native = $base->getNativeReflection();
+        $name = $method->name->toString();
+
+        return $native->hasMethod($name)
+            && \str_starts_with($native->getMethod($name)->getDeclaringClass()->getName(), 'PHPUnit\\');
+    }
+
+    /**
+     * @return bool Whether an `#[\Override]` attribute was removed.
+     */
+    private function removeOverrideAttribute(ClassMethod $method): bool
     {
         # Trim groups in place: a rebuilt group would lose its source position.
+        $removed = false;
         $keptGroups = [];
         foreach ($method->attrGroups as $attrGroup) {
-            $attrGroup->attrs = \array_values(\array_filter(
+            $kept = \array_values(\array_filter(
                 $attrGroup->attrs,
                 fn(Attribute $attr): bool => !$this->isName($attr->name, 'Override'),
             ));
+            \count($kept) === \count($attrGroup->attrs) or $removed = true;
+            $attrGroup->attrs = $kept;
             $attrGroup->attrs === [] or $keptGroups[] = $attrGroup;
         }
 
         $method->attrGroups = $keptGroups;
         DroppedAttributes::keepFormat($method, $this->originalTokens());
+
+        return $removed;
     }
 }

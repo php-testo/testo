@@ -224,6 +224,10 @@ if (!\class_exists(TestCase::class, false)) {
 
         abstract public function expectExceptionMessage($message): void;
 
+        abstract protected function setUp(): void;
+
+        abstract protected function tearDown(): void;
+
         abstract protected function assertPreConditions(): void;
 
         abstract protected function assertPostConditions(): void;

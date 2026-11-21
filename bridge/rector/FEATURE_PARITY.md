@@ -108,7 +108,9 @@ assertion of PHPUnit's `Assert` becomes `\PHPUnit\Framework\Assert::assertX()`, 
 rules convert when Testo maps it and which stays a valid PHPUnit call otherwise; any other call, such
 as `parent::markTestSkipped()` or `parent::expectException()`, becomes `self::`/`$this->` and converts
 like that spelling. An anonymous class extending `TestCase`, directly or through a project base, is
-handled the same way. The mirror
+handled the same way. `#[\Override]` is dropped from a method that only PHPUnit declares once the
+chain is detached (a `setUp()` no local base overrides); one the base or an interface declares keeps
+it. The mirror
 `TestClassToTestCaseRector` (Testo → PHPUnit) adds `extends \PHPUnit\Framework\TestCase` and, for a
 class-level `#[\Testo\Test]`, removes it and adds a per-method `#[\PHPUnit\Framework\Attributes\Test]`
 to every public, non-static, `void`/`never` method (mirroring Testo's locator, so static/`iterable`

@@ -70,7 +70,8 @@ vendor/bin/rector process --config=rector-testo-migration.php
 > into PHPUnit, a `parent::setUp();`-style hook call is dropped, as is a call inside an override of
 > that same method (a wrapper around `expectException()` loses its delegation), and any other, such as
 > `parent::markTestSkipped()`, becomes `self::`/`$this->` for the skip and expectation rules to
-> convert. A class on a PHPUnit base from `vendor/` (a framework's `TestCase`) is converted as well,
+> convert. `#[\Override]` goes from a method only PHPUnit declares, such as a `setUp()` no local base
+> overrides. A class on a PHPUnit base from `vendor/` (a framework's `TestCase`) is converted as well,
 > but the class extending that base gets `#[\Testo\Skip]` naming it, since the base still runs on
 > PHPUnit.
 > Tests inherited from such a base are not converted. `scan-residuals.php` and the pitfalls in the
