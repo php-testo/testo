@@ -28,10 +28,10 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
+          php-version: 8.5
           coverage: ${{ inputs.driver }}
           tools: pie
-          ini-values: opcache.enable_cli=0
+          ini-values: opcache.enable_cli=0, zend.assertions=1
 
       # turbocov cannot be loaded next to Xdebug or PCOV, so no driver is enabled globally:
       # each run loads its own with `-d`.
@@ -81,9 +81,9 @@ jobs:
           # PCOV takes a single root, so its exclude pattern narrows it to the same whitelist as turbocov.
           case "${{ inputs.driver }}" in
             xdebug) base=(-d zend_extension=xdebug -d xdebug.mode=coverage) ;;
-            pcov) base=(-d extension=pcov -d pcov.enabled=1 -d pcov.directory="$w" -d pcov.exclude="~^(?!$w/(core|plugin|bridge)/)~") ;;
+            pcov) base=(-d extension=pcov -d pcov.enabled=1 -d pcov.directory="$w" -d pcov.exclude="~^(?!$w/(core|plugin|bridge|coverage-probe/src)/)~") ;;
           esac
-          turbo=(-d extension="$HOME/.turbocov/turbocov.so" -d pcov.directory="$w/core:$w/plugin:$w/bridge")
+          turbo=(-d extension="$HOME/.turbocov/turbocov.so" -d pcov.directory="$w/core:$w/plugin:$w/bridge:$w/coverage-probe/src")
 
           timed() {
             local name=$1; shift
@@ -135,7 +135,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
+          php-version: 8.5
           coverage: none
 
       - name: Download reports
