@@ -77,10 +77,10 @@ final class SkipLocatorInterceptorTest
     }
 
     /**
-     * The interceptor does not read `active`: a test an earlier filter deactivated is flagged all
-     * the same, and being inactive it is neither run nor reported either way.
+     * A test the filter deactivated is left alone: it never runs, so its `#[Requires]` probes would
+     * be wasted.
      */
-    public function flagsADeactivatedTestToo(): void
+    public function leavesADeactivatedTestAlone(): void
     {
         $case = self::createCaseWith(SkipMixedMethodsFixture::class, [
             'skipped' => new TestDefinition(
@@ -91,7 +91,7 @@ final class SkipLocatorInterceptorTest
 
         (new SkipLocatorInterceptor())->locateTestCases(self::file(), self::next($case));
 
-        Assert::true($case->tests->all()['skipped']->skipped);
+        Assert::false($case->tests->all()['skipped']->skipped);
     }
 
     /**

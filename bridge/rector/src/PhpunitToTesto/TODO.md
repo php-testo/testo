@@ -29,6 +29,11 @@ Mocks are out of this set: they convert through `phpunit-to-double` or `phpunit-
   it — a guarded call, one deeper in the body, and a non-literal message no attribute argument can hold.
   A call opening `setUp()` also stays a throw: hoisting it to a class-level `#[Skip]` would strip the rest
   of the hook.
+- **`#[RequiresPhp]`, `#[RequiresPhpExtension]`, `#[RequiresOperatingSystem]` and the other `Requires*`
+  attributes** (not done, tractable) — today they are left in place and lost to Testo. Each maps to a
+  `#[\Testo\Requires]` with a generated private static helper (`\extension_loaded('x')`,
+  `\PHP_OS_FAMILY === 'Linux'`, a `version_compare()`), or to the declarative Testo counterparts once
+  they exist, which the rules should then prefer.
 - **MarkTestIncompleteRector** (registered) — Testo has no dedicated "incomplete" status, so
   `$this->markTestIncomplete($m)` (also `self::`/`static::`) maps to the nearest one: a
   `throw new \Testo\Core\Exception\SkipTest(...)` (Skipped). Both statuses neither pass nor fail and
