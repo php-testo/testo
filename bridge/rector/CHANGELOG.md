@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.7](https://github.com/php-testo/testo/compare/bridge-rector-0.3.6...bridge-rector-0.3.7) (2026-11-21)
+
+
+### Bug Fixes
+
+* **rector:** convert an anonymous class on a project `TestCase` base ([1ede727](https://github.com/php-testo/testo/commit/1ede7273faf313a4598a938513f86f63fee6e3e8)), closes [#428](https://github.com/php-testo/testo/issues/428)
+* **rector:** drop `#[\Override]` from a project-base subclass method only PHPUnit declares ([8bfa0fe](https://github.com/php-testo/testo/commit/8bfa0fe2f60d36bcb1ebdf6f38c1118ca36f5861))
+
 ## [0.3.6](https://github.com/php-testo/testo/compare/bridge-rector-0.3.5...bridge-rector-0.3.6) (2026-11-19)
 
 
