@@ -46,10 +46,11 @@ final class ScriptsTest
     #[Covers(Modern\Counter::class)]
     #[Covers(Modern\Point::class)]
     #[Covers(Modern\Text::class)]
+    #[Covers(Modern\Transform::class)]
     #[Covers('Testo\CoverageProbe\Modern\zone')]
     #[Covers('Testo\CoverageProbe\Modern\script')]
     public function modern(): void
     {
-        Assert::same(Modern\script(), '68,unnamed,3,3,hello-world,1.5,2');
+        Assert::same(Modern\script(), '68,unnamed,3,3,hello-world,1.5,HI!,2');
     }
 }

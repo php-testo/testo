@@ -3,7 +3,7 @@
 /**
  * PHP 8.4 and 8.5 constructs: property hooks (adapted from the shipmonk-rnd/turbocov test fixtures,
  * MIT), asymmetric visibility, `new` without parentheses, the pipe operator, `clone` with properties,
- * a closure in a constant expression and a `switch` with many cases.
+ * closures in a parameter default and in an attribute argument, and a `switch` with many cases.
  */
 
 declare(strict_types=1);
@@ -95,6 +95,27 @@ final class Text
     ): string {
         return $formatter($value);
     }
+
+    #[Transform(static function (string $value): string {
+        return \strtoupper($value)
+            . '!';
+    })]
+    public static function shout(string $value): string
+    {
+        $transform = new \ReflectionMethod(self::class, 'shout')
+            ->getAttributes(Transform::class)[0]
+            ->newInstance();
+
+        return ($transform->callback)($value);
+    }
+}
+
+#[\Attribute(\Attribute::TARGET_METHOD)]
+final readonly class Transform
+{
+    public function __construct(
+        public \Closure $callback,
+    ) {}
 }
 
 function zone(string $code): int
@@ -130,6 +151,7 @@ function script(): string
         $point->x,
         Text::slug(' Hello World '),
         Text::format(1.5),
+        Text::shout('hi'),
         zone('us'),
     ]);
 }
