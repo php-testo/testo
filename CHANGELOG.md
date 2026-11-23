@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.61](https://github.com/php-testo/testo/compare/0.10.60...0.10.61) (2026-11-23)
+
+
+### Bug Fixes
+
+* **rector:** convert an anonymous class on a project `TestCase` base ([1ede727](https://github.com/php-testo/testo/commit/1ede7273faf313a4598a938513f86f63fee6e3e8)), closes [#428](https://github.com/php-testo/testo/issues/428)
+* **rector:** drop `#[\Override]` from a project-base subclass method only PHPUnit declares ([8bfa0fe](https://github.com/php-testo/testo/commit/8bfa0fe2f60d36bcb1ebdf6f38c1118ca36f5861))
+* **skills:** quote the `testo-run-tests` description so its frontmatter is valid YAML ([#446](https://github.com/php-testo/testo/issues/446)) ([11e2d1a](https://github.com/php-testo/testo/commit/11e2d1a937611aab9ece43c98b0d9c972349572b))
+
+
+### Documentation
+
+* add the Agent Skills section to README ([9bfe224](https://github.com/php-testo/testo/commit/9bfe224fe0d0d96e064976acea769e926adf51f1))
+
 ## [0.10.60](https://github.com/php-testo/testo/compare/0.10.59...0.10.60) (2026-11-19)
 
 
