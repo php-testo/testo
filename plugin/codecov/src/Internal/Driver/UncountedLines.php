@@ -92,7 +92,7 @@ final class UncountedLines
 
         # A last line that only closes, such as `}` or `);`, carries the top-level `return`, and code only when
         # it ends a function body that falls through.
-        if (isset($code[$last]) && $onlyClosers && !isset(ExecutableLines::of($source)[$last])) {
+        if (isset($code[$last]) && $onlyClosers && !isset(ExecutableLines::bodyEnds($source)[$last])) {
             unset($code[$last]);
         }
 
