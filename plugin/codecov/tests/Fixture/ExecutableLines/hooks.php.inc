@@ -20,6 +20,10 @@ final class HookedProperties
             + $this->b;
     }
 
+    public \Closure $maker {
+        get => fn(): int => 1;
+    }
+
     public int $withDefault = 3 {
         set(int $v) {
             $this->withDefault = $v * 2;

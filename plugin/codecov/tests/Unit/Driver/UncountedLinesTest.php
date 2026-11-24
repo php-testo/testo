@@ -197,6 +197,8 @@ final class UncountedLinesTest
     #[DataSet(["<?php\n\nfunction fail(): never\n{\n    throw new \\LogicException('x');\n}", [5 => 1, 6 => 1], [5 => 1]], 'function ending in throw, Xdebug')]
     #[DataSet(["<?php\n\nfunction pick(int \$x): int\n{\n    if (\$x) {\n        return 1;\n    } else {\n        return 0;\n    }\n}", [5 => 1, 6 => 1, 8 => -1, 10 => 1], [5 => 1, 6 => 1, 8 => -1]], 'function whose every branch returns, Xdebug')]
     #[DataSet(["<?php\n\nfunction pick(int \$x): int\n{\n    if (\$x) {\n        return 1;\n    }\n    \$y = 0;\n}", [5 => 1, 6 => 1, 8 => -1, 9 => -1], [5 => 1, 6 => 1, 8 => -1, 9 => -1]], 'function falling through past an if, PCOV')]
+    #[DataSet(["<?php\n\nfunction pick(\$a, \$b): void\n{\n    if (\$a) {\n        return;\n    } else if (\$b) {\n        return;\n    }\n}", [5 => 1, 6 => 1, 7 => -1, 8 => -1, 10 => 1], [5 => 1, 6 => 1, 7 => -1, 8 => -1, 10 => 1]], 'function falling through past an else if, PCOV')]
+    #[DataSet(["<?php\n\nfunction need(?int \$a): void\n{\n    \$y = \$a ?? throw new \\LogicException();\n    \\usleep(\$y);\n}", [5 => 1, 6 => 1, 7 => 1], [5 => 1, 6 => 1, 7 => 1]], 'function falling through past ?? throw, PCOV')]
     #[DataSet(["<?php\n\n\$g = function (): void {\n    \$x = 1;\n};", [3 => -1, 4 => 1, 5 => 1], [3 => -1, 4 => 1, 5 => 1]], 'closure falling through, PCOV')]
     #[DataSet(["<?php\n\n\$x = 1;\nif (\$x) {\n    \$y = 2;\n}", [3 => 1, 4 => 1, 5 => 1, 6 => 1], [3 => 1, 4 => 1, 5 => 1]], 'top-level if, Xdebug')]
     #[DataSet(["<?php\n\nfunction one(): int\n{\n    return 1;\n}\n\none();\n?>", [5 => -1, 8 => -1, 9 => -1], [5 => -1, 8 => -1]], 'closing tag, PCOV')]

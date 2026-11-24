@@ -40,7 +40,7 @@ return new ApplicationConfig(
 );
 ```
 
-`src` is the coverage scope: every `.php` file under it that holds code appears in the reports. A file no test loaded is listed with its executable lines uncovered, estimated from its tokens without loading it, so an untested class lowers the total instead of being left out.
+`src` is the coverage scope: every `.php` file under it that holds code appears in the reports. A file no test loaded is listed with its executable lines uncovered, estimated from its tokens without loading it, so an untested class lowers the total instead of being left out. The estimate counts only lines every coverage driver reports, so a file's line count can grow once a test loads it, and reports of several suites merged line by line never keep a line uncovered that the suite loading the file does not report.
 
 Then enable on the CLI:
 
