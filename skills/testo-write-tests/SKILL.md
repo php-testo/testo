@@ -183,7 +183,8 @@ Which skipping tool to reach for:
 | Tool | Decided by | Visibility | Use when |
 |---|---|---|---|
 | `#[Skip('...')]` | code, ahead of time | always reported; reason in JUnit/TeamCity/HTML | the test is knowingly broken, tracked in an issue, and must be returned to |
-| `throw SkipTest` | test body, at runtime | reported when the run gets there | test isn't applicable in this environment |
+| `#[Requires(...)]` | a callable, ahead of the run | reported when unmet | the environment rules the test out (OS, extension, service) |
+| `throw SkipTest` | test body, at runtime | reported when the run gets there | applicability depends on the test's own state |
 | `#[Group]` + `--group=!x` | runner invocation | invisible — filtered out of reports | a category you sometimes don't run |
 
 Runtime contract of `#[Skip]`: the test is reported at the entry of its pipeline, so
@@ -195,6 +196,37 @@ construct it as usual). A run of only `#[Skip]`-marked tests is a success (exit 
 applies to plain tests only: on a `#[Bench]` or `#[TestInline]` target it is inert — the benchmark
 or inline case runs as usual. The `testo/skip` plugin (`Testo\Skip\SkipPlugin`) is part of the
 default suite plugins; it is what tells the lifecycle hooks about the skip ahead of the run.
+
+## Running a test only where it can run: #[Requires]
+
+When the environment rules a test out (OS, extension, external service), declare the requirement
+with `Testo\Requires` from the same `testo/skip` plugin. The test runs when the callable returns
+`true` and is reported as `Status::Skipped` otherwise:
+
+```php
+use Testo\Requires;
+
+#[Requires([self::class, 'hasDocker'], 'needs a Docker daemon')]
+public function startsContainer(): void { /* ... */ }
+
+private static function hasDocker(): bool { /* ... */ }
+```
+
+The message reads `{testId} is skipped: requirement {Class}::hasDocker() is not met`, extended
+with ` ==> {reason}` when a reason is given. The callable takes no arguments. Attribute arguments
+must be constant expressions, so it is a static method as `[Foo::class, 'method']` or
+`'Foo::method'` (any visibility: a private helper works; `'self::method'` means the test class), a
+bare name (`'hasDocker'` — a static method of the test class when it has one, as with
+`#[DataProvider]`, otherwise a function; `'extension_loaded'` does not fit — it needs an argument),
+or, on PHP 8.5+, a `static function () { ... }` closure or a first-class callable `hasDocker(...)`;
+PHP rejects arrow functions there.
+
+The attribute is repeatable and every requirement has to be met; class-level requirements (inherited
+from parents and traits) add up with the method's own. They are checked ahead of the run, a
+method-level one once per test and a class-level one once per case (so a slow probe there runs
+once), and an unmet one keeps the test out of its pipeline exactly like `#[Skip]`. A `#[Skip]` on
+the same test wins and no requirement is checked. A requirement that throws or returns anything but
+a bool (`'php_sapi_name'` returns a string) reports the test as `Status::Aborted`.
 
 ## Tests that intentionally perform no assertions
 

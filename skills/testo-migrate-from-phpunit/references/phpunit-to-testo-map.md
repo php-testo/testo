@@ -80,7 +80,7 @@ helper's frame; a test method is never marked, since Testo would stop running it
 | `@group slow` / `#[Group('slow')]` | `#[Group('slow')]` from **`Testo\Filter\Group`**. Not repeatable — merge: `#[Group('slow','db')]`. Class-level groups are inherited (union with the method's). Select `--group=slow`, exclude `--group=!slow`. |
 | `#[Repeat($times, $threshold)]` (PHPUnit 13.3+) | `#[\Testo\Repeat(times: $times, maxFailures: $threshold - 1)]` — `failureThreshold` (aborting count) → `maxFailures` (tolerated count), off by one; default `1` → omitted. |
 | `#[Retry($maxAttempts)]` (PHPUnit 13.3+) | `#[\Testo\Retry(maxAttempts: $maxAttempts)]`. |
-| `@requires ext` | Suite separation in `testo.php` via `SuiteConfig` + finder excludes. |
+| `@requires` / `#[RequiresPhpExtension]`, `#[RequiresOperatingSystem]`, … | `#[\Testo\Requires([self::class, 'hasExt'], 'reason')]` with a private static helper returning the check (`\extension_loaded('x')`, `\PHP_OS_FAMILY === 'Linux'`); the test is reported as Skipped when it returns `false`. Not converted by Rector. Whole groups of environment-bound tests can instead be split into their own suite in `testo.php`. |
 | `phpunit.xml` | `testo.php` (a real PHP file returning `ApplicationConfig`). Generate it with `vendor/bin/testo init` (scans `tests/` for suite folders); hand-tune per `testo-configure`. |
 
 ## Worked example
