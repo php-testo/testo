@@ -36,14 +36,9 @@ final class UnloadedFilesTest
     #[AfterTest]
     public function removeRoot(): void
     {
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->root, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST,
-        );
-        foreach ($files as $file) {
-            !$file->isLink() && $file->isDir() ? \rmdir($file->getPathname()) : \unlink($file->getPathname());
-        }
-        \rmdir($this->root);
+        // `src` goes first: its link must not outlive the target, since a dangling link fails any stat under php-vcr.
+        self::removeTree($this->root . '/src');
+        self::removeTree($this->root);
     }
 
     public function addsUnloadedFileWithEveryLineUnexecuted(): void
@@ -121,5 +116,17 @@ final class UnloadedFilesTest
         \file_put_contents($this->root . '/' . $relative, $content);
 
         return (string) \realpath($this->root . '/' . $relative);
+    }
+
+    private static function removeTree(string $dir): void
+    {
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($files as $file) {
+            !$file->isLink() && $file->isDir() ? \rmdir($file->getPathname()) : \unlink($file->getPathname());
+        }
+        \rmdir($dir);
     }
 }
