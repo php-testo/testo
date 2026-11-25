@@ -12,7 +12,7 @@ require __DIR__ . '/tests/bootstrap.php';
 
 return new ApplicationConfig(
     src: new FinderConfig(
-        ['core', 'plugin', 'bridge'],
+        ['core', 'plugin', 'bridge', 'coverage-probe/src'],
         [
             'bridge/double/tests',
             'bridge/mockery/tests',
@@ -83,6 +83,7 @@ return new ApplicationConfig(
         require 'tests/Common/suites.php',
         require 'tests/Output/suites.php',
         require 'tests/Tokenizer/suites.php',
+        require 'coverage-probe/suites.php',
     ),
     plugins: [new InjectPlugin()],
 );
