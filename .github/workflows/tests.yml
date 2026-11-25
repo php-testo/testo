@@ -68,7 +68,7 @@ jobs:
           dependency-versions: ${{ matrix.dependencies }}
           paths: core plugin bridge tests testo.php
 
-      # Bin tools carry deps with a higher PHP floor than the matrix (e.g. tools/double).
+      # Bin tools carry deps with a higher PHP floor than the matrix (e.g. vendor-bin/double).
       # They install everywhere but only load where the platform allows, so ignore the check.
       - name: Install bin tools
         run: composer bin all install --ignore-platform-req=php

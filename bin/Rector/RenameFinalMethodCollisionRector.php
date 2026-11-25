@@ -26,7 +26,7 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  * which TestCase/Assert declare `final`. The method (and every `$this->`/`self::`/`static::` call to
  * it within the same class) is renamed by appending `_` until the name no longer collides and is
  * free in the class. The final method names are injected via configuration (the rector config reads
- * them by reflection from the isolated tools/phpunit install at boot — native reflection inside a
+ * them by reflection from the isolated vendor-bin/phpunit install at boot — native reflection inside a
  * running rule is unreliable, returning an empty set).
  *
  * Only classes that already extend `\PHPUnit\Framework\TestCase` are touched (run after

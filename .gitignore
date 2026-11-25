@@ -5,9 +5,6 @@
 /runtime/
 /vendor/
 /tests/PhpUnit/
-/tools/*/vendor/
-/tools/*/.agents/
-/tools/*/.claude/
 /.env
 *.log
 *.exe

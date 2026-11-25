@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-    Psalm config lives under tools/psalm/, next to its isolated Psalm install. resolveFromConfigFile
+    Psalm config lives under vendor-bin/psalm/, next to its isolated Psalm install. resolveFromConfigFile
     is off so the base directory stays the project root (where `composer psalm` runs), not this
     folder: projectFiles paths and the baseline's <file src> entries therefore remain root-relative
     and need no rewriting. errorBaseline is given relative to that root. The XSD in schemaLocation is
@@ -19,7 +19,7 @@
     findUnusedCode="false"
     ensureArrayStringOffsetsExist="true"
     addParamDefaultToDocblockType="true"
-    errorBaseline="tools/psalm/psalm-baseline.xml"
+    errorBaseline="vendor-bin/psalm/psalm-baseline.xml"
 >
     <projectFiles>
         <directory name="core" />

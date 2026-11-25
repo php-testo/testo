@@ -25,13 +25,13 @@ $root = \str_replace('\\', '/', \dirname(__DIR__));
 $covDir = $argv[1] ?? 'runtime/phpunit-cov';
 $covDir = \rtrim(\str_replace('\\', '/', $covDir), '/');
 
-$phpunit = $root . '/tools/phpunit/vendor/phpunit/phpunit/phpunit';
+$phpunit = $root . '/vendor-bin/phpunit/vendor/phpunit/phpunit/phpunit';
 
 $command = \array_map('escapeshellarg', [
     \PHP_BINARY,
     $phpunit,
     '--configuration',
-    $root . '/tools/phpunit/phpunit.xml',
+    $root . '/vendor-bin/phpunit/phpunit.xml',
     // Keep the report lean and reproducible: drop the per-file source token dump, and never let a
     // stale test-result cache reorder or skip cases (matches how Infection drives PHPUnit).
     '--exclude-source-from-xml-coverage',

@@ -25,7 +25,7 @@
             "../../bridge/vcr/src"
         ]
     },
-    "bootstrap": "tools/phpunit/infection-bootstrap.php",
+    "bootstrap": "vendor-bin/phpunit/infection-bootstrap.php",
     "timeout": 10,
     "testFramework": "phpunit",
     "phpUnit": {

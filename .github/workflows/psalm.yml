@@ -4,16 +4,16 @@ on:
   push:
     paths:
       - 'core/**'
-      - 'tools/psalm/psalm.xml'
-      - 'tools/psalm/composer.json'
+      - 'vendor-bin/psalm/psalm.xml'
+      - 'vendor-bin/psalm/composer.json'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/psalm.yml'
   pull_request:
     paths:
       - 'core/**'
-      - 'tools/psalm/psalm.xml'
-      - 'tools/psalm/composer.json'
+      - 'vendor-bin/psalm/psalm.xml'
+      - 'vendor-bin/psalm/composer.json'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/psalm.yml'

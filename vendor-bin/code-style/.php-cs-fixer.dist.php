@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// This config lives under tools/code-style/, next to its isolated php-cs-fixer install: the
+// This config lives under vendor-bin/code-style/, next to its isolated php-cs-fixer install: the
 // autoloader sits alongside it, and the __DIR__-based source paths reach the project root with ../../.
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -41,6 +41,6 @@ foreach (expandWildcardDirs(
 
 return $builder
     // Keep the cache in the root runtime/ (git-ignored); the default is relative to this config's
-    // own directory, which would otherwise litter tools/code-style/ with an untracked cache file.
+    // own directory, which would otherwise litter vendor-bin/code-style/ with an untracked cache file.
     ->cache(__DIR__ . '/../../runtime/php-cs-fixer.cache')
     ->build();

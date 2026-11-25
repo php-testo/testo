@@ -37,14 +37,14 @@ return static function (RectorConfig $rectorConfig): void {
 
 /**
  * Every `final` method PHPUnit's TestCase inherits, read by reflection from the isolated
- * tools/phpunit install. Done here at config-boot (plain PHP) rather than inside the rule, where
+ * vendor-bin/phpunit install. Done here at config-boot (plain PHP) rather than inside the rule, where
  * native reflection of TestCase is unreliable.
  *
  * @return list<string>
  */
 function finalTestCaseMethods(): array
 {
-    require_once __DIR__ . '/../tools/phpunit/vendor/autoload.php';
+    require_once __DIR__ . '/../vendor-bin/phpunit/vendor/autoload.php';
 
     $names = [];
     foreach ((new \ReflectionClass(\PHPUnit\Framework\TestCase::class))->getMethods() as $method) {
