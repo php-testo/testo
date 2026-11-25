@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.62](https://github.com/php-testo/testo/compare/0.10.61...0.10.62) (2026-11-25)
+
+
+### Bug Fixes
+
+* **codecov:** count only lines every driver reports for files no test loaded ([5b05dab](https://github.com/php-testo/testo/commit/5b05dabb7be4ad173aa90538ddb96bbfab402bf8))
+* **core:** require `ext-filter` and keep `false` out of environment versions ([a043bd4](https://github.com/php-testo/testo/commit/a043bd4dc0fca379dfd729ca689ff06694e9300c))
+* **skills:** narrow the `testo-run-tests` activation condition ([#453](https://github.com/php-testo/testo/issues/453)) ([63203d1](https://github.com/php-testo/testo/commit/63203d18fc1fc33a4f71746d31329bd379d4df41)), closes [#451](https://github.com/php-testo/testo/issues/451)
+
 ## [0.10.61](https://github.com/php-testo/testo/compare/0.10.60...0.10.61) (2026-11-23)
 
 
