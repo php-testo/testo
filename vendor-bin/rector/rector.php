@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPublicMethodParameterRector;
 
-// This config lives under tools/rector/, next to Rector's isolated install, so its __DIR__-based
+// This config lives under vendor-bin/rector/, next to Rector's isolated install, so its __DIR__-based
 // paths reach back to the project root with ../../.
 return RectorConfig::configure()
     ->withPaths([

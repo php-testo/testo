@@ -6,7 +6,7 @@ on:
       - 'core/**'
       - 'plugin/**'
       - 'bridge/**'
-      - 'tools/rector/rector.php'
+      - 'vendor-bin/rector/rector.php'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/rector.yml'
@@ -15,7 +15,7 @@ on:
       - 'core/**'
       - 'plugin/**'
       - 'bridge/**'
-      - 'tools/rector/rector.php'
+      - 'vendor-bin/rector/rector.php'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/rector.yml'
@@ -46,7 +46,7 @@ jobs:
         with:
           dependency-versions: highest
 
-      # rector is isolated in tools/rector; bin-links put its binary on vendor/bin.
+      # rector is isolated in vendor-bin/rector; bin-links put its binary on vendor/bin.
       - name: Install bin tools
         run: composer bin all install --ignore-platform-req=php
 

@@ -177,14 +177,14 @@
         "bamarni-bin": {
             "bin-links": true,
             "forward-command": false,
-            "target-directory": "tools"
+            "target-directory": "vendor-bin"
         }
     },
     "scripts": {
-        "cs:diff": "php-cs-fixer fix --dry-run -v --diff --config=tools/code-style/.php-cs-fixer.dist.php",
-        "cs:fix": "php-cs-fixer fix -v --config=tools/code-style/.php-cs-fixer.dist.php",
-        "rector": "rector --config=tools/rector/rector.php",
-        "rector:ci": "rector --config=tools/rector/rector.php --dry-run --clear-cache --no-progress-bar",
+        "cs:diff": "php-cs-fixer fix --dry-run -v --diff --config=vendor-bin/code-style/.php-cs-fixer.dist.php",
+        "cs:fix": "php-cs-fixer fix -v --config=vendor-bin/code-style/.php-cs-fixer.dist.php",
+        "rector": "rector --config=vendor-bin/rector/rector.php",
+        "rector:ci": "rector --config=vendor-bin/rector/rector.php --dry-run --clear-cache --no-progress-bar",
         "infect": [
             "@putenv TESTO_CI=1",
             "@putenv XDEBUG_MODE=coverage",
@@ -201,21 +201,21 @@
             "@composer dump-autoload --quiet",
             "rector process --config=bin/rector-phpunit-build.php --no-diffs --no-progress-bar"
         ],
-        "phpunit": "phpunit --configuration tools/phpunit/phpunit.xml",
+        "phpunit": "phpunit --configuration vendor-bin/phpunit/phpunit.xml",
         "infect:phpunit": [
             "@putenv XDEBUG_MODE=coverage",
             "@php bin/phpunit-coverage.php runtime/phpunit-cov",
-            "infection --configuration=tools/phpunit/infection.phpunit.json --coverage=../../runtime/phpunit-cov --skip-initial-tests --threads=max --min-msi=0"
+            "infection --configuration=vendor-bin/phpunit/infection.phpunit.json --coverage=../../runtime/phpunit-cov --skip-initial-tests --threads=max --min-msi=0"
         ],
         "infect:phpunit:ci": [
             "@putenv XDEBUG_MODE=coverage",
             "@php bin/phpunit-coverage.php runtime/phpunit-cov",
-            "infection --ansi --configuration=tools/phpunit/infection.phpunit.json --coverage=../../runtime/phpunit-cov --skip-initial-tests --logger-github --threads=max --show-mutations=0 --min-msi=0"
+            "infection --ansi --configuration=vendor-bin/phpunit/infection.phpunit.json --coverage=../../runtime/phpunit-cov --skip-initial-tests --logger-github --threads=max --show-mutations=0 --min-msi=0"
         ],
-        "psalm": "psalm -c tools/psalm/psalm.xml",
-        "psalm:baseline": "psalm -c tools/psalm/psalm.xml --set-baseline=tools/psalm/psalm-baseline.xml",
-        "psalm:ci": "psalm -c tools/psalm/psalm.xml --output-format=github --shepherd --show-info=false --stats --threads=4",
-        "structarmed": "structarmed analyse --config=tools/structarmed/structarmed.php --clear-cache",
+        "psalm": "psalm -c vendor-bin/psalm/psalm.xml",
+        "psalm:baseline": "psalm -c vendor-bin/psalm/psalm.xml --set-baseline=vendor-bin/psalm/psalm-baseline.xml",
+        "psalm:ci": "psalm -c vendor-bin/psalm/psalm.xml --output-format=github --shepherd --show-info=false --stats --threads=4",
+        "structarmed": "structarmed analyse --config=vendor-bin/structarmed/structarmed.php --clear-cache",
         "test": "testo",
         "test:ci": [
             "@putenv TESTO_CI=1",

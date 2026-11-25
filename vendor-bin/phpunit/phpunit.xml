@@ -6,7 +6,7 @@
     bridge/rector/README.md "Why Testo -> PHPUnit"). Not the primary test runner —
     `composer test` (Testo) is.
 
-    This config lives under tools/phpunit/, next to its isolated PHPUnit install; its paths are
+    This config lives under vendor-bin/phpunit/, next to its isolated PHPUnit install; its paths are
     therefore relative to this directory. PHPUnit resolves them against the config's own location,
     and Infection rewrites them against `phpUnit.configDir` from infection.phpunit.json.
 

@@ -1,5 +1,5 @@
 {
-    "$schema": "tools/infection/vendor/infection/infection/resources/schema.json",
+    "$schema": "vendor-bin/infection/vendor/infection/infection/resources/schema.json",
     "source": {
         "directories": [
             "core",

@@ -1,0 +1,11 @@
+{
+    "$schema": "https://raw.githubusercontent.com/roxblnfk/skills/master/resources/skills.schema.json",
+    "path-from-root": "vendor-bin/psalm",
+    "target": ".agents/skills",
+    "dependencies": {
+        "composer": {
+            "trusted": ["vimeo/psalm"],
+            "trusted-replace": true
+        }
+    }
+}
