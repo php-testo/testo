@@ -41,7 +41,7 @@ final class UnloadedFilesTest
             \RecursiveIteratorIterator::CHILD_FIRST,
         );
         foreach ($files as $file) {
-            $file->isDir() ? \rmdir($file->getPathname()) : \unlink($file->getPathname());
+            !$file->isLink() && $file->isDir() ? \rmdir($file->getPathname()) : \unlink($file->getPathname());
         }
         \rmdir($this->root);
     }
