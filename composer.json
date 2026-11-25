@@ -29,6 +29,7 @@
     ],
     "require": {
         "php": ">=8.2",
+        "ext-filter": "*",
         "ext-tokenizer": "*",
         "internal/container": "^1.1",
         "internal/destroy": "^1.0",
@@ -65,6 +66,8 @@
         "testo/facade": "^0.1.1"
     },
     "suggest": {
+        "ext-libxml": "Required with ext-simplexml to read configuration from XML.",
+        "ext-simplexml": "Reads configuration from XML.",
         "testo/bridge-double": "Auto-verifies Double mocks, stubs and spies after every test — fiber-safe, no manual verify() calls.",
         "testo/bridge-infection": "Provides integration with Infection PHP mutation testing framework.",
         "testo/bridge-mockery": "Provides integration with the Mockery mocking framework.",

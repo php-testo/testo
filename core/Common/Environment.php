@@ -89,12 +89,13 @@ final class Environment
         }
 
         $skip = true;
-        self::$phpVersion = \phpversion();
+        self::$phpVersion = \PHP_VERSION;
         self::$thread = \PHP_ZTS ? 'ZTS' : 'NTS';
         self::$os = \php_uname('s') . ' ' . \php_uname('r');
         self::$cpu = \php_uname('m');
         self::$xDebugExists = \extension_loaded('xdebug');
-        self::$xDebugVersion = self::$xDebugExists ? \phpversion('xdebug') : null;
+        $xDebugVersion = \phpversion('xdebug');
+        self::$xDebugVersion = $xDebugVersion === false ? null : $xDebugVersion;
         self::$opCacheEnabled = \extension_loaded('Zend OPcache') && \ini_get('opcache.enable_cli') === '1';
         self::$jitEnabled = self::$opCacheEnabled && ((int) \ini_get('opcache.jit_buffer_size')) > 0;
     }
