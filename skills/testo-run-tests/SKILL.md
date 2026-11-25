@@ -1,6 +1,6 @@
 ---
 name: testo-run-tests
-description: 'Run tests with the Testo CLI and act on the result. Use when executing a project''s test suite or a subset (one test, one file, one suite, a group), when verifying a change didn''t break tests, or when parsing a Testo run report. Triggers: "run the tests", "does it pass", "run only X", "re-run the failing test".'
+description: Use only when you are about to run or rerun tests with Testo. Covers test selection, CLI options, and interpreting the result.
 ---
 
 # Running Testo tests
