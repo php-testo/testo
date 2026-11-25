@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/php-testo/testo/compare/codecov-0.2.5...codecov-0.2.6) (2026-11-25)
+
+
+### Bug Fixes
+
+* **codecov:** count only lines every driver reports for files no test loaded ([5b05dab](https://github.com/php-testo/testo/commit/5b05dabb7be4ad173aa90538ddb96bbfab402bf8))
+
 ## [0.2.5](https://github.com/php-testo/testo/compare/codecov-0.2.4...codecov-0.2.5) (2026-10-13)
 
 
