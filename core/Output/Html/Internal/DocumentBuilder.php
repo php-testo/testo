@@ -21,6 +21,7 @@ use Testo\Core\Value\Summary;
 use Testo\Data\MultipleResult;
 use Testo\Filter\Group;
 use Testo\Output\Rendering\BenchMapper;
+use Testo\Output\Rendering\MetadataMapper;
 use Testo\Retry;
 
 /**
@@ -39,7 +40,8 @@ use Testo\Retry;
  * Plugin data is read where the plugin already leaves it, guarded by `class_exists` so a project that
  * installed none of them still gets a report: data sets come from {@see MultipleResult}, assertion
  * counts from {@see Summary::$metrics}, benchmarks from the test's own return value, and diffs from an
- * assertion failure that carries both sides.
+ * assertion failure that carries both sides. Metadata is a field of every result, present only where a test
+ * reported some.
  *
  * @internal
  */
@@ -566,6 +568,9 @@ final readonly class DocumentBuilder
             $data['bench'] = BenchMapper::map($bench);
         }
 
+        $metadata = MetadataMapper::map($result);
+        $metadata === [] or $data['metadata'] = $metadata;
+
         $output = $this->messages($result->messages, $channels);
         $output['messages'] === [] or $data['messages'] = $output['messages'];
         $output['truncated'] === null or $data['truncated'] = ['messages' => $output['truncated']];
@@ -669,6 +674,9 @@ final readonly class DocumentBuilder
                 $bench = $set->result;
                 $data['bench'] = BenchMapper::map($bench);
             }
+
+            $metadata = MetadataMapper::map($set);
+            $metadata === [] or $data['metadata'] = $metadata;
 
             $output = $this->messages($set->messages, $channels);
             $output['messages'] === [] or $data['messages'] = $output['messages'];

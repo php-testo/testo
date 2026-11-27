@@ -7,11 +7,6 @@ namespace Tests\Output\Unit\Teamcity;
 use Internal\Path;
 use Testo\Assert;
 use Testo\Assert\State\Assertion\AssertionException;
-use Testo\Bench\Dto\BenchResult;
-use Testo\Bench\Dto\CaseSet;
-use Testo\Bench\Dto\Line;
-use Testo\Bench\Dto\Snap;
-use Testo\Bench\Dto\ValueRel;
 use Testo\Assert\State\Assertion\ComparisonFailure;
 use Testo\Codecov\Covers;
 use Testo\Core\Context\CaseInfo;
@@ -29,6 +24,12 @@ use Testo\Core\Exception\CancelTest;
 use Testo\Core\Exception\SkipTest;
 use Testo\Core\Log\Level;
 use Testo\Core\Log\Message;
+use Testo\Core\Metadata\Metadata;
+use Testo\Core\Metadata\MetadataEntry;
+use Testo\Core\Metric\Memory;
+use Testo\Core\Metric\Percent;
+use Testo\Core\Metric\Time;
+use Testo\Metric\Metric;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 use Testo\Core\Report\ReportInfo;
@@ -83,21 +84,42 @@ final class TeamcityLoggerTest
         Assert::string($output)->notContains("actual='");
     }
 
-    public function handleSingleTestResultPublishesBenchMetricsAsMetadataBeforeTheTestCloses(): void
+    public function handleSingleTestResultPublishesEveryMetadataEntryBeforeTheTestCloses(): void
     {
-        $result = self::makeResult(Status::Passed)->withResult(self::benchResult());
+        $result = self::makeResult(Status::Passed)->withMetadata(self::metadataOfEveryKind());
 
         $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
 
-        Assert::string($output)->contains('##teamcity[testMetadata');
-        Assert::string($output)->contains("name='bench.iterations'");
-        Assert::string($output)->contains("name='bench.shift.meanUs'");
+        Assert::same(\substr_count($output, '##teamcity[testMetadata'), 9);
+        Assert::string($output)->contains("name='count' type='number' value='42'");
+        Assert::string($output)->contains("name='ratio' type='number' value='0.25'");
+        // A time metric is scaled onto `ms`, TeamCity's only time dimension.
+        Assert::string($output)->contains("name='elapsed' type='ms' value='1.5'");
+        Assert::string($output)->contains("name='memory' type='bytes' value='2048'");
+        Assert::string($output)->contains("name='coverage' type='percent' value='87.5'");
+        // Every other kind passes its string through under the TeamCity type of the same name.
+        Assert::string($output)->contains("name='note' type='text' value='hello'");
+        Assert::string($output)->contains("name='docs' type='link' value='https://example.com/docs'");
+        Assert::string($output)->contains("name='log' type='artifact' value='/tmp/run.log'");
+        Assert::string($output)->contains("name='chart' type='image' value='/tmp/chart.png'");
 
         // testFinished closes the node the metadata attaches to, so every metadata line has to precede it.
-        Assert::true(\strpos($output, 'testMetadata') < \strpos($output, 'testFinished'));
+        Assert::true(\strrpos($output, 'testMetadata') < \strpos($output, 'testFinished'));
     }
 
-    public function handleSingleTestResultPublishesNoMetadataForAnOrdinaryTest(): void
+    public function handleSingleTestResultKeepsMetadataInTheOrderItWasAdded(): void
+    {
+        $result = self::makeResult(Status::Passed)->withMetadata(new Metadata([
+            MetadataEntry::text('first', 'a'),
+            MetadataEntry::text('second', 'b'),
+        ]));
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::true(\strpos($output, "name='first'") < \strpos($output, "name='second'"));
+    }
+
+    public function handleSingleTestResultPublishesNoMetadataWhenTheResultHasNone(): void
     {
         $output = self::capture(
             static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult(self::makeResult(Status::Passed)),
@@ -106,9 +128,22 @@ final class TeamcityLoggerTest
         Assert::string($output)->notContains('testMetadata');
     }
 
-    public function handleSingleTestResultAttachesDataSetBenchMetricsToTheOverriddenName(): void
+    public function handleSingleTestResultPublishesMetadataOfAFailedTestBeforeTheTestCloses(): void
     {
-        $result = self::makeResult(Status::Passed)->withResult(self::benchResult());
+        $result = self::makeFailedResult(new \RuntimeException('boom'))
+            ->withMetadata(new Metadata([MetadataEntry::number('count', 1)]));
+
+        $output = self::capture(static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result));
+
+        Assert::string($output)->contains("name='count'");
+        Assert::true(\strpos($output, 'testMetadata') < \strpos($output, 'testFailed'));
+        Assert::true(\strpos($output, 'testMetadata') < \strpos($output, 'testFinished'));
+    }
+
+    public function handleSingleTestResultAttachesDataSetMetadataToTheOverriddenName(): void
+    {
+        $result = self::makeResult(Status::Passed)
+            ->withMetadata(new Metadata([MetadataEntry::number('count', 1)]));
 
         $output = self::capture(
             static fn(TeamcityLogger $logger) => $logger->handleSingleTestResult($result, null, 'shiftVsPush#0:1'),
@@ -116,8 +151,8 @@ final class TeamcityLoggerTest
 
         // A data-set run reports under the set's name, so its metadata has to carry that name too, not the
         // bare method's.
-        Assert::string($output)->contains('##teamcity[testMetadata');
-        Assert::string($output)->contains("testName='shiftVsPush#0:1'");
+        Assert::string($output)->contains("##teamcity[testMetadata testName='shiftVsPush#0:1'");
+        Assert::string($output)->notContains("testMetadata testName='passingTest'");
     }
 
     public function handleFailedTestRendersPreviousThrowableMessageInDetails(): void
@@ -742,25 +777,19 @@ final class TeamcityLoggerTest
         );
     }
 
-    private static function benchResult(): BenchResult
+    private static function metadataOfEveryKind(): Metadata
     {
-        return new BenchResult(
-            cases: [new CaseSet('shift', [new Snap(calls: 20, memory: 0, time: 5.1)])],
-            results: [],
-            lines: [
-                new Line(
-                    place: 1,
-                    name: 'shift',
-                    avg: new ValueRel(5.1, 0.0),
-                    med: new ValueRel(5.1, 0.0),
-                    rstdev: 2.0,
-                    favg: new ValueRel(5.1, 0.0),
-                    frstdev: 2.0,
-                    rejected: 0,
-                    reports: [],
-                ),
-            ],
-        );
+        return new Metadata([
+            MetadataEntry::number('count', 42),
+            MetadataEntry::number('ratio', 0.25),
+            MetadataEntry::number('elapsed', new Metric(1_500, Time::Microseconds)),
+            MetadataEntry::number('memory', new Metric(2, Memory::Kibibytes)),
+            MetadataEntry::number('coverage', new Metric(87.5, Percent::Percent)),
+            MetadataEntry::text('note', 'hello'),
+            MetadataEntry::link('docs', 'https://example.com/docs'),
+            MetadataEntry::artifact('log', '/tmp/run.log'),
+            MetadataEntry::image('chart', '/tmp/chart.png'),
+        ]);
     }
 
     /**

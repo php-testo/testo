@@ -6,6 +6,7 @@ namespace Testo\Core\Context;
 
 use Testo\Core\Internal\Attributed;
 use Testo\Core\Log\MessageLog;
+use Testo\Core\Metadata\Metadata;
 use Testo\Core\Value\Status;
 use Testo\Core\Value\Summary;
 
@@ -20,6 +21,7 @@ final readonly class TestResult
      * @param array<non-empty-string, mixed> $attributes
      * @param MessageLog $messages Messages (output and other channels) recorded during the test.
      * @param Summary $summary Statistics of this test (counts, plugin metrics, duration).
+     * @param Metadata $metadata Values the test reports beside its status, rendered by every reporter.
      */
     public function __construct(
         public TestInfo $info,
@@ -29,6 +31,7 @@ final readonly class TestResult
         public array $attributes = [],
         public MessageLog $messages = new MessageLog(),
         public Summary $summary = new Summary(),
+        public Metadata $metadata = new Metadata(),
     ) {}
 
     public function with(
@@ -43,6 +46,7 @@ final readonly class TestResult
             attributes: $this->attributes,
             messages: $messages ?? $this->messages,
             summary: $this->summary,
+            metadata: $this->metadata,
         );
     }
 
@@ -64,5 +68,10 @@ final readonly class TestResult
     public function withMessages(MessageLog $messages): self
     {
         return $this->cloneWith('messages', $messages);
+    }
+
+    public function withMetadata(Metadata $metadata): self
+    {
+        return $this->cloneWith('metadata', $metadata);
     }
 }

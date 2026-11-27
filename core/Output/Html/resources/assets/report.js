@@ -728,6 +728,10 @@
         if (test.failure) { out += '<div class="section"><h4>Failure</h4>' + failureHtml(test.failure) + '</div>'; }
         if (test.attempts) { out += attemptsSection(test); }
         if (test.dataSets) { out += dataSetsSection(test); }
+        if (test.metadata) {
+            out += '<div class="section"><h4>Metadata <span style="font-weight:400">'
+                + test.metadata.length + '</span></h4>' + metadataHtml(test.metadata) + '</div>';
+        }
         if (test.bench) { out += '<div class="section"><h4>Benchmark</h4>' + benchHtml(test.bench) + '</div>'; }
         out += outputSection(test);
 
@@ -821,8 +825,74 @@
                     + '<td class="num">' + dur(set.duration) + '</td>'
                     + '</tr>'
                     + (set.failure ? '<tr><td></td><td colspan="4" style="padding-bottom:12px">'
-                        + failureHtml(set.failure) + '</td></tr>' : '');
+                        + failureHtml(set.failure) + '</td></tr>' : '')
+                    + (set.metadata ? '<tr><td></td><td colspan="4" style="padding-bottom:12px">'
+                        + metadataHtml(set.metadata) + '</td></tr>' : '');
             }).join('') + '</tbody></table></div>';
+    }
+
+    /**
+     * Metadata entries in the order the test added them. Every value is escaped; a location becomes a
+     * link or an image only through {@see metadataUrl}, which never lets a script URL through.
+     */
+    function metadataHtml(entries) {
+        return '<dl class="meta-list">' + entries.map(function (e) {
+            return '<dt title="' + esc(e.name) + '">' + esc(e.name) + '</dt><dd>' + metadataValue(e) + '</dd>';
+        }).join('') + '</dl>';
+    }
+
+    function metadataValue(e) {
+        if (e.type === 'number') {
+            return '<span class="meta-num" title="' + esc(e.value + (e.unit ? ' ' + e.unit : '')) + '">'
+                + esc(metadataNumber(e.value, e.unit)) + '</span>';
+        }
+        if (e.type === 'text') { return '<span class="meta-text">' + esc(e.value) + '</span>'; }
+
+        var url = metadataUrl(e.value, e.type === 'image');
+        if (url === null) { return '<span class="meta-text">' + esc(e.value) + '</span>'; }
+
+        var link = '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="' + esc(e.value) + '">';
+        if (e.type === 'image') {
+            return link + '<img class="meta-img" src="' + esc(url) + '" alt="' + esc(e.name) + '" loading="lazy"></a>';
+        }
+        // An artifact is named by its file, a link by its whole address.
+        var label = e.type === 'artifact' ? String(e.value).split(/[\\/]/).pop() || e.value : e.value;
+        return link + esc(label) + '</a>';
+    }
+
+    /** A number in the unit the test reported it in; `number` is dimensionless and shows bare. */
+    function metadataNumber(value, unit) {
+        if (value === null || value === undefined) { return '—'; }
+        var text = Math.round(value) === value ? String(value) : String(Math.round(value * 1000) / 1000);
+        if (!unit || unit === 'number') { return text; }
+        if (unit === 'percent') { return text + '%'; }
+        return text + ' ' + (unit === 'us' ? 'µs' : unit);
+    }
+
+    /**
+     * A location as a URL the report may point at, or null when it must stay text. A URL keeps only the
+     * web and file schemes (and an inline picture for an image), so a `javascript:` value cannot run; a
+     * path becomes a `file://` URL when absolute, and stays relative to the report otherwise.
+     */
+    function metadataUrl(location, image) {
+        var s = String(location === null || location === undefined ? '' : location);
+        if (s === '') { return null; }
+
+        var path = null;
+        if (/^[a-z]:[\\/]/i.test(s)) {
+            path = 'file:///' + s.replace(/\\/g, '/');
+        } else if (s.indexOf('\\\\') === 0) {
+            path = 'file:' + s.replace(/\\/g, '/');
+        } else if (s.charAt(0) === '/') {
+            path = 'file://' + s;
+        } else if (/^[a-z][a-z0-9+.\-]*:/i.test(s)) {
+            if (/^(https?|file):/i.test(s) || (image && /^data:image\//i.test(s))) { return s; }
+            return null;
+        } else {
+            path = s.replace(/\\/g, '/');
+        }
+
+        return encodeURI(path).replace(/#/g, '%23').replace(/\?/g, '%3F');
     }
 
     function outputSection(test) {

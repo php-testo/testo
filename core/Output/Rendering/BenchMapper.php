@@ -23,9 +23,9 @@ use Testo\Bench\Dto\Snap;
  * be trusted. Times stay in microseconds, the unit the plugin measures in — converting here would only add a
  * rounding step for the renderer to undo.
  *
- * Two shapes are offered, because the reporters need different ones: {@see map()} for documents that can
- * hold structure (HTML, JSON), {@see metrics()} for protocols whose vocabulary is a flat list of named
- * numbers (JUnit `<property>`, TeamCity `testMetadata`).
+ * This is the structured shape for documents that can hold it (HTML, JSON). The flat list of named
+ * numbers that JUnit `<property>` and TeamCity `testMetadata` carry is the test's metadata, which the
+ * bench plugin attaches itself.
  *
  * @internal
  */
@@ -74,58 +74,6 @@ final class BenchMapper
             'cases' => $cases,
             'diagnostics' => $diagnostics,
         ];
-    }
-
-    /**
-     * The same numbers flattened into `bench.<case>.<metric>` entries, for protocols that carry metrics
-     * as a flat list of named numbers rather than as a document.
-     *
-     * Unit is part of the key (`meanUs`, `rstdevPct`, `memoryBytes`) because a flat namespace has nowhere
-     * else to record it, and a consumer plotting these has no other way to label an axis.
-     *
-     * @return array<non-empty-string, int|float>
-     */
-    public static function metrics(BenchResult $result): array
-    {
-        $metrics = [
-            'bench.iterations' => $result->cases === [] ? 0 : \count($result->cases[0]->iterations),
-        ];
-
-        /** @var Line $line */
-        foreach ($result->lines as $line) {
-            $set = self::caseSet($result, $line->name);
-            $prefix = "bench.{$line->name}.";
-
-            $metrics[$prefix . 'calls'] = self::callsOf($set);
-            $metrics[$prefix . 'place'] = $line->place;
-            $metrics[$prefix . 'meanUs'] = $line->avg->value;
-            $metrics[$prefix . 'meanDiffPct'] = $line->avg->diff;
-            $metrics[$prefix . 'medianUs'] = $line->med->value;
-            $metrics[$prefix . 'medianDiffPct'] = $line->med->diff;
-            $metrics[$prefix . 'rstdevPct'] = $line->rstdev;
-            $metrics[$prefix . 'filteredMeanUs'] = $line->favg->value;
-            $metrics[$prefix . 'filteredMeanDiffPct'] = $line->favg->diff;
-            $metrics[$prefix . 'filteredRstdevPct'] = $line->frstdev;
-            $metrics[$prefix . 'rejected'] = $line->rejected;
-            $metrics[$prefix . 'memoryBytes'] = self::memoryOf($set);
-        }
-
-        /** @var array<non-empty-string, int|float> */
-        return $metrics;
-    }
-
-    /**
-     * One {@see metrics()} value as text.
-     *
-     * An integer keeps its exact form; a float is written in fixed notation with trailing zeros
-     * trimmed, so a near-zero difference reads as `0.000001` rather than as `1.0E-6` — which a JUnit
-     * consumer or a TeamCity `type='number'` metric would have to special-case.
-     */
-    public static function formatMetric(int|float $value): string
-    {
-        return \is_int($value)
-            ? (string) $value
-            : \rtrim(\rtrim(\sprintf('%.6F', $value), '0'), '.');
     }
 
     /**

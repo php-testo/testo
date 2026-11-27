@@ -1099,6 +1099,30 @@ details.fold > summary:hover { color: var(--ink); }
 .kv-list dt { color: var(--muted); }
 .kv-list dd { margin: 0; font-family: var(--mono); font-size: 12.5px; word-break: break-all; }
 
+/* ---------- metadata ------------------------------------------------------ */
+
+.meta-list {
+    display: grid;
+    grid-template-columns: minmax(120px, max-content) minmax(0, 1fr);
+    gap: 5px 16px;
+    margin: 0;
+    font-size: 12.5px;
+}
+
+.meta-list dt { color: var(--muted); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px; }
+.meta-list dd { margin: 0; min-width: 0; word-break: break-all; }
+.meta-num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.meta-text { white-space: pre-wrap; }
+
+.meta-img {
+    display: block;
+    max-width: 240px;
+    max-height: 160px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+}
+
 .tag {
     display: inline-block;
     font: 11.5px/1 var(--mono);
